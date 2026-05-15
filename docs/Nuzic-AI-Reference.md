@@ -1186,6 +1186,113 @@ if (controls) {
 
 ---
 
+### 3.20 Random Button + Long-Press Menu (`setupRandomMenu`)
+
+**Filosofía Nuzic**: toda app interactiva con parámetros lleva un botón
+de **aleatorización**. No es opcional — forma parte de la identidad
+pedagógica: el usuario debe poder *escuchar un ejemplo* de cualquier
+configuración sin tener que entender todos los parámetros primero. El
+botón siempre va en la fila de controles (`Play · BPM · Random · Reset`)
+y siempre acepta dos gestos:
+
+- **Click corto** → genera valores aleatorios y reproduce automáticamente.
+- **Long-press (≥500ms)** → abre un menú flotante donde el usuario acota
+  los rangos del aleatorio (denominador máximo, número de notas, BPM
+  min/max, etc.). Los rangos del menú son sub-conjuntos de los hard
+  limits estructurales de la app — el usuario puede **estrechar** pero
+  nunca exceder.
+
+#### API: `setupRandomMenu({ spec, onRandomize })`
+
+Helper declarativo en `libs/random/menu.js`. Reemplaza el patrón antiguo
+(HTML del menú escrito a mano en `index.html` + lectura por `getElementById`
+en `handleRandom`) con una sola llamada:
+
+```javascript
+import { setupRandomMenu } from '../../libs/random/menu.js';
+
+const randomMenu = setupRandomMenu({
+  spec: {
+    denomMax: { label: 'Denominador máximo', min: 2, max: 8, default: 8 },
+  },
+  onRandomize: handleRandom,
+});
+
+function handleRandom() {
+  const { denomMax } = randomMenu?.read() ?? { denomMax: MAX_DENOMINATOR };
+  const d = Math.min(denomMax, MAX_DENOMINATOR);  // clamp to hard limit
+  setFraction(randomInt(2, d));
+  if (!isPlaying) playSequence();
+}
+```
+
+`renderApp({ ..., randomMenuContent: '' })` — el helper **inyecta el HTML
+del menú** dentro de `#randomMenu` después del título (`.random-menu-title`),
+así que `randomMenuContent` debe quedar vacío.
+
+Cada entrada del `spec` declara:
+
+- `label` — texto visible al lado del input.
+- `min` / `max` — atributos `min`/`max` del `<input type="number">`.
+- `default` — valor inicial. También se usa como fallback si el input
+  queda vacío o con valor inválido.
+- `type: 'checkbox'` (opcional) — para flags booleanos. El `default` se
+  interpreta como `checked` inicial.
+
+`randomMenu.read()` devuelve un objeto con los valores actuales (con
+`default` aplicado a inputs en blanco o inválidos). Llámalo dentro del
+handler — los valores reflejan el estado vivo del menú.
+
+#### Patrones de spec por familia de app
+
+Cada family de app expone los parámetros que su `handleRandom` realmente
+controla. El menú permite al usuario acotar, no agregar nuevos ejes.
+
+| Family | Spec recomendado |
+|---|---|
+| Timeline simple (App9, App13) | `totalMax: { label: 'Longitud máxima', min: 1, max: MAX_LENGTH, default: MAX_LENGTH }` |
+| Soundline vertical (App10, App14, App18) | `isCount: { label: 'Número de notas', min: 1, max: MAX_IS, default: 6 }` + `regMin/regMax` (si la app tiene registros) + `bpmMin/bpmMax` |
+| Timeline + fracción simple (App26, App28, App30) | `denomMax: { label: 'Denominador máximo', min: 2, max: 8, default: 8 }` |
+| Timeline + fracción compleja (App27, App29, App31) | `numMax: { label: 'Numerador máximo', min: 1, max: 6, default: 6 }` + `denomMax: { label: 'Denominador máximo', min: 2, max: 8, default: 8 }` |
+| Plano 2D + fracción simple (App32, App34) | `denomMax` (+ opcionalmente notes range si es plano-modular multi-registro) |
+| Plano 2D + fracción compleja (App33, App35) | `numMax` + `denomMax` |
+| Registros + BPM (App18) | `regMin` + `regMax` + `notes` + `bpmMin` + `bpmMax` |
+
+#### El handler `handleRandom`
+
+Patrón canónico:
+
+```javascript
+function handleRandom() {
+  if (isPlaying) return;  // ignorar mientras suena
+
+  // 1. Leer valores del menú (con defaults seguros si el menú no existe).
+  const { numMax, denomMax } = randomMenu?.read() ?? {
+    numMax: MAX_NUMERATOR,
+    denomMax: MAX_DENOMINATOR,
+  };
+
+  // 2. Clamp a hard limits — el menú nunca debe exceder los structural.
+  const nMax = Math.min(numMax, MAX_NUMERATOR);
+  const dMax = Math.min(denomMax, MAX_DENOMINATOR);
+
+  // 3. Generar valores respetando invariantes (p.ej. gcd=1 para fracciones reducidas).
+  let n, d;
+  do {
+    n = randomInt(1, nMax);
+    d = randomInt(2, dMax);
+  } while (gcd(n, d) !== 1);
+  setFraction(n, d);
+
+  // 4. Auto-play tras randomizar (consistente en todas las apps 9-35).
+  if (!isPlaying) playSequence();
+}
+```
+
+Los pasos 2 y 4 son obligatorios: clamp al hard limit y auto-play.
+
+---
+
 ## 4. Composable Features
 
 Features are **orthogonal**. Any combination is valid; pick the ones your app
@@ -1301,6 +1408,39 @@ Pluggable below the timeline / grid. Pick based on user input shape:
 Editors are mostly stand-alone modules. The app's `main.js` wires their
 output to the grid/timeline state via callbacks (e.g. `onPairsChange`,
 `syncGridFromPairs`).
+
+---
+
+### 4.8 Random Parameters (mandatory feature)
+
+Every Nuzic app with interactive parameters exposes a **randomization
+button** in the controls row. This is a structural feature, not an
+optional add-on — see §3.20 for the API. What changes per app is *which
+parameters* the long-press menu exposes.
+
+The parameters are derived from what the app's `handleRandom` actually
+mutates. Cross-reference table:
+
+| Feature in the app | Random param exposed in the menu |
+|---|---|
+| Plain timeline length | `totalMax` |
+| Soundline note count | `isCount` (or `notes`) |
+| Multi-octave registers | `regMin` + `regMax` |
+| Tempo (BPM) | `bpmMin` + `bpmMax` |
+| Simple fraction | `denomMax` |
+| Complex fraction | `numMax` + `denomMax` |
+| Scale degrees | `degreeMax` (when relevant) |
+| Pulses-per-measure (compás) | `compasMax` |
+
+**Composition rule**: an app that combines features composes parameters.
+A plano-2D app with complex fraction *and* multi-registers exposes
+`numMax + denomMax + regMin + regMax`. The user can narrow any axis
+independently.
+
+**Hard limits**: the `default` of each `min/max` pair should equal the
+app's `MAX_*` structural constant. The menu lets the user **lower** the
+default, never raise it. Inside `handleRandom`, always clamp:
+`const x = Math.min(menuValue, HARD_MAX)`.
 
 ---
 
@@ -1936,6 +2076,82 @@ This is the canonical pattern of App32-35. Code is the union of Recipes 3
 (or 6 for complex), section 3.7 (triangle corner), section 3.18 (ghost
 dots), and sections 3.6/3.10/3.16 (endcap dret, info pills, halters).
 
+### Recipe 13 — Add Random Menu to Any App
+
+Every Nuzic app must include this. The full skeleton:
+
+**1. `index.html`** — leave `randomMenuContent` empty in `renderApp`:
+
+```javascript
+renderApp({
+  root: document.getElementById('app-root'),
+  // ... other options
+  randomMenuContent: ''   // setupRandomMenu inyectará el HTML
+});
+```
+
+**2. `main.js`** — import + setup + handler:
+
+```javascript
+import { setupRandomMenu } from '../../libs/random/menu.js';
+import { randomInt, gcd } from '../../libs/app-common/number-utils.js';
+
+const MAX_NUMERATOR = 6;
+const MAX_DENOMINATOR = 8;
+
+let randomMenu = null;
+
+function init() {
+  // ... resto de inicialización
+  randomMenu = setupRandomMenu({
+    spec: {
+      numMax:   { label: 'Numerador máximo',   min: 1, max: MAX_NUMERATOR,   default: MAX_NUMERATOR },
+      denomMax: { label: 'Denominador máximo', min: 2, max: MAX_DENOMINATOR, default: MAX_DENOMINATOR },
+    },
+    onRandomize: handleRandom,
+  });
+}
+
+function handleRandom() {
+  if (isPlaying) return;
+
+  const { numMax, denomMax } = randomMenu?.read() ?? {
+    numMax: MAX_NUMERATOR,
+    denomMax: MAX_DENOMINATOR,
+  };
+  const nMax = Math.min(numMax, MAX_NUMERATOR);
+  const dMax = Math.min(denomMax, MAX_DENOMINATOR);
+
+  let n, d;
+  do {
+    n = randomInt(1, nMax);
+    d = randomInt(2, dMax);
+  } while (gcd(n, d) !== 1);
+  setFraction(n, d);
+
+  if (!isPlaying) playSequence();   // auto-play tras randomizar
+}
+```
+
+**3. Anti-patterns** — NUNCA hagas esto:
+
+```javascript
+// ❌ MAL: listener directo duplicado (longpress dispara random Y abre menú).
+randomBtn.addEventListener('click', handleRandom);
+setupRandomMenu({ spec, onRandomize: handleRandom });
+
+// ❌ MAL: omitir el clamp con MAX_*. El usuario podría haber editado el HTML.
+const { denomMax } = randomMenu.read();
+setFraction(randomInt(2, denomMax));  // sin Math.min(denomMax, MAX_DENOMINATOR)
+
+// ❌ MAL: HTML escrito a mano en randomMenuContent.
+renderApp({ randomMenuContent: '<label>...<input id="rand_denomMax">...</label>' });
+```
+
+`setupRandomMenu` ya gestiona el shortpress (random) y el longpress (menú)
+con un único par de listeners pointerdown/pointerup. Es la fuente única
+de verdad.
+
 ### Cross-Recipe: Combining Features
 
 The recipes above cover the most common combinations. For non-standard
@@ -2274,6 +2490,29 @@ if (typeof Tone !== 'undefined' && typeof Tone.start === 'function') {
 const { MelodicTimelineAudio } = await import('../sound/melodic-audio.js');
 const instance = new MelodicTimelineAudio();
 await instance.ready();
+```
+
+### Pitfall 21 — Duplicate `click` listener on `randomBtn` fires random on longpress
+
+- **Symptom**: Long-press del botón Random abre el menú Y dispara la
+  aleatorización simultáneamente. El usuario ve cómo el ejemplo cambia
+  cada vez que intenta abrir las opciones.
+- **Cause**: La app registra un listener directo `randomBtn.addEventListener('click', handleRandom)`
+  AND llama a `setupRandomMenu({ onRandomize: handleRandom })` (o `initRandomMenu`)
+  más abajo. El `click` directo dispara en cada `pointerup`, incluido el
+  que cierra un long-press.
+- **Fix**: Elimina el listener directo. `setupRandomMenu` / `initRandomMenu`
+  ya cablean shortpress (random) + longpress (menú) vía pointerdown/pointerup
+  con guard explícito `pressDuration < longPress * 0.9`. Es la fuente
+  única de verdad.
+
+```javascript
+// ❌ MAL
+randomBtn.addEventListener('click', handleRandom);
+setupRandomMenu({ spec, onRandomize: handleRandom });
+
+// ✅ BIEN
+setupRandomMenu({ spec, onRandomize: handleRandom });
 ```
 
 ---

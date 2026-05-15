@@ -18,8 +18,13 @@ El modelo entrenado debe:
   con apps de música/ritmo (sin necesidad de prompt especial).
 - Componer features de forma libre (plano con/sin compás, con/sin fracción,
   con/sin escalas, etc.) en lugar de copiar apps fijas.
-- Responder en el **idioma de la consulta** del usuario (las pruebas
-  esperan castellano por defecto, pero hay ejemplos en catalán e inglés).
+- **Incluir siempre el botón de aleatorización** (`setupRandomMenu`) en
+  toda app interactiva con parámetros. Es un elemento estructural del
+  sistema Nuzic, no opcional — forma parte de la identidad pedagógica.
+- Responder en el **idioma de la consulta** del usuario. Castellano es el
+  idioma de trabajo del equipo, pero el dataset incluye ejemplos en
+  catalán, inglés, francés, italiano y alemán para que el modelo
+  generalice esta capacidad.
 
 ---
 
@@ -29,8 +34,8 @@ Dos archivos en `docs/`:
 
 | Archivo | Tamaño | Propósito |
 |---|---|---|
-| `Nuzic-AI-Reference.md` | 75 KB / 2 405 líneas | Base de conocimiento canónica. Documento de referencia humano-legible con todos los patterns, recipes y pitfalls. **No es el dataset de entrenamiento**, es la fuente desde la que se derivan los pairs del JSONL. |
-| `nuzic-training.jsonl` | 193 KB / 108 pairs | Dataset de fine-tuning. Una línea = un ejemplo de entrenamiento. Cada línea es un objeto JSON válido con un campo `messages`. |
+| `Nuzic-AI-Reference.md` | ~85 KB / ~2 600 líneas | Base de conocimiento canónica. Documento de referencia humano-legible con todos los patterns, recipes y pitfalls. **No es el dataset de entrenamiento**, es la fuente desde la que se derivan los pairs del JSONL. |
+| `nuzic-training.jsonl` | 227 KB / 132 pairs | Dataset de fine-tuning. Una línea = un ejemplo de entrenamiento. Cada línea es un objeto JSON válido con un campo `messages`. |
 
 ---
 
@@ -105,7 +110,7 @@ lora_config = LoraConfig(
 
 training_args = {
     "learning_rate": 2e-4,
-    "num_train_epochs": 4,                     # 108 examples × 4 = 432 steps
+    "num_train_epochs": 4,                     # 132 examples × 4 = 528 steps
     "per_device_train_batch_size": 2,
     "gradient_accumulation_steps": 4,          # efectivo batch = 8
     "warmup_ratio": 0.03,
@@ -142,17 +147,18 @@ training_args = {
 
 | Métrica | Valor |
 |---|---|
-| Total pairs válidos | 108 |
-| Tamaño JSONL | 193 KB |
-| Tokens estimados (suma user+assistant) | ~108 000 |
+| Total pairs válidos | 132 |
+| Tamaño JSONL | 227 KB |
+| Tokens estimados (suma user+assistant) | ~135 000 |
 | Longitud promedio por par | ~1 000 tokens |
-| Distribución de idiomas (aprox.) | 60% catalán · 15% castellano · 20% inglés · 5% mixto |
+| Distribución de idiomas (aprox.) | 50% catalán · 30% castellano · 12% inglés · 8% otros (francés, italiano, alemán, portugués) |
 
-### Cobertura temática (pairs aproximados):
+### Cobertura temática (pairs aproximados)
 
 - ~28 pairs — Componentes aislados (endcaps, fraction editor, halter, info pills, dots, ghost-pulses, playhead, controls, etc.)
 - ~25 pairs — Apps starter completas (timeline, plano-2D simple, plano-2D complex, soundline vertical, etc.)
 - ~25 pairs — Combinaciones de 2 features
+- ~24 pairs — **Random menu / setupRandomMenu / filosofía de aleatorización** (parámetros por familia de app, pitfalls, API, multi-idioma)
 - ~10 pairs — Combinaciones de 3+ features
 - ~10 pairs — Decisiones/elecciones de biblioteca
 - ~10 pairs — Pitfalls con síntoma/causa/fix
@@ -163,20 +169,23 @@ training_args = {
 
 ### 8.1 Desequilibrio lingüístico (catalán dominante)
 
-El dataset actual tiene más ejemplos en catalán que en castellano (el
-opuesto de lo deseado). **Posible sesgo**: el modelo entrenado puede
-inclinarse a responder en catalán incluso a preguntas en castellano.
+El dataset todavía tiene más ejemplos en catalán que en castellano,
+aunque la nueva batch de aleatorización (24 pairs) corrige parcialmente
+el sesgo. **Distribución actual**: ~50% catalán, ~30% castellano, ~12%
+inglés, ~8% otros (francés, italiano, alemán). **Posible sesgo**: el
+modelo entrenado puede inclinarse a responder en catalán a preguntas
+ambiguas.
 
 **Mitigación**: Si la evaluación muestra este sesgo, generar un batch
 adicional de ~50-100 pairs monolingües en castellano (re-frasear pairs
 existentes traduciéndolos). El código en sí no cambia entre idiomas — solo
 los comentarios y el texto natural de la respuesta.
 
-### 8.2 Dataset pequeño (108 pairs)
+### 8.2 Dataset pequeño (132 pairs)
 
-Para style transfer LoRA típicamente funciona con 100-500 pairs. 108 es el
-mínimo razonable. Si la calidad es insuficiente, ampliar a ~250 pairs
-extrayendo más secciones del Markdown.
+Para style transfer LoRA típicamente funciona con 100-500 pairs. 132 es
+suficiente para una primera iteración. Si la calidad es insuficiente,
+ampliar a ~250 pairs extrayendo más secciones del Markdown.
 
 ### 8.3 Tokens especiales en código
 
@@ -190,7 +199,7 @@ import json
 with open('docs/nuzic-training.jsonl') as f:
     for i, line in enumerate(f, 1):
         json.loads(line.strip())  # validates every line
-print('All 108 lines valid JSON')
+print('All 132 lines valid JSON')
 "
 ```
 
@@ -270,7 +279,7 @@ for section in extract_sections(markdown):
     write_jsonl(pair)
 ```
 
-Esto puede multiplicar los 108 pairs actuales a 200-500 fácilmente. Cada
+Esto puede multiplicar los 132 pairs actuales a 200-500 fácilmente. Cada
 pattern en el Markdown puede generar 2-3 pairs (en distintos idiomas o con
 diferentes framing de la pregunta).
 
@@ -288,4 +297,4 @@ claro, abrir issue / preguntar.
 
 ---
 
-*Generado: 2026-05-15. Versión: 1.0.*
+*Generado: 2026-05-15. Versión: 1.1 (añade 24 pairs de aleatorización + sección Random en Markdown).*
