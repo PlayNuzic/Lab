@@ -163,3 +163,20 @@ html[data-embed="true"] body.app24 {
     overflow-y: auto;
   }
 }
+
+/* Apps de fracció amb nit-editor (App34/App35) i Pfr/iTfr editors
+   (App27/App28/App29/App30/App31): quan l'usuari omple l'editor amb molts
+   valors d'iT=1, el contingut excedeix l'amplada de l'iframe i, sense
+   scroll horitzontal, queda tallat (en standalone hi ha scroll del
+   <body>, que embed.css suprimeix amb `overflow: hidden`). Restaurem
+   scroll horitzontal a `main` per aquestes apps, mantenint el vertical
+   amagat (que ja gestiona la propia app via `.plano-matrix-container`). */
+html[data-embed="true"] body.app27 main,
+html[data-embed="true"] body.app28 main,
+html[data-embed="true"] body.app29 main,
+html[data-embed="true"] body.app30 main,
+html[data-embed="true"] body.app31 main,
+html[data-embed="true"] body.app34 main,
+html[data-embed="true"] body.app35 main {
+  overflow-x: auto;
+}
