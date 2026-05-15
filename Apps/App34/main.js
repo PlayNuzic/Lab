@@ -27,6 +27,7 @@ import { getTotalSubdivisions as _getTotalSubdivs, subdivToPosition as _subdivTo
 import { renderNoteBars, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
+import { setupRandomMenu } from '../../libs/random/menu.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 12;             // 12 pulsos (0-11)
@@ -69,6 +70,7 @@ let noteBars = [];     // Rectangles notes al grid
 
 // Controllers
 let fractionEditorController = null;
+let randomMenu = null;  // Long-press random menu controller (read())
 
 // Drag state
 let dragState = {
@@ -1696,8 +1698,10 @@ function handlePlay() {
 function handleRandom() {
   if (isPlaying) return;
 
-  // Random denominator (2-8)
-  const newD = Math.floor(Math.random() * (MAX_DENOMINATOR - 1)) + 2;
+  // Random denominator from 2 to the longpress-menu cap (default = MAX_DENOMINATOR).
+  const { denomMax } = randomMenu?.read() ?? { denomMax: MAX_DENOMINATOR };
+  const dMax = Math.min(denomMax, MAX_DENOMINATOR);
+  const newD = Math.floor(Math.random() * (dMax - 1)) + 2;
 
   if (fractionEditorController) {
     fractionEditorController.setFraction(
@@ -1763,7 +1767,12 @@ if (playBtn) {
 }
 
 if (randomBtn) {
-  randomBtn.addEventListener('click', handleRandom);
+  randomMenu = setupRandomMenu({
+    spec: {
+      denomMax: { label: 'Denominador máximo', min: 2, max: MAX_DENOMINATOR, default: MAX_DENOMINATOR },
+    },
+    onRandomize: handleRandom,
+  });
 }
 
 if (resetBtn) {

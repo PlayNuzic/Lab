@@ -10,11 +10,13 @@ import { attachHover } from '../../libs/shared-ui/hover.js';
 import { createRegistryController } from '../../libs/sound/registry-controller.js';
 import { getRandomBPM, getRandomRegistry } from '../../libs/sound/melodic-sequence.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { setupRandomMenu } from '../../libs/random/menu.js';
 
 // ========== STATE ==========
 let isPlaying = false;
 let audio = null;
 let soundline = null;
+let randomMenu = null;  // Long-press random menu controller (read())
 let randomNotes = [];
 let currentBPM = 0;
 
@@ -476,11 +478,26 @@ function stopPlayback() {
 }
 
 function generateRandomSequence() {
+  // Llegir el longpress menu (cau a defaults si encara no està cablejat).
+  const cfg = randomMenu?.read() ?? {
+    regMin: MIN_REGISTRO,
+    regMax: MAX_REGISTRO,
+    notes: SEQUENCE_LENGTH,
+    bpmMin: MIN_BPM,
+    bpmMax: MAX_BPM,
+  };
+  // Clamps i ordre dels rangs (per si l'usuari posa min>max).
+  const rMin = Math.max(MIN_REGISTRO, Math.min(cfg.regMin, MAX_REGISTRO));
+  const rMax = Math.max(rMin, Math.min(cfg.regMax, MAX_REGISTRO));
+  const noteCount = Math.max(1, cfg.notes);
+  const bMin = Math.max(MIN_BPM, Math.min(cfg.bpmMin, MAX_BPM));
+  const bMax = Math.max(bMin, Math.min(cfg.bpmMax, MAX_BPM));
+
   const registry = registryController.getRegistry();
 
   // If no registry, randomize both registry and sequence
   if (registry === null) {
-    const newRegistry = getRandomRegistry(MIN_REGISTRO, MAX_REGISTRO);
+    const newRegistry = getRandomRegistry(rMin, rMax);
     registryController.setRegistry(newRegistry);
     if (inputRegistro) {
       inputRegistro.value = newRegistry;
@@ -488,14 +505,14 @@ function generateRandomSequence() {
     console.log(`Random registry: ${newRegistry}`);
   }
 
-  // Generate 6 random notes within registry range (0-12: notes 0-11 + note 0 of next registry)
+  // Generate `noteCount` random notes within registry range (0-12).
   const totalNotes = registryController.getTotalNotes(); // 13
   randomNotes = [];
-  for (let i = 0; i < SEQUENCE_LENGTH; i++) {
+  for (let i = 0; i < noteCount; i++) {
     const note = Math.floor(Math.random() * totalNotes); // 0 to 12
     randomNotes.push(note);
   }
-  currentBPM = getRandomBPM(MIN_BPM, MAX_BPM);
+  currentBPM = getRandomBPM(bMin, bMax);
 
   console.log(`New random: BPM=${currentBPM}, Notes=${randomNotes.join(',')}`);
 }
@@ -583,10 +600,19 @@ function setupEventHandlers() {
     playBtn.addEventListener('click', handlePlay);
   }
 
-  // Random button
+  // Random button — longpress obre el menú de configuració, shortpress randomitza.
   randomBtn = document.getElementById('randomBtn');
   if (randomBtn) {
-    randomBtn.addEventListener('click', handleRandom);
+    randomMenu = setupRandomMenu({
+      spec: {
+        regMin: { label: 'Registro mínimo',   min: MIN_REGISTRO, max: MAX_REGISTRO, default: MIN_REGISTRO },
+        regMax: { label: 'Registro máximo',   min: MIN_REGISTRO, max: MAX_REGISTRO, default: MAX_REGISTRO },
+        notes:  { label: 'Número de notas',   min: 1,            max: 12,           default: SEQUENCE_LENGTH },
+        bpmMin: { label: 'BPM mínimo',        min: MIN_BPM,      max: MAX_BPM,      default: MIN_BPM },
+        bpmMax: { label: 'BPM máximo',        min: MIN_BPM,      max: MAX_BPM,      default: MAX_BPM },
+      },
+      onRandomize: handleRandom,
+    });
   }
 
   // Reset button

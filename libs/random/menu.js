@@ -1,5 +1,132 @@
 import { solidMenuBackground } from '../app-common/utils.js';
 
+/**
+ * Build a long-press random menu from a declarative spec.
+ *
+ * Replaces the per-app pattern of (1) hand-writing the menu's
+ * `<label><input id="...">` HTML inside `randomMenuContent` and
+ * (2) re-reading every `document.getElementById(...)` inside
+ * `handleRandom`. With this helper each app declares its parameters
+ * once and gets back both the HTML to plug into `renderApp` and a
+ * `read()` function that returns the current values, with defaults
+ * applied for blank/invalid inputs.
+ *
+ * @param {Object<string, RandomMenuParam>} spec
+ *   Map of `paramName → { label, min, max, default, type? }`.
+ *   `type` defaults to `'number'`. Use `'checkbox'` for booleans
+ *   (the `default` is the initial checked state).
+ * @returns {{ html: string, read: () => Object<string, number|boolean> }}
+ *
+ * @example
+ *   const random = createRandomMenu({
+ *     denomMax:  { label: 'Denominador máximo', min: 2, max: 8, default: 8 },
+ *     allowSils: { label: 'Permitir silencios', type: 'checkbox', default: true },
+ *   });
+ *   // index.html: renderApp({ ..., randomMenuContent: random.html });
+ *   // main.js handleRandom: const { denomMax, allowSils } = random.read();
+ */
+export function createRandomMenu(spec) {
+  if (!isPlainObject(spec)) {
+    return { html: '', read: () => ({}) };
+  }
+
+  const entries = Object.entries(spec);
+  const ids = {};
+  const html = entries.map(([key, opts]) => {
+    const id = opts.id || `rand_${key}`;
+    ids[key] = id;
+    const type = opts.type || 'number';
+    if (type === 'checkbox') {
+      const checked = opts.default ? ' checked' : '';
+      return `
+        <label class="checkbox-label">
+          <input type="checkbox" id="${id}"${checked}>
+          <span>${opts.label}</span>
+        </label>`;
+    }
+    const min = opts.min != null ? ` min="${opts.min}"` : '';
+    const max = opts.max != null ? ` max="${opts.max}"` : '';
+    const step = opts.step != null ? ` step="${opts.step}"` : '';
+    const value = opts.default != null ? ` value="${opts.default}"` : '';
+    return `
+        <label>
+          <span>${opts.label}</span>
+          <input type="number" id="${id}"${min}${max}${step}${value}>
+        </label>`;
+  }).join('');
+
+  function read() {
+    const out = {};
+    for (const [key, opts] of entries) {
+      const el = document.getElementById(ids[key]);
+      if (!el) {
+        out[key] = opts.default;
+        continue;
+      }
+      if ((opts.type || 'number') === 'checkbox') {
+        out[key] = !!el.checked;
+        continue;
+      }
+      const raw = el.value;
+      const parsed = parseInt(raw, 10);
+      out[key] = Number.isFinite(parsed) ? parsed : opts.default;
+    }
+    return out;
+  }
+
+  return { html, read };
+}
+
+/**
+ * One-shot setup for the long-press random menu of an app:
+ * generates the inputs HTML from `spec`, injects it into `#randomMenu`
+ * (after its `.random-menu-title` heading so the existing header is
+ * preserved), wires the long-press handler with `initRandomMenu`, and
+ * returns a `read()` function the app can call inside its random
+ * handler to pick up the current control values.
+ *
+ * Call it once after `renderApp(...)` from each app's main.js. The
+ * `randomMenuContent` field of `renderApp` should stay empty — this
+ * helper owns the contents of `#randomMenu` (apart from the heading).
+ *
+ * @param {Object} options
+ * @param {Object<string, RandomMenuParam>} options.spec  parameter declarations
+ * @param {Function} options.onRandomize  shortpress handler (your random fn)
+ * @param {string} [options.buttonId='randomBtn']
+ * @param {string} [options.menuId='randomMenu']
+ * @param {number} [options.longPress=500]  ms before longpress fires
+ * @returns {{ read: () => Object<string, number|boolean> } | null}
+ *   Returns `null` if the button or menu can't be found in the DOM.
+ *
+ * @example
+ *   const random = setupRandomMenu({
+ *     spec: {
+ *       denomMax: { label: 'Denominador máximo', min: 2, max: 8, default: 8 },
+ *     },
+ *     onRandomize: handleRandom,
+ *   });
+ *   // handleRandom():
+ *   const { denomMax } = random.read();
+ */
+export function setupRandomMenu({ spec, onRandomize, buttonId = 'randomBtn', menuId = 'randomMenu', longPress = 500 }) {
+  const button = document.getElementById(buttonId);
+  const menu   = document.getElementById(menuId);
+  if (!button || !menu) return null;
+
+  const { html, read } = createRandomMenu(spec);
+
+  // Inject after the existing heading (if any) so the gear/title stays.
+  const heading = menu.querySelector('.random-menu-title');
+  if (heading) {
+    heading.insertAdjacentHTML('afterend', html);
+  } else {
+    menu.insertAdjacentHTML('beforeend', html);
+  }
+
+  initRandomMenu(button, menu, onRandomize, longPress);
+  return { read };
+}
+
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }

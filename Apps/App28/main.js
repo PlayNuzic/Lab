@@ -13,6 +13,7 @@ import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMut
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { randomInt } from '../../libs/app-common/number-utils.js';
+import { setupRandomMenu } from '../../libs/random/menu.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
@@ -47,6 +48,7 @@ let fractionEditorController = null;
 let pulseToggleController = null;
 let selectedToggleController = null;
 let cycleToggleController = null;
+let randomMenu = null;  // Long-press random menu controller (read())
 
 // Storage keys
 const PULSE_AUDIO_KEY = 'pulseAudio';
@@ -1342,8 +1344,9 @@ async function stopPlayback() {
  * Selects random valid pulses (integers + subdivisions)
  */
 function randomize() {
-  // 1. Random denominator between 2 and MAX_DENOMINATOR
-  const newD = randomInt(2, MAX_DENOMINATOR);
+  // 1. Random denominator between 2 and the longpress-menu cap (default = MAX_DENOMINATOR).
+  const { denomMax } = randomMenu?.read() ?? { denomMax: MAX_DENOMINATOR };
+  const newD = randomInt(2, Math.min(denomMax, MAX_DENOMINATOR));
   currentDenominator = newD;
 
   if (fractionEditorController && typeof fractionEditorController.setFraction === 'function') {
@@ -1413,7 +1416,13 @@ playBtn?.addEventListener('click', async () => {
   }
 });
 
-randomBtn?.addEventListener('click', randomize);
+// Long-press random menu (shortpress = randomize, longpress = open settings).
+randomMenu = setupRandomMenu({
+  spec: {
+    denomMax: { label: 'Denominador máximo', min: 2, max: MAX_DENOMINATOR, default: MAX_DENOMINATOR },
+  },
+  onRandomize: randomize,
+});
 resetBtn?.addEventListener('click', handleReset);
 
 // ========== INITIALIZATION ==========

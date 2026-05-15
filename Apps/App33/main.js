@@ -34,6 +34,7 @@ import { renderGhostPulseLines } from '../../libs/plano-fraccion/ghost-pulse.js'
 import { gcd } from '../../libs/app-common/number-utils.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
+import { setupRandomMenu } from '../../libs/random/menu.js';
 
 // ========== CONSTANTS ==========
 const BASE_LG = 12;              // Reference length (max pulses)
@@ -80,6 +81,7 @@ let noteBars = [];     // Rectangles notes al grid
 
 // Controllers
 let fractionEditorController = null;
+let randomMenu = null;  // Long-press random menu controller (read())
 
 // Drag state
 let dragState = {
@@ -1166,11 +1168,15 @@ function handlePlay() {
 function handleRandom() {
   if (isPlaying) return;
 
-  // Random reduced fraction n/d with n in [MIN..MAX_N], d in [MIN..MAX_D].
+  // Random reduced fraction n/d with n in [MIN..nMax], d in [MIN..dMax] —
+  // the longpress menu caps each independently (defaults = MAX_*).
+  const { numMax, denomMax } = randomMenu?.read() ?? { numMax: MAX_NUMERATOR, denomMax: MAX_DENOMINATOR };
+  const nMax = Math.min(numMax, MAX_NUMERATOR);
+  const dMax = Math.min(denomMax, MAX_DENOMINATOR);
   let newN, newD;
   do {
-    newN = Math.floor(Math.random() * (MAX_NUMERATOR - MIN_NUMERATOR + 1)) + MIN_NUMERATOR;
-    newD = Math.floor(Math.random() * (MAX_DENOMINATOR - MIN_DENOMINATOR + 1)) + MIN_DENOMINATOR;
+    newN = Math.floor(Math.random() * (nMax - MIN_NUMERATOR + 1)) + MIN_NUMERATOR;
+    newD = Math.floor(Math.random() * (dMax - MIN_DENOMINATOR + 1)) + MIN_DENOMINATOR;
   } while (gcd(newN, newD) !== 1);
 
   if (fractionEditorController) {
@@ -1237,7 +1243,13 @@ if (playBtn) {
 }
 
 if (randomBtn) {
-  randomBtn.addEventListener('click', handleRandom);
+  randomMenu = setupRandomMenu({
+    spec: {
+      numMax:   { label: 'Numerador máximo',   min: MIN_NUMERATOR,   max: MAX_NUMERATOR,   default: MAX_NUMERATOR },
+      denomMax: { label: 'Denominador máximo', min: MIN_DENOMINATOR, max: MAX_DENOMINATOR, default: MAX_DENOMINATOR },
+    },
+    onRandomize: handleRandom,
+  });
 }
 
 if (resetBtn) {

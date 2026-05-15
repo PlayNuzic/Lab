@@ -14,6 +14,7 @@ import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMut
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { randomInt, gcd } from '../../libs/app-common/number-utils.js';
+import { setupRandomMenu } from '../../libs/random/menu.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { isIntegerPulseSelectable, isPulseRemainder } from '../../libs/app-common/pulse-selectability.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
@@ -52,6 +53,7 @@ let fractionEditorController = null;
 let pulseToggleController = null;
 let selectedToggleController = null;
 let cycleToggleController = null;
+let randomMenu = null;  // Long-press random menu controller (read())
 
 // Storage keys
 const PULSE_AUDIO_KEY = 'pulseAudio';
@@ -1418,11 +1420,14 @@ async function stopPlayback() {
  * Selects random valid pulses (selectable integers + their subdivisions)
  */
 function randomize() {
-  // 1. Random numerator (2-6) and denominator (2-8), only reduced fractions (gcd = 1)
+  // 1. Random numerator (1..numMax) and denominator (2..denomMax), only reduced fractions (gcd = 1).
+  const { numMax, denomMax } = randomMenu?.read() ?? { numMax: MAX_NUMERATOR, denomMax: MAX_DENOMINATOR };
+  const nMax = Math.min(numMax, MAX_NUMERATOR);
+  const dMax = Math.min(denomMax, MAX_DENOMINATOR);
   let newN, newD;
   do {
-    newN = randomInt(MIN_NUMERATOR, MAX_NUMERATOR);
-    newD = randomInt(2, MAX_DENOMINATOR);
+    newN = randomInt(MIN_NUMERATOR, nMax);
+    newD = randomInt(2, dMax);
   } while (gcd(newN, newD) !== 1); // Only reduced fractions
   currentNumerator = newN;
   currentDenominator = newD;
@@ -1506,7 +1511,14 @@ playBtn?.addEventListener('click', async () => {
   }
 });
 
-randomBtn?.addEventListener('click', randomize);
+// Long-press random menu (shortpress = randomize, longpress = open settings).
+randomMenu = setupRandomMenu({
+  spec: {
+    numMax:   { label: 'Numerador máximo',   min: MIN_NUMERATOR, max: MAX_NUMERATOR,   default: MAX_NUMERATOR },
+    denomMax: { label: 'Denominador máximo', min: 2,             max: MAX_DENOMINATOR, default: MAX_DENOMINATOR },
+  },
+  onRandomize: randomize,
+});
 resetBtn?.addEventListener('click', handleReset);
 
 // ========== INITIALIZATION ==========

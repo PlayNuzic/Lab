@@ -5,6 +5,7 @@ import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-co
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
+import { setupRandomMenu } from '../../libs/random/menu.js';
 
 // ========== CONFIGURACIÓN ==========
 const TOTAL_PULSES = 9;  // Pulsos 0-8 (8 es endpoint visual)
@@ -33,6 +34,7 @@ let playbackTimeouts = []; // Per cancel·lar reproducció
 
 // Persistència de sons i colors (es manté fins canvi d'editor o random)
 let currentSoundAssignments = null;  // MIDI notes per interval
+let randomMenu = null;  // Long-press random menu controller (read())
 let currentColorAssignments = null;
 
 // Instrument actual (piano o violí)
@@ -753,12 +755,15 @@ function handleRandom() {
   // Invalidar sons al prémer random
   invalidateSoundAssignments();
 
-  // Generar entre 1 i MAX_LENGTH iTs aleatoris (límit real = suma ≤ MAX_LENGTH,
-  // i com que el valor mínim per iT és 1, també té sentit com a cap superior
-  // d'entries).
-  const numIntervals = Math.floor(Math.random() * MAX_LENGTH) + 1;
+  // Suma total dels iT (= longitud de la timeline). El longpress menu
+  // permet baixar-ho per generar seqüències més curtes.
+  const { totalMax } = randomMenu?.read() ?? { totalMax: MAX_LENGTH };
+  const total = Math.max(1, Math.min(totalMax, MAX_LENGTH));
+
+  // Generar entre 1 i `total` iTs aleatoris (suma ≤ `total`, mínim per iT = 1).
+  const numIntervals = Math.floor(Math.random() * total) + 1;
   const intervals = [];
-  let remaining = MAX_LENGTH;
+  let remaining = total;
 
   for (let i = 0; i < numIntervals && remaining > 0; i++) {
     // Últim interval: ocupar el que queda (o un valor aleatori)
@@ -833,7 +838,12 @@ function setupControls() {
     playBtn.addEventListener('click', handlePlay);
   }
   if (randomBtn) {
-    randomBtn.addEventListener('click', handleRandom);
+    randomMenu = setupRandomMenu({
+      spec: {
+        totalMax: { label: 'Suma total máxima', min: 1, max: MAX_LENGTH, default: MAX_LENGTH },
+      },
+      onRandomize: handleRandom,
+    });
   }
   if (resetBtn) {
     resetBtn.addEventListener('click', handleReset);

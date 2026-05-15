@@ -15,7 +15,7 @@ export { randomize, DEFAULT_RANGES } from './core.js';
 export { applyBaseRandomConfig, updateBaseRandomConfig } from './config.js';
 
 // Random menu UI
-export { mergeRandomConfig, initRandomMenu } from './menu.js';
+export { mergeRandomConfig, initRandomMenu, createRandomMenu, setupRandomMenu } from './menu.js';
 
 // Fractional randomization
 export { randomizeFractional } from './fractional.js';
