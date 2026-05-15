@@ -478,20 +478,12 @@ function stopPlayback() {
 }
 
 function generateRandomSequence() {
-  // Llegir el longpress menu (cau a defaults si encara no està cablejat).
-  const cfg = randomMenu?.read() ?? {
-    regMin: MIN_REGISTRO,
-    regMax: MAX_REGISTRO,
-    notes: SEQUENCE_LENGTH,
-    bpmMin: MIN_BPM,
-    bpmMax: MAX_BPM,
-  };
-  // Clamps i ordre dels rangs (per si l'usuari posa min>max).
+  // Longpress menu només limita el rang de registres a sortejar quan
+  // l'usuari no n'ha fixat un. Resta de paràmetres (nº de notes, BPM)
+  // queden amb els seus defaults — l'app no els exposa al menú.
+  const cfg = randomMenu?.read() ?? { regMin: MIN_REGISTRO, regMax: MAX_REGISTRO };
   const rMin = Math.max(MIN_REGISTRO, Math.min(cfg.regMin, MAX_REGISTRO));
   const rMax = Math.max(rMin, Math.min(cfg.regMax, MAX_REGISTRO));
-  const noteCount = Math.max(1, cfg.notes);
-  const bMin = Math.max(MIN_BPM, Math.min(cfg.bpmMin, MAX_BPM));
-  const bMax = Math.max(bMin, Math.min(cfg.bpmMax, MAX_BPM));
 
   const registry = registryController.getRegistry();
 
@@ -505,14 +497,14 @@ function generateRandomSequence() {
     console.log(`Random registry: ${newRegistry}`);
   }
 
-  // Generate `noteCount` random notes within registry range (0-12).
+  // Generate SEQUENCE_LENGTH random notes within registry range (0-12).
   const totalNotes = registryController.getTotalNotes(); // 13
   randomNotes = [];
-  for (let i = 0; i < noteCount; i++) {
+  for (let i = 0; i < SEQUENCE_LENGTH; i++) {
     const note = Math.floor(Math.random() * totalNotes); // 0 to 12
     randomNotes.push(note);
   }
-  currentBPM = getRandomBPM(bMin, bMax);
+  currentBPM = getRandomBPM(MIN_BPM, MAX_BPM);
 
   console.log(`New random: BPM=${currentBPM}, Notes=${randomNotes.join(',')}`);
 }
@@ -601,15 +593,13 @@ function setupEventHandlers() {
   }
 
   // Random button — longpress obre el menú de configuració, shortpress randomitza.
+  // Menú només amb límits de registres (rangs BPM i nº de notes queden fixos).
   randomBtn = document.getElementById('randomBtn');
   if (randomBtn) {
     randomMenu = setupRandomMenu({
       spec: {
-        regMin: { label: 'Registro mínimo',   min: MIN_REGISTRO, max: MAX_REGISTRO, default: MIN_REGISTRO },
-        regMax: { label: 'Registro máximo',   min: MIN_REGISTRO, max: MAX_REGISTRO, default: MAX_REGISTRO },
-        notes:  { label: 'Número de notas',   min: 1,            max: 12,           default: SEQUENCE_LENGTH },
-        bpmMin: { label: 'BPM mínimo',        min: MIN_BPM,      max: MAX_BPM,      default: MIN_BPM },
-        bpmMax: { label: 'BPM máximo',        min: MIN_BPM,      max: MAX_BPM,      default: MAX_BPM },
+        regMin: { label: 'Registro mínimo', min: MIN_REGISTRO, max: MAX_REGISTRO, default: MIN_REGISTRO },
+        regMax: { label: 'Registro máximo', min: MIN_REGISTRO, max: MAX_REGISTRO, default: MAX_REGISTRO },
       },
       onRandomize: handleRandom,
     });

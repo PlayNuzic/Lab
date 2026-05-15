@@ -5,7 +5,6 @@ import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.
 import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
-import { setupRandomMenu } from '../../libs/random/menu.js';
 
 // ========== CONSTANTS ==========
 const MIN_NOTE = 0;
@@ -28,7 +27,6 @@ let activeAnimationTimeouts = []; // Track active animation timeouts
 // Referències DOM
 let isEditor = null;
 let isInputsContainer = null;
-let randomMenu = null;  // Long-press random menu controller (read())
 let isInputs = [];
 let playBtn = null;
 let randomBtn = null;
@@ -723,16 +721,13 @@ async function handlePlay() {
 function handleRandom() {
   if (isPlaying) return;
 
-  // Nombre d'iS a generar (default = MAX_IS, modificable amb el longpress menu).
-  const { isCount } = randomMenu?.read() ?? { isCount: MAX_IS };
-  const count = Math.max(1, Math.min(isCount, MAX_IS));
-
+  // Generar sempre 4 iS aleatoris vàlids
   const intervals = [];
 
   // Nota inicial sempre 0
   let currentNote = 0;
 
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < MAX_IS; i++) {
     const isFirst = i === 0;
     const range = getValidIsRange(currentNote, isFirst);
     // Generar iS aleatori dins del rang vàlid
@@ -796,12 +791,7 @@ function setupControls() {
     playBtn.addEventListener('click', handlePlay);
   }
   if (randomBtn) {
-    randomMenu = setupRandomMenu({
-      spec: {
-        isCount: { label: 'Número de iS', min: 1, max: MAX_IS, default: MAX_IS },
-      },
-      onRandomize: handleRandom,
-    });
+    randomBtn.addEventListener('click', handleRandom);
   }
   if (resetBtn) {
     resetBtn.addEventListener('click', handleReset);
