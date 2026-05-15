@@ -478,12 +478,17 @@ function stopPlayback() {
 }
 
 function generateRandomSequence() {
-  // Longpress menu només limita el rang de registres a sortejar quan
-  // l'usuari no n'ha fixat un. Resta de paràmetres (nº de notes, BPM)
-  // queden amb els seus defaults — l'app no els exposa al menú.
-  const cfg = randomMenu?.read() ?? { regMin: MIN_REGISTRO, regMax: MAX_REGISTRO };
+  // Longpress menu permet ajustar el rang de registres (per quan no
+  // n'hi ha cap fixat) i el rang de BPM. El nº de notes queda fix
+  // (SEQUENCE_LENGTH) — no s'exposa al menú.
+  const cfg = randomMenu?.read() ?? {
+    regMin: MIN_REGISTRO, regMax: MAX_REGISTRO,
+    bpmMin: MIN_BPM,      bpmMax: MAX_BPM,
+  };
   const rMin = Math.max(MIN_REGISTRO, Math.min(cfg.regMin, MAX_REGISTRO));
   const rMax = Math.max(rMin, Math.min(cfg.regMax, MAX_REGISTRO));
+  const bMin = Math.max(MIN_BPM, Math.min(cfg.bpmMin, MAX_BPM));
+  const bMax = Math.max(bMin, Math.min(cfg.bpmMax, MAX_BPM));
 
   const registry = registryController.getRegistry();
 
@@ -504,7 +509,7 @@ function generateRandomSequence() {
     const note = Math.floor(Math.random() * totalNotes); // 0 to 12
     randomNotes.push(note);
   }
-  currentBPM = getRandomBPM(MIN_BPM, MAX_BPM);
+  currentBPM = getRandomBPM(bMin, bMax);
 
   console.log(`New random: BPM=${currentBPM}, Notes=${randomNotes.join(',')}`);
 }
@@ -593,13 +598,15 @@ function setupEventHandlers() {
   }
 
   // Random button — longpress obre el menú de configuració, shortpress randomitza.
-  // Menú només amb límits de registres (rangs BPM i nº de notes queden fixos).
+  // Exposa rangs de registres i de BPM; el nº de notes queda fix.
   randomBtn = document.getElementById('randomBtn');
   if (randomBtn) {
     randomMenu = setupRandomMenu({
       spec: {
         regMin: { label: 'Registro mínimo', min: MIN_REGISTRO, max: MAX_REGISTRO, default: MIN_REGISTRO },
         regMax: { label: 'Registro máximo', min: MIN_REGISTRO, max: MAX_REGISTRO, default: MAX_REGISTRO },
+        bpmMin: { label: 'BPM mínimo',      min: MIN_BPM,      max: MAX_BPM,      default: MIN_BPM },
+        bpmMax: { label: 'BPM máximo',      min: MIN_BPM,      max: MAX_BPM,      default: MAX_BPM },
       },
       onRandomize: handleRandom,
     });

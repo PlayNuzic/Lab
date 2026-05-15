@@ -4,7 +4,10 @@
 /* Hide unnecessary template elements */
 #loopBtn, #tapTempoBtn { display: none !important; }
 .middle { display: none !important; }
-#randomMenu { display: none !important; }
+/* NOTE: NO `#randomMenu { display: none }` aquí — la regla compartida
+   `.random-menu` ja és `display: none` per defecte i passa a `block`
+   amb `.open`. Forçar `display: none !important` impedia que el menú
+   s'obrís en longpress. */
 
 /* ========== INPUTS: Registro param (bpm-inline pastilla, 1/3 larger) ========== */
 .inputs {
