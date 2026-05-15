@@ -53,6 +53,17 @@
   background: var(--nuzic-green);
   box-shadow: 0 0 0 2px rgba(124, 214, 179, 0.4);
 }
+/* Segments del capítol amagat (Fracciones Complejas). Quan està
+   desbloquejat es marquen amb una vora groga per distingir-los dels
+   simples a la barra de progrés. */
+.progress-seg--complex{
+  box-shadow: inset 0 0 0 1.5px var(--nuzic-yellow, #FFBB33);
+}
+.progress-seg--complex.is-current{
+  box-shadow:
+    inset 0 0 0 1.5px var(--nuzic-yellow, #FFBB33),
+    0 0 0 2px rgba(255, 187, 51, 0.45);
+}
 
 .sistema-nav__bar{
   display: flex;

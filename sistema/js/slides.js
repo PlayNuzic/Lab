@@ -18,6 +18,15 @@ const OVERRIDES_KEY = 'sistema.overrides';
 const OVERRIDES_VERSION_KEY = 'sistema.overrides.version';
 const OVERRIDES_VERSION = 2;  // bumped when paso 21 was merged into 20
 
+// Easter egg: el capítol "Fracciones Complejas" està amagat per defecte.
+// 5 clicks consecutius al `.paso-badge` de qualsevol pas del capítol
+// Fraccionando l'activen; 5 clicks més, el botó "Cerrar capítulo" o
+// tancar la pestanya el tornen a amagar. Persisteix només a sessionStorage
+// perquè cada sessió comenci en estat "públic".
+const COMPLEX_UNLOCK_KEY = 'sistema.complexUnlocked';
+const COMPLEX_CLICK_THRESHOLD = 5;
+const COMPLEX_CLICK_WINDOW_MS = 1500;
+
 // One-time migration of saved overrides after the renumbering that
 // merged the old paso 21 (Fracciones Complejas) into paso 20.
 // Mapping: old → new
@@ -168,14 +177,40 @@ function sanitizeHtml(html){
 const NARROW_VIEWPORT_QUERY = '(max-width: 599px)';
 
 const state = {
-  paso: Math.min(Number(localStorage.getItem(STORAGE_KEY)) || 1, 26),  // clamp to valid range; default to Paso 1
+  paso: Number(localStorage.getItem(STORAGE_KEY)) || 1,
   variant: 'a',
   density: 'compact',
   showIframe: true,
   editable: false,
   overrides: loadOverrides(),
   narrowViewport: window.matchMedia(NARROW_VIEWPORT_QUERY).matches,
+  complexUnlocked: sessionStorage.getItem(COMPLEX_UNLOCK_KEY) === '1',
 };
+
+// Llista dinàmica de pasos visibles segons l'estat del easter egg.
+// Quan el capítol amagat no està actiu, els pasos *.5 marcats amb
+// `hidden:true` queden fora de la navegació, de la barra de progrés
+// i del clamping de "següent/anterior".
+function getVisibleSlides(){
+  return slideMatrix.filter(s => !s.hidden || (s.complex && state.complexUnlocked));
+}
+function getVisiblePasos(){
+  return getVisibleSlides().map(s => s.paso);
+}
+function pasoExists(paso){ return getVisiblePasos().includes(paso); }
+function firstPaso(){ return getVisiblePasos()[0]; }
+function lastPaso(){
+  const list = getVisiblePasos();
+  return list[list.length - 1];
+}
+
+// Si el paso desat a localStorage ja no és vàlid (p.ex. un *.5 desat amb
+// el flag actiu, ara reobrim la pestanya i el flag s'ha perdut), tornem
+// al pas enter més proper o al primer disponible.
+if (!pasoExists(state.paso)) {
+  const fallback = Math.max(1, Math.min(26, Math.floor(state.paso) || 1));
+  state.paso = pasoExists(fallback) ? fallback : firstPaso();
+}
 
 // Expose for tweaks.js
 window.__sistemaState = state;
@@ -184,6 +219,14 @@ window.__sistemaSaveOverrides = () => saveOverrides(state.overrides);
 
 function getSlide(paso){ return slideMatrix.find(s=>s.paso===paso); }
 function getSection(id){ return sections.find(s=>s.id===id); }
+
+// Format del número de pas per mostrar a l'usuari: els pasos enters
+// queden com "17"; els *.5 del capítol amagat es mostren com "17·B"
+// (B = la segona variant del mateix concepte).
+function formatPaso(paso){
+  if (Number.isInteger(paso)) return String(paso);
+  return `${Math.floor(paso)}·B`;
+}
 
 function escapeAttr(s){
   return String(s).replace(/"/g, '&quot;');
@@ -195,9 +238,19 @@ function getOverride(paso, field){
 
 function renderTitle(slide, section){
   const title = getOverride(slide.paso, 'title') ?? slide.title;
+  // Pill "Cerrar fracciones complejas" només a les 4 slides amagades
+  // del capítol Fraccions Complexes quan el flag està actiu. Així
+  // l'usuari ha d'estar veient una slide complexa per tancar-les
+  // (no apareix als pasos enters ni a la resta del Sistema).
+  const closeBtn = (state.complexUnlocked && slide.complex)
+    ? '<button class="paso-badge__close" type="button" aria-label="Cerrar fracciones complejas" title="Cerrar fracciones complejas">Cerrar fracciones complejas</button>'
+    : '';
   return `
     <div class="slot-title">
-      <div class="paso-badge">Paso ${slide.paso} · ${section.title}</div>
+      <div class="paso-badge-row">
+        <button class="paso-badge" type="button" aria-label="Paso ${formatPaso(slide.paso)} · ${section.title}">Paso ${formatPaso(slide.paso)} · ${section.title}</button>
+        ${closeBtn}
+      </div>
       <h1 class="slide__title" data-field="title">${title}</h1>
     </div>`;
 }
@@ -318,20 +371,29 @@ function render(){
 
   // Nav
   NAV_SECTION.textContent = section.title;
-  NAV_STEP.textContent = `Paso ${slide.paso} — ${slide.title}`;
-  BTN_PREV.disabled = state.paso <= 1;
-  BTN_NEXT.disabled = state.paso >= 26;
+  NAV_STEP.textContent = `Paso ${formatPaso(slide.paso)} — ${slide.title}`;
+  BTN_PREV.disabled = state.paso <= firstPaso();
+  BTN_NEXT.disabled = state.paso >= lastPaso();
 
   // Progress bar (current section only). Segments are <button>s so they're
   // keyboard-focusable and announce the target paso to assistive tech;
   // navigation is wired via delegation on PROG (see end of file).
   PROG.innerHTML = '';
-  section.slides.forEach(p => {
+  // Els pasos *.5 (capítol amagat) només apareixen a la barra de
+  // progrés quan el flag està actiu — fora d'aquest mode, la secció
+  // Fraccionando mostra només els 4 pasos enters.
+  const visibleInSection = section.slides.filter(p => {
+    const s = slideMatrix.find(x => x.paso === p);
+    return s && (!s.hidden || (s.complex && state.complexUnlocked));
+  });
+  visibleInSection.forEach(p => {
+    const s = slideMatrix.find(x => x.paso === p);
     const seg = document.createElement('button');
     seg.type = 'button';
     seg.className = 'progress-seg';
+    if (s?.complex) seg.classList.add('progress-seg--complex');
     seg.dataset.paso = p;
-    seg.setAttribute('aria-label', `Anar al Paso ${p}`);
+    seg.setAttribute('aria-label', `Anar al Paso ${formatPaso(p)}`);
     if (p < state.paso) seg.classList.add('is-done');
     if (p === state.paso) {
       seg.classList.add('is-current');
@@ -457,12 +519,86 @@ function persistField(paso, el){
 }
 
 function goTo(paso){
-  if (paso < 1 || paso > 26 || paso === state.paso) return;
+  if (paso === state.paso) return;
+  if (!pasoExists(paso)) return;
   state.paso = paso;
   state.variant = 'a';
   render();
 }
-function go(delta){ goTo(state.paso + delta); }
+function go(delta){
+  // Avancem per la llista de pasos visibles, ignorant els amagats si
+  // el flag no està actiu. Així els pasos *.5 apareixen a la
+  // seqüència de fletxes automàticament en activar el capítol.
+  const list = getVisiblePasos();
+  const idx = list.indexOf(state.paso);
+  if (idx === -1) return;
+  const next = list[idx + delta];
+  if (next != null) goTo(next);
+}
+
+// Easter egg: 5 clicks consecutius sobre el `.paso-badge` d'un pas
+// del capítol Fraccionando alterna l'estat del capítol amagat. El
+// comptador es reseteja si passa més de COMPLEX_CLICK_WINDOW_MS entre
+// clicks, així no es dispara per accident en sessions normals. Cal
+// estar dins de la secció 'fraccionando' perquè el toggle aplica
+// específicament a aquest capítol.
+let complexClickCount = 0;
+let complexClickTimer = null;
+function handleBadgeClick(){
+  const slide = getSlide(state.paso);
+  if (!slide || slide.section !== 'fraccionando') {
+    complexClickCount = 0;
+    return;
+  }
+  complexClickCount += 1;
+  if (complexClickTimer) clearTimeout(complexClickTimer);
+  complexClickTimer = setTimeout(() => { complexClickCount = 0; }, COMPLEX_CLICK_WINDOW_MS);
+  if (complexClickCount >= COMPLEX_CLICK_THRESHOLD) {
+    complexClickCount = 0;
+    toggleComplexChapter();
+  }
+}
+
+function toggleComplexChapter(){
+  state.complexUnlocked = !state.complexUnlocked;
+  if (state.complexUnlocked) {
+    sessionStorage.setItem(COMPLEX_UNLOCK_KEY, '1');
+    // En activar, saltem automàticament a la slide *.5 corresponent
+    // a la slide simple on l'usuari era (p.ex. clicar 5 cops al pas
+    // 18 obre el pas 18.5). Si l'usuari ja és en un *.5 (re-activant
+    // després d'haver tancat), no fem res.
+    if (Number.isInteger(state.paso)) {
+      const variantB = state.paso + 0.5;
+      if (pasoExists(variantB)) {
+        state.paso = variantB;
+        state.variant = 'a';
+      }
+    }
+  } else {
+    sessionStorage.removeItem(COMPLEX_UNLOCK_KEY);
+    // Si l'usuari era en un pas *.5 que acabem d'amagar, retrocedeix
+    // a la versió simple corresponent (Math.floor) abans de renderitzar.
+    if (!pasoExists(state.paso)) {
+      const fallback = Math.floor(state.paso);
+      state.paso = pasoExists(fallback) ? fallback : firstPaso();
+    }
+  }
+  populatePasoSelect();
+  render();
+}
+
+// Delegació al stage: el badge i el botó "Cerrar capítulo" es re-creen
+// a cada render(), així que escoltem un nivell més amunt en comptes
+// d'enganxar listeners cada cop.
+STAGE.addEventListener('click', (e) => {
+  if (e.target.closest('.paso-badge__close')) {
+    if (state.complexUnlocked) toggleComplexChapter();
+    return;
+  }
+  if (e.target.closest('.paso-badge')) {
+    handleBadgeClick();
+  }
+});
 
 BTN_PREV.addEventListener('click', () => go(-1));
 BTN_NEXT.addEventListener('click', () => go(+1));
@@ -479,15 +615,21 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight') go(+1);
 });
 
-// Populate tweaks "Go to paso" select
+// Populate tweaks "Go to paso" select — només pasos visibles (els
+// amagats del capítol Fracciones Complejas no apareixen aquí fins que
+// l'usuari els desbloqueja).
 const sel = document.getElementById('tw-paso');
-slideMatrix.forEach(s => {
-  const o = document.createElement('option');
-  o.value = s.paso;
-  o.textContent = `${s.paso}. ${s.title}`;
-  sel.appendChild(o);
-});
-sel.value = state.paso;
+function populatePasoSelect(){
+  sel.innerHTML = '';
+  getVisibleSlides().forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.paso;
+    o.textContent = `${formatPaso(s.paso)}. ${s.title}`;
+    sel.appendChild(o);
+  });
+  sel.value = state.paso;
+}
+populatePasoSelect();
 
 // Re-render quan el viewport creui el llindar del prompt de rotació, així
 // la persona que gira el dispositiu (o redimensiona la finestra) veu
