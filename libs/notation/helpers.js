@@ -74,7 +74,20 @@ export function midiToPartsByKeySig(midi, ksMap) {
       return { key: `${letter}/${octave}`, accidental: acc };
     }
   }
-  return midiToParts(midi, true);
+  // Fallback: la nota no coincideix amb cap lletra (natural o alterada) de
+  // l'armadura. Deduïm la preferència d'spelling a partir de la pròpia
+  // armadura — bemolls majoritaris → preferim spelling amb bemolls;
+  // sostinguts majoritaris (o armadura buida) → preferim sostinguts.
+  // Sense això, una nota pc=1 (Db/C#) en armadura amb bemolls (p.ex.
+  // Pentatónica T1: Bb, Eb) es renderitzaria com a C# i barrejaria
+  // sostinguts amb bemolls al mateix pentagrama.
+  let flats = 0, sharps = 0;
+  for(const a of Object.values(ksMap)){
+    if(a === 'b') flats++;
+    else if(a === '#') sharps++;
+  }
+  const preferSharp = flats === 0 || sharps >= flats;
+  return midiToParts(midi, preferSharp);
 }
 
 export function midiToChromaticPart(midi, prev, prefer, forced){
