@@ -70,7 +70,7 @@ export const layouts = {
 // Vertical fallback is now a pure CSS media query (`max-width: 900px`); no
 // JS measurement is needed.
 export const slideMatrix = [
-  { paso:1,  section:'introduccion', title:'¿Te gustaría saber qué movimientos se producen en la música?', layout:'A-intro' },
+  { paso:1,  section:'introduccion', title:'¿Te gustaría saber cómo se mueve la música?', layout:'A-intro' },
   { paso:2,  section:'descubriendo', title:'Contar y Medir Música',                                       layout:'B-app-left', apps:['App11A'], aspect:'4/3', group:'plano-simple' },
   { paso:3,  section:'descubriendo', title:'Línea Temporal',                                              layout:'E-app-text-left', apps:['app9'],   aspect:'2/1', group:'timeline-simple' },
   { paso:4,  section:'descubriendo', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'2/3', group:'timeline-vertical' },
@@ -90,7 +90,7 @@ export const slideMatrix = [
   { paso:17.5, section:'fraccionando', title:'Fraccionando la Línea Temporal · Complejas',                  layout:'E-app-text-left', apps:['App27'],  aspect:'5/2', group:'timeline-simple', hidden:true, complex:true },
   { paso:18,   section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'E-app-text-left', apps:['App28'],  aspect:'5/2', group:'timeline-simple' },
   { paso:18.5, section:'fraccionando', title:'Sucesión de Pulsos Fraccionados · Complejas',                 layout:'E-app-text-left', apps:['App29'],  aspect:'5/2', group:'timeline-simple', hidden:true, complex:true },
-  { paso:19,   section:'fraccionando', title:'Sucesión de iT Fraccionados Simples',                         layout:'E-app-text-left', apps:['App30'],  aspect:'2/1', group:'timeline-simple' },
+  { paso:19,   section:'fraccionando', title:'Sucesión de iT Fraccionados',                                 layout:'E-app-text-left', apps:['App30'],  aspect:'2/1', group:'timeline-simple' },
   { paso:19.5, section:'fraccionando', title:'Sucesión de iT Fraccionados · Complejas',                     layout:'E-app-text-left', apps:['App31'],  aspect:'2/1', group:'timeline-simple', hidden:true, complex:true },
   { paso:20,   section:'fraccionando', title:'Plano 2D · Sucesión N-iT con Fracciones',                     layout:'B-app-left',      apps:['App34'],  aspect:'3/4', group:'plano-simple' },
   { paso:20.5, section:'fraccionando', title:'Plano 2D · Sucesión N-iT con Fracciones Complejas',           layout:'B-app-left',      apps:['App35'],  aspect:'3/4', group:'plano-simple', hidden:true, complex:true },
@@ -303,6 +303,15 @@ export const slideContent = {
     tipsTitle: 'Prueba la sucesión de Pfr',
     tips: `<p>Crea una sucesión de pulsos fraccionados (Pfr) sobre fracciones simples. </p><p>Edita en el denominador de la fracción. </p><p>Crea la sucesión de Pfr escribiendo 2 dígitos. El pulso entero + la posición del Pfr o selecciona qué Pfr suenan en la línea temporal fraccionada.</p><p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para reiniciar.</p><p><b><strong>Tips:</strong> </b>Prueba a usar distintas sucesiones de Pfr para crear diferentes ritmos. O una misma sucesión de PFr cambiando el denominador de la fracción. Por ejemplo: la sucesión Pfr(0.3 1.2 2.1) en fracciones de ¼ a ⅛ .</p>`,
   },
+  19: {
+    text: `<p>Así como el intervalo temporal (<b>iT</b>) mide la distancia entre dos pulsos escogidos, el iT fraccionado (<b>iTfr</b>) mide la distancia entre dos pulsos fraccionados (Pfr).</p><p>Los iTFr dividen el tiempo total en partes fraccionadas. La suma de todos los iTFr equivale al número de pulsos totales, es decir, la longitud del lienzo. </p><p>Con una sucesión de iTFr, así como una de PFr, se pueden crear ritmos con mayor precisión y detalle. La diferencia está en pasar de pensar en <b>posiciones</b> en el tiempo (PFr) para pensar en la <b>distancia</b> entre ellos (iTFr).</p>`,
+    tipsTitle: 'Prueba los iTfr',
+    tips: `<p>Combina fracciones simples con intervalos temporales fraccionados. </p><p>Edita el denominador en la fracción. Crea la sucesión de <b>iTfr</b> introduciendo en el editor las duracines O arrastra sobre la línea temporal para crear intervalos temporales.</p><p>El display de suma de iT y iT disponibles se actualiza para mostrar cuantos iT hay en cada momento. Cada iT suena como una nota melódica. La primera nota de cada ciclo es Do4, las demás Sol4. Haz clic en un intervalo para eliminarlo. Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para reiniciar.</p><p><b>Tips:</b> Pasar de seleccionar puntos a trazar duraciones cambia la forma de pensar el ritmo: ya no son momentos aislados sino bloques de tiempo con peso y presencia. </p>`,
+  },
+  20: {
+    text: `<p>Si repartes los <b>iTfr</b> por la línea sonora puedes crear melodías cada una de ellas con un caracter rítmico própio, que puedes (o no) repetir. Es una manera de dar coherencia interna a melodías permitiendo variaciones.</p>`,
+    tips: `<p>Combina el plano fraccionado simple con un editor zigzag para crear sucesiones N-iT.</p><p>Edita el denominador. Usa el editor para introducir pares N-iT. O arrastra sobre el plano para crear notas.</p><p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para reiniciar.</p><p><b>Tips: </b>El editor permite pensar la melodía como una sucesión numérica, mientras el plano muestra el resultado visual global. \nVer ambas representaciones a la vez conecta el pensamiento numérico con la visión espacial y las formas geométricas.</p>`,
+  },
   // Capítol amagat — Fracciones complejas. De moment, els pasos *.5 reben el
   // mateix text que la versió simple corresponent (es redactarà més endavant).
   17.5: {
@@ -314,6 +323,15 @@ export const slideContent = {
     text: `<p>Podemos crear ritmos seleccionando pulsos enteros y fraccionados. Los pulsos fraccionados usan una velocidad más rápida que permite crear sutilezas en los ritmos.</p><p>Para ello escogemos una fracción y a continuación creamos la sucesión: P ⅓( 1.2 3.1 4 ...). </p><p>Los <b>pulsos fraccionados (Pfr)</b> resultantes nos permiten realizar y componer ritmos muy variados con gran precisión.</p><p>Por ejemplo, podemos crear una sucesión de Pfr(0.3 1.2 2.1) e ir cambiando la fracción para observar que efecto provoca en el ritmo. O mantener la fracción e ir cambiando de posición los Pfr escogidos.</p>`,
     tipsTitle: 'Prueba la sucesión de Pfr',
     tips: `<p>Crea una sucesión de pulsos fraccionados (Pfr) sobre fracciones simples. </p><p>Edita en el denominador de la fracción. </p><p>Crea la sucesión de Pfr escribiendo 2 dígitos. El pulso entero + la posición del Pfr o selecciona qué Pfr suenan en la línea temporal fraccionada.</p><p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para reiniciar.</p><p><b><strong>Tips:</strong> </b>Prueba a usar distintas sucesiones de Pfr para crear diferentes ritmos. O una misma sucesión de PFr cambiando el denominador de la fracción. Por ejemplo: la sucesión Pfr(0.3 1.2 2.1) en fracciones de ¼ a ⅛ .</p>`,
+  },
+  19.5: {
+    text: `<p>Así como el intervalo temporal (<b>iT</b>) mide la distancia entre dos pulsos escogidos, el iT fraccionado (<b>iTfr</b>) mide la distancia entre dos pulsos fraccionados (Pfr).</p><p>Los iTFr dividen el tiempo total en partes fraccionadas. La suma de todos los iTFr equivale al número de pulsos totales, es decir, la longitud del lienzo. </p><p>Con una sucesión de iTFr, así como una de PFr, se pueden crear ritmos con mayor precisión y detalle. La diferencia está en pasar de pensar en <b>posiciones</b> en el tiempo (PFr) para pensar en la <b>distancia</b> entre ellos (iTFr).</p>`,
+    tipsTitle: 'Prueba los iTfr',
+    tips: `<p>Combina fracciones simples con intervalos temporales fraccionados. </p><p>Edita el denominador en la fracción. Crea la sucesión de <b>iTfr</b> introduciendo en el editor las duracines O arrastra sobre la línea temporal para crear intervalos temporales.</p><p>El display de suma de iT y iT disponibles se actualiza para mostrar cuantos iT hay en cada momento. Cada iT suena como una nota melódica. La primera nota de cada ciclo es Do4, las demás Sol4. Haz clic en un intervalo para eliminarlo. Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para reiniciar.</p><p><b>Tips:</b> Pasar de seleccionar puntos a trazar duraciones cambia la forma de pensar el ritmo: ya no son momentos aislados sino bloques de tiempo con peso y presencia. </p>`,
+  },
+  20.5: {
+    text: `<p>Si repartes los <b>iTfr</b> por la línea sonora puedes crear melodías cada una de ellas con un caracter rítmico própio, que puedes (o no) repetir. Es una manera de dar coherencia interna a melodías permitiendo variaciones.</p>`,
+    tips: `<p>Combina el plano fraccionado simple con un editor zigzag para crear sucesiones N-iT.</p><p>Edita el denominador. Usa el editor para introducir pares N-iT. O arrastra sobre el plano para crear notas.</p><p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para reiniciar.</p><p><b>Tips: </b>El editor permite pensar la melodía como una sucesión numérica, mientras el plano muestra el resultado visual global. \nVer ambas representaciones a la vez conecta el pensamiento numérico con la visión espacial y las formas geométricas.</p>`,
   },
   21: {
     text: `<p>Históricamente la música se ha estudiado a partir de las siete notas de la escala Mayor Diatónica. La escala cromática llega después, como resultado de siglos de desarrollo. </p>
