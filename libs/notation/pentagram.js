@@ -92,7 +92,7 @@ export function drawPentagram(container, midis = [], options = {}) {
           voice.addTickable(note);
           noteObjs.push({ note });
         });
-        new Formatter().joinVoices([voice]).format([voice], width - 145);
+        new Formatter({ softmaxFactor: 5 }).joinVoices([voice]).format([voice], width - 100);
         voice.draw(context, stave);
         noteObjs.forEach((o,i)=>{
           let el = o.note && o.note.attrs && o.note.attrs.el;
@@ -194,7 +194,7 @@ export function drawPentagram(container, midis = [], options = {}) {
         });
       }
 
-      new Formatter().joinVoices([voice]).format([voice], width - 145);
+      new Formatter({ softmaxFactor: 5 }).joinVoices([voice]).format([voice], width - 100);
       voice.draw(context, stave);
 
       // Afegir data-idx als elements SVG de les notes per permetre highlights
@@ -368,9 +368,9 @@ export function drawPentagram(container, midis = [], options = {}) {
     voices.push(bassVoice);
   }
   if(voices.length){
-    const formatter = new Formatter();
+    const formatter = new Formatter({ softmaxFactor: 5 });
     voices.forEach(v => formatter.joinVoices([v]));
-    formatter.format(voices, 425);
+    formatter.format(voices, 470);
     if(trebleVoice.getTickables().length) trebleVoice.draw(context, treble);
     if(bassVoice.getTickables().length) bassVoice.draw(context, bass);
 
