@@ -1207,10 +1207,14 @@ async function init() {
   randomBtn = document.getElementById('randomBtn');
   resetBtn = document.getElementById('resetBtn');
 
-  // Event listeners
+  // Event listeners.
+  // NOTE: el randomBtn NO té un `click` listener directe — el cableig
+  // viu a `initRandomMenu(...)` més avall, que distingeix shortpress
+  // (handleRandom) de longpress (obrir el menú de configuració). Un
+  // `addEventListener('click', handleRandom)` aquí dispararia també en
+  // longpress, anul·lant la protecció anti-longpress del menú.
   playBtn?.addEventListener('click', handlePlay);
   resetBtn?.addEventListener('click', handleReset);
-  randomBtn?.addEventListener('click', handleRandom);
 
   // BPM Controller
   const inputBpm = document.getElementById('inputBpm');
