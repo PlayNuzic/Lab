@@ -198,16 +198,27 @@ async function handlePlay() {
       // onPulse callback: visual feedback only (audio is scheduled by note provider)
       highlightController?.highlightPulse(step);
 
-      // Visual feedback for playing cells
+      // Visual feedback for playing cells. Per a notes amb iT > 1
+      // marquem TOTES les cel·les del rang [step, step + iT − 1] alhora
+      // i les netegem al mateix temps al cap de iT × intervalSec. Així
+      // la cel·la "sòlida" representa la durada de la nota sencera,
+      // en lloc d'encendre cel·les una a una cada pols.
       const notes = pulseGroups[step];
       if (notes && notes.length > 0) {
         notes.forEach(noteData => {
           const noteIndex = noteData.midi - 60;
-          const cell = musicalGrid.getCellElement(noteIndex, step);
-          if (cell) {
-            const duration = (noteData.temporalInterval * intervalSec) * 0.9;
-            cell.classList.add('playing');
-            setTimeout(() => cell.classList.remove('playing'), duration * 1000);
+          const iT = noteData.temporalInterval || 1;
+          const duration = (iT * intervalSec) * 0.9;
+          const cells = [];
+          for (let p = step; p < step + iT; p++) {
+            const cell = musicalGrid.getCellElement(noteIndex, p);
+            if (cell) {
+              cell.classList.add('playing');
+              cells.push(cell);
+            }
+          }
+          if (cells.length > 0) {
+            setTimeout(() => cells.forEach(c => c.classList.remove('playing')), duration * 1000);
           }
         });
       }
