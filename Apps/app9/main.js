@@ -187,29 +187,34 @@ function getRandomMidiNote(exclude) {
 }
 
 /**
- * Genera 2 notas en el registro 4. Cada cop una de les dues notes pot
- * tindre iT=2 (al voltant del 33% dels casos) — així l'usuari veu que
- * els intervals temporals no han de ser sempre d'1 pols. Si la nota
- * triada per iT=2 és la primera, restringim el seu inici a [0..2]
- * perquè no envaeixi el slot de la segona; si és la segona, restringim
- * a [4..6] perquè no sobrepassi el pols 7 (últim reproduïble).
+ * Genera 2 notas en el registro 4. La regla d'iT és: cada sucessió
+ * sempre té un iT=1 i un iT=2 (qualsevol de les dues notes pot ser
+ * la llarga), **excepte** quan la 2a nota cau al pols 7 — allà no hi
+ * caben dos pulsos i les dues notes són iT=1.
+ *   • Sortegem primer `start2 ∈ [4..7]`.
+ *   • Si `start2 === 7` → dur1=dur2=1, `start1 ∈ [0..3]`.
+ *   • Altrament → una de les dues notes té iT=2 (random):
+ *       - si va a la 1a → `start1 ∈ [0..2]` perquè la barra no envaeixi
+ *         el slot de la 2a (start1+1 ≤ 3).
+ *       - si va a la 2a → `start1 ∈ [0..3]`, `start2` ja és ≤ 6.
  * @returns {Array} [{startPulse, duration, midi}, ...]
  */
 function generate2Notes() {
-  // 0 = cap iT=2, 1 = la 1a nota té iT=2, 2 = la 2a nota té iT=2.
-  const itTwoTarget = Math.floor(Math.random() * 3);
+  const start2 = 4 + Math.floor(Math.random() * 4);  // [4..7]
 
-  const dur1 = itTwoTarget === 1 ? 2 : 1;
-  const dur2 = itTwoTarget === 2 ? 2 : 1;
+  let dur1, dur2, start1Max;
+  if (start2 === 7) {
+    // No hi cap iT=2 a la segona; la regla queda inactiva → ambdues iT=1.
+    dur1 = 1; dur2 = 1; start1Max = 3;
+  } else {
+    // Una nota té iT=2; l'altra iT=1. Random quina.
+    const longIsFirst = Math.random() < 0.5;
+    dur1 = longIsFirst ? 2 : 1;
+    dur2 = longIsFirst ? 1 : 2;
+    start1Max = longIsFirst ? 2 : 3;
+  }
 
-  // Si dur1 = 2 (ocupa start1 i start1+1), start1 ∈ [0..2] perquè
-  // start1+1 ≤ 3 (la segona nota començarà al pols 4 o més enllà).
-  const start1Max = dur1 === 2 ? 2 : 3;
   const start1 = Math.floor(Math.random() * (start1Max + 1));
-
-  // Si dur2 = 2, start2 ∈ [4..6] perquè start2+1 ≤ 7 (últim reproduïble).
-  const start2Max = dur2 === 2 ? 6 : 7;
-  const start2 = 4 + Math.floor(Math.random() * (start2Max - 4 + 1));
 
   const midi1 = getRandomMidiNote();
   const midi2 = getRandomMidiNote(midi1); // Evitar nota idéntica consecutiva
@@ -259,16 +264,15 @@ async function handlePlay() {
     playBtn.classList.add('playing');
   }
 
-  // Limpiar highlights previos y barras de duración previas
+  // Limpiar highlights previos y barras de duración previas.
+  // NOTA: cal seleccionar les barres pel selector DOM (`.interval-block`)
+  // en lloc de recórrer `notes`, perquè `notes` ja s'ha reassignat a la
+  // nova sucessió (línia `notes = generate2Notes()` més amunt) i les
+  // referències a les barres antigues s'han perdut.
   highlightController.clearHighlights();
   timelineWrapper?.querySelectorAll('.interval-cell.active').forEach(n => n.classList.remove('active'));
-  // Limpiar cualquier barra anterior de notes previos
-  notes.forEach(note => {
-    if (note.barElement) {
-      note.barElement.remove();
-      note.barElement = null;
-    }
-  });
+  timeline?.querySelectorAll('.interval-block').forEach(el => el.remove());
+  notes.forEach(note => { note.barElement = null; });
 
   // Iniciar reproducción con 8 pulsos (0-7). El pols 8 és l'endpoint visual
   // (`·` amb dobles guions) — no sona.
