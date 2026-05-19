@@ -483,7 +483,7 @@ function createAppLayout() {
         <div class="soundlines-wrapper">
           <div class="soundline-column">
             <div class="soundline-header">
-              <h3 class="soundline-title">Escala Cromática</h3>
+              <h3 class="soundline-title">Escala<br>Cromática</h3>
             </div>
             <div class="soundline-block">
               <div class="soundline-abbr-pill">N</div>
@@ -498,7 +498,7 @@ function createAppLayout() {
 
           <div class="soundline-column">
             <div class="soundline-header">
-              <h3 class="soundline-title">Escala Mayor</h3>
+              <h3 class="soundline-title">Escala<br>Mayor</h3>
             </div>
             <div class="soundline-block">
               <div class="soundline-abbr-pill">Nº</div>

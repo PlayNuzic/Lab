@@ -18,14 +18,24 @@
 
 /* Fixa el header al mateix ample que el container per evitar que un títol
    més llarg ("Escala Cromática" vs "Escala Mayor") empenyi la columna i
-   trenqui la simetria del bloc soundlines + connection-area. */
+   trenqui la simetria del bloc soundlines + connection-area. A més,
+   reservem l'alçada de 2 línies de títol perquè ambdues columnes
+   quedin alineades — el text porta `<br>` per forçar 2 línies (vegeu
+   main.js: "Escala<br>Cromática" i "Escala<br>Mayor"). Mateix patró
+   que App24. */
 body.app21 .soundline-header {
   width: var(--soundline-container-width);
   max-width: var(--soundline-container-width);
+  --title-line-height: 1.15;
+  height: calc(var(--soundline-title-size) * var(--title-line-height) * 2);
+  min-height: calc(var(--soundline-title-size) * var(--title-line-height) * 2);
 }
 
 body.app21 .soundline-title {
+  --title-line-height: 1.15;
   max-width: 100%;
   white-space: normal;
   word-wrap: break-word;
+  text-align: center;
+  line-height: var(--title-line-height);
 }
