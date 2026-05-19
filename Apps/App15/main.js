@@ -198,28 +198,18 @@ async function handlePlay() {
       // onPulse callback: visual feedback only (audio is scheduled by note provider)
       highlightController?.highlightPulse(step);
 
-      // Visual feedback for playing cells. Per a notes amb iT > 1
-      // marquem TOTES les cel·les del rang [step, step + iT − 1] alhora
-      // i les netegem al mateix temps al cap de iT × intervalSec. Així
-      // la cel·la "sòlida" representa la durada de la nota sencera,
-      // en lloc d'encendre cel·les una a una cada pols.
+      // Highlight de play: en lloc d'encendre cel·les una a una a mesura
+      // que el cursor del pols hi passa per sobre, creem UN sol rectangle
+      // posicionat exactament com el halter d'iT — left/width/top sobre
+      // les cel·les del rang [step, step + iT − 1] — que es queda
+      // visible tot el temps que dura la nota (iT × intervalSec) i
+      // desapareix d'un cop.
       const notes = pulseGroups[step];
       if (notes && notes.length > 0) {
         notes.forEach(noteData => {
           const noteIndex = noteData.midi - 60;
-          const iT = noteData.temporalInterval || 1;
-          const duration = (iT * intervalSec) * 0.9;
-          const cells = [];
-          for (let p = step; p < step + iT; p++) {
-            const cell = musicalGrid.getCellElement(noteIndex, p);
-            if (cell) {
-              cell.classList.add('playing');
-              cells.push(cell);
-            }
-          }
-          if (cells.length > 0) {
-            setTimeout(() => cells.forEach(c => c.classList.remove('playing')), duration * 1000);
-          }
+          const iT = Math.max(1, noteData.temporalInterval || 1);
+          showPlayNoteHighlight(noteIndex, step, iT, intervalSec);
         });
       }
     },
@@ -229,6 +219,62 @@ async function handlePlay() {
       setTimeout(() => stopPlayback(), lastNoteDelay);
     }
   );
+}
+
+/**
+ * Pinta un rectangle de "highlight de play" sobre el rang d'una nota
+ * (mateixa amplada que el halter d'iT, alçada d'una fila de cel·les).
+ * El rectangle viu a la capa `#play-highlight-layer` ancorada al matrix
+ * container, es manté visible `iT × intervalSec` segons i s'esborra
+ * d'un cop quan la nota acaba. Si el usuari atura el playback, els
+ * rectangles pendents es netegen via `clearPlayNoteHighlights()`.
+ */
+function showPlayNoteHighlight(noteIndex, startSpace, iT, intervalSec) {
+  if (!musicalGrid) return;
+  const matrix = musicalGrid.getMatrixContainer?.();
+  if (!matrix) return;
+
+  let layer = matrix.querySelector('#play-highlight-layer');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.id = 'play-highlight-layer';
+    layer.className = 'play-highlight-layer';
+    matrix.appendChild(layer);
+  }
+
+  const matrixRect = matrix.getBoundingClientRect();
+  if (!matrixRect.width || !matrixRect.height) return;
+
+  const widthSpaces = Math.min(iT, TOTAL_SPACES - startSpace);
+  const startCell = musicalGrid.getCellElement(noteIndex, startSpace);
+  const endCell = musicalGrid.getCellElement(noteIndex, startSpace + widthSpaces - 1);
+  if (!startCell || !endCell) return;
+
+  const startRect = startCell.getBoundingClientRect();
+  const endRect = endCell.getBoundingClientRect();
+
+  const leftPct = ((startRect.left - matrixRect.left) / matrixRect.width) * 100;
+  const rightPct = ((endRect.right - matrixRect.left) / matrixRect.width) * 100;
+  const topPct = ((startRect.top - matrixRect.top) / matrixRect.height) * 100;
+  const heightPct = (startRect.height / matrixRect.height) * 100;
+
+  const rect = document.createElement('div');
+  rect.className = 'play-note-highlight';
+  rect.style.left = `${leftPct}%`;
+  rect.style.width = `${Math.max(0, rightPct - leftPct)}%`;
+  rect.style.top = `${topPct}%`;
+  rect.style.height = `${heightPct}%`;
+  layer.appendChild(rect);
+
+  const durationMs = iT * intervalSec * 1000;
+  setTimeout(() => rect.remove(), durationMs);
+}
+
+function clearPlayNoteHighlights() {
+  if (!musicalGrid) return;
+  const matrix = musicalGrid.getMatrixContainer?.();
+  const layer = matrix?.querySelector('#play-highlight-layer');
+  if (layer) layer.innerHTML = '';
 }
 
 function stopPlayback() {
@@ -251,7 +297,9 @@ function stopPlayback() {
     stopIcon.style.display = 'none';
   }
 
-  // Clear playing animations
+  // Clear play-note rectangles still pending (and the legacy `.playing`
+  // class, in case any older code path adds it).
+  clearPlayNoteHighlights();
   document.querySelectorAll('.musical-cell.playing').forEach(cell => {
     cell.classList.remove('playing');
   });

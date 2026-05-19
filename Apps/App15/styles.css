@@ -157,6 +157,27 @@ body.dragging-note * {
   z-index: 20; /* sobre cel·les actives (10) i ::before active (25-1) */
 }
 
+/* ========== PLAY HIGHLIGHT LAYER ==========
+   Rectangles temporals que cobreixen el rang d'una nota mentre sona
+   (mateixa amplada que el halter d'iT, alçada d'una fila de cel·les).
+   Apareixen quan la nota comença i desapareixen d'un cop quan acaba —
+   així la durada de la nota es veu com un únic bloc, no com una
+   seqüència de cel·les enceses una a una. */
+.play-highlight-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 22; /* sobre les cel·les actives (10) i sota el halter (20)? No: per damunt perquè destaqui */
+}
+
+.play-note-highlight {
+  position: absolute;
+  background: var(--selection-color, #FFBB33);
+  opacity: 0.45;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
 /* Halters dins la grid: més compactes que la versió de la timeline (App13).
    Posicionament absolut basat en % del matrix container. */
 .it-bar-cell-layer .interval-label-bar {
