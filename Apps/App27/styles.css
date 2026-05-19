@@ -6,6 +6,16 @@
   display: none;
 }
 
+/* `.inputs` queda buida a App27: la pastilla BPM creada al template es
+   mou a `.controls` per `init()` (compact row Play/BPM/Random/Reset).
+   La secció `.inputs` original (de `libs/app-common/template.js:260`)
+   no es removeix del DOM però queda sense fills. Per defecte té
+   padding-vertical i causa espai en blanc innecessari (visible a
+   l'iframe del sistema). Amaguem amb display:none. */
+.inputs {
+  display: none !important;
+}
+
 /* Variables compartides per fraction-editor, endcaps i subdivision-label.
    Definides al body perquè les vegin tant `.middle` (fracció) com
    `.timeline-wrapper` (endcaps + label) — són siblings, no relacionats
@@ -20,12 +30,14 @@ body.app27 {
    justify-content: center` — això centra el fraction-editor sobre el
    timeline. Al mockup d'App27 (paral·lel d'App26) la fracció ha de
    quedar a dalt a l'esquerra, alineada amb la zona inicial del
-   timeline-wrapper. Per tant, igualem amplada amb el `.timeline-wrapper`
-   (90% / 75rem) i left-alineem el contingut. */
+   timeline-wrapper. Margins iguals a l'amplada de l'endcap a cada
+   costat perquè la fracció (a `left: -W` del `.middle`) i l'endcap
+   dret no s'escapin del viewport en l'iframe del sistema (pas 17.5).
+   Mateix patró que App26/App13 (commit 5ac4a0f). */
 .middle {
-  width: 90%;
+  width: auto;
   max-width: 75rem;
-  margin: 0 auto 5px;
+  margin: 0 var(--app27-endcap-w) 5px var(--app27-endcap-w);
   justify-content: flex-start;
 }
 
@@ -245,11 +257,16 @@ body.app27 {
    endpoint/ghost states + subdivision row + endcaps + yellow strip. */
 
 .timeline-wrapper {
-  width: 90%;
+  /* Mateix patró que `.middle`: margins iguals a `--app27-endcap-w` a
+     cada costat per garantir que l'endcap dret (projectat `1.25rem + W`
+     passat de `.timeline.right`) acabi exactament al `parent.right` edge,
+     i l'endcap esquerre simètricament. Sense això, a l'iframe del
+     sistema (pas 17.5) els endcaps queden tallats. `width: auto !important`
+     cal per superar el `width: 100%` heretat de libs/app-common/styles.css.
+     Mateix patró que App26/App13 (commit 5ac4a0f). */
+  width: auto !important;
   max-width: 75rem;
-  /* Reduit el margin-top per acostar la banda al rectangle de la fracció
-     (originalment 3.75rem). */
-  margin: 1.5rem auto 1.875rem;
+  margin: 0.5rem var(--app27-endcap-w) 0.75rem var(--app27-endcap-w);
   position: relative;
 }
 
