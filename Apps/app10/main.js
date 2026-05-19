@@ -294,7 +294,7 @@ function initApp() {
   // Create start overlay (deferred piano initialization) - específico App10
   startOverlay = document.createElement('div');
   startOverlay.className = 'start-overlay';
-  startOverlay.textContent = 'Toca para escuchar los números';
+  startOverlay.textContent = '';
   document.body.appendChild(startOverlay);
 
   // Start overlay click handler
