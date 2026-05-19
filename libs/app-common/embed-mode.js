@@ -23,9 +23,53 @@ if (new URLSearchParams(location.search).has('embed')) {
     if (e?.data?.type === 'sistema:system-mode') {
       if (e.data.vertical) {
         document.documentElement.setAttribute('data-system-vertical', 'true');
+        notifyParentResize();   // immediat: el sistema espera l'alçada
       } else {
         document.documentElement.removeAttribute('data-system-vertical');
       }
     }
   });
+
+  // En mode sistema-vertical, embed.css allibera els overflow:hidden i
+  // height:100vh imposats al body i main, així el body creix a l'alçada
+  // natural del contingut. Però els iframes no s'expandeixen sols a
+  // l'alçada del seu document — cal mesurar-la i informar el parent.
+  // Mateix patró que els iframe-resize libraries clàssics.
+  function notifyParentResize() {
+    if (document.documentElement.getAttribute('data-system-vertical') !== 'true') return;
+    const h = Math.max(
+      document.documentElement.scrollHeight,
+      document.body?.scrollHeight || 0
+    );
+    try {
+      window.parent.postMessage({ type: 'app:resize', height: h }, '*');
+    } catch {
+      // cross-origin o parent buit — silenciós
+    }
+  }
+
+  // ResizeObserver detecta canvis al body (canvis de layout, càrrega
+  // d'imatges, contingut dinàmic afegit per main.js). Throttle via
+  // requestAnimationFrame perquè múltiples mutacions en un sol tick es
+  // converteixin en un sol missatge.
+  let rafPending = false;
+  function scheduleNotify() {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(() => {
+      rafPending = false;
+      notifyParentResize();
+    });
+  }
+
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(scheduleNotify);
+    // Observem el body un cop existeixi (script al <head>, body encara
+    // no parsejat).
+    if (document.body) {
+      ro.observe(document.body);
+    } else {
+      document.addEventListener('DOMContentLoaded', () => ro.observe(document.body), { once: true });
+    }
+  }
 }

@@ -76,6 +76,21 @@ html[data-embed="true"] body main {
   position: relative;
 }
 
+/* Quan el Sistema (parent) està en mode vertical i ens ho ha comunicat
+   via postMessage (vegeu embed-mode.js), alliberem els overflow:hidden
+   i height:100vh imposats sobre html/body/main. Així el body de l'app
+   pot créixer fins a la seva alçada natural i `embed-mode.js` informa
+   el parent perquè redimensioni l'iframe-frame en conseqüència. Sense
+   això, l'iframe quedaria a mida fixa amb scroll intern + scroll
+   exterior del Sistema (doble scroll desagradable). */
+html[data-embed="true"][data-system-vertical="true"],
+html[data-embed="true"][data-system-vertical="true"] body,
+html[data-embed="true"][data-system-vertical="true"] body main {
+  overflow: visible;
+  height: auto;
+  min-height: auto;
+}
+
 /* app10 (vertical soundline) and App18 (registro de octava) wrap their
    main content in `.timeline-wrapper` with a naturally short height
    (shorter than the iframe). Auto-margins center that block vertically

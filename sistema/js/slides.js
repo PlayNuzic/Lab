@@ -653,16 +653,50 @@ else narrowMQ.addListener(onNarrowChange);
 // l'amplada de l'iframe (que se solapa entre els dos modes).
 const SYSTEM_VERTICAL_MQ = '(max-width: 900px)';
 const systemVerticalMQ = window.matchMedia(SYSTEM_VERTICAL_MQ);
+
+// Pasos exclosos del comportament "iframe creix a l'alçada del contingut"
+// en mode vertical. Inclou:
+//  - Apps de plànol/grid extens (App11A=2, App11=5, App12=6, App15=10,
+//    App19=15, App20=16, App34=20, App35=20.5, App25=25, App25B=26)
+//    que tenen scroll intern propi i ocuparien tot el viewport del
+//    browser si es deixessin créixer.
+//  - Apps amb soundline vertical o estructura vertical compacta on
+//    el contingut usa `clamp(..., 80vh, ...)`: quan alliberem el body
+//    a `height: auto`, els `vh` col·lapsen i el contingut queda xafat.
+//    (App10=4, App14=9, App18=14, App21=21, App22=22.)
+// Per a TOTS aquests pasos no enviem `vertical: true` als iframes, així
+// `embed.css` no allibera html/body/main i tot manté la seva geometria
+// fixa amb scroll intern propi.
+const NO_EXPAND_PASOS = new Set([2, 4, 5, 6, 9, 10, 14, 15, 16, 20, 20.5, 21, 22, 25, 26]);
+function pasoExpandsOnVertical(paso) {
+  return !NO_EXPAND_PASOS.has(paso);
+}
+
 function broadcastSystemMode() {
-  const vertical = systemVerticalMQ.matches;
+  const sysVertical = systemVerticalMQ.matches;
   STAGE.querySelectorAll('iframe').forEach((f) => {
+    const slide = f.closest('.slide');
+    const paso = slide ? Number(slide.dataset.paso) : NaN;
+    // Per a apps que no s'expandeixen, **mai** anunciem mode vertical
+    // — així el seu body no s'allibera i mantenen la geometria fixa
+    // que ja tenen dissenyada. Encara reben `vertical: false` per si
+    // ja l'estaven a `true` (canvi de paso amb mateix viewport).
+    const effectiveVertical = sysVertical && pasoExpandsOnVertical(paso);
     try {
-      f.contentWindow?.postMessage({ type: 'sistema:system-mode', vertical }, '*');
+      f.contentWindow?.postMessage({ type: 'sistema:system-mode', vertical: effectiveVertical }, '*');
     } catch {
       // Cross-origin or not loaded yet — l'iframe demanarà l'estat
       // un cop carregat via l'event 'load' (vegeu sota).
     }
   });
+  // En tornar a horitzontal, treiem les `style.height` inline que vam
+  // posar quan estàvem vertical, perquè el CSS amb aspect-ratio +
+  // max-height torni a manar.
+  if (!sysVertical) {
+    STAGE.querySelectorAll('.iframe-frame').forEach((frame) => {
+      frame.style.removeProperty('height');
+    });
+  }
 }
 if (systemVerticalMQ.addEventListener) systemVerticalMQ.addEventListener('change', broadcastSystemMode);
 else systemVerticalMQ.addListener(broadcastSystemMode);
@@ -671,13 +705,39 @@ else systemVerticalMQ.addListener(broadcastSystemMode);
 // (delegat al stage perquè els iframes es recreen amb cada render()).
 STAGE.addEventListener('load', (e) => {
   if (e.target.tagName === 'IFRAME') {
+    const slide = e.target.closest('.slide');
+    const paso = slide ? Number(slide.dataset.paso) : NaN;
+    const effectiveVertical = systemVerticalMQ.matches && pasoExpandsOnVertical(paso);
     try {
       e.target.contentWindow?.postMessage(
-        { type: 'sistema:system-mode', vertical: systemVerticalMQ.matches },
+        { type: 'sistema:system-mode', vertical: effectiveVertical },
         '*'
       );
     } catch {}
   }
 }, true);
+
+// Resposta de `embed-mode.js`: l'app ens envia la seva alçada natural
+// quan està en mode sistema-vertical. Ajustem el `.iframe-frame` perquè
+// abraci tot el contingut sense scroll intern, deixant que el scroll
+// del Sistema sigui l'únic.
+window.addEventListener('message', (e) => {
+  if (e?.data?.type !== 'app:resize') return;
+  if (!systemVerticalMQ.matches) return;
+  // Trobar quin iframe va enviar el missatge i si està en un paso que
+  // permet l'expansió vertical.
+  const iframes = STAGE.querySelectorAll('iframe');
+  for (const f of iframes) {
+    if (f.contentWindow !== e.source) continue;
+    const slide = f.closest('.slide');
+    const paso = slide ? Number(slide.dataset.paso) : NaN;
+    if (!pasoExpandsOnVertical(paso)) return;
+    const frame = f.closest('.iframe-frame');
+    if (frame && Number.isFinite(e.data.height)) {
+      frame.style.height = `${e.data.height}px`;
+    }
+    return;
+  }
+});
 
 render();
