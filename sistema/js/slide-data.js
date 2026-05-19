@@ -125,7 +125,7 @@ export const slideContent = {
   2: {
     text: `<p>La música, como los movimientos de una persona en un día, podemos describirla y medirla con números.</p>
 <p>Si vas por una calle, escuchas unos pasos, un coche que pasa, una puerta que se cierra y, al fondo, alguien silbando una melodía. Todo esto se mueve en un tiempo y un espacio determinados, en un orden concreto.</p>
-<p><strong>¿Qué se mueve en la música?</strong></p>
+<h3>¿Qué se mueve en la música?</h3>
 <p>Para empezar partimos de dos líneas numéricas donde poder visualizar la música. Una línea vertical para los sonidos y otra línea horizontal para el paso del tiempo, sincronizadas para describir lo que suena y plasmarlo en el plano musical. </p>
 <p>Las dos líneas tienen marcas numeradas; la marca de inicio es el número <strong>0</strong>.</p>`,
     tipsTitle: 'Prueba el Plano Nuzic',
@@ -180,15 +180,15 @@ export const slideContent = {
       alt: 'Foto introductoria — Midiendo el movimiento de la Música: Los Intervalos',
       src: 'images/paso-7.png',
     },
-    text: `<p>Ya sabemos dónde están situadas las notas y los pulsos. Vamos a fijarnos ahora en sus movimientos, usando nuevos números para medirlos.</p>
+    text: `<p>Ya sabemos dónde están situadas las notas y los pulsos. Vamos a fijarnos ahora en sus <b>movimientos</b>, usando, de nuevo, números para medirlos.</p>
 <p>Los números que miden los movimientos se llaman <strong>intervalos</strong>.</p>
-<p>Cada línea del plano tiene su intervalo característico. Los de la línea temporal miden las duraciones, los de la línea sonora los saltos de las notas. Son muy diferentes pero la idea es la misma: medir movimientos.</p>
-<p>Los intervalos muestran los espacios que se van formando entre las notas, cómo se construye una melodía y permiten entender la esencia de su expresión.</p>`,
+<p>Cada línea del plano tiene su intervalo característico. Los de la línea temporal (<b>iT</b>) miden las duraciones, los de la línea sonora (<b>iS</b>) los saltos de las notas. Son mundos diferentes pero la idea es la misma: <b>medir movimientos</b>.</p>
+<p>Los intervalos nos muestran los espacios entre las notas que muestran cómo se teje la estructura una melodía, y permiten entender la esencia de su expresión.</p>`,
   },
   8: {
     text: `<h3>El intervalo temporal iT(n) mide la distancia entre dos pulsos escogidos.</h3>
-<p>La unidad que usaremos para medir el tiempo que dura cada sonido es el paso temporal entre dos pulsos adyacentes. En el caso del iT(1) le corresponde una unidad de paso. El número del iT nos dice cuantas unidades, o sea, cuantos pasos dura un sonido.</p>
-<p>Para calcular el iT que hay entre dos pulsos cualquiera solo hay que restar el número del primer pulso del número del segundo pulso. iT= P2 - P1. El resultado es siempre positivo ya que el P2 es siempre mayor que el P1.</p>
+<p>La unidad que usamos para medir el tiempo que dura cada sonido es el paso temporal entre dos pulsos adyacentes. </p><p>En el caso del iT(1) le corresponde una unidad de paso. El número del iT nos dice cuantas unidades, o sea, cuantos pasos dura un sonido.</p>
+<p>Para calcular el iT que hay entre dos pulsos cualquiera solo hay que restar el número del primer pulso del número del segundo pulso. <b>iT= P2 - P1</b>. El resultado es siempre positivo ya que el P2 es siempre mayor que el P1.</p>
 <p>Cada iT puede contener un sonido o un silencio; los silencios son muy importantes en la música.</p>
 <p>Los iT dividen el tiempo total en partes, la suma de todos los iT da la duración total, o sea, la longitud.</p>
 <p>Para definir un ritmo creamos una sucesión de iT.</p>`,
@@ -249,7 +249,7 @@ export const slideContent = {
   13: {
     text: `<p>La visualización como círculo es muy útil para entender la <b>línea temporal con compás</b>.</p>
 <p>La longitud total de la línea dependerá de cuántos pulsos tenga el compás y de cuantas repeticiones del compás definamos.</p>
-<p>Al multiplicar los dos números se obtiene la <em>Longitud Total</em>. Por ejemplo, con compás de 3 Pulsos y 5 repeticiones nos da una <em>Longitud total</em> de 15 pulsos.</p>
+<p>Al multiplicar los dos números se obtiene la <b>Longitud Total.</b> Por ejemplo, con compás de 3 Pulsos y 5 repeticiones nos da una <b>Longitud total</b> de 15 pulsos.</p>
 <p>Además, organizar los Pulsos en un compás y repetirlo produce un carácter en la organización. Por ejemplo, el P(0) suele sonar más fuerte que el resto, indicando el principio del ciclo.</p>
 <p>También es muy útil para definir un estilo rítmico: si acentuamos los Pulsos 1 i 3 en un compás de 4 creamos un ritmo popular.</p>`,
     tipsTitle: 'Prueba la Línea Temporal Circular',
@@ -281,8 +281,8 @@ export const slideContent = {
 <p>Usa el scroll vertical para moverte entre registros y el horizontal para moverte por los compases.</p>`,
   },
   16: {
-    text: `<p>Podemos crear melodías desde las <b>posiciones</b> (par N-P), como en el paso 6, o desde los <b>movimientos</b> (par iS-iT), como en el paso 10. Ahora vamos a crear melodías usando <strong>posiciones</strong> y <strong>distancias</strong>: escogiendo directamente la nota y asignándole una duración.</p>
-<p>La <strong>sucesión N-iT</strong> define cada nota y cuánto tiempo suena. El número de la <strong>N</strong> nos dice qué nota es, y el número del <strong>iT</strong> nos dice cuántos pasos dura. Juntos crean el par usado en la notación tradicional.</p>
+    text: `<p>Podemos crear melodías desde las <b>posiciones</b> (par N-P), como en el paso 6, o desde los <b>movimientos</b> (par iS-iT), como en el paso 10. Ahora vamos a crear melodías usando <strong>posiciones</strong> y <strong>distancias</strong>: escogiendo directamente la nota y asignándole una duración con el par <b>N-iT</b>.</p>
+<p>La <strong>sucesión N-iT</strong> define cada nota y cuánto tiempo suena. El número de la <strong>N</strong> nos dice qué nota es, y el número del <strong>iT</strong> nos dice cuánto dura. Juntos crean el par usado en la notación tradicional.</p>
 <p>Observa cómo la misma sucesión de N suena muy diferente si cambias los iT: alargar o acortar las duraciones transforma completamente el carácter de la melodía sin cambiar ninguna nota.</p>
 <p>En el plano modular, las notas llevan su <strong>registro</strong> y los pulsos su <strong>compás</strong>. Así podemos crear melodías que se extiendan por varios registros y varios compases, acercándonos a una composición real.</p>`,
     tipsTitle: 'Prueba la Sucesión N-iT',
