@@ -114,31 +114,28 @@ export const slideContent = {
       alt: 'Foto introductoria — Imaginemos el seguimiento de una persona',
       src: 'images/paso-1.jpg',
     },
-    text: `<p>Imaginemos el seguimiento de una persona en un día. Para conocer sus movimientos hay que saber en qué puntos ha estado, en qué momento y cuánto tiempo se ha quedado. A partir de esa información puedes deducir y trazar en un mapa cómo se ha movido la persona.</p>
+    text: `<p>Imaginemos el seguimiento de una persona durante un día. Para conocer sus movimientos hay que saber en qué puntos ha estado, en qué momento y cuánto tiempo se ha quedado. A partir de esa información puedes deducir y trazar en un mapa cómo se ha movido la persona.</p>
 <p>Las coordenadas de los puntos donde ha estado, la hora y el tiempo, incluso la velocidad para ir de un punto a otro, se pueden describir con <strong>números</strong>.</p>
-<p>¿Es aplicable a la música? <em>SÍ!…</em></p>
 <h3>Contar y Medir</h3>
 <p><strong>Contar</strong> es calcular con números cuántas cosas hay. Empezamos a contar unidades con el 1; a continuación le siguen el 2, el 3, el 4, el 5…hasta el infinito.</p>
 <p><strong>Medir</strong> es usar números para calcular la magnitud de algo. Puede ser una longitud, un peso, una temperatura, un intervalo de tiempo…</p>
-<p>Para medir usamos herramientas con escalas numéricas: cintas métricas para medir longitudes, termómetros para medir temperaturas, balanzas para medir pesos y etc.</p>
-<p>Los instrumentos de medida tienen una línea con las unidades de medida marcadas y numeradas.</p>
-<p>La marca inicial es el número 0, el punto de partida de la medición. Los números que siguen nos permiten contar a cuantos pasos está cada punto del inicio.</p>
-<p>Cada número marca el punto donde está y mide a qué distancia está del principio.</p>
-<p>Por ejemplo, en una cinta métrica, el número 15 indica que está a 15 unidades de distancia del principio.</p>`,
+<p>Para <b>medir</b> usamos herramientas con escalas numéricas. Estos instrumentos tienen una línea con las unidades de medida marcadas y numeradas. La marca inicial es el <b>número 0</b>, el punto de partida de la medición. Los números que siguen nos permiten contar a cuantos pasos está cada punto del inicio.</p>
+<h3>¿Todo esto es aplicable a la música?</h3>`,
   },
   2: {
     text: `<p>La música, como los movimientos de una persona en un día, podemos describirla y medirla con números.</p>
 <p>Si vas por una calle, escuchas unos pasos, un coche que pasa, una puerta que se cierra y, al fondo, alguien silbando una melodía. Todo esto se mueve en un tiempo y un espacio determinados, en un orden concreto.</p>
 <p><strong>¿Qué se mueve en la música?</strong></p>
-<p>Para empezar partimos de dos líneas numéricas donde poder visualizar la música. Una línea para los sonidos y otra línea para el paso del tiempo, sincronizadas para describir lo que suena y plasmarlo en un plano musical. Las dos líneas tienen marcas numeradas; la marca de inicio es el número <strong>0</strong>.</p>`,
+<p>Para empezar partimos de dos líneas numéricas donde poder visualizar la música. Una línea vertical para los sonidos y otra línea horizontal para el paso del tiempo, sincronizadas para describir lo que suena y plasmarlo en el plano musical. </p>
+<p>Las dos líneas tienen marcas numeradas; la marca de inicio es el número <strong>0</strong>.</p>`,
     tipsTitle: 'Prueba el Plano Nuzic',
     tips: `<p>Haz clic en <strong>Play</strong> para generar una secuencia aleatoria.</p>
 <p><strong>Tip:</strong> El plano revela que la música tiene dos dimensiones inseparables: el sonido y el tiempo.</p>`,
   },
   3: {
-    text: `<p>La línea temporal es horizontal y representa el movimiento en el tiempo. <br>En ella marcamos unos puntos equidistantes que representan una velocidad constante, como si fueran los segundos de un reloj. <br>Definimos esta velocidad con un número, que se conoce como BPM (Beats Per Minute).</p>
-<p>A los puntos de la línea temporal los llamamos <strong>pulsos,</strong> y los numeramos. Como buen instrumento de medición el pulso de partida es el 0.</p>
-<p>Los pulsos nos permiten marcar exactamente en qué instante se producen los sonidos. El tiempo en la música se tiene que medir con gran precisión.</p>
+    text: `<p>La línea temporal es horizontal y sirve para medir el tiempo en la música . <br>En ella marcamos unos puntos equidistantes que representan una velocidad constante, como si fueran los segundos de un reloj. <br>Definimos esta velocidad con un número, que se conoce como <b>BPM</b> (Beats Per Minute).</p>
+<p>A los puntos de la línea temporal los llamamos <strong>pulsos</strong>. Como buen instrumento de medición el pulso de partida <b>es el 0</b>.</p>
+<p>Los <b>pulsos</b> nos permiten marcar exactamente en qué instante se producen los sonidos. </p>
 <p>Como la pulsación del corazón, un <strong>paso</strong> temporal es el tiempo que pasa entre dos pulsos consecutivos. Este paso es la unidad temporal que usaremos para medir cuánto dura un sonido.<br></p>
 <p>Cuando contamos <strong>pasos</strong>, es natural hacerlo desde el 1: El paso 1 va del pulso 0 al 1, el paso 2 va del 1 al 2 etc…</p>`,
     tipsTitle: 'Prueba la Línea Temporal',
