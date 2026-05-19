@@ -297,24 +297,35 @@ async function handlePlay() {
       });
     },
     () => {
-      // Callback al completar - IMPORTANTE: llamar a audio.stop() para detener el scheduler
-      audio.stop();
-      isPlaying = false;
-      if (playBtn) {
-        playBtn.disabled = false;
-        playBtn.classList.remove('playing');
-      }
-      visualSync.stop();
-      highlightController.clearHighlights();
-      timelineWrapper?.querySelectorAll('.interval-cell.active').forEach(n => n.classList.remove('active'));
-      // Limpiar todas las barras de duración
-      notes.forEach(note => {
-        if (note.barElement) {
-          note.barElement.remove();
-          note.barElement = null;
+      // Callback al completar. El `done` salta just després d'emetre el
+      // pulse del pas final, però una nota que comenci al pas 7 (start2
+      // ∈ [4..7]) encara està sonant un interval sencer. Si cridem
+      // `audio.stop()` immediatament, la talla. Com que aquesta app no
+      // té loop, deixem que la nota acabi de sonar i només llavors
+      // aturem el scheduler.
+      const tailMs = Math.max(...notes.map(n => n.duration)) * intervalSec * 1000;
+      // Coixí extra per a l'`release` ADSR del sampler (≈300ms) i un
+      // marge petit perquè no es noti cap clic abans de l'stop.
+      const stopAfter = tailMs + 400;
+      setTimeout(() => {
+        audio.stop();
+        isPlaying = false;
+        if (playBtn) {
+          playBtn.disabled = false;
+          playBtn.classList.remove('playing');
         }
-      });
-      console.log('Metrónomo finalizado');
+        visualSync.stop();
+        highlightController.clearHighlights();
+        timelineWrapper?.querySelectorAll('.interval-cell.active').forEach(n => n.classList.remove('active'));
+        // Limpiar todas las barras de duración
+        notes.forEach(note => {
+          if (note.barElement) {
+            note.barElement.remove();
+            note.barElement = null;
+          }
+        });
+        console.log('Metrónomo finalizado');
+      }, stopAfter);
     },
     {
       onSchedule: (step, when) => {
