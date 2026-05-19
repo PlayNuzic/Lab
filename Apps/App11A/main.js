@@ -185,11 +185,18 @@ async function handlePlay() {
       const entry = notesByPulse[step];
       if (entry !== undefined) {
         // Visual feedback: highlight cell (no label in App11A).
-        // La cel·la es queda activa fins al pròxim play (vegeu el
+        // Per a notes amb iT > 1, marquem `active` totes les cel·les
+        // del rang [startPulse .. startPulse+duration-1] de la mateixa
+        // nota, perquè la barra horitzontal de cel·les enceses
+        // representi visualment la durada de la nota.
+        // Les cel·les es queden actives fins al pròxim play (vegeu el
         // cleanup al començament de handlePlay i a stopPlayback en
         // mode "no preservar").
-        const cell = musicalGrid.getCellElement(entry.note, step);
-        if (cell) cell.classList.add('active');
+        const end = Math.min(step + entry.duration, SEQUENCE_PULSES);
+        for (let p = step; p < end; p++) {
+          const cell = musicalGrid.getCellElement(entry.note, p);
+          if (cell) cell.classList.add('active');
+        }
       }
     },
     () => {
