@@ -393,37 +393,25 @@ body.app24 {
    LAYOUT VERTICAL — quan l'iframe és estret (≤600px d'amplada)
    ============================================================================ */
 
-/* Breakpoint intern alineat amb el del sistema (`@media (max-width: 900px)`
-   a `sistema/css/grid.css`). Així, sempre que el sistema apila text sota
-   l'app, l'app també apila la seva columna dreta sota les soundlines. Si
-   no, entre 601-900px l'iframe rep ~530px d'amplada (suficient per a
-   `> 600px`) i mantindria les dues columnes a banda i banda mentre el
-   sistema ja l'està apilant verticalment al slide. */
+/* Breakpoint per al mode vertical de l'app.
+   - Standalone: dispara amb el media `(max-width: 900px)` (viewport del
+     browser ≤900px), alineat amb el breakpoint del sistema.
+   - Embed: el Sistema envia un postMessage quan canvia el seu mode i
+     `embed-mode.js` posa l'atribut `data-system-vertical` al <html>.
+     Vegeu la regla de sota. */
 @media (max-width: 900px) {
-  .timeline-wrapper {
+  html:not([data-embed="true"]) .timeline-wrapper {
     flex-direction: column !important;
     align-items: center !important;
-    /* En column-mode, `justify-content` és l'eix vertical. La regla
-       compartida `.timeline-wrapper { justify-content: center !important }`
-       de `libs/soundlines/soundlines.css` centraria el contingut
-       verticalment, deixant la part de dalt fora del scroll i retallant
-       la pastilla N + els números alts. Ancorem a `flex-start` perquè
-       l'overflow caigui a sota, on `main { overflow-y: auto }` permet
-       scrollar. */
     justify-content: flex-start !important;
     gap: 1rem !important;
   }
 
-  /* En vertical, la simetria de capçaleres entre les dues soundlines ja
-     no és crítica (estan apilades, no banda a banda). Alliberem l'alçada
-     forçada a 2 línies del header per recuperar ~1.84rem que aniran al
-     `.soundline-block` (els números). El títol absolut continua existint
-     però amb `position: static` i sense reserva fixa d'alçada. */
-  body.app24 .soundline-header {
+  html:not([data-embed="true"]) body.app24 .soundline-header {
     height: auto;
     min-height: 0;
   }
-  body.app24 .soundline-title {
+  html:not([data-embed="true"]) body.app24 .soundline-title {
     position: static;
     transform: none;
     width: auto;
@@ -432,17 +420,13 @@ body.app24 {
     max-height: none;
   }
 
-  .soundlines-area,
-  .app24-right {
+  html:not([data-embed="true"]) .soundlines-area,
+  html:not([data-embed="true"]) .app24-right {
     flex: 0 0 auto;
     width: 100%;
   }
 
-  /* En vertical, la columna dreta cau sota les soundlines i tot el
-     contingut s'apila. Comprimim el selector a 3 files perquè la
-     columna dreta sigui curta. La capçalera fosca és sticky, així que
-     les escales no visibles es veuen scrollejant la llista. */
-  .scale-list {
+  html:not([data-embed="true"]) .scale-list {
     max-height: calc(
       var(--scale-list-header-h) +
       var(--scale-list-row-h) * 3 +
@@ -450,4 +434,41 @@ body.app24 {
       var(--scale-list-side-pad)
     );
   }
+}
+
+/* Embed: vertical exactament quan el Sistema està vertical (atribut
+   posat per `embed-mode.js` rebent un postMessage del parent). */
+html[data-embed="true"][data-system-vertical="true"] .timeline-wrapper {
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 1rem !important;
+}
+
+html[data-embed="true"][data-system-vertical="true"] body.app24 .soundline-header {
+  height: auto;
+  min-height: 0;
+}
+html[data-embed="true"][data-system-vertical="true"] body.app24 .soundline-title {
+  position: static;
+  transform: none;
+  width: auto;
+  max-width: 100%;
+  min-height: 0;
+  max-height: none;
+}
+
+html[data-embed="true"][data-system-vertical="true"] .soundlines-area,
+html[data-embed="true"][data-system-vertical="true"] .app24-right {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+html[data-embed="true"][data-system-vertical="true"] .scale-list {
+  max-height: calc(
+    var(--scale-list-header-h) +
+    var(--scale-list-row-h) * 3 +
+    var(--scale-list-row-gap) * 3 +
+    var(--scale-list-side-pad)
+  );
 }

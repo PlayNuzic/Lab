@@ -79,14 +79,19 @@ body.app23 .soundline-title {
    del viewport i només cau a vertical quan és realment estret.
    ============================================================================ */
 
-/* Breakpoint intern alineat amb el del sistema (`@media (max-width: 900px)`
-   a `sistema/css/grid.css`). Així, sempre que el sistema apila text sota
-   l'app, l'app també apila la seva columna dreta sota les soundlines. Si
-   no, entre 601-900px l'iframe rep ~530px d'amplada (suficient per a
-   `> 600px`) i mantindria les dues columnes a banda i banda mentre el
-   sistema ja l'està apilant verticalment al slide. */
+/* Breakpoint per al mode vertical de l'app.
+   - Standalone: dispara amb el media `(max-width: 900px)` (viewport del
+     browser ≤900px), alineat amb el breakpoint del sistema.
+   - Embed (dins iframe del Sistema): l'amplada de l'iframe és més estreta
+     que el browser i no pot servir com a llindar fiable (un iframe a
+     650px pot venir tant d'un sistema horitzontal com d'un sistema
+     vertical amb el browser estret). Per això el Sistema envia un
+     postMessage quan canvia el seu propi mode (`sistema/js/slides.js`)
+     i `embed-mode.js` posa l'atribut `data-system-vertical` al <html>.
+     L'embed dispara via aquest atribut (vegeu la regla de sota), no
+     pel media. */
 @media (max-width: 900px) {
-  .timeline-wrapper {
+  html:not([data-embed="true"]) .timeline-wrapper {
     flex-direction: column !important;
     align-items: center !important;
     /* En column-mode, `justify-content` és l'eix vertical. La regla
@@ -100,31 +105,54 @@ body.app23 .soundline-title {
     gap: 1rem !important;
   }
 
-  .app23-left,
-  .app23-right {
+  html:not([data-embed="true"]) .app23-left,
+  html:not([data-embed="true"]) .app23-right {
     flex: 0 0 auto;
     width: 100%;
   }
 
-  /* Mode vertical: la pastilla viu al seu propi espai, sense
-     posicionament absolut ni transform a les bars. */
-  .app23-right > .bpm-inline.outputnote {
+  html:not([data-embed="true"]) .app23-right > .bpm-inline.outputnote {
     position: static;
     transform: none;
   }
 
-  .interval-bars-step {
+  html:not([data-embed="true"]) .interval-bars-step {
     transform: none;
   }
 
-  /* Soundlines més curtes per deixar espai a la columna dreta sota.
-     L'iframe vertical (~533×800) reparteix l'alçada entre les dues
-     columnes apilades; sense aquest cap, la d'esquerra es menjaria
-     tot el viewport i la dreta sortiria del overflow. */
-  body {
+  html:not([data-embed="true"]) body {
     --soundlines-height: clamp(15rem, 55vh, 30rem);
   }
+}
 
+/* Embed: el Sistema (parent) ens diu si està en mode vertical mitjançant
+   un postMessage que `embed-mode.js` tradueix a l'atribut
+   `data-system-vertical` al <html>. Així l'app es posa vertical exactament
+   quan el Sistema apila les columnes, ni abans ni després. */
+html[data-embed="true"][data-system-vertical="true"] .timeline-wrapper {
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 1rem !important;
+}
+
+html[data-embed="true"][data-system-vertical="true"] .app23-left,
+html[data-embed="true"][data-system-vertical="true"] .app23-right {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+html[data-embed="true"][data-system-vertical="true"] .app23-right > .bpm-inline.outputnote {
+  position: static;
+  transform: none;
+}
+
+html[data-embed="true"][data-system-vertical="true"] .interval-bars-step {
+  transform: none;
+}
+
+html[data-embed="true"][data-system-vertical="true"] body {
+  --soundlines-height: clamp(15rem, 55vh, 30rem);
 }
 
 /* ============================================================================

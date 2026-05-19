@@ -645,4 +645,39 @@ const onNarrowChange = (e) => {
 if (narrowMQ.addEventListener) narrowMQ.addEventListener('change', onNarrowChange);
 else narrowMQ.addListener(onNarrowChange);
 
+// El Sistema (parent) comunica el seu mode (horitzontal/vertical) als
+// iframes que té carregats. Els apps embedats que necessitin saber-ho
+// (App23, App24) escolten via `embed-mode.js` i posen
+// `data-system-vertical` al <html>. Així poden apilar les columnes
+// exactament al mateix moment que el Sistema, sense dependre de
+// l'amplada de l'iframe (que se solapa entre els dos modes).
+const SYSTEM_VERTICAL_MQ = '(max-width: 900px)';
+const systemVerticalMQ = window.matchMedia(SYSTEM_VERTICAL_MQ);
+function broadcastSystemMode() {
+  const vertical = systemVerticalMQ.matches;
+  STAGE.querySelectorAll('iframe').forEach((f) => {
+    try {
+      f.contentWindow?.postMessage({ type: 'sistema:system-mode', vertical }, '*');
+    } catch {
+      // Cross-origin or not loaded yet — l'iframe demanarà l'estat
+      // un cop carregat via l'event 'load' (vegeu sota).
+    }
+  });
+}
+if (systemVerticalMQ.addEventListener) systemVerticalMQ.addEventListener('change', broadcastSystemMode);
+else systemVerticalMQ.addListener(broadcastSystemMode);
+
+// També envia l'estat inicial cada cop que un iframe es carrega
+// (delegat al stage perquè els iframes es recreen amb cada render()).
+STAGE.addEventListener('load', (e) => {
+  if (e.target.tagName === 'IFRAME') {
+    try {
+      e.target.contentWindow?.postMessage(
+        { type: 'sistema:system-mode', vertical: systemVerticalMQ.matches },
+        '*'
+      );
+    } catch {}
+  }
+}, true);
+
 render();
