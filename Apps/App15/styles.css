@@ -111,11 +111,11 @@ html, body {
   display: none !important;
 }
 
-/* Soundline & timeline number alignment */
-.soundline-number,
-.pulse-marker {
-  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
-}
+/* Soundline & timeline number alignment.
+   Soundline alineada amb App14/App18 (els valors compartits);
+   pulse-marker manté la mida d'App19/App20 (cap a 1.4rem). */
+.soundline-number { font-size: clamp(0.9rem, 1.8vw, 1.6rem); }
+.pulse-marker     { font-size: clamp(0.9rem, 1.6vw, 1.4rem); }
 
 /* ========== DRAG PREVIEW ========== */
 .musical-cell.drag-preview {
