@@ -187,24 +187,36 @@ function getRandomMidiNote(exclude) {
 }
 
 /**
- * Genera 2 notas de 1 pulso cada una con altura MIDI del registro 4
- * Primera nota: aleatoria entre pulsos 0-3
- * Segunda nota: aleatoria entre pulsos 4-7 (diferente a la primera)
- * @returns {Array} [{startPulse: number, duration: 1, midi: number}, ...]
+ * Genera 2 notas en el registro 4. Cada cop una de les dues notes pot
+ * tindre iT=2 (al voltant del 33% dels casos) — així l'usuari veu que
+ * els intervals temporals no han de ser sempre d'1 pols. Si la nota
+ * triada per iT=2 és la primera, restringim el seu inici a [0..2]
+ * perquè no envaeixi el slot de la segona; si és la segona, restringim
+ * a [4..6] perquè no sobrepassi el pols 7 (últim reproduïble).
+ * @returns {Array} [{startPulse, duration, midi}, ...]
  */
 function generate2Notes() {
-  // Primera nota: aleatoria entre 0-3
-  const start1 = Math.floor(Math.random() * 4);
+  // 0 = cap iT=2, 1 = la 1a nota té iT=2, 2 = la 2a nota té iT=2.
+  const itTwoTarget = Math.floor(Math.random() * 3);
 
-  // Segunda nota: aleatoria entre 4-7
-  const start2 = 4 + Math.floor(Math.random() * 4);
+  const dur1 = itTwoTarget === 1 ? 2 : 1;
+  const dur2 = itTwoTarget === 2 ? 2 : 1;
+
+  // Si dur1 = 2 (ocupa start1 i start1+1), start1 ∈ [0..2] perquè
+  // start1+1 ≤ 3 (la segona nota començarà al pols 4 o més enllà).
+  const start1Max = dur1 === 2 ? 2 : 3;
+  const start1 = Math.floor(Math.random() * (start1Max + 1));
+
+  // Si dur2 = 2, start2 ∈ [4..6] perquè start2+1 ≤ 7 (últim reproduïble).
+  const start2Max = dur2 === 2 ? 6 : 7;
+  const start2 = 4 + Math.floor(Math.random() * (start2Max - 4 + 1));
 
   const midi1 = getRandomMidiNote();
   const midi2 = getRandomMidiNote(midi1); // Evitar nota idéntica consecutiva
 
   return [
-    { startPulse: start1, duration: 1, midi: midi1 },
-    { startPulse: start2, duration: 1, midi: midi2 }
+    { startPulse: start1, duration: dur1, midi: midi1 },
+    { startPulse: start2, duration: dur2, midi: midi2 }
   ];
 }
 
@@ -277,22 +289,14 @@ async function handlePlay() {
         if (numEl) numEl.classList.add('active');
       }
 
-      // Crear barras de duración visuales
+      // Crear barras de duración visuales. Les barres NO s'eliminen
+      // al final de la nota — es queden dibuixades fins al pròxim play
+      // perquè l'usuari pugui inspeccionar la sucessió que acaba de
+      // sonar. El cleanup viu al començament de `handlePlay` (vegeu
+      // amunt: "Limpiar cualquier barra anterior de notes previos").
       notes.forEach((note) => {
         if (step === note.startPulse) {
           note.barElement = createDurationBar(note, intervalSec);
-        }
-      });
-
-      // Eliminar barras cuando termina la nota
-      notes.forEach((note) => {
-        if (step === note.startPulse + note.duration - 1) {
-          setTimeout(() => {
-            if (note.barElement) {
-              note.barElement.remove();
-              note.barElement = null;
-            }
-          }, intervalSec * 1000);
         }
       });
     },
@@ -317,13 +321,9 @@ async function handlePlay() {
         visualSync.stop();
         highlightController.clearHighlights();
         timelineWrapper?.querySelectorAll('.interval-cell.active').forEach(n => n.classList.remove('active'));
-        // Limpiar todas las barras de duración
-        notes.forEach(note => {
-          if (note.barElement) {
-            note.barElement.remove();
-            note.barElement = null;
-          }
-        });
+        // NOTE: les barres de durada NO s'eliminen aquí — es queden
+        // visibles fins a la pròxima reproducció (vegeu el cleanup
+        // al començament de `handlePlay`).
         console.log('Metrónomo finalizado');
       }, stopAfter);
     },
