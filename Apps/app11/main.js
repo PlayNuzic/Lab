@@ -173,14 +173,25 @@ async function handlePlay() {
       }
     },
     () => {
-      // onComplete - delay stop to let the last note ring out
+      // onComplete - delay stop to let the last note ring out.
+      // Quan acaba naturalment, deixem les cel·les il·luminades fins
+      // al pròxim play (preserveHighlights: true). El cleanup viu al
+      // començament de `handlePlay` (línia "Clear all previous labels
+      // and active states") i a `stopPlayback({})` si l'usuari atura.
       const lastNoteDelay = intervalSec * 0.9 * 1000;
-      setTimeout(() => stopPlayback(), lastNoteDelay);
+      setTimeout(() => stopPlayback({ preserveHighlights: true }), lastNoteDelay);
     }
   );
 }
 
-function stopPlayback() {
+/**
+ * @param {Object} [opts]
+ * @param {boolean} [opts.preserveHighlights=false]
+ *   Quan la seqüència acaba naturalment volem deixar les cel·les
+ *   (i les seves etiquetes) il·luminades fins al pròxim play. Quan
+ *   l'usuari prem stop a mig play o reinicia, netegem-ho tot.
+ */
+function stopPlayback({ preserveHighlights = false } = {}) {
   if (!isPlaying) return;
   isPlaying = false;
 
@@ -192,12 +203,16 @@ function stopPlayback() {
   if (stopIcon) stopIcon.style.display = 'none';
   playBtn?.classList.remove('playing');
 
-  document.querySelectorAll('.musical-cell.active, .musical-cell.fading-out').forEach(cell => {
-    cell.classList.remove('active', 'fading-out');
-    const label = cell.querySelector('.cell-label');
-    if (label) label.remove();
-  });
+  if (!preserveHighlights) {
+    document.querySelectorAll('.musical-cell.active, .musical-cell.fading-out').forEach(cell => {
+      cell.classList.remove('active', 'fading-out');
+      const label = cell.querySelector('.cell-label');
+      if (label) label.remove();
+    });
+  }
 
+  // El cursor del playback (pulse-marker.highlighted) sempre es neteja
+  // — és l'indicador "estem reproduint", no l'estat de la nota.
   document.querySelectorAll('.pulse-marker.highlighted').forEach(el => el.classList.remove('highlighted'));
 }
 

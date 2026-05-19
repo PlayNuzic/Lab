@@ -58,16 +58,37 @@ function getRandomNoteIndex() {
 }
 
 function generateRandomSequence() {
-  const noteCount = Math.floor(Math.random() * (MAX_NOTES - MIN_NOTES + 1)) + MIN_NOTES;
-  const allPulses = Array.from({length: SEQUENCE_PULSES}, (_, i) => i);
-  const shuffled = allPulses.sort(() => Math.random() - 0.5);
-  const notePulses = shuffled.slice(0, noteCount).sort((a, b) => a - b);
-  const silencePulses = shuffled.slice(noteCount);
+  // Generem una sucessió de notes amb iT variable (1, 2 o 3 pulsos) que
+  // omple SEQUENCE_PULSES sencer. Anem afegint notes (o silencis curts)
+  // mentre quedi espai, escollint la duració amb un pes biaixat cap a 1
+  // perquè iT=2 i iT=3 apareguin com a excepcions visibles, no com a
+  // norma. El primer pols és sempre una nota (no comencem amb silenci).
+  const notes = [];
+  const silencePulses = [];
+  // Distribució de duracions per a una nota: 60% iT=1, 30% iT=2, 10% iT=3.
+  const durationDeck = [1, 1, 1, 1, 1, 1, 2, 2, 2, 3];
+  let cursor = 0;
+  let firstNote = true;
 
-  const notes = notePulses.map(pulse => ({
-    note: getRandomNoteIndex(),
-    pulse: pulse
-  }));
+  while (cursor < SEQUENCE_PULSES) {
+    const remaining = SEQUENCE_PULSES - cursor;
+    // 25% de probabilitat d'inserir un silenci (mai al primer pols).
+    if (!firstNote && Math.random() < 0.25) {
+      silencePulses.push(cursor);
+      cursor += 1;
+      continue;
+    }
+    // Tria una duració del deck que càpiga en l'espai que queda.
+    const candidates = durationDeck.filter(d => d <= remaining);
+    const duration = candidates[Math.floor(Math.random() * candidates.length)];
+    notes.push({
+      note: getRandomNoteIndex(),
+      pulse: cursor,
+      duration,
+    });
+    cursor += duration;
+    firstNote = false;
+  }
 
   return { notes, silencePulses };
 }
@@ -129,17 +150,23 @@ async function handlePlay() {
     cell.classList.remove('active');
   });
 
-  // Create map of notes by pulse
+  // Map de notes per pols d'inici (cada entrada porta note + duration).
   const notesByPulse = {};
-  notes.forEach(({note, pulse}) => {
-    notesByPulse[pulse] = note;
+  notes.forEach(({note, pulse, duration}) => {
+    notesByPulse[pulse] = { note, duration };
   });
 
-  // Register note provider before play (declarative scheduling)
+  // Register note provider before play (declarative scheduling).
+  // Cada nota sona durant `duration` pulsos (× 0.9 per deixar un petit
+  // gap audible entre notes consecutives).
   audio.registerNoteProvider('melody', (step) => {
-    const note = notesByPulse[step];
-    if (note === undefined) return null;
-    return [{ midi: BASE_MIDI + note, duration: intervalSec * 0.9, velocity: 0.8 }];
+    const entry = notesByPulse[step];
+    if (entry === undefined) return null;
+    return [{
+      midi: BASE_MIDI + entry.note,
+      duration: intervalSec * entry.duration * 0.9,
+      velocity: 0.8,
+    }];
   });
 
   // Start playback
@@ -155,24 +182,36 @@ async function handlePlay() {
       // Use native interval highlighting from musical-grid
       musicalGrid.onPulseStep(step, intervalSec * 1000);
 
-      const note = notesByPulse[step];
-      if (note !== undefined) {
-        // Visual feedback: highlight cell (no label in App11A)
-        const cell = musicalGrid.getCellElement(note, step);
-        if (cell) {
-          cell.classList.add('active');
-        }
+      const entry = notesByPulse[step];
+      if (entry !== undefined) {
+        // Visual feedback: highlight cell (no label in App11A).
+        // La cel·la es queda activa fins al pròxim play (vegeu el
+        // cleanup al començament de handlePlay i a stopPlayback en
+        // mode "no preservar").
+        const cell = musicalGrid.getCellElement(entry.note, step);
+        if (cell) cell.classList.add('active');
       }
     },
     () => {
-      // onComplete - delay stop to let the last note ring out
-      const lastNoteDelay = intervalSec * 0.9 * 1000;
-      setTimeout(() => stopPlayback(), lastNoteDelay);
+      // onComplete - delay stop to let the last note ring out.
+      // La última nota pot tenir iT=2/3, així que esperem la seva
+      // duration sencera abans d'aturar el scheduler.
+      const lastNote = notes[notes.length - 1];
+      const tailPulses = lastNote ? lastNote.duration : 1;
+      const lastNoteDelay = intervalSec * tailPulses * 0.9 * 1000;
+      setTimeout(() => stopPlayback({ preserveHighlights: true }), lastNoteDelay);
     }
   );
 }
 
-function stopPlayback() {
+/**
+ * @param {Object} [opts]
+ * @param {boolean} [opts.preserveHighlights=false]
+ *   Quan la seqüència acaba naturalment volem deixar les cel·les
+ *   il·luminades fins al pròxim play (passem `true`). Quan l'usuari
+ *   prem stop a mig play o reinicia, netegem-ho tot (`false`).
+ */
+function stopPlayback({ preserveHighlights = false } = {}) {
   if (!isPlaying) return;
   isPlaying = false;
 
@@ -186,12 +225,15 @@ function stopPlayback() {
   if (stopIcon) stopIcon.style.display = 'none';
   playBtn?.classList.remove('playing');
 
-  // Clear visual highlights
-  document.querySelectorAll('.musical-cell.active, .musical-cell.fading-out').forEach(cell => {
-    cell.classList.remove('active', 'fading-out');
-  });
+  if (!preserveHighlights) {
+    // Clear visual highlights
+    document.querySelectorAll('.musical-cell.active, .musical-cell.fading-out').forEach(cell => {
+      cell.classList.remove('active', 'fading-out');
+    });
+  }
 
-  // Clear timeline pulse highlight
+  // Clear timeline pulse highlight (sempre — això és el cursor del
+  // playback, no l'estat "nota tocada").
   document.querySelectorAll('.pulse-marker.highlighted').forEach(el => el.classList.remove('highlighted'));
 }
 
