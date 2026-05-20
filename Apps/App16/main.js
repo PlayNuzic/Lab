@@ -23,10 +23,20 @@ import { createMeasureHeader } from '../../libs/shared-ui/measure-header.js';
 // CONSTANTS
 // ============================================
 
-const MAX_COMPAS = 7;         // Maximum compás value
+const MAX_COMPAS = 7;         // Maximum compás value (manual input)
+const MAX_COMPAS_RANDOM = 12; // Maximum compás value en mode random
+const MIN_COMPAS_RANDOM = 2;  // Random no genera mai Compás=1
 const DEFAULT_BPM = 90;
 const MIN_BPM = 50;
 const MAX_BPM = 150;
+
+// Regla de cicles per random: a NºCompás més alt, menys cicles.
+// Compás 9-12 → 1 cicle · Compás 4-8 → 2 cicles · Compás 2-3 → 3 cicles.
+function cyclesForCompas(c) {
+  if (c >= 9) return 1;
+  if (c >= 4) return 2;
+  return 3;
+}
 
 // ============================================
 // STATE
@@ -36,6 +46,7 @@ let audio = null;
 let bpmController = null;
 let isPlaying = false;
 let compas = null;            // Starts as null (empty input)
+let cycles = 2;               // Nombre de cicles (compases) a reproduir; manual=2, random aplica `cyclesForCompas`
 let pulses = [];              // DOM pulse elements
 let currentStep = -1;
 let p0Enabled = true;         // P0 toggle state (not persisted between sessions)
@@ -169,11 +180,12 @@ let superscriptController;
 let measureHeader;
 
 /**
- * Get the total number of pulses based on compás (2 compases)
+ * Total de polsos = compás × cycles. `cycles` és 2 per defecte (manual);
+ * el random l'ajusta via `cyclesForCompas`.
  */
 function getTotalPulses() {
   if (compas === null || compas < 1) return 0;
-  return compas * 2;
+  return compas * cycles;
 }
 
 /**
@@ -249,8 +261,8 @@ function renderTimeline() {
   // Render numbers
   renderPulseNumbers();
 
-  // Render the "Com." measure header for the same cycle count (2 compases)
-  measureHeader?.render(compas, 2);
+  // Render the "Com." measure header amb el mateix nombre de cicles que el timeline
+  measureHeader?.render(compas, cycles);
 }
 
 
@@ -450,10 +462,19 @@ function stopPlayback(forceStop = true) {
 // COMPÁS INPUT HANDLING
 // ============================================
 
-function handleCompasChange(newValue) {
+function handleCompasChange(newValue, opts = {}) {
+  // `opts.cycles` permet al random fixar el nombre de cicles segons la
+  // regla (`cyclesForCompas`). Si no es passa, els canvis manuals
+  // (input/spinner/reset) tornen a 2 cicles, que és el comportament base.
+  const nextCycles = opts.cycles ?? 2;
+  // `opts.maxOverride` permet superar el límit manual (MAX_COMPAS=7) quan
+  // el random escull valors fins a MAX_COMPAS_RANDOM=12.
+  const effectiveMax = opts.maxOverride ?? MAX_COMPAS;
+
   // Handle empty input - clear timeline
   if (newValue === '' || newValue === null || newValue === undefined) {
     compas = null;
+    cycles = 2;
     renderTimeline();  // Clears timeline when no compás
     return;
   }
@@ -478,8 +499,8 @@ function handleCompasChange(newValue) {
       inputCompas.focus();
     }
     return;
-  } else if (parsed > MAX_COMPAS) {
-    showValidationWarning(inputCompas, `El máximo es <strong>${MAX_COMPAS}</strong>`, 2000);
+  } else if (parsed > effectiveMax) {
+    showValidationWarning(inputCompas, `El máximo es <strong>${effectiveMax}</strong>`, 2000);
     if (inputCompas) {
       inputCompas.value = '';
       inputCompas.focus();
@@ -487,6 +508,7 @@ function handleCompasChange(newValue) {
     return;
   } else {
     compas = parsed;
+    cycles = nextCycles;
     if (inputCompas) inputCompas.value = compas;
   }
 
@@ -535,12 +557,22 @@ function scheduleAutoPlay() {
 }
 
 function handleRandom() {
-  const maxCompas = parseInt(document.getElementById('randCompasMax')?.value || String(MAX_COMPAS), 10);
-  const min = 1;
-  const max = Math.min(Math.max(maxCompas, 1), MAX_COMPAS);
+  // Regla interna del random:
+  //   - Mai genera Compás=1 (mínim és 2).
+  //   - Compás 9-12: 1 cicle · 4-8: 2 cicles · 2-3: 3 cicles
+  //   (com més alt el compás, menys cicles per no allargar massa la seqüència).
+  const maxCompasInput = parseInt(
+    document.getElementById('randCompasMax')?.value || String(MAX_COMPAS_RANDOM),
+    10
+  );
+  const min = MIN_COMPAS_RANDOM;
+  const max = Math.min(Math.max(maxCompasInput, min), MAX_COMPAS_RANDOM);
   const newCompas = Math.floor(Math.random() * (max - min + 1)) + min;
 
-  handleCompasChange(newCompas);
+  handleCompasChange(newCompas, {
+    cycles: cyclesForCompas(newCompas),
+    maxOverride: MAX_COMPAS_RANDOM
+  });
   scheduleAutoPlay();
 }
 
