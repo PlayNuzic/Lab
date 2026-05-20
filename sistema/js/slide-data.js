@@ -93,8 +93,8 @@ export const slideMatrix = [
   { paso:18.5, section:'fraccionando', title:'Sucesión de Pfr en ciclos polirrítmicos',                      layout:'E-app-text-left', apps:['App29'],  aspect:'5/2', group:'timeline-simple', hidden:true, complex:true },
   { paso:19,   section:'fraccionando', title:'Sucesión de iT Fraccionados',                                 layout:'E-app-text-left', apps:['App30'],  aspect:'2/1', group:'timeline-simple' },
   { paso:19.5, section:'fraccionando', title:'Sucesión de iTfr en ciclos polirrítmicos',                     layout:'E-app-text-left', apps:['App31'],  aspect:'2/1', group:'timeline-simple', hidden:true, complex:true },
-  { paso:20,   section:'fraccionando', title:'Plano 2D · Sucesión N-iT con Fracciones',                     layout:'B-app-left',      apps:['App34'],  aspect:'3/4', group:'plano-simple' },
-  { paso:20.5, section:'fraccionando', title:'Plano 2D · Sucesión N-iT con Fracciones Complejas',           layout:'B-app-left',      apps:['App35'],  aspect:'3/4', group:'plano-simple', hidden:true, complex:true },
+  { paso:20,   section:'fraccionando', title:'Plano fraccionado con sucesión N-iTfr',                      layout:'B-app-left',      apps:['App34'],  aspect:'3/4', group:'plano-simple' },
+  { paso:20.5, section:'fraccionando', title:'Plano con fracciones complejas',                              layout:'B-app-left',      apps:['App35'],  aspect:'3/4', group:'plano-simple', hidden:true, complex:true },
   { paso:21, section:'escalas',      title:'Escalas: Escogiendo Notas',                                   layout:'B-app-left', apps:['App21'],  aspect:'2/3', group:'scale' },
   { paso:22, section:'escalas',      title:'Estructura Escalar',                                          layout:'B-app-left', apps:['App22'],  aspect:'2/3', group:'scale' },
   { paso:23, section:'escalas',      title:'Transposición',                                               layout:'B-app-left', apps:['App23'],  aspect:'2/3', group:'scale' },
@@ -324,6 +324,7 @@ export const slideContent = {
   },
   20: {
     text: `<p>Si repartimos los <b>iTfr</b> por el plano musical se pueden crear fácilmente melodías con un <b>caracter rítmico própio</b>, que podemos tratar como ideas, repetir y variar. Es una manera de dar coherencia interna a melodías sin caer en la monotonía. </p><p>Usar <b>iTfr</b> nos permite crear movimiento entre pulsos, desde doblar la velocidad (1/2), a más rápido cuanto más alto sea el denominador de la fracción.</p><p>Cada melodía tiene disonible dos velocidades, la de los pulsos enteros (BPM) y también una pulsación más rápida que encaja a cada pulso entero. </p><p>En el editor <b>N-iT</b> cada par define una nota y su duración en iTFr.</p><p>Una misma sucesión N-iT cambia de carácter al pasar de 1/3 a 1/4 o a 1/5, aunque las notas y las duraciones se mantienen proporcionalmente.</p>`,
+    tipsTitle: 'Prueba el Plano N-iTfr',
     tips: `<p>Combina el plano fraccionado con un editor <b>N-iT</b> para crear melodías en el plano.</p><p>Edita el denominador. Usa el editor para introducir pares <b>N-iT</b>. O arrastra sobre el plano para crear notas.</p><p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para reiniciar.</p><p><b>Tips: </b>El editor permite pensar la melodía como una sucesión numérica de posiciones y distancias, mientras el plano muestra el resultado visual global. \nVer ambas representaciones a la vez conecta el pensamiento numérico con la visión espacial y las formas geométricas.</p>`,
   },
   // Capítol amagat — Fracciones complejas. Textos propis (revisats al
