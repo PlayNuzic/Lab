@@ -345,18 +345,14 @@ function showTotalCycles() {
 }
 
 /**
- * Update cycle counter during playback. Actualitza directament el número
- * (sense flip animation) — la pastilla cycle es manté visualment quieta
- * durant play; el flip resultava confús perquè la pastilla petita ja és
- * informació secundària. Si cal recuperar-ho, restaurar les classes
- * `flip-out` / `flip-in` amb el patró habitual de 150ms.
+ * Cycle counter durant play: deshabilitat. Volem que la pastilla `cycle`
+ * sigui un input pla — només mostra el valor que l'usuari ha entrat.
+ * No swap d'input→dígit, no actualització del número durant la
+ * reproducció. La funció es manté buida per no haver de tocar tots els
+ * call-sites.
  */
-function updateCycleCounter(newCycle) {
-  if (!cycleDigit) return;
-  if (newCycle === currentCycle && cycleDigit.textContent === String(newCycle)) return;
-
-  currentCycle = newCycle;
-  cycleDigit.textContent = String(newCycle);
+function updateCycleCounter(_newCycle) {
+  // No-op intencionat.
 }
 
 /**
@@ -504,7 +500,6 @@ async function handlePlay() {
   isPlaying = true;
   currentCycle = 1;
   currentStep = -1;
-  updateCycleCounter(1);
 
   // Show cycle-1 superscripts on every pulse number from the first beat.
   if (superscriptController) superscriptController.updateAll(1);
@@ -512,11 +507,9 @@ async function handlePlay() {
   // Update play button state
   playBtn?.classList.add('active');
 
-  // Show cycle digit instead of input during playback
-  const cycleCircle = document.querySelector('.pl-secondary.cycle-circle');
-  cycleCircle?.classList.add('playing');
-  // Prime the digit with the starting cycle
-  if (cycleDigit) cycleDigit.textContent = '1';
+  // La pastilla `cycle` es manté com a input pla durant tota la
+  // reproducció — no canviem a "digit mode" (vegeu nota a
+  // `updateCycleCounter`).
   const iconPlay = playBtn?.querySelector('.icon-play');
   const iconStop = playBtn?.querySelector('.icon-stop');
   if (iconPlay) iconPlay.style.display = 'none';

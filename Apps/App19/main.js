@@ -619,9 +619,9 @@ async function startPlayback() {
   isPlaying = true;
   elements.playBtn?.classList.add('playing');
 
-  // Swap the cycle mini-pill to "digit mode" (hides input, shows cycleDigit).
-  document.querySelector('.pl-secondary.cycle-circle')?.classList.add('playing');
-  if (elements.cycleDigit) elements.cycleDigit.textContent = '1';
+  // La pastilla `cycle` es manté com a input pla durant tota la
+  // reproducció (no swap input→dígit). El número que entra l'usuari és
+  // l'únic valor visible.
 
   // Switch to stop icon (iconPlay and iconStop already declared above)
   if (iconPlay) iconPlay.style.display = 'none';
@@ -673,17 +673,7 @@ async function startPlayback() {
       // 3. Highlight timeline number
       grid.highlightTimelineNumber(step, intervalSec * 1000 * 0.9);
 
-      // 4. Update cycle counter
-      const cycleNum = Math.floor(step / compas) + 1;
-      if (step === 0 && elements.cycleDigit) {
-        elements.cycleDigit.textContent = '1';
-      } else if (step > 0 && step % compas === 0) {
-        if (cycleCounter) {
-          cycleCounter.update(cycleNum);
-        } else if (elements.cycleDigit) {
-          elements.cycleDigit.textContent = String(cycleNum);
-        }
-      }
+      // 4. Cycle counter durant play: deshabilitat (input pla, no swap).
 
       // 6. Auto-scroll HORIZONTAL to keep pulse visible
       grid.scrollToColumn(step, false);

@@ -1557,9 +1557,9 @@ async function startPlayback() {
   isPlaying = true;
   elements.playBtn?.classList.add('playing');
 
-  // Swap the cycle mini-pill to "digit mode" (hides input, shows cycleDigit).
-  document.querySelector('.pl-secondary.cycle-circle')?.classList.add('playing');
-  if (elements.cycleDigit) elements.cycleDigit.textContent = '1';
+  // La pastilla `cycle` es manté com a input pla durant tota la
+  // reproducció (no swap input→dígit). El número que entra l'usuari és
+  // l'únic valor visible.
 
   // Switch to stop icon (iconPlay and iconStop already declared above)
   if (iconPlay) iconPlay.style.display = 'none';
@@ -1571,10 +1571,6 @@ async function startPlayback() {
   // Apply P0 toggle state
   const p0Enabled = window.__p1Controller?.getState() ?? true;
   audioInstance.setMeasureEnabled(p0Enabled);
-
-  // Hide input, show cycle digit
-  const cycleCircle = document.querySelector('.cycle-circle');
-  cycleCircle?.classList.add('playing');
 
   // Scroll to first pulse before starting playback
   grid.scrollToColumn(0, false);
@@ -1626,17 +1622,7 @@ async function startPlayback() {
         }
       }
 
-      // 5. Update cycle counter
-      const cycleNum = Math.floor(step / compas) + 1;
-      if (step === 0 && elements.cycleDigit) {
-        elements.cycleDigit.textContent = '1';
-      } else if (step > 0 && step % compas === 0) {
-        if (cycleCounter) {
-          cycleCounter.update(cycleNum);
-        } else if (elements.cycleDigit) {
-          elements.cycleDigit.textContent = String(cycleNum);
-        }
-      }
+      // 5. Cycle counter durant play: deshabilitat (input pla, no swap).
 
       // 6. Auto-scroll HORIZONTAL to keep pulse visible
       grid.scrollToColumn(step, false);
