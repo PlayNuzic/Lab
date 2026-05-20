@@ -714,7 +714,12 @@ async function handlePlay() {
   }
 
   isPlaying = false;
-  clearInputHighlights();
+  // NOTE: NO `clearInputHighlights()` aquí — quan la seqüència acaba
+  // naturalment volem deixar l'últim highlight (l'iS final) dibuixat
+  // fins que l'usuari premi play o random un altre cop. El cleanup
+  // viu a (1) `handlePlay` al començament de la nova reproducció
+  // (línia "Netejar visualització anterior"), (2) el branch d'stop
+  // manual al principi de `handlePlay` quan `isPlaying === true`.
   updateControlsState();
 }
 
