@@ -152,9 +152,11 @@ body[data-visual="nuzic"] {
   box-shadow: inset 0 0 0 2px var(--nuzic-pink);
 }
 
-/* Playback highlight */
+/* Playback highlight — mateixa estètica que la fletxa d'interval
+   (`.interval-bar-vertical`): rosa nuzic (`--interval-color`) i gruix
+   de 4px (el `width` de la barra vertical, definit a main.js). */
 .editor-cell.input-active {
-  box-shadow: inset 0 0 0 2px var(--nuzic-yellow);
+  box-shadow: inset 0 0 0 4px var(--interval-color);
 }
 
 .editor-end-marker {
