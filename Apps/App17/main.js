@@ -345,42 +345,27 @@ function showTotalCycles() {
 }
 
 /**
- * Update cycle counter during playback (with animation)
+ * Update cycle counter during playback. Actualitza directament el número
+ * (sense flip animation) — la pastilla cycle es manté visualment quieta
+ * durant play; el flip resultava confús perquè la pastilla petita ja és
+ * informació secundària. Si cal recuperar-ho, restaurar les classes
+ * `flip-out` / `flip-in` amb el patró habitual de 150ms.
  */
 function updateCycleCounter(newCycle) {
   if (!cycleDigit) return;
   if (newCycle === currentCycle && cycleDigit.textContent === String(newCycle)) return;
 
   currentCycle = newCycle;
-
-  // Flip animation
-  cycleDigit.classList.add('flip-out');
-
-  setTimeout(() => {
-    cycleDigit.textContent = String(newCycle);
-    cycleDigit.classList.remove('flip-out');
-    cycleDigit.classList.add('flip-in');
-
-    setTimeout(() => {
-      cycleDigit.classList.remove('flip-in');
-    }, 150);
-  }, 150);
+  cycleDigit.textContent = String(newCycle);
 }
 
 /**
- * Update cycle digit color based on current step
+ * Color del dígit per cicle: deshabilitat per evitar parpalleig
+ * blau/taronja a cada pols (era confús). La pastilla manté el color
+ * neutre durant play.
  */
-function updateCycleDigitColor(step) {
-  if (!cycleDigit || pulsosCompas === null) return;
-
-  cycleDigit.classList.remove('playing-zero', 'playing-active');
-
-  const modValue = step % pulsosCompas;
-  if (modValue === 0) {
-    cycleDigit.classList.add('playing-zero');
-  } else {
-    cycleDigit.classList.add('playing-active');
-  }
+function updateCycleDigitColor(_step) {
+  // No-op intencionat — vegeu nota de `updateCycleCounter`.
 }
 
 // ============================================
@@ -467,33 +452,19 @@ function highlightNumber(pulseIndex) {
   }
 }
 
-function highlightCycleCircle(step) {
+function highlightCycleCircle(_step) {
+  // Halo per pols deshabilitat a propòsit — vegeu nota de
+  // `updateCycleCounter`. Mantenim la funció (i el timeout cleanup) per
+  // no haver de tocar tots els call-sites; netegem qualsevol classe
+  // residual per si algun camí l'havia deixat aplicada.
   const cycleCircle = document.querySelector('.pl-secondary.cycle-circle');
   if (!cycleCircle) return;
 
-  // Clear any pending timeout
   if (cycleHighlightTimeout) {
     clearTimeout(cycleHighlightTimeout);
     cycleHighlightTimeout = null;
   }
-
   cycleCircle.classList.remove('active', 'active-zero');
-
-  if (!cycleHighlightEnabled) return;
-  if (pulsosCompas === null) return;
-
-  const modValue = step % pulsosCompas;
-  if (modValue === 0) {
-    cycleCircle.classList.add('active-zero');
-  } else {
-    cycleCircle.classList.add('active');
-  }
-
-  // Auto-dim after 300ms
-  cycleHighlightTimeout = setTimeout(() => {
-    cycleCircle.classList.remove('active', 'active-zero');
-    cycleHighlightTimeout = null;
-  }, 300);
 }
 
 function clearHighlights() {

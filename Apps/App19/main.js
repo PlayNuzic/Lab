@@ -132,15 +132,12 @@ function updateLongitud() {
 }
 
 /**
- * Update cycle digit color based on current step
- * Blue on beat 0 of each cycle, orange otherwise
+ * Color per pols del dígit cycle: deshabilitat per evitar parpalleig
+ * blau/taronja durant play (era confús). Mantenim la funció buida per
+ * no haver de tocar tots els call-sites.
  */
-function updateCycleDigitColor(step) {
-  const digit = elements.cycleDigit;
-  if (!digit || compas === null) return;
-
-  digit.classList.remove('playing-zero', 'playing-active');
-  digit.classList.add(step % compas === 0 ? 'playing-zero' : 'playing-active');
+function updateCycleDigitColor(_step) {
+  // No-op intencionat.
 }
 
 /**
