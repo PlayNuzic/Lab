@@ -126,10 +126,12 @@ function animateRegistrySlide(direction) {
 
   // 4) Set initial transforms: overlay at home (0), new labels pre-shifted
   //    offscreen on the opposite side. Direction 'up' (registry increased)
-  //    means old labels leave through the top and new labels arrive from
-  //    the bottom.
-  const overlayEndY = direction === 'up' ? -100 : 100;
-  const newStartY = direction === 'up' ? 100 : -100;
+  //    means old labels leave through the BOTTOM and new labels arrive
+  //    from the TOP — invertit respecte al comportament original, perquè
+  //    visualment "pujar registre" llisca cap a notes més agudes situades
+  //    a dalt de la soundline.
+  const overlayEndY = direction === 'up' ? 100 : -100;
+  const newStartY = direction === 'up' ? -100 : 100;
   newTrack.style.transition = 'none';
   newTrack.style.transform = `translateY(${newStartY}%)`;
   overlay.style.transform = 'translateY(0)';
