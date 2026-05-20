@@ -104,14 +104,30 @@
   background: var(--nuzic-green-light);
 }
 
+/* Wrapper relatiu per al menú flotant de capítols. Pren tot l'espai
+   horitzontal entre els botons prev/next. */
+.sistema-nav__title-wrap{
+  flex: 1;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
 .sistema-nav__title{
+  /* `<button>`: reset chrome per heretar l'estil del nav. */
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+
   display: flex;
   align-items: baseline;
   gap: clamp(6px, 1vw, 10px);
   font-family: var(--font-display);
   font-size: var(--fs-nav);
   color: var(--nuzic-green-light);
-  flex: 1;
   justify-content: center;
   text-align: center;
   min-width: 0;
@@ -119,6 +135,104 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: background .15s ease;
+}
+.sistema-nav__title:hover{
+  background: rgba(238, 232, 216, 0.08);
+}
+.sistema-nav__title[aria-expanded="true"]{
+  background: rgba(238, 232, 216, 0.12);
+}
+.sistema-nav__title:focus-visible{
+  outline: 2px solid var(--nuzic-green);
+  outline-offset: 2px;
+}
+
+/* Menú flotant amb tots els capítols. Apareix per sobre del nav. */
+.sistema-nav__sections-menu{
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--nuzic-dark);
+  border: 1px solid rgba(238, 232, 216, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  min-width: clamp(220px, 32vw, 360px);
+  max-height: 70vh;
+  overflow-y: auto;
+  z-index: 25;
+}
+.sistema-nav__sections-menu[hidden]{ display: none; }
+
+/* Header de capítol — més gran, en majúscules, separador visual.
+   Clicable: porta al primer pas visible del capítol. */
+.sistema-nav__sections-menu__chapter{
+  font-family: var(--font-display);
+  font-size: var(--fs-nav);
+  color: var(--nuzic-green-light);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 10px 12px 6px;
+  margin-top: 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  user-select: none;
+}
+.sistema-nav__sections-menu__chapter:first-child{
+  margin-top: 0;
+}
+.sistema-nav__sections-menu__chapter:hover{
+  background: rgba(124, 214, 179, 0.12);
+}
+.sistema-nav__sections-menu__chapter.is-current-chapter{
+  color: var(--nuzic-green);
+}
+
+/* Pasos dins d'un capítol — més petits, indentats. */
+.sistema-nav__sections-menu__step{
+  font-family: var(--font-display);
+  font-size: calc(var(--fs-nav) * 0.88);
+  color: var(--nuzic-green-light);
+  font-weight: 400;
+  padding: 7px 12px 7px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  white-space: normal;
+  user-select: none;
+  opacity: 0.85;
+}
+.sistema-nav__sections-menu__step:hover{
+  background: rgba(124, 214, 179, 0.18);
+  opacity: 1;
+}
+.sistema-nav__sections-menu__step.is-current{
+  background: var(--nuzic-green);
+  color: var(--nuzic-dark);
+  font-weight: 700;
+  opacity: 1;
+}
+/* Pasos de capítols amagats (intro / complex): vora groga, mateix codi
+   visual que els segments de la barra de progrés. */
+.sistema-nav__sections-menu__step.is-hidden-chapter{
+  box-shadow: inset 0 0 0 1.5px var(--nuzic-yellow, #FFBB33);
+}
+.sistema-nav__sections-menu__step.is-hidden-chapter.is-current{
+  box-shadow:
+    inset 0 0 0 1.5px var(--nuzic-yellow, #FFBB33),
+    0 0 0 2px rgba(255, 187, 51, 0.45);
+}
+.sistema-nav__sections-menu__step:focus-visible,
+.sistema-nav__sections-menu__chapter:focus-visible{
+  outline: 2px solid var(--nuzic-green);
+  outline-offset: 2px;
 }
 .sistema-nav__section{
   text-transform: uppercase;

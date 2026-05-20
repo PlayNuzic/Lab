@@ -10,6 +10,8 @@ const STAGE = document.getElementById('slide-stage');
 const PROG  = document.getElementById('progress-track');
 const NAV_SECTION = document.getElementById('nav-section');
 const NAV_STEP    = document.getElementById('nav-step');
+const NAV_TITLE_BTN     = document.getElementById('nav-title');
+const NAV_SECTIONS_MENU = document.getElementById('nav-sections-menu');
 const BTN_PREV = document.getElementById('btn-prev');
 const BTN_NEXT = document.getElementById('btn-next');
 
@@ -583,23 +585,30 @@ function resetHiddenClicks() {
 function handleBadgeClick(){
   const slide = getSlide(state.paso);
   const chapter = slide ? SECTION_TO_HIDDEN_CHAPTER[slide.section] : null;
-  if (!chapter) {
+  if (chapter) {
+    // Lògica de l'easter egg: incrementem el comptador del capítol
+    // vinculat a aquesta secció i resetegem l'altre (per si l'usuari
+    // està jugant amb dos capítols alhora).
+    for (const k of Object.keys(hiddenClickCounts)) {
+      if (k !== chapter) hiddenClickCounts[k] = 0;
+    }
+    hiddenClickCounts[chapter] += 1;
+    if (hiddenClickTimer) clearTimeout(hiddenClickTimer);
+    hiddenClickTimer = setTimeout(resetHiddenClicks, HIDDEN_CLICK_WINDOW_MS);
+    if (hiddenClickCounts[chapter] >= HIDDEN_CLICK_THRESHOLD) {
+      // 5è click dins finestra: dispara el toggle del capítol amagat
+      // i tanca el menú (no el deixem obert després del salt).
+      resetHiddenClicks();
+      closeSectionsMenu();
+      toggleHiddenChapter(chapter);
+      return;
+    }
+  } else {
     resetHiddenClicks();
-    return;
   }
-  // El click incrementa el comptador del capítol vinculat a aquesta
-  // secció i reseteja l'altre (en cas que l'usuari estigui jugant amb
-  // dos capítols alhora).
-  for (const k of Object.keys(hiddenClickCounts)) {
-    if (k !== chapter) hiddenClickCounts[k] = 0;
-  }
-  hiddenClickCounts[chapter] += 1;
-  if (hiddenClickTimer) clearTimeout(hiddenClickTimer);
-  hiddenClickTimer = setTimeout(resetHiddenClicks, HIDDEN_CLICK_WINDOW_MS);
-  if (hiddenClickCounts[chapter] >= HIDDEN_CLICK_THRESHOLD) {
-    resetHiddenClicks();
-    toggleHiddenChapter(chapter);
-  }
+  // En qualsevol secció, el click al badge serveix també com a drecera
+  // per obrir/tancar el desplegable de capítols de la nav inferior.
+  toggleSectionsMenu();
 }
 
 function toggleHiddenChapter(chapter){
@@ -786,6 +795,112 @@ window.addEventListener('message', (e) => {
       frame.style.height = `${e.data.height}px`;
     }
     return;
+  }
+});
+
+// Menú desplegable al títol de la nav: en clicar, mostra la llista de
+// capítols (sections). Cada item porta al primer pas visible del seu
+// capítol. El menú es genera dinàmicament a cada obertura perquè es
+// reflecteixi sempre l'estat actual (capítols amagats desbloquejats,
+// pas actiu, etc.).
+function populateSectionsMenu() {
+  NAV_SECTIONS_MENU.innerHTML = '';
+  const currentSectionId = getSlide(state.paso)?.section;
+  sections.forEach(sec => {
+    // Header del capítol (clicable: porta al primer pas visible).
+    const header = document.createElement('li');
+    header.className = 'sistema-nav__sections-menu__chapter';
+    header.dataset.section = sec.id;
+    header.textContent = sec.title;
+    if (sec.id === currentSectionId) header.classList.add('is-current-chapter');
+    NAV_SECTIONS_MENU.appendChild(header);
+
+    // Pasos del capítol (només els visibles segons l'estat).
+    sec.slides.forEach(p => {
+      const slide = slideMatrix.find(s => s.paso === p);
+      if (!slide) return;
+      // Saltem els amagats que el seu flag no està actiu.
+      if (slide.hidden) {
+        if (slide.complex && !state.complexUnlocked) return;
+        if (slide.intro && !state.introUnlocked) return;
+      }
+      const item = document.createElement('li');
+      item.className = 'sistema-nav__sections-menu__step';
+      if (slide.complex || slide.intro) item.classList.add('is-hidden-chapter');
+      item.setAttribute('role', 'option');
+      item.dataset.paso = String(p);
+      item.textContent = `${formatPaso(p)} · ${slide.title}`;
+      if (p === state.paso) {
+        item.classList.add('is-current');
+        item.setAttribute('aria-selected', 'true');
+      }
+      NAV_SECTIONS_MENU.appendChild(item);
+    });
+  });
+}
+
+function openSectionsMenu() {
+  populateSectionsMenu();
+  NAV_SECTIONS_MENU.hidden = false;
+  NAV_TITLE_BTN.setAttribute('aria-expanded', 'true');
+}
+function closeSectionsMenu() {
+  NAV_SECTIONS_MENU.hidden = true;
+  NAV_TITLE_BTN.setAttribute('aria-expanded', 'false');
+}
+function toggleSectionsMenu() {
+  if (NAV_SECTIONS_MENU.hidden) openSectionsMenu();
+  else closeSectionsMenu();
+}
+
+NAV_TITLE_BTN.addEventListener('click', toggleSectionsMenu);
+
+NAV_SECTIONS_MENU.addEventListener('click', (e) => {
+  // Click a un pas concret: hi anem.
+  const step = e.target.closest('.sistema-nav__sections-menu__step');
+  if (step) {
+    const paso = Number(step.dataset.paso);
+    if (Number.isFinite(paso)) goTo(paso);
+    closeSectionsMenu();
+    return;
+  }
+  // Click al header d'un capítol: anem al primer pas visible del
+  // capítol.
+  const chapter = e.target.closest('.sistema-nav__sections-menu__chapter');
+  if (chapter) {
+    const sec = sections.find(s => s.id === chapter.dataset.section);
+    if (sec) {
+      const firstVisible = sec.slides.find(p => pasoExists(p));
+      if (firstVisible != null) goTo(firstVisible);
+    }
+    closeSectionsMenu();
+  }
+});
+
+// Tancar amb clic fora. Usem `pointerdown` (no `click`) perquè un
+// `click` només dispara si pointerdown i pointerup són al mateix
+// element; un moviment mínim del cursor entre els dos n'esborra
+// l'event i el menú no es tancaria. Mateix patró que `initRandomMenu`
+// a `libs/random/menu.js`.
+document.addEventListener('pointerdown', (e) => {
+  if (NAV_SECTIONS_MENU.hidden) return;
+  if (
+    e.target.closest('#nav-title')
+    || e.target.closest('#nav-sections-menu')
+    // `.paso-badge` també obre el menú (drecera des del títol del slide):
+    // sense aquesta exclusió, el pointerdown tancaria el menu just abans
+    // que el click el torni a obrir, donant impressió de no resposta.
+    || e.target.closest('.paso-badge')
+  ) return;
+  closeSectionsMenu();
+});
+
+// Tancar amb ESC. (No interfereix amb el contenteditable perquè el
+// listener de fletxes ja filtra inputs; ESC no està capturat allà.)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !NAV_SECTIONS_MENU.hidden) {
+    closeSectionsMenu();
+    NAV_TITLE_BTN.focus();
   }
 });
 
