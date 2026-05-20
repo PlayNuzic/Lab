@@ -171,6 +171,14 @@ export function createPlanoModular(config) {
     }
   }
 
+  // Cache de l'amplada de cel·la usada al refresh més recent. El playhead
+  // s'alinea amb aquest valor (no pas amb `getCellWidthDynamic`, que
+  // recalcula contra `matrixContainer.clientWidth`). En `columnSizing:'px'`
+  // les cel·les es creen a `Wpx` i mantenen aquesta amplada fins al
+  // pròxim refresh; si el viewport canvia entre refreshes, el dinàmic
+  // retorna un valor diferent del real i el playhead es desalinea.
+  let lastRenderedCellWidth = 0;
+
   /**
    * Refresh the entire grid
    */
@@ -178,6 +186,7 @@ export function createPlanoModular(config) {
     if (isDestroyed) return;
 
     const cellWidth = getCellWidthDynamic();
+    lastRenderedCellWidth = cellWidth;
 
     // Update soundline
     updateSoundline(soundlineContainer, rows, {
@@ -225,8 +234,11 @@ export function createPlanoModular(config) {
   // Initialize playhead controller AFTER refresh() creates .plano-matrix
   // This ensures .plano-matrix exists and has position: relative
   if (showPlayhead) {
-    // For 'fr' columns, pass 0 as cellWidth to trigger DOM-based positioning in playhead
-    const getCellWidthForPlayhead = columnSizing === 'fr' ? () => 0 : getCellWidthDynamic;
+    // For 'fr' columns, pass 0 as cellWidth to trigger DOM-based positioning in playhead.
+    // Per a 'px' usem la cache `lastRenderedCellWidth` (no `getCellWidthDynamic`)
+    // perquè un resize del viewport NO desalinei el playhead respecte
+    // les cel·les, que mantenen l'amplada del refresh més recent.
+    const getCellWidthForPlayhead = columnSizing === 'fr' ? () => 0 : () => lastRenderedCellWidth;
     playheadController = createPlayheadController(
       matrixContainer,
       getCellWidthForPlayhead,
