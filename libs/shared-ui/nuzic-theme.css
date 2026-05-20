@@ -1933,11 +1933,15 @@ body[data-visual="nuzic"] .param.param--large--dual .pl-primary input {
   appearance: textfield !important;
 }
 
-/* Mini-pastilla blanca (Cycle) */
+/* Mini-pastilla blanca (Cycle).
+   Amplada igualada al `.pl-primary` (cercle del Compás) per encabir
+   còmodament valors de 2 dígits (fins a 12) sense retallar el text.
+   L'alçada es manté curta perquè la pastilla segueixi sent visualment
+   secundària dins el cercle groc. */
 body[data-visual="nuzic"] .param.param--large--dual .pl-secondary {
   position: relative;
   z-index: 2;
-  width: clamp(1.2rem, 3vw, 2rem);
+  width: clamp(1.6rem, 4vw, 2.6rem);
   height: clamp(0.8rem, 2vw, 1.2rem);
   border-radius: 999px;
   background: #ffffff;
