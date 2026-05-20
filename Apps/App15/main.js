@@ -52,6 +52,7 @@ let intervalRenderer = null;
 // Tracking d'elements d'interval iS (línies verticals estil App14)
 let currentIntervalElements = [];
 let activeAnimationTimeouts = [];
+let playHighlightTimeouts = [];
 
 // Elements
 let playBtn = null;
@@ -195,30 +196,39 @@ async function handlePlay() {
     new Set(), // No accent sounds (pulse plays automatically on all beats)
     false, // No loop initially
     (step) => {
-      // onPulse callback: visual feedback only (audio is scheduled by note provider)
+      // onPulse callback: timeline/editor cursor only. Note-duration
+      // highlights are scheduled through `onSchedule` below, next to the
+      // engine's own note scheduling, so they line up with the sounding note.
       highlightController?.highlightPulse(step);
-
-      // Highlight de play: en lloc d'encendre cel·les una a una a mesura
-      // que el cursor del pols hi passa per sobre, creem UN sol rectangle
-      // posicionat exactament com el halter d'iT — left/width/top sobre
-      // les cel·les del rang [step, step + iT − 1] — que es queda
-      // visible tot el temps que dura la nota (iT × intervalSec) i
-      // desapareix d'un cop.
-      const notes = pulseGroups[step];
-      if (notes && notes.length > 0) {
-        notes.forEach(noteData => {
-          const noteIndex = noteData.midi - 60;
-          const iT = Math.max(1, noteData.temporalInterval || 1);
-          showPlayNoteHighlight(noteIndex, step, iT, intervalSec);
-        });
-      }
     },
     () => {
       // onComplete: delay stop so last pulse highlight is visible
       const lastNoteDelay = intervalSec * 0.9 * 1000;
       setTimeout(() => stopPlayback(), lastNoteDelay);
+    },
+    {
+      onSchedule: (step, when) => {
+        schedulePlayNoteHighlights(step, when, pulseGroups, intervalSec);
+      }
     }
   );
+}
+
+function schedulePlayNoteHighlights(step, when, pulseGroups, intervalSec) {
+  const notes = pulseGroups[step];
+  if (!notes || notes.length === 0) return;
+
+  const toneNow = window.Tone?.now?.() ?? 0;
+  const delayMs = Math.max(0, (when - toneNow) * 1000);
+  const timeoutId = setTimeout(() => {
+    playHighlightTimeouts = playHighlightTimeouts.filter(id => id !== timeoutId);
+    notes.forEach(noteData => {
+      const noteIndex = noteData.midi - 60;
+      const iT = Math.max(1, noteData.temporalInterval || 1);
+      showPlayNoteHighlight(noteIndex, step, iT, intervalSec);
+    });
+  }, delayMs);
+  playHighlightTimeouts.push(timeoutId);
 }
 
 /**
@@ -234,6 +244,16 @@ function showPlayNoteHighlight(noteIndex, startSpace, iT, intervalSec) {
   const matrix = musicalGrid.getMatrixContainer?.();
   if (!matrix) return;
 
+  const widthSpaces = Math.min(iT, TOTAL_SPACES - startSpace);
+  const cells = getNoteSpanCells(noteIndex, startSpace, widthSpaces);
+  if (cells.length > 0) {
+    cells.forEach((cell, index) => {
+      cell.classList.add('play-duration-highlight');
+      if (index === 0) cell.classList.add('play-duration-highlight-start');
+      if (index === cells.length - 1) cell.classList.add('play-duration-highlight-end');
+    });
+  }
+
   let layer = matrix.querySelector('#play-highlight-layer');
   if (!layer) {
     layer = document.createElement('div');
@@ -243,12 +263,17 @@ function showPlayNoteHighlight(noteIndex, startSpace, iT, intervalSec) {
   }
 
   const matrixRect = matrix.getBoundingClientRect();
-  if (!matrixRect.width || !matrixRect.height) return;
+  if (!matrixRect.width || !matrixRect.height) {
+    schedulePlayHighlightCleanup(cells, null, iT, intervalSec);
+    return;
+  }
 
-  const widthSpaces = Math.min(iT, TOTAL_SPACES - startSpace);
   const startCell = musicalGrid.getCellElement(noteIndex, startSpace);
   const endCell = musicalGrid.getCellElement(noteIndex, startSpace + widthSpaces - 1);
-  if (!startCell || !endCell) return;
+  if (!startCell || !endCell) {
+    schedulePlayHighlightCleanup(cells, null, iT, intervalSec);
+    return;
+  }
 
   const startRect = startCell.getBoundingClientRect();
   const endRect = endCell.getBoundingClientRect();
@@ -266,11 +291,36 @@ function showPlayNoteHighlight(noteIndex, startSpace, iT, intervalSec) {
   rect.style.height = `${heightPct}%`;
   layer.appendChild(rect);
 
+  schedulePlayHighlightCleanup(cells, rect, iT, intervalSec);
+}
+
+function getNoteSpanCells(noteIndex, startSpace, widthSpaces) {
+  const cells = [];
+  for (let p = startSpace; p < startSpace + widthSpaces; p++) {
+    const cell = musicalGrid?.getCellElement?.(noteIndex, p);
+    if (cell) cells.push(cell);
+  }
+  return cells;
+}
+
+function schedulePlayHighlightCleanup(cells, rect, iT, intervalSec) {
   const durationMs = iT * intervalSec * 1000;
-  setTimeout(() => rect.remove(), durationMs);
+  setTimeout(() => {
+    rect?.remove();
+    cells.forEach(cell => {
+      cell.classList.remove(
+        'play-duration-highlight',
+        'play-duration-highlight-start',
+        'play-duration-highlight-end'
+      );
+    });
+  }, durationMs);
 }
 
 function clearPlayNoteHighlights() {
+  playHighlightTimeouts.forEach(id => clearTimeout(id));
+  playHighlightTimeouts = [];
+
   if (!musicalGrid) return;
   const matrix = musicalGrid.getMatrixContainer?.();
   const layer = matrix?.querySelector('#play-highlight-layer');
@@ -300,6 +350,13 @@ function stopPlayback() {
   // Clear play-note rectangles still pending (and the legacy `.playing`
   // class, in case any older code path adds it).
   clearPlayNoteHighlights();
+  document.querySelectorAll('.musical-cell.play-duration-highlight').forEach(cell => {
+    cell.classList.remove(
+      'play-duration-highlight',
+      'play-duration-highlight-start',
+      'play-duration-highlight-end'
+    );
+  });
   document.querySelectorAll('.musical-cell.playing').forEach(cell => {
     cell.classList.remove('playing');
   });
@@ -1535,7 +1592,8 @@ async function initializeApp() {
     musicalGrid,
     gridEditor,
     totalNotes: TOTAL_NOTES,
-    currentBPM: currentBPM
+    currentBPM: currentBPM,
+    highlightActiveCells: false
   });
 
   // Initialize audio on first grid-editor interaction (improves responsiveness)

@@ -167,14 +167,15 @@ body.dragging-note * {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 22; /* sobre les cel·les actives (10) i sota el halter (20)? No: per damunt perquè destaqui */
+  z-index: 4;
 }
 
 .play-note-highlight {
   position: absolute;
-  background: var(--selection-color, #FFBB33);
-  opacity: 0.45;
+  background: rgba(255, 187, 51, 0.38);
+  border: 2px solid var(--select-color, #FFBB33);
   border-radius: 4px;
+  box-shadow: 0 0 16px var(--select-color, #FFBB33);
   pointer-events: none;
 }
 
@@ -494,4 +495,3 @@ body.dragging-note * {
   opacity: 1;
   transform: translateY(0);
 }
-

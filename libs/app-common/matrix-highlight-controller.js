@@ -16,6 +16,7 @@
  * @param {Object} [config.gridEditor] - Optional grid editor instance from createGridEditor()
  * @param {number} config.totalNotes - Total number of notes (vertical dimension)
  * @param {number} config.currentBPM - Current BPM for interval highlighting
+ * @param {boolean} [config.highlightActiveCells=true] - Whether playback pulses should add `.pulse-highlight` to active grid cells
  * @returns {Object} Controller with highlightPulse() and clearHighlights() methods
  */
 export function createMatrixHighlightController(config) {
@@ -23,7 +24,8 @@ export function createMatrixHighlightController(config) {
     musicalGrid,
     gridEditor = null,
     totalNotes,
-    currentBPM
+    currentBPM,
+    highlightActiveCells = true
   } = config;
 
   if (!musicalGrid) {
@@ -70,8 +72,10 @@ export function createMatrixHighlightController(config) {
       pulseMarker.classList.add('highlighted');
     }
 
-    // Highlight all active cells in this pulse column
-    if (musicalGrid) {
+    // Highlight all active cells in this pulse column. Some apps render
+    // note-duration playback with their own overlay and only want the
+    // timeline/editor pulse cursor here.
+    if (musicalGrid && highlightActiveCells) {
       for (let noteIndex = 0; noteIndex < totalNotes; noteIndex++) {
         const cell = musicalGrid.getCellElement(noteIndex, pulse);
         if (cell && cell.classList.contains('active')) {

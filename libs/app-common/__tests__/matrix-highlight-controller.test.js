@@ -176,6 +176,19 @@ describe('createMatrixHighlightController', () => {
       expect(getCellElementCalls[2]).toEqual({ noteIndex: 2, pulse: 0 });
     });
 
+    test('should skip active cell highlights when disabled', () => {
+      const controller = createMatrixHighlightController({
+        musicalGrid: mockMusicalGrid,
+        totalNotes: 3,
+        currentBPM: 120,
+        highlightActiveCells: false
+      });
+
+      controller.highlightPulse(0);
+
+      expect(getCellElementCalls.length).toBe(0);
+    });
+
     test('should call musical grid onPulseStep with correct interval', () => {
       const controller = createMatrixHighlightController({
         musicalGrid: mockMusicalGrid,
