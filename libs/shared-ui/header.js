@@ -36,14 +36,14 @@ function applySchedulingProfile(profile) {
 }
 
 function applyTheme(value) {
-    const v = value || 'system';
-    if (v === 'system') {
-        const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.body.dataset.theme = dark ? 'dark' : 'light';
-    } else {
-        document.body.dataset.theme = v;
-    }
-    window.dispatchEvent(new CustomEvent('sharedui:theme', { detail: { value: document.body.dataset.theme, raw: v } }));
+    // Mode fosc desactivat a totes les apps Nuzic. Sigui quin sigui el
+    // valor rebut (`system`, `dark` o `light`), apliquem sempre `light`
+    // perquè els navegadors amb `prefers-color-scheme: dark` no saltin
+    // a tema fosc involuntàriament. Si en el futur volem reactivar el
+    // mode fosc, restaurar la lògica original (commit anterior).
+    const raw = value || 'light';
+    document.body.dataset.theme = 'light';
+    window.dispatchEvent(new CustomEvent('sharedui:theme', { detail: { value: 'light', raw } }));
 }
 
 const SELECTION_COLOR_DEFAULT = '#7BB4CD';

@@ -156,9 +156,12 @@ export function registerFactoryReset({
 export function setupThemeSync({ storage, selectEl, defaultValue = 'system' }) {
   const applyTheme = (value = defaultValue) => {
     const raw = value || defaultValue;
-    const resolvedTheme = raw === 'system'
-      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-      : raw;
+    // Mode fosc desactivat a totes les apps Nuzic. Sigui quin sigui el
+    // valor rebut (`system`, `dark` o `light`), forcem sempre `light`
+    // per evitar que un OS amb `prefers-color-scheme: dark` salti a
+    // tema fosc. Restaurar la lògica original si es vol reactivar el
+    // mode fosc en el futur.
+    const resolvedTheme = 'light';
 
     document.body.dataset.theme = resolvedTheme;
     storage?.save?.('theme', raw);
