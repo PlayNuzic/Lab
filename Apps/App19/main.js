@@ -223,6 +223,21 @@ function initGrid() {
 
   addDotsToAllCells();
 
+  // Mantenim la pastilla `Registro` en sync amb la posició visible de la
+  // soundline: el listener salta a cada scroll (manual, programàtic,
+  // smooth durant play) i actualitza el label al registre més proper.
+  // Funciona durant play perquè el `smoothScrollTo` també genera scroll
+  // events natius mentre interpola.
+  const soundlineContainer = gridContainer.querySelector('.plano-soundline-container');
+  if (soundlineContainer && elements.registroText) {
+    soundlineContainer.addEventListener('scroll', () => {
+      const screen = getScreenForScrollTop(soundlineContainer.scrollTop);
+      if (elements.registroText.value !== screen.label) {
+        elements.registroText.value = screen.label;
+      }
+    }, { passive: true });
+  }
+
   // Insertem el "Compás" header just abans del .plano-container, dins del
   // mateix .timeline-wrapper. Així queda a sobre de la graella i, gràcies
   // a les vars CSS (--com-band-w, --com-band-gap) declarades al wrapper,
@@ -410,6 +425,26 @@ function getScreenScrollTop(screen) {
   const visibleHeight = container?.clientHeight || (24 * CELL_H);
   const bottomEdge = (screen.lastRow + 1) * CELL_H + HALF_CELL;
   return Math.max(0, bottomEdge - visibleHeight);
+}
+
+/**
+ * Donat un scrollTop arbitrari, retorna la `SCREEN` que millor coincideix
+ * (la més propera al snap). S'utilitza per actualitzar la pastilla
+ * `Registro` mentre la soundline es desplaça — incloent durant play, on
+ * el scroll passa per posicions arbitràries entre registres.
+ */
+function getScreenForScrollTop(scrollTop) {
+  let bestScreen = SCREENS[0];
+  let bestDistance = Infinity;
+  for (const screen of SCREENS) {
+    const screenTop = getScreenScrollTop(screen);
+    const distance = Math.abs(screenTop - scrollTop);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestScreen = screen;
+    }
+  }
+  return bestScreen;
 }
 
 const SCROLL_DURATION = 650;  // ms for screen transitions
