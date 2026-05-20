@@ -405,7 +405,8 @@ body[data-theme="dark"] .variant-toggle button[aria-pressed="true"]{
   overflow: hidden;
 }
 body[data-theme="dark"] .slot-image{ background: #2a2a25; }
-.slot-image img{
+.slot-image img,
+.slot-image video{
   width: 100%; height: 100%;
   object-fit: cover;
   display: block;

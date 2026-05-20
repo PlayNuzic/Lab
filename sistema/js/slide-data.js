@@ -9,7 +9,7 @@
 // generic filler (future batches).
 
 export const sections = [
-  { id:'introduccion', title:'Introducción',                       slides:[1] },
+  { id:'introduccion', title:'Introducción',                       slides:[1,1.5] },
   { id:'descubriendo', title:'Descubriendo la Música',              slides:[2,3,4,5,6] },
   { id:'intervalos',   title:'Midiendo el movimiento: Los intervalos', slides:[7,8,9,10] },
   { id:'ampliando',    title:'Ampliando',                          slides:[11,12,13,14,15,16] },
@@ -70,7 +70,8 @@ export const layouts = {
 // Vertical fallback is now a pure CSS media query (`max-width: 900px`); no
 // JS measurement is needed.
 export const slideMatrix = [
-  { paso:1,  section:'introduccion', title:'¿Te gustaría saber cómo se mueve la música?', layout:'A-intro' },
+  { paso:1,    section:'introduccion', title:'¿Te gustaría saber cómo se mueve la música?', layout:'A-intro' },
+  { paso:1.5,  section:'introduccion', title:'¿Te gustaría saber cómo se mueve la música?', layout:'A-intro', hidden:true, intro:true },
   { paso:2,  section:'descubriendo', title:'Contar y Medir Música',                                       layout:'B-app-left', apps:['App11A'], aspect:'4/3', group:'plano-simple' },
   { paso:3,  section:'descubriendo', title:'Línea Temporal',                                              layout:'E-app-text-left', apps:['app9'],   aspect:'2/1', group:'timeline-simple' },
   { paso:4,  section:'descubriendo', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'2/3', group:'timeline-vertical' },
@@ -113,6 +114,22 @@ export const slideContent = {
     image: {
       alt: 'Foto introductoria — Imaginemos el seguimiento de una persona',
       src: 'images/paso-1.jpg',
+    },
+    text: `<p>Imaginemos el seguimiento de una persona durante un día. Para conocer sus movimientos hay que saber en qué puntos ha estado, en qué momento y cuánto tiempo se ha quedado. A partir de esa información puedes deducir y trazar en un mapa cómo se ha movido la persona.</p>
+<p>Las coordenadas de los puntos donde ha estado, la hora y el tiempo, incluso la velocidad para ir de un punto a otro, se pueden describir con <strong>números</strong>.</p>
+<h3>Contar y Medir</h3>
+<p><strong>Contar</strong> es calcular con números cuántas cosas hay. Empezamos a contar unidades con el 1; a continuación le siguen el 2, el 3, el 4, el 5…hasta el infinito.</p>
+<p><strong>Medir</strong> es usar números para calcular la magnitud de algo. Puede ser una longitud, un peso, una temperatura, un intervalo de tiempo…</p>
+<p>Para <b>medir</b> usamos herramientas con escalas numéricas. Estos instrumentos tienen una línea con las unidades de medida marcadas y numeradas. La marca inicial es el <b>número 0</b>, el punto de partida de la medición. Los números que siguen nos permiten contar a cuantos pasos está cada punto del inicio.</p>
+<h3>¿Todo esto es aplicable a la música?</h3>`,
+  },
+  // Capítol amagat — versió animada del pas 1 amb vídeo introductori
+  // en lloc de la foto. Mateix text. Es desbloqueja amb 5 clicks al
+  // badge del pas 1 (vegeu state.introUnlocked a slides.js).
+  1.5: {
+    video: {
+      alt: 'Vídeo introductori animat — el seguiment d\'una persona',
+      src: 'videos/paso-1.mp4',
     },
     text: `<p>Imaginemos el seguimiento de una persona durante un día. Para conocer sus movimientos hay que saber en qué puntos ha estado, en qué momento y cuánto tiempo se ha quedado. A partir de esa información puedes deducir y trazar en un mapa cómo se ha movido la persona.</p>
 <p>Las coordenadas de los puntos donde ha estado, la hora y el tiempo, incluso la velocidad para ir de un punto a otro, se pueden describir con <strong>números</strong>.</p>
