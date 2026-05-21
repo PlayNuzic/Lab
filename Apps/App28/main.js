@@ -1065,11 +1065,17 @@ function clearHighlights() {
 
 /**
  * Highlight the Pfr cell matching `token` during playback.
+ *
+ * Sempre netejem el highlight previ (encara que el `token` actual no
+ * estigui seleccionat). Així la cel·la activa s'apaga al pròxim pols
+ * fraccionat de la graella, sigui o no seleccionat, en lloc de
+ * quedar-se encesa fins al pròxim Pfr seleccionat (que podia ser molt
+ * més tard).
  */
 function highlightPulseSeqToken(token) {
-  if (!pfrCellsEl || !selectedPulses.has(token)) return;
-
+  if (!pfrCellsEl) return;
   pfrCellsEl.querySelectorAll('.editor-cell.active').forEach(c => c.classList.remove('active'));
+  if (!selectedPulses.has(token)) return;
   const cell = pfrCellsEl.querySelector(`.editor-cell[data-token="${CSS.escape(token)}"]`);
   if (cell) {
     cell.classList.add('active');
