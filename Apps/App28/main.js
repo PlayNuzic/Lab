@@ -1137,7 +1137,12 @@ function highlightCycle(payload = {}) {
     label.classList.add('active');
   }
 
-  // Highlight and scroll pulseSeq subdivision token
+  // Highlight and scroll pulseSeq subdivision token.
+  // subdivisionIndex=0 coincideix amb un pols sencer, ja gestionat per
+  // `highlightPulse` (token enter "X"). Si entréssim aquí amb token
+  // "X.0", el `highlightPulseSeqToken` post-fix netejaria la cel·la
+  // entera que `highlightPulse` acaba d'encendre — saltem-ho.
+  if (subdivisionIndex === 0) return;
   const base = cycleIndex * FIXED_NUMERATOR;
   const token = `${base}.${subdivisionIndex}`;
   highlightPulseSeqToken(token);
