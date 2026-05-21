@@ -272,6 +272,18 @@ async function init() {
     pulseFormatter: (index) => index.toString(),
     scrollEnabled: false,
     onCellClick: async (noteIndex, pulseIndex, cell) => {
+      // Toggle: clicar una cel·la ja seleccionada la deselecciona (i no
+      // sona). Clicar una buida la selecciona, sona la nota i el
+      // highlight es queda fins al pròxim click o pròxim play. Mateix
+      // model de persistència que el play (vegeu `stopPlayback` amb
+      // `preserveHighlights: true`).
+      if (cell.classList.contains('active')) {
+        cell.classList.remove('active', 'fading-out');
+        const label = cell.querySelector('.cell-label');
+        if (label) label.remove();
+        return;
+      }
+
       await initAudio();
 
       if (!window.Tone) {
@@ -284,7 +296,6 @@ async function init() {
 
       audio.playNote(midi, duration, window.Tone.now());
 
-      // Show label on click
       cell.classList.add('active');
       if (!cell.querySelector('.cell-label')) {
         const label = document.createElement('span');
@@ -292,18 +303,6 @@ async function init() {
         label.textContent = `( ${noteIndex} , ${pulseIndex} )`;
         cell.appendChild(label);
       }
-
-      // Wait 1000ms, then start fade-out animation
-      setTimeout(() => {
-        cell.classList.add('fading-out');
-
-        // After fade-out completes (1000ms), clean up
-        setTimeout(() => {
-          cell.classList.remove('active', 'fading-out');
-          const label = cell.querySelector('.cell-label');
-          if (label) label.remove();
-        }, 1000);
-      }, 1000);
     },
     onPulseClick: null  // Pulse clicks disabled - only cell clicks work in App11
   });
