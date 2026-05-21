@@ -187,6 +187,35 @@
   min-height: 100%;
 }
 
+/* ========== PLAYHEAD (vertical line during playback) ==========
+   Línia vertical fina que segueix el pols actual durant la
+   reproducció. Posicionada per JS via `cell.offsetLeft`. El `top:0;
+   bottom:0` la fa cobrir tota l'alçada del matrix. La var CSS permet
+   override per app (per defecte rosa nuzic). */
+.matrix-container,
+.matrix-inner {
+  --musical-playhead-width: 3px;
+  --musical-playhead-color: var(--nuzic-pink, #F28AAD);
+}
+
+.musical-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--musical-playhead-width);
+  margin-left: calc(var(--musical-playhead-width) / -2);
+  background: var(--musical-playhead-color);
+  opacity: 0.85;
+  z-index: 20;
+  pointer-events: none;
+  box-shadow: 0 0 6px var(--musical-playhead-color);
+  border-radius: 2px;
+}
+
+.musical-playhead--hidden {
+  display: none;
+}
+
 /* ========== MATRIX CELLS ========== */
 .musical-cell {
   /* Position and size set dynamically by musical-grid.js */

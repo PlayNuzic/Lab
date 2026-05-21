@@ -199,6 +199,7 @@ async function handlePlay() {
       // onPulse callback: timeline/editor cursor only. Note-duration
       // highlights are scheduled through `onSchedule` below, next to the
       // engine's own note scheduling, so they line up with the sounding note.
+      musicalGrid?.updatePlayhead?.(step);
       highlightController?.highlightPulse(step);
     },
     () => {
@@ -338,6 +339,9 @@ function stopPlayback() {
 
   // Clear highlights
   highlightController?.clearHighlights();
+
+  // Amaga el playhead vertical.
+  musicalGrid?.hidePlayhead?.();
 
   // Reset button icon
   const playIcon = playBtn?.querySelector('.icon-play');

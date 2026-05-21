@@ -494,6 +494,8 @@ async function handlePlay() {
     new Set(),
     false,
     (step) => {
+      // Playhead vertical line sobre la cel·la actual.
+      musicalGrid?.updatePlayhead?.(step);
       highlightController?.highlightPulse(step);
 
       const degreeData = absoluteDegrees.find(d => d.pulse === step);
@@ -532,6 +534,7 @@ function stopPlayback(delayMs = 0) {
   }
 
   highlightController?.clearHighlights();
+  musicalGrid?.hidePlayhead?.();
   document.querySelectorAll('.musical-cell.playing').forEach(cell => cell.classList.remove('playing'));
 
   const playIcon = playBtn?.querySelector('.icon-play');

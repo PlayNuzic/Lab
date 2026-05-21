@@ -152,6 +152,9 @@ async function handlePlay() {
     (step) => {
       // onPulse callback: visual feedback only
 
+      // Playhead vertical line sobre la cel·la actual.
+      musicalGrid?.updatePlayhead?.(step);
+
       // 1) Visual feedback for pulse column
       highlightController?.highlightPulse(step);
 
@@ -192,6 +195,9 @@ function stopPlayback() {
 
   // Clear highlights
   highlightController?.clearHighlights();
+
+  // Amaga el playhead vertical.
+  musicalGrid?.hidePlayhead?.();
 
   // Clear any active playing animations
   document.querySelectorAll('.musical-cell.playing').forEach(cell => {

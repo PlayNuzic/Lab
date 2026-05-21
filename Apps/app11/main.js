@@ -152,6 +152,9 @@ async function handlePlay() {
       // onPulse callback: visual feedback only
       console.log(`Pulse ${step}`);
 
+      // Playhead vertical line sobre la cel·la actual.
+      musicalGrid.updatePlayhead(step);
+
       // Use native interval highlighting from musical-grid
       musicalGrid.onPulseStep(step, intervalSec * 1000);
 
@@ -214,6 +217,9 @@ function stopPlayback({ preserveHighlights = false } = {}) {
   // El cursor del playback (pulse-marker.highlighted) sempre es neteja
   // — és l'indicador "estem reproduint", no l'estat de la nota.
   document.querySelectorAll('.pulse-marker.highlighted').forEach(el => el.classList.remove('highlighted'));
+
+  // Amaga el playhead vertical.
+  musicalGrid?.hidePlayhead?.();
 }
 
 // ========== INITIALIZATION ==========

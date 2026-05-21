@@ -298,6 +298,8 @@ async function handlePlay() {
     new Set(),
     false,
     (step) => {
+      // Playhead vertical line sobre la cel·la actual.
+      musicalGrid?.updatePlayhead?.(step);
       highlightController?.highlightPulse(step);
 
       const pair = allPairs.find(p => p.pulse === step);
@@ -334,6 +336,9 @@ function stopPlayback(delayMs = 0) {
   }
 
   highlightController?.clearHighlights();
+
+  // Amaga el playhead vertical.
+  musicalGrid?.hidePlayhead?.();
 
   document.querySelectorAll('.musical-cell.playing').forEach(cell => {
     cell.classList.remove('playing');

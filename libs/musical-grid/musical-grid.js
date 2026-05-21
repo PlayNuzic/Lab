@@ -95,6 +95,11 @@ export function createMusicalGrid(config) {
   let resizeObserver = null;
   let resizeTimeout = null;
 
+  // Playhead state (vegeu el bloc PLAYHEAD més avall).
+  let playheadElement = null;
+  let playheadPulse = -1;
+  let playheadVisible = false;
+
   // Store current interval path data for redrawing on resize
   let currentIntervalPairs = null;
   let currentIntervalPolyphonic = false;
@@ -647,6 +652,10 @@ export function createMusicalGrid(config) {
 
     // Redraw interval path lines after cell positions are updated
     redrawIntervalPaths();
+
+    // Reposiciona el playhead si està visible (les cel·les acaben de
+    // canviar de mida amb el resize; sense això la línia es desalinea).
+    repositionPlayhead();
   }
 
   /**
@@ -1356,6 +1365,75 @@ export function createMusicalGrid(config) {
     });
   }
 
+  // ============================================
+  // PLAYHEAD (vertical line that follows playback)
+  // ============================================
+  //
+  // Patró equivalent al `plano-playhead` de plano-modular: línia vertical
+  // dins el matrix container que es posiciona via DOM (`cell.offsetLeft`).
+  // No depèn de cap càlcul intern de cellWidth — les cel·les ja viuen
+  // amb posicions absolutes en px que s'actualitzen via
+  // `updateCellPositions` quan canvia el viewport, així que llegir
+  // `cell.offsetLeft` sempre reflecteix la posició real i el playhead
+  // queda alineat automàticament després d'un resize.
+
+  /** Crea (si cal) i retorna l'element del playhead, dins matrixInner o matrix. */
+  function ensurePlayheadElement() {
+    if (playheadElement) return playheadElement;
+    const container = containers.matrixInner || containers.matrix;
+    if (!container) return null;
+    const existing = container.querySelector('.musical-playhead');
+    if (existing) {
+      playheadElement = existing;
+      return playheadElement;
+    }
+    playheadElement = document.createElement('div');
+    playheadElement.className = 'musical-playhead musical-playhead--hidden';
+    container.appendChild(playheadElement);
+    return playheadElement;
+  }
+
+  /** Aplica el `left` corresponent a `pulseIndex`. Centra la línia sobre la cel·la. */
+  function applyPlayheadPosition(pulseIndex) {
+    if (pulseIndex < 0 || pulseIndex >= hCellCount) return;
+    const cell = getCellElement(0, pulseIndex);
+    if (!cell) return;
+    const playhead = ensurePlayheadElement();
+    if (!playhead) return;
+    const center = cell.offsetLeft + cell.offsetWidth / 2;
+    playhead.style.left = `${center}px`;
+  }
+
+  /**
+   * Posiciona el playhead a `pulseIndex` i el fa visible.
+   * @param {number} pulseIndex
+   */
+  function updatePlayhead(pulseIndex) {
+    playheadPulse = pulseIndex;
+    playheadVisible = true;
+    const playhead = ensurePlayheadElement();
+    if (!playhead) return;
+    applyPlayheadPosition(pulseIndex);
+    playhead.classList.remove('musical-playhead--hidden');
+  }
+
+  /** Amaga el playhead (manté l'última posició cachejada per a reuse). */
+  function hidePlayhead() {
+    playheadVisible = false;
+    if (playheadElement) {
+      playheadElement.classList.add('musical-playhead--hidden');
+    }
+  }
+
+  /** Reaplicar la posició actual (per usar dins `updateCellPositions` al resize). */
+  function repositionPlayhead() {
+    if (!playheadVisible || playheadPulse < 0) return;
+    applyPlayheadPosition(playheadPulse);
+  }
+
+  function isPlayheadVisible() { return playheadVisible; }
+  function getPlayheadPulse() { return playheadPulse; }
+
   // Auto-render on creation
   render();
 
@@ -1370,6 +1448,12 @@ export function createMusicalGrid(config) {
     // Cell access
     getCellElement,
     highlight,
+
+    // Playhead API (vertical line during playback)
+    updatePlayhead,
+    hidePlayhead,
+    isPlayheadVisible,
+    getPlayheadPulse,
 
     // Axis access
     getNoteElement,
