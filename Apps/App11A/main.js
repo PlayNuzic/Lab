@@ -194,12 +194,23 @@ async function handlePlay() {
         // representi visualment la durada de la nota.
         // Les cel·les es queden actives fins al pròxim play (vegeu el
         // cleanup al començament de handlePlay i a stopPlayback en
-        // mode "no preservar").
+        // mode "no preservar"). A més, marquem `.playing` totes les
+        // cel·les del rang durant la durada de la nota perquè la
+        // lib musical-grid les pinti de blau intens + glow mentre sona.
         const end = Math.min(step + entry.duration, SEQUENCE_PULSES);
+        const playingCells = [];
         for (let p = step; p < end; p++) {
           const cell = musicalGrid.getCellElement(entry.note, p);
-          if (cell) cell.classList.add('active');
+          if (cell) {
+            cell.classList.add('active');
+            cell.classList.add('playing');
+            playingCells.push(cell);
+          }
         }
+        const noteDurationMs = intervalSec * entry.duration * 1000;
+        setTimeout(() => {
+          playingCells.forEach(c => c.classList.remove('playing'));
+        }, noteDurationMs);
       }
     },
     () => {
@@ -241,6 +252,10 @@ function stopPlayback({ preserveHighlights = false } = {}) {
       cell.classList.remove('active', 'fading-out');
     });
   }
+
+  // `.playing` (blau intens + glow) sempre es neteja — és la marca de
+  // "sonant ara", no l'estat de la nota.
+  document.querySelectorAll('.musical-cell.playing').forEach(cell => cell.classList.remove('playing'));
 
   // Clear timeline pulse highlight (sempre — això és el cursor del
   // playback, no l'estat "nota tocada").

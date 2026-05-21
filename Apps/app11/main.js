@@ -164,6 +164,11 @@ async function handlePlay() {
         const cell = musicalGrid.getCellElement(note, step);
         if (cell) {
           cell.classList.add('active');
+          // Marca de "sonant ara" — `.playing` aplica el blau intens +
+          // glow (lib musical-grid). Es treu un pols després perquè
+          // només es vegi durant el temps que dura la nota.
+          cell.classList.add('playing');
+          setTimeout(() => cell.classList.remove('playing'), intervalSec * 1000);
 
           // Add label
           if (!cell.querySelector('.cell-label')) {
@@ -213,6 +218,10 @@ function stopPlayback({ preserveHighlights = false } = {}) {
       if (label) label.remove();
     });
   }
+
+  // `.playing` (blau intens + glow) sempre es neteja — és la marca de
+  // "sonant ara", no l'estat de la nota.
+  document.querySelectorAll('.musical-cell.playing').forEach(cell => cell.classList.remove('playing'));
 
   // El cursor del playback (pulse-marker.highlighted) sempre es neteja
   // — és l'indicador "estem reproduint", no l'estat de la nota.

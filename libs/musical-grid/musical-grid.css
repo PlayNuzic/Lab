@@ -384,15 +384,21 @@
   z-index: var(--z-content, 5) !important;  /* Below overlays (mixer=12) */
 }
 
-/* Playing animation */
+/* Cel·la mentre sona — patró d'App34/35 (note-bar.highlight):
+   ompliment blau intens + glow. Sempre s'aplica, encara que la
+   cel·la NO tingui `.active` (apps com App12/25/25B no ho marquen).
+   Quan SÍ té `.active`, sobrescrivim el ::before perquè el color de
+   selecció (groc per defecte) no es vegi per sobre del blau. */
 .musical-cell.playing {
-  animation: cellFlash 0.3s ease-in-out;
+  background: var(--nuzic-blue, #7bb4cd) !important;
+  box-shadow: 0 0 12px var(--nuzic-blue, #7bb4cd);
   z-index: var(--z-active, 15);
 }
 
-@keyframes cellFlash {
-  0%, 100% { opacity: 0.9; }
-  50% { opacity: 0.5; transform: scale(1.05); }
+.musical-cell.playing::before {
+  background: var(--nuzic-blue, #7bb4cd) !important;
+  border-color: var(--nuzic-blue, #7bb4cd) !important;
+  opacity: 1 !important;
 }
 
 /* ========== CELL LABELS (COORDINATES) ========== */
