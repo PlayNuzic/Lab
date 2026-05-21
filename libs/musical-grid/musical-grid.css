@@ -801,7 +801,11 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -12.5%;
+  /* Centra verticalment la barra de silenci dins la cel·la: amb
+     height:25% i bottom:37.5% el centre de la barra queda a 50%
+     (37.5% + 12.5% = 50%). Abans estava enganxada al bottom
+     (-12.5%) i sortia per sota de la cel·la. */
+  bottom: 37.5%;
   height: 25%;
   background: repeating-linear-gradient(
     90deg,
