@@ -821,6 +821,19 @@ body[data-visual="nuzic"].app34 .plano-timeline-number.plano-cycle-end {
   cursor: text;
 }
 
+/* Highlight de la cel·la durant la reproducció — patró App28
+   (`.editor-cell.active`: ompliment + text blanc). La fila N agafa
+   el rosa intens nuzic; la fila iT, el groc nuzic. */
+.nit-editor-cell.n-cell.active {
+  background: var(--nuzic-pink, #F28AAD) !important;
+  color: white !important;
+}
+
+.nit-editor-cell.it-cell.active {
+  background: var(--nuzic-yellow, #FFBB33) !important;
+  color: white !important;
+}
+
 /* End marker: shown when the iT sum reaches maxTotalPulse. */
 .nit-editor-end {
   width: 1.5rem;

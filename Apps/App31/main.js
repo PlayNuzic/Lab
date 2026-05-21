@@ -1245,6 +1245,7 @@ function clearHighlights() {
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
   intervalBars.forEach(b => b.classList.remove('highlight'));
+  itfrCellsEl?.querySelectorAll('.itfr-value.active').forEach(c => c.classList.remove('active'));
 }
 
 /**
@@ -1336,12 +1337,18 @@ function highlightBarAtPosition(position) {
         void bar.offsetWidth;
         bar.classList.add('highlight');
       }
+      // També il·luminem la cel·la corresponent de l'editor iTfr
+      // (patró App28: durant play la cel·la activa s'omple).
+      itfrCellsEl?.querySelectorAll('.itfr-value.active').forEach(c => c.classList.remove('active'));
+      const cell = itfrCellsEl?.querySelector(`.itfr-value[data-entry-index="${i}"]`);
+      if (cell) cell.classList.add('active');
       return;
     }
   }
 
   // No iT at this position - clear bar highlights
   intervalBars.forEach(b => b.classList.remove('highlight'));
+  itfrCellsEl?.querySelectorAll('.itfr-value.active').forEach(c => c.classList.remove('active'));
 }
 
 // ========== CONTROLS ==========

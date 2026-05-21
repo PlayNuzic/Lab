@@ -403,6 +403,13 @@ body[data-visual="nuzic"].app31 .itfr-info-group .bpm-inline.visible.param.it-di
   box-shadow: inset 0 0 0 2px var(--nuzic-yellow, #FFBB33);
 }
 
+/* Highlight de la cel·la durant la reproducció — patró App28
+   (`.editor-cell.active`: groc + text blanc). */
+.itfr-editor .itfr-cell.itfr-value.active {
+  background: var(--nuzic-yellow, #FFBB33) !important;
+  color: white;
+}
+
 .itfr-editor .itfr-cell.itfr-input {
   background: white !important;
   cursor: text;

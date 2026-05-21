@@ -1564,6 +1564,8 @@ async function playCycleSound() {
 function clearHighlights() {
   gridIntegerLabels.forEach(label => label?.classList.remove('active'));
   gridFractionLabels.forEach(label => label?.classList.remove('active'));
+  // Cel·les actives de l'editor zigzag (N + iT) sota el plànol.
+  document.querySelectorAll('.nit-editor-cell.active').forEach(c => c.classList.remove('active'));
   // Hide playhead
   if (playheadController) {
     playheadController.hide();
@@ -1688,6 +1690,16 @@ function highlightBarAtPosition(position) {
   }
 
   bars.forEach((b, i) => b.classList.toggle('highlight', i === activeIdx));
+
+  // Editor zigzag (N + iT): mateix patró que App34 — il·luminem ambdues
+  // cel·les amb el mateix `data-entry-index` que la nota activa. Color
+  // per fila ve del CSS (rosa intens per N, groc per iT).
+  document.querySelectorAll('.nit-editor-cell.active').forEach(c => c.classList.remove('active'));
+  if (activeIdx >= 0) {
+    document.querySelectorAll(
+      `.nit-editor-cell[data-entry-index="${activeIdx}"]`
+    ).forEach(c => c.classList.add('active'));
+  }
 }
 
 // ========== CONTROLS ==========
