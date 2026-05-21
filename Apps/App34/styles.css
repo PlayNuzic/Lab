@@ -436,6 +436,33 @@ body[data-visual="nuzic"].app34 .plano-cell.pulse-boundary::before {
   box-shadow: 0 0 0.75rem var(--nuzic-blue, #7bb4cd);
 }
 
+/* Barra de silenci (note:null + isRest). Mateix patró de gradient
+   discontinu blau que `.musical-cell.rest::before` (musical-grid, App15/25),
+   per coherència visual entre famílies d'apps de plànol. */
+.note-bar--silence {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--rest-color, var(--interval-color, #4A9EFF)) 0px,
+    var(--rest-color, var(--interval-color, #4A9EFF)) 4px,
+    transparent 4px,
+    transparent 10px
+  );
+  border-radius: 1px;
+  box-shadow: none;
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+[data-theme="dark"] .note-bar--silence {
+  opacity: 0.6;
+}
+
+.note-bar--silence:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 /* L'iT ja el porta el halter groc sota el bar — l'amaguem aquí
    per no duplicar la informació. */
 .note-bar__label {
