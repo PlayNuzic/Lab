@@ -294,7 +294,11 @@ body.app20 {
 
 /* ---- Continuous bar: selected + duration + drag cells form one strip ---- */
 
-/* Shared bar shape — centred on cell bottom border (where soundline labels sit) */
+/* Shared bar shape — centred on cell bottom border (where soundline labels sit).
+   Color: `--nuzic-blue-light` (blau clar) per a la nota seleccionada,
+   les cel·les de duració i la previsualització de drag. Es contrasta
+   amb `--nuzic-blue` (blau intens + glow) de `.plano-highlight` durant
+   play, mostrant la transició clar→fosc quan la cel·la sona. */
 .plano-cell.plano-selected::before,
 .plano-cell.duration-highlight::before,
 .plano-cell.drag-highlight::before {
@@ -304,7 +308,7 @@ body.app20 {
   right: calc(var(--plano-dot-center-x, 4px) * -1);
   bottom: -50%;
   height: 100%;
-  background: var(--plano-select-color, #FFBB33);
+  background: var(--nuzic-blue-light, #bdd9e6);
   border-radius: 0;
   z-index: 1;
   pointer-events: none;

@@ -284,4 +284,8 @@ main {
 body.app25b {
   --nuzic-spin-bg: var(--nuzic-pink, #F28AAD);
   --nuzic-spin-bg-hover: #d96a93;
+  /* Selected cells (`.musical-cell.active`) en blau clar (mix al 40%
+     amb `--nuzic-blue`) en lloc del groc per defecte. Durant play,
+     `.musical-cell.playing` les omple amb blau sòlid + glow. */
+  --cell-highlight-color: var(--nuzic-blue, #7bb4cd);
 }

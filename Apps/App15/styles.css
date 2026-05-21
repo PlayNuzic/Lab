@@ -27,6 +27,11 @@
 body[data-visual="nuzic"] {
   --nuzic-controls-offset-x: 0;
   --nuzic-controls-offset-y: 0;
+  /* Selected cells (`.musical-cell.active`) en blau clar (mix al 40%
+     amb `--nuzic-blue`) en lloc del groc per defecte. Durant play, la
+     barra blava del `.play-note-highlight` cobreix la nota — la
+     transició és blau clar → blau intens sonant. */
+  --cell-highlight-color: var(--nuzic-blue, #7bb4cd);
 }
 
 [data-theme="dark"] {
@@ -172,10 +177,14 @@ body.dragging-note * {
 
 .play-note-highlight {
   position: absolute;
-  background: rgba(255, 187, 51, 0.38);
-  border: 2px solid var(--select-color, #FFBB33);
+  /* Blau intens + glow durant play — coherent amb el patró
+     `.musical-cell.playing` (App11/12/25/25B) i `.note-bar.highlight`
+     (App32-35). Cobreix tot el rang de la nota (iT > 1 amb width
+     calculat per JS). */
+  background: var(--nuzic-blue, #7bb4cd);
+  border: 2px solid var(--nuzic-blue, #7bb4cd);
   border-radius: 4px;
-  box-shadow: 0 0 16px var(--select-color, #FFBB33);
+  box-shadow: 0 0 12px var(--nuzic-blue, #7bb4cd);
   pointer-events: none;
 }
 

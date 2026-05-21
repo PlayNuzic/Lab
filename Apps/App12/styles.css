@@ -310,6 +310,14 @@ html, body {
   box-shadow: 0 0 8px var(--select-color, #FFBB33);
 }
 
+/* Selected cells (`.musical-cell.active`) en blau clar (`--nuzic-blue`
+   amb mix al 40% del lib) en lloc del groc per defecte. Durant play,
+   `.musical-cell.playing` les omple amb `--nuzic-blue` sòlid + glow,
+   donant la transició: blau clar → blau intens sonant. */
+body.app12 {
+  --cell-highlight-color: var(--nuzic-blue, #7bb4cd);
+}
+
 /* ========== RESPONSIVE ========== */
 @media (max-width: 700px) {
   .app12-main-grid { padding: 0.25rem; }

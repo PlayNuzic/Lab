@@ -300,10 +300,14 @@ body.app19 {
 
 /* Override de la regla base de plano-modular (`left: 0; right: 0`).
    La barra de selecció es desplaça el mateix offset que el np-dot
-   perquè quedi centrada sobre els punts. Mateix patró que App20. */
+   perquè quedi centrada sobre els punts. Mateix patró que App20.
+   El color passa a `--nuzic-blue-light` (#bdd9e6) — un blau més clar
+   que `.plano-highlight` (que usa `--nuzic-blue`), perquè es vegi la
+   transició clar→fosc quan la cel·la sona. */
 .plano-cell.plano-selected::before {
   left: var(--plano-dot-center-x, 4px);
   right: calc(var(--plano-dot-center-x, 4px) * -1);
+  background: var(--nuzic-blue-light, #bdd9e6);
 }
 
 /* ============================================
