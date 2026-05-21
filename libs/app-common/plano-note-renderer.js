@@ -48,14 +48,17 @@ export function renderNoteBars({
 
   notes.forEach((noteData, idx) => {
     if (noteData.isRest) {
-      // Silence: thin dotted-line bar centered on the division line
+      // Silence: dotted bar de 25% d'alçada centrada verticalment a la
+      // cel·la del lastNoteRow. Coincideix amb el patró
+      // `.musical-cell.rest::before` de musical-grid (App15/25/25B):
+      // height 25% + centre a 50% de l'alçada de la cel·la.
       const bar = document.createElement('div');
       bar.className = 'note-bar note-bar--silence';
       const left = noteData.startSubdiv * cellWidth;
       const width = noteData.duration * cellWidth;
       const rowIndex = (noteCount - 1) - lastNoteRow;
-      const restHeight = Math.max(3, (cellHeight - 2) / 6);
-      const top = (rowIndex + 1) * cellHeight - restHeight / 2;
+      const restHeight = cellHeight * 0.25;
+      const top = rowIndex * cellHeight + (cellHeight - restHeight) / 2;
 
       bar.style.left = `${left}px`;
       bar.style.width = `${width}px`;
