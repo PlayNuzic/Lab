@@ -1393,15 +1393,15 @@ export function createMusicalGrid(config) {
     return playheadElement;
   }
 
-  /** Aplica el `left` corresponent a `pulseIndex`. Centra la línia sobre la cel·la. */
+  /** Aplica el `left` corresponent a `pulseIndex`. La línia s'enganxa
+   *  a l'esquerra de la cel·la (alineada amb el pulse-marker). */
   function applyPlayheadPosition(pulseIndex) {
     if (pulseIndex < 0 || pulseIndex >= hCellCount) return;
     const cell = getCellElement(0, pulseIndex);
     if (!cell) return;
     const playhead = ensurePlayheadElement();
     if (!playhead) return;
-    const center = cell.offsetLeft + cell.offsetWidth / 2;
-    playhead.style.left = `${center}px`;
+    playhead.style.left = `${cell.offsetLeft}px`;
   }
 
   /**
