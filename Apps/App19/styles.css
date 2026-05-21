@@ -288,12 +288,14 @@ body.app19 {
   right: calc(var(--plano-dot-center-x, 4px) * -1);
   bottom: -50%;
   height: 100%;
-  background: #FFBB33;
+  /* Blau intens + glow durant play — coherent amb `.note-bar.highlight`
+     (App32-35) i `.musical-cell.playing` (App11/12/25/25B). */
+  background: var(--nuzic-blue, #7bb4cd);
   border-radius: 2px;
   z-index: 1;
   pointer-events: none;
   transform: scale(1.05);
-  box-shadow: 0 0 8px #FFBB33;
+  box-shadow: 0 0 12px var(--nuzic-blue, #7bb4cd);
 }
 
 /* Override de la regla base de plano-modular (`left: 0; right: 0`).

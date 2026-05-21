@@ -1237,12 +1237,16 @@ async function init() {
   // Initialize the iSº editor
   initIntervalEditor();
 
-  // Initialize highlight controller
+  // Initialize highlight controller.
+  // `highlightActiveCells: false` perquè el highlight per pols (groc)
+  // sobre la columna sencera ja no és necessari — `.musical-cell.playing`
+  // (blau intens + glow) ja marca la cel·la que sona.
   highlightController = createMatrixHighlightController({
     musicalGrid,
     gridEditor,
     totalNotes: TOTAL_NOTES,
-    currentBPM: currentBPM
+    currentBPM: currentBPM,
+    highlightActiveCells: false
   });
 
   // Preload audio on first interaction

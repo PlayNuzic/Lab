@@ -250,11 +250,13 @@ body.app20 {
   right: 0;
   bottom: -50%;
   height: 100%;
-  background: #FFBB33;
+  /* Blau intens + glow durant play — coherent amb `.note-bar.highlight`
+     (App32-35) i `.musical-cell.playing` (App11/12/25/25B). */
+  background: var(--nuzic-blue, #7bb4cd);
   border-radius: 4px;
   z-index: 1;
   pointer-events: none;
-  box-shadow: 0 0 8px #FFBB33;
+  box-shadow: 0 0 12px var(--nuzic-blue, #7bb4cd);
 }
 
 /* ============================================
