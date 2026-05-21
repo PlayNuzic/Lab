@@ -62,6 +62,66 @@ export function setupScrollSync(matrix, soundline, timeline) {
 }
 
 /**
+ * Setup horizontal scroll synchronization between the matrix and a proxy
+ * track div placed in a separate grid row (under the timeline). The track
+ * has an inner element with `width = matrix.scrollWidth`, so the browser
+ * paints a native horizontal scrollbar inside it. Drags on that scrollbar
+ * sync back to the matrix's scrollLeft.
+ *
+ * Used by `showScrollbars` opt-in (vegeu createPlanoModular).
+ *
+ * @param {HTMLElement} matrix - Matrix container element
+ * @param {HTMLElement} hscrollTrack - Proxy track element with an inner child
+ * @returns {Function} Cleanup function to remove listeners and observers
+ */
+export function setupHScrollTrackSync(matrix, hscrollTrack) {
+  if (!matrix || !hscrollTrack) return () => {};
+  const inner = hscrollTrack.firstElementChild;
+  let isSyncing = false;
+
+  function syncInnerWidth() {
+    if (!inner) return;
+    inner.style.width = `${matrix.scrollWidth}px`;
+  }
+
+  function onMatrixScroll() {
+    if (isSyncing) return;
+    isSyncing = true;
+    hscrollTrack.scrollLeft = matrix.scrollLeft;
+    requestAnimationFrame(() => { isSyncing = false; });
+  }
+
+  function onTrackScroll() {
+    if (isSyncing) return;
+    isSyncing = true;
+    matrix.scrollLeft = hscrollTrack.scrollLeft;
+    requestAnimationFrame(() => { isSyncing = false; });
+  }
+
+  matrix.addEventListener('scroll', onMatrixScroll);
+  hscrollTrack.addEventListener('scroll', onTrackScroll);
+
+  // Mantenir l'amplada interior sincronitzada quan canvia el contingut
+  // del matrix (canvis de Lg, registres, etc.). Observem el matrix per
+  // canvis de mida i el seu primer fill (.plano-matrix) per canvis de
+  // scrollWidth quan s'afegeixen/treuen columnes.
+  let ro = null;
+  if (typeof ResizeObserver !== 'undefined') {
+    ro = new ResizeObserver(syncInnerWidth);
+    ro.observe(matrix);
+    if (matrix.firstElementChild) ro.observe(matrix.firstElementChild);
+  }
+
+  syncInnerWidth();
+
+  return () => {
+    matrix.removeEventListener('scroll', onMatrixScroll);
+    hscrollTrack.removeEventListener('scroll', onTrackScroll);
+    if (ro) ro.disconnect();
+  };
+}
+
+/**
  * Block vertical wheel scroll on elements (only programmatic scroll allowed)
  * @param {...HTMLElement} elements - Elements to block wheel scroll on
  * @returns {Function} Cleanup function to remove listeners

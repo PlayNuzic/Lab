@@ -466,3 +466,88 @@
     padding-right: 0.25rem;
   }
 }
+
+/* ============================================
+   SHOW SCROLLBARS (opt-in via createPlanoModular({ showScrollbars: true }))
+   App19 i App20 l'activen perquè l'usuari pugui veure i arrastrar les
+   barres de scroll del plànol amb registres extensos. La vertical viu
+   dins el matrix (vora dreta); l'horitzontal viu en una fila pròpia
+   sota la timeline (un track proxy sincronitzat amb el matrix per JS).
+   ============================================ */
+.plano-container[data-show-scrollbars="true"] {
+  /* Tres files: matrix / timeline / hscroll-track. La nova fila és
+     auto (l'alçada de la barra natival, ~10-14px). */
+  grid-template-rows: 1fr auto auto;
+}
+
+.plano-container[data-show-scrollbars="true"]::before {
+  /* L'`::before` (fons sota la soundline) ara cobreix la timeline i el
+     hscroll-track perquè la columna soundline tingui base sòlida. */
+  grid-row: 2 / 4;
+}
+
+/* Vertical scrollbar al matrix: la lib la té amagada per defecte
+   (`::-webkit-scrollbar:vertical { display: none }` a la regla principal).
+   Quan `showScrollbars` està actiu, la mostrem amb estil discret nuzic.
+   El matrix manté `overflow-x: auto` (heretat de la regla principal)
+   perquè el scroll horitzontal intern continuï funcionant per wheel/
+   trackpad/teclat — la barra horitzontal nativa s'amaga amb height:0;
+   la barra visible viu al `.plano-hscroll-track` (row 3) sincronitzat
+   per JS. */
+.plano-container[data-show-scrollbars="true"] .plano-matrix-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 214, 179, 0.55) transparent;
+}
+.plano-container[data-show-scrollbars="true"] .plano-matrix-container::-webkit-scrollbar {
+  width: 8px;
+  height: 0;  /* amaga la barra horitzontal nativa (viu al track proxy) */
+}
+.plano-container[data-show-scrollbars="true"] .plano-matrix-container::-webkit-scrollbar:vertical {
+  display: block;
+  width: 8px;
+}
+.plano-container[data-show-scrollbars="true"] .plano-matrix-container::-webkit-scrollbar:horizontal {
+  display: none;
+}
+.plano-container[data-show-scrollbars="true"] .plano-matrix-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.plano-container[data-show-scrollbars="true"] .plano-matrix-container::-webkit-scrollbar-thumb {
+  background: rgba(124, 214, 179, 0.55);
+  border-radius: 4px;
+}
+.plano-container[data-show-scrollbars="true"] .plano-matrix-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 214, 179, 0.85);
+}
+
+/* Horizontal scrollbar proxy a row 3 (sota la timeline). El track és
+   el div extern (.plano-hscroll-track) amb overflow-x: auto; el seu
+   fill (.plano-hscroll-inner) té amplada igual a matrix.scrollWidth
+   (sincronitzat per JS via setupHScrollTrackSync). */
+.plano-hscroll-track {
+  grid-column: 2;
+  grid-row: 3;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 10px;
+  margin-left: var(--plano-margin-left);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 214, 179, 0.55) transparent;
+}
+.plano-hscroll-track::-webkit-scrollbar {
+  height: 8px;
+  width: 0;
+}
+.plano-hscroll-track::-webkit-scrollbar-track {
+  background: transparent;
+}
+.plano-hscroll-track::-webkit-scrollbar-thumb {
+  background: rgba(124, 214, 179, 0.55);
+  border-radius: 4px;
+}
+.plano-hscroll-track::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 214, 179, 0.85);
+}
+.plano-hscroll-inner {
+  height: 1px;
+}

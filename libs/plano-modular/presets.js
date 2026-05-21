@@ -61,7 +61,8 @@ export function createPlanoMusical(config) {
     onSelectionChange,
     showPlayhead = true,
     playheadOffset = 0,
-    initialRegistry
+    initialRegistry,
+    showScrollbars = false
   } = config;
 
   // Build registry configuration
@@ -114,7 +115,8 @@ export function createPlanoMusical(config) {
     },
     onSelectionChange,
     showPlayhead,
-    playheadOffset
+    playheadOffset,
+    showScrollbars
   });
 
   // Extended API
@@ -345,7 +347,8 @@ export function createApp19Grid(config) {
     onSelectionChange,
     defaultRegistry = 4,
     registryConfig: customRegistryConfig = {},
-    playheadOffset = 0
+    playheadOffset = 0,
+    showScrollbars = false
   } = config;
 
   // Create with App19 defaults, allowing overrides via customRegistryConfig
@@ -367,7 +370,8 @@ export function createApp19Grid(config) {
     playheadOffset,
     onCellClick,
     onSelectionChange,
-    showPlayhead: true
+    showPlayhead: true,
+    showScrollbars
   });
 
   // Scroll to default registry after creation

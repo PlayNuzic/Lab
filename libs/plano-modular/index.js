@@ -26,6 +26,7 @@ import {
 
 import {
   setupScrollSync,
+  setupHScrollTrackSync,
   blockVerticalWheel,
   scrollToRow,
   scrollToRowIfNeeded,
@@ -75,7 +76,10 @@ export function createPlanoModular(config) {
     showPlayhead = true,
     playheadOffset = 0,
     columnSizing = 'px',  // 'px' (fixed width) or 'fr' (fill available space)
-    showCycleEnd = false  // Last timeline column renders as `·` cycle-end
+    showCycleEnd = false, // Last timeline column renders as `·` cycle-end
+    showScrollbars = false // Proxy scrollbars: vertical visible al matrix +
+                           // horitzontal sota la timeline (vegeu CSS amb
+                           // `[data-show-scrollbars="true"]`).
   } = config;
 
   // State
@@ -102,7 +106,7 @@ export function createPlanoModular(config) {
   }
 
   // Build DOM
-  const elements = buildGridDOM(parent);
+  const elements = buildGridDOM(parent, { showScrollbars });
   if (!elements) {
     throw new Error('PlanoModular: Failed to build grid DOM');
   }
@@ -111,7 +115,8 @@ export function createPlanoModular(config) {
     container,
     soundlineContainer,
     matrixContainer,
-    timelineContainer
+    timelineContainer,
+    hscrollTrack
   } = elements;
 
   // Initialize selection manager
@@ -126,6 +131,12 @@ export function createPlanoModular(config) {
   // Setup scroll sync
   const cleanupScrollSync = setupScrollSync(matrixContainer, soundlineContainer, timelineContainer);
   cleanupFunctions.push(cleanupScrollSync);
+
+  // Setup horizontal scrollbar sota la timeline (opt-in).
+  if (showScrollbars && hscrollTrack) {
+    const cleanupHScroll = setupHScrollTrackSync(matrixContainer, hscrollTrack);
+    cleanupFunctions.push(cleanupHScroll);
+  }
 
   // Block vertical wheel if configured
   if (shouldBlockWheel) {
@@ -467,7 +478,7 @@ export function createPlanoModular(config) {
 
 // Re-export submodules for advanced usage
 export { createSelectionManager } from './plano-selection.js';
-export { setupScrollSync, blockVerticalWheel, smoothScrollTo, scrollToRegistry, scrollToRowIfNeeded } from './plano-scroll.js';
+export { setupScrollSync, setupHScrollTrackSync, blockVerticalWheel, smoothScrollTo, scrollToRegistry, scrollToRowIfNeeded } from './plano-scroll.js';
 export { createPlayheadController, updatePlayhead, hidePlayhead } from './plano-playhead.js';
 export {
   buildGridDOM,

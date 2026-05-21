@@ -261,14 +261,14 @@ body.app19 {
   color: #F28AAD !important;
 }
 
-/* Hide scrollbars — free scroll via wheel/trackpad, no visible scrollbar needed */
-.plano-soundline-container,
-.plano-matrix-container {
+/* Soundline manté la seva scrollbar amagada — queda sincronitzada amb el
+   matrix per `setupScrollSync` (libs/plano-modular/plano-scroll.js).
+   El matrix mostra la seva scrollbar (vegeu `showScrollbars: true` a
+   `createApp19Grid`). */
+.plano-soundline-container {
   scrollbar-width: none;
 }
-
-.plano-soundline-container::-webkit-scrollbar,
-.plano-matrix-container::-webkit-scrollbar {
+.plano-soundline-container::-webkit-scrollbar {
   width: 0;
   display: none;
 }

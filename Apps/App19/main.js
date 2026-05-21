@@ -215,7 +215,9 @@ function initGrid() {
       visibleRows: 24
     },
     onCellClick: handleCellClick,
-    onSelectionChange: null  // Selections not persisted
+    onSelectionChange: null,  // Selections not persisted
+    showScrollbars: true  // Barres de scroll visibles al matrix (dreta) i
+                          // sota la timeline (fila proxy sincronitzada).
   });
 
   // Free vertical scroll — native scroll with sync handled by setupScrollSync

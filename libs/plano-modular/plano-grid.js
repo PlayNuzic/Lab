@@ -8,12 +8,13 @@
  * @param {HTMLElement} parent - Parent element to append grid to
  * @returns {Object} References to created DOM elements
  */
-export function buildGridDOM(parent) {
+export function buildGridDOM(parent, { showScrollbars = false } = {}) {
   if (!parent) return null;
 
   // Create main container
   const container = document.createElement('div');
   container.className = 'plano-container';
+  if (showScrollbars) container.dataset.showScrollbars = 'true';
 
   // Soundline (Y-axis: notes/rows)
   const soundlineContainer = document.createElement('div');
@@ -44,6 +45,22 @@ export function buildGridDOM(parent) {
   container.appendChild(soundlineContainer);
   container.appendChild(gridArea);
   container.appendChild(timelineContainer);
+
+  // Scrollbar visible sota la timeline (opt-in via `showScrollbars`).
+  // Un div extra ocupa una nova fila del grid; el seu contingut intern té
+  // amplada igual al `matrix.scrollWidth`, així que el browser hi pinta una
+  // scrollbar horitzontal proxy sincronitzada amb el matrix per JS. El CSS
+  // s'aplica via `[data-show-scrollbars="true"]` al container.
+  let hscrollTrack = null;
+  if (showScrollbars) {
+    hscrollTrack = document.createElement('div');
+    hscrollTrack.className = 'plano-hscroll-track';
+    const inner = document.createElement('div');
+    inner.className = 'plano-hscroll-inner';
+    hscrollTrack.appendChild(inner);
+    container.appendChild(hscrollTrack);
+  }
+
   parent.appendChild(container);
 
   return {
@@ -51,7 +68,8 @@ export function buildGridDOM(parent) {
     soundlineContainer,
     matrixContainer,
     timelineContainer,
-    gridArea
+    gridArea,
+    hscrollTrack
   };
 }
 
