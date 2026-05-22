@@ -74,6 +74,25 @@ function generateRandomSequence() {
 
 // ========== PLAY SEQUENCE ==========
 
+/**
+ * Llegeix les cel·les que l'usuari ha sel·leccionat amb el mouse i les
+ * retorna com a seqüència `[{note, pulse}]` ordenada per pols.
+ * Filtra els pulsos >= SEQUENCE_PULSES (pols 8 és l'endpoint, no es
+ * reprodueix). Retorna [] si no hi ha cap selecció vàlida.
+ */
+function getUserSelectedNotes() {
+  const result = [];
+  document.querySelectorAll('.musical-cell.active').forEach(cell => {
+    const note = parseInt(cell.dataset.note, 10);
+    const pulse = parseInt(cell.dataset.pulse, 10);
+    if (!Number.isFinite(note) || !Number.isFinite(pulse)) return;
+    if (pulse < 0 || pulse >= SEQUENCE_PULSES) return;
+    result.push({ note, pulse });
+  });
+  result.sort((a, b) => a.pulse - b.pulse);
+  return result;
+}
+
 async function handlePlay() {
   if (isPlaying) {
     stopPlayback();
@@ -111,23 +130,32 @@ async function handlePlay() {
     return;
   }
 
-  // Generate random content
-  currentBPM = getRandomBPM();
-  const { notes, silencePulses } = generateRandomSequence();
+  // Si l'usuari ha sel·leccionat cel·les a mà, reproduïm aquesta
+  // seqüència tal com es veu en pantalla (mantenim BPM actual, no
+  // netegem els highlights). Si no hi ha res sel·leccionat, generem
+  // un nou random (BPM + notes) com sempre.
+  const userNotes = getUserSelectedNotes();
+  let notes;
+  if (userNotes.length > 0) {
+    notes = userNotes;
+  } else {
+    currentBPM = getRandomBPM();
+    notes = generateRandomSequence().notes;
+    // Clear only en mode random — el random vol partir d'una pissarra neta.
+    document.querySelectorAll('.musical-cell.active').forEach(cell => {
+      cell.classList.remove('active');
+      const label = cell.querySelector('.cell-label');
+      if (label) label.remove();
+    });
+  }
 
   console.log('=== Play Sequence ===');
   console.log(`BPM: ${currentBPM}`);
+  console.log(`Mode: ${userNotes.length > 0 ? 'user-selected' : 'random'}`);
   console.log(`Notes (${notes.length}):`, notes.map(({note, pulse}) => `P${pulse}:N${note}`).join(', '));
 
   // Calculate interval
   intervalSec = 60 / currentBPM;
-
-  // Clear all previous labels and active states
-  document.querySelectorAll('.musical-cell.active').forEach(cell => {
-    cell.classList.remove('active');
-    const label = cell.querySelector('.cell-label');
-    if (label) label.remove();
-  });
 
   // Create map of notes by pulse
   const notesByPulse = {};
