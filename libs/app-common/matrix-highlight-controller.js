@@ -16,7 +16,6 @@
  * @param {Object} [config.gridEditor] - Optional grid editor instance from createGridEditor()
  * @param {number} config.totalNotes - Total number of notes (vertical dimension)
  * @param {number} config.currentBPM - Current BPM for interval highlighting
- * @param {boolean} [config.highlightActiveCells=true] - Whether playback pulses should add `.pulse-highlight` to active grid cells
  * @returns {Object} Controller with highlightPulse() and clearHighlights() methods
  */
 export function createMatrixHighlightController(config) {
@@ -24,8 +23,7 @@ export function createMatrixHighlightController(config) {
     musicalGrid,
     gridEditor = null,
     totalNotes,
-    currentBPM,
-    highlightActiveCells = true
+    currentBPM
   } = config;
 
   if (!musicalGrid) {
@@ -51,9 +49,6 @@ export function createMatrixHighlightController(config) {
     document.querySelectorAll('.pulse-marker.highlighted').forEach(el => {
       el.classList.remove('highlighted');
     });
-    document.querySelectorAll('.musical-cell.pulse-highlight').forEach(el => {
-      el.classList.remove('pulse-highlight');
-    });
     document.querySelectorAll('.pz.number.highlighted').forEach(el => {
       el.classList.remove('highlighted');
     });
@@ -70,18 +65,6 @@ export function createMatrixHighlightController(config) {
       ?.querySelector(`.pulse-marker[data-pulse-index="${pulse}"]`);
     if (pulseMarker) {
       pulseMarker.classList.add('highlighted');
-    }
-
-    // Highlight all active cells in this pulse column. Some apps render
-    // note-duration playback with their own overlay and only want the
-    // timeline/editor pulse cursor here.
-    if (musicalGrid && highlightActiveCells) {
-      for (let noteIndex = 0; noteIndex < totalNotes; noteIndex++) {
-        const cell = musicalGrid.getCellElement(noteIndex, pulse);
-        if (cell && cell.classList.contains('active')) {
-          cell.classList.add('pulse-highlight');
-        }
-      }
     }
 
     // Use native interval highlighting from musical-grid
@@ -104,9 +87,6 @@ export function createMatrixHighlightController(config) {
   function clearHighlights() {
     document.querySelectorAll('.pulse-marker.highlighted').forEach(el => {
       el.classList.remove('highlighted');
-    });
-    document.querySelectorAll('.musical-cell.pulse-highlight').forEach(el => {
-      el.classList.remove('pulse-highlight');
     });
     // Clear interval highlights using native method
     if (musicalGrid) {

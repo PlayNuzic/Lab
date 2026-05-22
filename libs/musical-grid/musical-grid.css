@@ -536,34 +536,12 @@
   z-index: var(--z-active, 15);
 }
 
-.musical-cell.pulse-highlight {
-  border-color: transparent;
-  box-shadow: none;
-  opacity: 0.7;
-}
-
-.musical-cell.pulse-highlight::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 100%;
-  border: 1px solid var(--select-color, #FFBB33);
-  box-shadow: 0 0 12px var(--select-color, #FFBB33);
-  border-radius: 2px;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.musical-cell.active.pulse-highlight {
-  opacity: 1;
-  z-index: var(--z-active, 15);
-}
-
-.musical-cell.active.pulse-highlight::before {
-  transform: scale(1.08);
-}
+/* `.musical-cell.pulse-highlight` (highlight groc per columna durant
+   play) eliminat — totes les apps passen `highlightActiveCells: false`
+   al matrix-highlight-controller (vegeu commits previs); la cel·la que
+   sona ja queda marcada per `.musical-cell.playing` (blau intens +
+   glow). Si calgués reactivar el highlight per columna, el bloc viu
+   a l'històric. */
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 1024px) {
@@ -572,11 +550,6 @@
     grid-template-columns: 120px 1fr;
     grid-template-rows: 1fr 70px;
     gap: 15px;
-  }
-
-  .soundline-number,
-  .pulse-marker {
-    font-size: 1rem;
   }
 
   .cell-label {
@@ -594,11 +567,6 @@
     grid-template-columns: 100px 1fr;
     grid-template-rows: 1fr 60px;
     gap: 10px;
-  }
-
-  .soundline-number,
-  .pulse-marker {
-    font-size: 0.9rem;
   }
 
   .soundline::before {
@@ -636,11 +604,6 @@
     grid-template-columns: 80px 1fr;
     grid-template-rows: 1fr 50px;
     gap: 8px;
-  }
-
-  .soundline-number,
-  .pulse-marker {
-    font-size: 0.9rem;
   }
 
   /* ⭐ UPDATED: Reduce label size on mobile */

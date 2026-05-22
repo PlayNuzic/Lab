@@ -786,15 +786,11 @@ async function init() {
   }
 
   // Initialize highlight controller using shared module.
-  // `highlightActiveCells: false` perquè el highlight per pols (groc)
-  // sobre la columna sencera ja no és necessari — `.musical-cell.playing`
-  // (blau intens + glow) ja marca la cel·la que sona.
   highlightController = createMatrixHighlightController({
     musicalGrid,
     gridEditor,
     totalNotes: TOTAL_NOTES,
-    currentBPM: currentBPM,
-    highlightActiveCells: false
+    currentBPM: currentBPM
   });
 
   // Wait for DOM to be fully populated by template system

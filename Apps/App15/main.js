@@ -1596,8 +1596,7 @@ async function initializeApp() {
     musicalGrid,
     gridEditor,
     totalNotes: TOTAL_NOTES,
-    currentBPM: currentBPM,
-    highlightActiveCells: false
+    currentBPM: currentBPM
   });
 
   // Initialize audio on first grid-editor interaction (improves responsiveness)

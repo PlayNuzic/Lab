@@ -1238,15 +1238,11 @@ async function init() {
   initIntervalEditor();
 
   // Initialize highlight controller.
-  // `highlightActiveCells: false` perquè el highlight per pols (groc)
-  // sobre la columna sencera ja no és necessari — `.musical-cell.playing`
-  // (blau intens + glow) ja marca la cel·la que sona.
   highlightController = createMatrixHighlightController({
     musicalGrid,
     gridEditor,
     totalNotes: TOTAL_NOTES,
-    currentBPM: currentBPM,
-    highlightActiveCells: false
+    currentBPM: currentBPM
   });
 
   // Preload audio on first interaction

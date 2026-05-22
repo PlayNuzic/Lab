@@ -161,34 +161,6 @@ describe('createMatrixHighlightController', () => {
       expect(mockPulseMarker.classList.contains('highlighted')).toBe(true);
     });
 
-    test('should highlight active cells in pulse column', () => {
-      const controller = createMatrixHighlightController({
-        musicalGrid: mockMusicalGrid,
-        totalNotes: 3,
-        currentBPM: 120
-      });
-
-      controller.highlightPulse(0);
-
-      expect(getCellElementCalls.length).toBe(3);
-      expect(getCellElementCalls[0]).toEqual({ noteIndex: 0, pulse: 0 });
-      expect(getCellElementCalls[1]).toEqual({ noteIndex: 1, pulse: 0 });
-      expect(getCellElementCalls[2]).toEqual({ noteIndex: 2, pulse: 0 });
-    });
-
-    test('should skip active cell highlights when disabled', () => {
-      const controller = createMatrixHighlightController({
-        musicalGrid: mockMusicalGrid,
-        totalNotes: 3,
-        currentBPM: 120,
-        highlightActiveCells: false
-      });
-
-      controller.highlightPulse(0);
-
-      expect(getCellElementCalls.length).toBe(0);
-    });
-
     test('should call musical grid onPulseStep with correct interval', () => {
       const controller = createMatrixHighlightController({
         musicalGrid: mockMusicalGrid,
@@ -287,21 +259,6 @@ describe('createMatrixHighlightController', () => {
 
       controller.clearHighlights();
       expect(mockPulseMarker.classList.contains('highlighted')).toBe(false);
-    });
-
-    test('should remove all musical-cell highlights', () => {
-      const cell = document.createElement('div');
-      cell.className = 'musical-cell pulse-highlight';
-      document.body.appendChild(cell);
-
-      const controller = createMatrixHighlightController({
-        musicalGrid: mockMusicalGrid,
-        totalNotes: 12,
-        currentBPM: 120
-      });
-
-      controller.clearHighlights();
-      expect(cell.classList.contains('pulse-highlight')).toBe(false);
     });
 
     test('should clear musical grid interval highlights', () => {
