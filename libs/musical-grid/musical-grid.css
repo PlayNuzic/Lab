@@ -387,7 +387,7 @@
 /* Cel·la mentre sona — patró d'App34/35 (note-bar.highlight):
    ompliment blau MÉS FOSC + glow per donar contrast clar contra
    `.musical-cell.active::before` (blau-clar `--nuzic-blue-light` del
-   nuzic-theme). Usem `#4a90b8` (blau ~30% més fosc que --nuzic-blue)
+   nuzic-theme). Usem `var(--nuzic-blue, #7bb4cd)` (blau ~30% més fosc que --nuzic-blue)
    per garantir distinció visible a viewports petits. Cobreix:
    - Cel·la sense `.active` (App12 abans): fons directe.
    - Cel·la amb `.active` (App12/25/25B en pràctica): selectors prefixats
@@ -397,8 +397,8 @@
 .musical-cell.playing,
 body[data-visual="nuzic"] .musical-cell.playing,
 body[data-visual="nuzic"] .musical-cell.active.playing {
-  background: #4a90b8 !important;
-  box-shadow: 0 0 12px #4a90b8 !important;
+  background: var(--nuzic-blue, #7bb4cd) !important;
+  box-shadow: 0 0 12px var(--nuzic-blue, #7bb4cd) !important;
   z-index: var(--z-active, 15);
 }
 
@@ -411,8 +411,8 @@ body[data-visual="nuzic"] .musical-cell.active.playing::before {
   right: 0;
   top: 0;
   height: 100%;
-  background: #4a90b8 !important;
-  border: 1px solid #4a90b8 !important;
+  background: var(--nuzic-blue, #7bb4cd) !important;
+  border: 1px solid var(--nuzic-blue, #7bb4cd) !important;
   border-radius: 2px;
   opacity: 1 !important;
   z-index: 1;
