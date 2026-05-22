@@ -3,10 +3,9 @@
 /* Import shared module styles */
 @import url('../../libs/musical-grid/musical-grid.css');
 
-/* Augmentar la mida dels números de les línies sonora i temporal —
-   alineem-los amb App14/App18 (sonora) i App19/App20 (temporal). */
-.soundline-number { font-size: clamp(0.9rem, 1.8vw, 1.6rem); }
-.pulse-marker     { font-size: clamp(0.9rem, 1.6vw, 1.4rem); }
+/* Mides unificades a les apps amb musical-grid (App11/11A/12/15/25/25B). */
+.soundline-number { font-size: clamp(0.6rem, 1.5vw, 1.75rem); }
+.pulse-marker     { font-size: clamp(0.6rem, 1.5vw, 1.75rem); }
 
 /* Variables CSS */
 :root {

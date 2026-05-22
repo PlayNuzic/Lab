@@ -7,6 +7,13 @@
   display: none;
 }
 
+/* Mida del label de la soundline alineada amb les apps de musical-grid
+   (App11/11A/12/15/25/25B). Només la soundline — el pulse-marker
+   d'App32-35 viu dins el grid i té el seu propi sistema. */
+.plano-soundline-note {
+  font-size: clamp(0.6rem, 1.5vw, 1.75rem);
+}
+
 /* Template's timeline-wrapper is not used (the grid contains its own timeline). */
 .timeline-wrapper {
   display: none;
