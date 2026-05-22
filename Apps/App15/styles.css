@@ -171,14 +171,14 @@ body.dragging-note * {
 
 .play-note-highlight {
   position: absolute;
-  /* Blau intens + glow durant play — coherent amb el patró
-     `.musical-cell.playing` (App11/12/25/25B) i `.note-bar.highlight`
-     (App32-35). Cobreix tot el rang de la nota (iT > 1 amb width
-     calculat per JS). */
+  /* Blau intens durant play — coherent amb `.musical-cell.playing`
+     (App11/12/25/25B) i `.note-bar.highlight` (App32-35). Cobreix tot
+     el rang de la nota (iT > 1 amb width calculat per JS). Sense
+     box-shadow: el glow projectava llum FORA del rectangle que es
+     veia com a "halo per darrera" la nota. */
   background: var(--nuzic-blue, #7bb4cd);
   border: 2px solid var(--nuzic-blue, #7bb4cd);
   border-radius: 4px;
-  box-shadow: 0 0 12px var(--nuzic-blue, #7bb4cd);
   pointer-events: none;
 }
 
