@@ -3,12 +3,6 @@
 /* Import shared modules */
 @import url('../../libs/musical-grid/musical-grid.css');
 
-/* Mides unificades a les apps amb musical-grid (App11/11A/12/15/25/25B):
-   soundline-number i pulse-marker comparteixen el mateix clamp per
-   coherència visual entre apps. */
-.soundline-number { font-size: clamp(0.6rem, 1.5vw, 1.75rem); }
-.pulse-marker     { font-size: clamp(0.6rem, 1.5vw, 1.75rem); }
-
 /* Nuzic theme overrides */
 body[data-visual="nuzic"] {
   --nuzic-controls-offset-x: 1.9rem;

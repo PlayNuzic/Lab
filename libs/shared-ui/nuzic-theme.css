@@ -292,9 +292,9 @@ body[data-visual="nuzic"] .grid-container .soundline-number {
   width: 100%;
   text-align: center;
   font-weight: 700;
-  /* Sostre reduït (0.75rem ≈ 12px) per evitar que el text "11" + dashes
-     inline sobresurti del marc rosa estret en finestres petites. */
-  font-size: clamp(0.6rem, 1.2vw, 0.75rem);
+  /* Mida unificada per a totes les apps amb musical-grid
+     (App11/11A/12/15/25/25B): mateix clamp també a pulse-marker. */
+  font-size: clamp(0.6rem, 1.5vw, 1.75rem);
   opacity: 1;
 }
 
@@ -319,7 +319,9 @@ body[data-visual="nuzic"] .plano-soundline-note {
   justify-content: center;
   padding-right: 0;
   font-weight: 700;
-  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
+  /* Mateix clamp que `.soundline-number` (musical-grid) per coherència
+     visual entre App11-25B i App32-35. */
+  font-size: clamp(0.6rem, 1.5vw, 1.75rem);
 }
 
 body[data-visual="nuzic"] .plano-soundline-note::before {
@@ -437,7 +439,8 @@ body[data-visual="nuzic"] .grid-container .timeline-line {
 body[data-visual="nuzic"] .grid-container .pulse-marker {
   background: none;  /* Amagar línia vertical del marcador */
   font-weight: 700;
-  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
+  /* Mateix clamp que `.soundline-number` per coherència entre apps. */
+  font-size: clamp(0.6rem, 1.5vw, 1.75rem);
   opacity: 1;
   width: auto;
   height: auto;
