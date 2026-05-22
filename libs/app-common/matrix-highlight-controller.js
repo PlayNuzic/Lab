@@ -73,9 +73,13 @@ export function createMatrixHighlightController(config) {
       musicalGrid.onPulseStep(pulse, intervalSec * 1000);
     }
 
-    // Highlight grid editor cells for this pulse
-    if (gridEditor) {
-      // Highlight all cells in this pulse column
+    // Highlight grid editor cells for this pulse.
+    // `highlightCell` és opcional — el matrix-seq grid-editor original
+    // l'implementa, però els editors nuzic per app (App12/15/25/25B) usen
+    // un objecte custom sense aquest mètode. Optional chaining evita el
+    // TypeError que avortava tot el pulse callback (incloent l'add de
+    // `.musical-cell.playing`).
+    if (gridEditor && typeof gridEditor.highlightCell === 'function') {
       gridEditor.highlightCell('N', pulse);
       gridEditor.highlightCell('P', pulse);
     }
