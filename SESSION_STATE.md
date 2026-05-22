@@ -13,99 +13,116 @@
 
 - `32a0977` — Eliminat `.musical-cell.pulse-highlight` (halo groc per
   columna) + paràmetre `highlightActiveCells` retirat del
-  `matrix-highlight-controller` (sempre `false` en pràctica). ✅ User
-  confirma no apareix halo groc a cap app.
+  `matrix-highlight-controller` (sempre `false` en pràctica). ✅
 - `7509493` — Mida unificada via `libs/shared-ui/nuzic-theme.css` (font
   canònica) a `.soundline-number`/`.pulse-marker`/`.plano-soundline-note`.
+- `cc5f003` — **B1 RESOLT**. `matrix-highlight-controller` cridava
+  `gridEditor.highlightCell('N', pulse)` que llançava `TypeError` als
+  editors nuzic custom d'App12/15/25/25B. El throw avortava TOT el
+  pulse callback. Fix: `typeof ... === 'function'` abans de cridar. ✅
+- `608749f` — **B2 RESOLT**. `.play-highlight-layer` d'App15 z-index
+  `4 → 15` (sobre cells, sota playhead). ✅
+- `6f70d07` — **B2 (parcial) + B3 RESOLT**. `.play-note-highlight` sense
+  `box-shadow`. Clamp reduït a `clamp(0.6rem, 1.2vw, 1rem)`. Pendent
+  confirmar visual del clamp definitiu.
+- `bc52d7a` — Cel·la sonant amb `var(--nuzic-blue, #7bb4cd)` (paleta
+  canònica nuzic). Selectors prefixats `body[data-visual="nuzic"]` i
+  `!important`.
 
-### Fet, PENDENT validació
+### Bugs oberts
 
-- `a782142` — `.musical-cell.playing::before` amb `content` + selectors
-  `body[data-visual="nuzic"]` per igualar specificity. Clamp max
-  reduït a `1.25rem`. User reporta encara bugs (vegeu B1, B2, B3).
+Cap actualment. Pendent confirmar visual del clamp `1rem` (si encara
+és massa gran, anar a `0.9rem`).
 
-## Bugs oberts (per resoldre)
+---
 
-### B1 — App12/25/25B no mostren blau intens a la cel·la sonant
+## Pla de neteja — pendent (per ordre de risc creixent)
 
-- App11 SÍ funciona (té `.playing` afegit explícitament + `cell.classList.add('active')`)
-- App12/25/25B afegeixen `.playing` via JS però visualment no canvia res
-- Hipòtesi: el `.musical-cell.playing { background: blue !important }`
-  hauria de guanyar contra `body[data-visual="nuzic"] .musical-cell
-  { background: transparent }` per `!important`, però potser hi ha
-  alguna altra regla amb specificity superior. Cal verificar amb
-  DevTools live quina regla guanya per la propietat `background`.
+### Fase A — Risc nul (eliminar directament, sense validació visual)
 
-### B2 — App15: halo blau "per darrera" la nota
+- [ ] **App19**: eliminar 4 backup files orphans (~97KB)
+  - `Apps/App19/index-original-backup.html`
+  - `Apps/App19/index-test-migrated-backup.html`
+  - `Apps/App19/main-backup-original.js`
+  - `Apps/App19/main.js.backup`
+- [ ] **App32-35**: eliminar imports `gridFromOrigin` (no usat) +
+  `subdivToPosition` + wrapper local `subdivToPosition()` no cridat
+  (4 apps).
+- [ ] **App21**: eliminar funció local `createPlayButton()` (línia
+  268) mai cridada (App21 usa la importada de `libs/soundlines/`).
+- [ ] **App22**: eliminar funcions locals `sleep()` (línies 50-52) i
+  `setPlayIcon()` (línies 204-209) duplicades — substituir per imports
+  de `libs/soundlines/index.js` (com fa App21).
 
-- El `.play-note-highlight` té `box-shadow: 0 0 12px var(--nuzic-blue)`
-- El glow es projecta fora del rectangle → visible com a halo
-- Solució: reduir glow a 4-6px o eliminar-lo
+### Fase B — Risc baix (validació visual ràpida d'una app per canvi)
 
-### B3 — Clamp 1.25rem encara massa gran a viewports grans
+- [ ] **8 apps amb `--nuzic-controls-offset-x/y`** declarats mai
+  consumits: app9, app10, app11, App11A, App12, app13, App14, App15.
+  Eliminar la declaració del CSS.
+- [ ] **App22**: eliminar `transform: translateX(--soundline-header-offset)`
+  (línia 394 d'styles.css) — override ja sobreescrit pel selector
+  amb `transform: none`.
+- [ ] **App25/25B**: eliminar `main { padding: 0 }` redundant
+  (cobert per `libs/shared-ui/app-viewport.css`).
+- [ ] **App30**: substituir array `pulseNumberLabels` (línies 57,
+  804, 828, 882) per ús directe de `pulses` (duplicat exacte).
+- [ ] **App28/App29**: investigar `pulseSequence: true` al
+  `index.html` — `#pulseSeq` es detach i mai s'usa. Si es
+  confirma innecessari, canviar a `pulseSequence: false`.
+- [ ] **Apps 32-35**: eliminar comentaris vestigials sobre
+  `injectBpmAndSoundGroup` (línies 1269/1291/1845/1873 segons app —
+  cap codi associat).
 
-- Captura de l'usuari mostra "11" ~3x més gran que els dashes adjacents
-- Cal baixar el max a `1rem` o `0.9rem`
-- Possible també reduir el vw de `1.5vw` a `1.2vw` per pujada més
-  conservadora
+### Fase C — Risc mitjà (afecten múltiples apps via libs)
 
-## Plà immediat
+- [ ] **App11/11A/12/15**: eliminar `<link>` a `musical-grid.css`
+  del `index.html` — ja s'importa via `@import` al `styles.css`.
+  Doble càrrega + ordre de cascada confús.
+- [ ] **libs/musical-grid/musical-grid.css**: eliminar regles base
+  `.soundline-number { font-size: 1.1rem; ... }` (línia 147+) i
+  `.pulse-marker { font-size: 1.4rem; ... }` (línia 486+) — totes
+  les apps consumidores (App11/11A/12/15/25/25B) són nuzic-only
+  i el tema sobreescriu via `body[data-visual="nuzic"]`. Cap App1-10
+  fa servir musical-grid (validat amb grep).
+- [ ] **libs/plano-modular/plano-modular.css**: avaluar si eliminar
+  variables `--plano-cell-bg` / `--plano-grid-line-color` (línies
+  24-34) — el nuzic-theme les fa transparents. Conservador: mantenir
+  com a fallback.
 
-1. **B1**: Diagnostic live (l'usuari obre DevTools, comprova què
-   guanya). Si la regla `.playing` realment no s'aplica, pujar
-   specificity fins guanyar inequívocament o canviar enfocament
-   (e.g. pseudo-element absolut layer-aware).
-2. **B2**: Reduir `box-shadow` del `.play-note-highlight` d'App15.
-3. **B3**: Provar `clamp(0.6rem, 1.2vw, 1rem)` a les 3 propietats del
-   `nuzic-theme.css`.
+### Fase D — Risc alt (canvis grans, validació extensiva)
 
-## Findings d'auditoria pendents (per fases futures)
+- [ ] **libs/shared-ui/bpm-inline.css**: ~170 línies de regles
+  pre-nuzic completament sobreescrites pel tema (línies 8-176).
+  Requereix validar TOTES les apps amb BPM display (App9-35
+  bàsicament). Patró: mantenir només les regles que el tema NO
+  toca, eliminar la resta.
+- [ ] **Auditoria semestral**: una vegada totes les fases A-C
+  fetes, re-executar la skill `nuzic-migrate` punt Step 15 (audit
+  script) per detectar nous orphans, imports no usats o overrides
+  morts.
 
-Després de resoldre B1/B2/B3, atacar la resta de dead code per ordre
-de risc creixent:
+---
 
-### Risc nul (pot fer-se sense validació visual)
+## Lliçons apreses
 
-- **App19**: 4 backup files orphans (~97KB) — `index-original-backup.html`,
-  `index-test-migrated-backup.html`, `main-backup-original.js`,
-  `main.js.backup`
-- **App32-35**: `gridFromOrigin` import no usat + `subdivToPosition`
-  import + wrapper local no cridat (4 apps)
-- **App21**: `createPlayButton()` mai cridada
-
-### Risc baix (validació visual rapida d'una app)
-
-- **8 apps** amb `--nuzic-controls-offset-x/y` declarats al CSS però
-  mai consumits: app9, app10, app11, App11A, App12, app13, App14, App15
-- **App22**: `transform: translateX(--soundline-header-offset)` (override
-  mort, ja sobreescrit per `transform: none`)
-- **App22**: `sleep()` (línies 50-52) i `setPlayIcon()` (línies 204-209)
-  duplicats — substituir per imports de `libs/soundlines/index.js`
-- **App25/25B**: `main { padding: 0 }` redundant (cobert per
-  `libs/shared-ui/app-viewport.css`)
-- **App30**: `pulseNumberLabels` (4 referències) duplicat exacte de
-  `pulses` array
-
-### Risc mitjà (afecten múltiples apps via libs)
-
-- **App11/11A/12/15**: `<link>` musical-grid.css duplicat amb `@import`
-  al styles.css
-- **libs/musical-grid/musical-grid.css**: base `.soundline-number` /
-  `.pulse-marker` rules — parcialment sobreescrits per nuzic-theme.
-  Removible només si confirmem que NINGÚ usa musical-grid sense
-  nuzic tema (validat: cap App1-10 ho fa).
-- **libs/plano-modular/plano-modular.css**: variables
-  `--plano-cell-bg`/`--plano-grid-line-color` (overrides via
-  nuzic-theme) — segures de mantenir com a fallback.
-
-### Risc alt (canvis grans, validació extensiva)
-
-- **libs/shared-ui/bpm-inline.css**: ~170 línies de regles pre-nuzic
-  sobreescrites per nuzic-theme. Requereix validar TOTES les apps
-  amb BPM display.
+- **TypeError silenciós a pulse callbacks**: si un mètode opcional
+  d'un objecte (`gridEditor.highlightCell`) no existeix i el codi
+  l'invoca sense check, el throw avorta TOT el callback. Símptoma
+  típic: una funcionalitat posterior al throw "no s'aplica" sense
+  cap pista visible. Sempre usar `typeof X === 'function'` o
+  optional chaining `X?.()` per mètodes opcionals d'objectes
+  d'interfície compartida.
+- **z-index a layers overlay**: un layer absolute sobre la matriu
+  ha de tenir z-index per sobre de les cel·les actives. La default
+  `--z-interactive: 10` és el llindar mínim per cobrir-les.
+- **Specificity wars amb nuzic-theme**: regles `body[data-visual="nuzic"]
+  .X` (specificity (0,2,1)+) sempre cal igualar o superar quan
+  s'override des d'una lib o un app. `!important` ajuda però si
+  els dos competidors el tenen, la specificity decideix.
 
 ## Finalització
 
-Quan tot estigui resolt: arxivar aquest fitxer a
+Quan totes les fases del pla de neteja (A-D) estiguin completes (o
+l'usuari decideixi aturar): arxivar aquest fitxer a
 `docs/session-history/YYYY-MM-DD-nuzic-cleanup.md` i deixar
-SESSION_STATE.md buit (o eliminar-lo) fins a la pròxima tasca llarga.
+SESSION_STATE.md buit fins a la pròxima tasca llarga.
