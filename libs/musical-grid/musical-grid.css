@@ -385,19 +385,20 @@
 }
 
 /* Cel·la mentre sona — patró d'App34/35 (note-bar.highlight):
-   ompliment blau intens + glow. Cobertura per ambdós casos:
-   - Cel·la sense `.active` (apps com App12/25/25B abans): fons
-     directe `--nuzic-blue` + glow.
-   - Cel·la amb `.active` (afegida en algunes apps durant play): el
-     ::before del nuzic-theme pinta blau-clar sobre el fons; per
-     forçar el blau intens en aquesta combinació afegim un selector
-     amb la mateixa specificity que el nuzic-theme
-     (`body[data-visual="nuzic"]` prefix).
-   El `content: ''` és necessari per crear el ::before quan només
-   `.playing` està present (sense `.active`). */
-.musical-cell.playing {
-  background: var(--nuzic-blue, #7bb4cd) !important;
-  box-shadow: 0 0 12px var(--nuzic-blue, #7bb4cd);
+   ompliment blau MÉS FOSC + glow per donar contrast clar contra
+   `.musical-cell.active::before` (blau-clar `--nuzic-blue-light` del
+   nuzic-theme). Usem `#4a90b8` (blau ~30% més fosc que --nuzic-blue)
+   per garantir distinció visible a viewports petits. Cobreix:
+   - Cel·la sense `.active` (App12 abans): fons directe.
+   - Cel·la amb `.active` (App12/25/25B en pràctica): selectors prefixats
+     amb `body[data-visual="nuzic"]` per superar specificity del nuzic-theme.
+   `content: ''` requerit perquè el ::before es creï quan només
+   `.playing` està present. */
+.musical-cell.playing,
+body[data-visual="nuzic"] .musical-cell.playing,
+body[data-visual="nuzic"] .musical-cell.active.playing {
+  background: #4a90b8 !important;
+  box-shadow: 0 0 12px #4a90b8 !important;
   z-index: var(--z-active, 15);
 }
 
@@ -410,8 +411,8 @@ body[data-visual="nuzic"] .musical-cell.active.playing::before {
   right: 0;
   top: 0;
   height: 100%;
-  background: var(--nuzic-blue, #7bb4cd) !important;
-  border: 1px solid var(--nuzic-blue, #7bb4cd) !important;
+  background: #4a90b8 !important;
+  border: 1px solid #4a90b8 !important;
   border-radius: 2px;
   opacity: 1 !important;
   z-index: 1;
