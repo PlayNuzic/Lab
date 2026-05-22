@@ -293,6 +293,18 @@ async function init() {
         return;
       }
 
+      // Monofònic per columna: si ja hi ha una nota activa en aquest
+      // pols, la substituïm desactivant-la abans d'activar la nova.
+      // (Els selectors filtren per `[data-pulse="${pulseIndex}"]` que
+      // és el `data-pulse` que musical-grid posa a cada cel·la.)
+      const cssSafePulse = window.CSS && window.CSS.escape ? CSS.escape(String(pulseIndex)) : String(pulseIndex);
+      document.querySelectorAll(`.musical-cell.active[data-pulse="${cssSafePulse}"]`).forEach(prev => {
+        if (prev === cell) return;
+        prev.classList.remove('active', 'fading-out');
+        const prevLabel = prev.querySelector('.cell-label');
+        if (prevLabel) prevLabel.remove();
+      });
+
       await initAudio();
 
       if (!window.Tone) {
