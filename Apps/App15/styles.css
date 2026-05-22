@@ -166,7 +166,11 @@ body.dragging-note * {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 4;
+  /* Per sobre de `.musical-cell.active` (z-index 10) perquè el rectangle
+     blau cobreixi les cel·les seleccionades en lloc de quedar darrere.
+     Per sota del playhead (z-index 20) perquè la línia vertical se
+     segueixi veient. */
+  z-index: 15;
 }
 
 .play-note-highlight {
