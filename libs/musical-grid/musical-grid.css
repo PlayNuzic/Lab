@@ -146,9 +146,6 @@
 /* Números de notas (0-11) */
 .soundline-number {
   position: absolute;
-  font-size: 1.1rem;
-  font-weight: 400;
-  /* ⭐ UPDATED: Unified color system */
   color: var(--grid-number-color, var(--text-color, #333));
   user-select: none;
   z-index: var(--z-content, 5);
@@ -510,9 +507,6 @@ body[data-visual="nuzic"] .musical-cell.active.playing::before {
   transform: translateX(-50%); /* Center the marker line on its position */
   pointer-events: none;
   z-index: var(--z-base, 1);
-  font-size: 1.4rem;
-  font-weight: 400;
-  /* ⭐ UPDATED: Unified color system */
   color: var(--grid-number-color, var(--text-color, #333));
   user-select: none;
   opacity: 0.85;  /* Applies to entire element for consistency */
