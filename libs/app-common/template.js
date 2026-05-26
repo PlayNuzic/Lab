@@ -37,6 +37,10 @@ export function renderApp({
   showSelectColor = false,
   randomMenuContent = '',
   pulseSequence = false,
+  // Si `true`, el `.middle` queda buit (no injecta ni `#pulseSeq` ni
+  // `#formula`). Útil per apps que munten el seu propi contingut a
+  // `.middle` directament (App28/29 → Pfr editor + fraction-editor).
+  noMiddleSlot = false,
   hideT = false,
   hideLeds = false,
   showAccent = true,
@@ -280,7 +284,9 @@ ${togglesMarkup}
     </section>
 
     <section class="middle">
-      ${pulseSequence ? '<div id="pulseSeq"></div>' : '<div id="formula" class="formula"></div>'}
+      ${noMiddleSlot
+        ? ''
+        : (pulseSequence ? '<div id="pulseSeq"></div>' : '<div id="formula" class="formula"></div>')}
     </section>
 
     ${notationPanelMarkup}

@@ -115,15 +115,11 @@ let pfrCommitTimer = null;
 /**
  * Build the Pfr editor scaffold and insert it AFTER the timeline-wrapper.
  * Also move .controls to sit BELOW the editor (timeline → editor → controls).
- * Detach the template's #pulseSeq from .middle so .middle can host the
- * block-mode fraction editor (App26/27 pattern).
+ * `.middle` ja arriba buit gràcies a `noMiddleSlot: true` al template, així
+ * que podem muntar-hi el fraction editor en mode block directament
+ * (patró App26/27).
  */
 function createPfrLayout() {
-  const templatePulseSeq = document.getElementById('pulseSeq');
-  if (templatePulseSeq?.parentNode) {
-    templatePulseSeq.parentNode.removeChild(templatePulseSeq);
-  }
-
   pfrRow = document.createElement('div');
   pfrRow.className = 'pfr-row';
 
@@ -1568,11 +1564,11 @@ function init() {
     if (resetEl) controls.appendChild(resetEl);
   }
 
-  // PulseSeq editor FIRST — moves the template's #pulseSeq out of .middle
-  // into the pfrRow below the timeline, freeing .middle for the fraction editor.
+  // Pfr editor (cell-based) sota la timeline. `.middle` ja arriba buit
+  // gràcies a `noMiddleSlot: true` al template.
   initPulseSeqEditor();
 
-  // Fraction editor AFTER — hosted in the now-empty .middle above the timeline.
+  // Fraction editor (block mode) muntat sobre `.middle`.
   initFractionEditorController();
 
   // Render timeline

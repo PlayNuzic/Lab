@@ -110,17 +110,10 @@ let pfrCommitTimer = null;
 /**
  * Build the Pfr editor scaffold and insert it AFTER the timeline-wrapper.
  * Also move .controls to sit BELOW the editor (timeline → editor → controls).
- * The template.js #pulseSeq (empty, inside .middle) is detached to free .middle
- * for the fraction editor (App26 pattern).
+ * `.middle` ja arriba buit gràcies a `noMiddleSlot: true` al template, així
+ * que podem muntar-hi el fraction editor en mode block directament.
  */
 function createPfrLayout() {
-  // Detach the unused #pulseSeq from .middle so .middle is empty for the
-  // block-mode fraction editor.
-  const templatePulseSeq = document.getElementById('pulseSeq');
-  if (templatePulseSeq?.parentNode) {
-    templatePulseSeq.parentNode.removeChild(templatePulseSeq);
-  }
-
   pfrRow = document.createElement('div');
   pfrRow.className = 'pfr-row';
 
@@ -314,9 +307,9 @@ if (typeof window !== 'undefined') {
 
 // ========== FRACTION EDITOR ==========
 function initFractionEditorController() {
-  // Host is `.middle` (above timeline, App26 pattern). After createPfrLayout
-  // moved the template's #pulseSeq out, .middle is empty and ready to host
-  // the block-mode fraction editor.
+  // Host is `.middle` (above timeline, App26 pattern). `.middle` arriba
+  // buit gràcies a `noMiddleSlot: true` al template, llest per allotjar
+  // el fraction-editor en mode block.
   const host = document.querySelector('.middle');
   if (!host) return;
 
@@ -1473,11 +1466,11 @@ function init() {
     if (resetEl) controls.appendChild(resetEl);
   }
 
-  // PulseSeq editor FIRST — moves the template's #pulseSeq out of .middle
-  // into the pfrRow below the timeline, freeing .middle for the fraction editor.
+  // Pfr editor (cell-based) sota la timeline. `.middle` ja arriba buit
+  // gràcies a `noMiddleSlot: true` al template.
   initPulseSeqEditor();
 
-  // Fraction editor AFTER — hosted in the now-empty .middle above the timeline.
+  // Fraction editor (block mode) muntat sobre `.middle`.
   initFractionEditorController();
 
   // Render timeline
