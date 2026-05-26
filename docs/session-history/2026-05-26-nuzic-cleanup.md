@@ -87,17 +87,25 @@ Commits `5b4a95d` + `868a277` (−12 línies netes).
   com a fallback. Cost de mantenir-les és nul i protegeixen un
   hipotètic consum sense `data-visual="nuzic"`.
 
-### Fase D — Risc alt (canvis grans, validació extensiva)
+### Fase D — Risc alt (canvis grans, validació extensiva) — ✅ COMPLETA
 
-- [ ] **libs/shared-ui/bpm-inline.css**: ~170 línies de regles
-  pre-nuzic completament sobreescrites pel tema (línies 8-176).
-  Requereix validar TOTES les apps amb BPM display (App9-35
-  bàsicament). Patró: mantenir només les regles que el tema NO
-  toca, eliminar la resta.
-- [ ] **Auditoria semestral**: una vegada totes les fases A-D
-  fetes, re-executar la skill `nuzic-migrate` punt Step 15 (audit
-  script) per detectar nous orphans, imports no usats o overrides
-  morts.
+Commit `eb38187` (−113 línies netes).
+
+- [x] **libs/shared-ui/bpm-inline.css**: reduït de 177 → 64 línies.
+  Tots els consumidors són nuzic-only (App16/17/19/20/25/25B/26-35
+  — validat amb grep). Eliminat: dimensions de `.circle`,
+  font/family de `.input` i `.abbr`, posició/transform del
+  `.spinner`, bg/border-radius de `.spin`, dark mode complet, i
+  el `@media (max-width: 360px)` (el tema ja usa `clamp()` que
+  escala suaument). Preservat: estructura `position/display/flex
+  toggle/z-index` del contenidor, `.circle { position: relative }`,
+  `:focus outline`, `.spinner` layout base, `.spin` cursor/border
+  i centrat, geometria dels triangles `::before` (content/display/
+  width/height + borders fallback). Commit `eb38187`. 1443 tests
+  passen.
+- [ ] **Auditoria semestral**: re-executar la skill `nuzic-migrate`
+  punt Step 15 (audit script) per detectar nous orphans, imports
+  no usats o overrides morts. Pendent per sessions futures.
 
 ---
 
