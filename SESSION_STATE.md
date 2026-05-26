@@ -50,24 +50,23 @@ Commit `574c6bc` (−3665 línies netes).
 - [x] **App22**: `sleep()` i `setPlayIcon()` locals substituïts per
   imports de `libs/soundlines/index.js`.
 
-### Fase B — Risc baix (validació visual ràpida d'una app per canvi)
+### Fase B — Risc baix (validació visual ràpida d'una app per canvi) — ✅ COMPLETA
 
-- [ ] **8 apps amb `--nuzic-controls-offset-x/y`** declarats mai
-  consumits: app9, app10, app11, App11A, App12, app13, App14, App15.
-  Eliminar la declaració del CSS.
-- [ ] **App22**: eliminar `transform: translateX(--soundline-header-offset)`
-  (línia 394 d'styles.css) — override ja sobreescrit pel selector
-  amb `transform: none`.
-- [ ] **App25/25B**: eliminar `main { padding: 0 }` redundant
-  (cobert per `libs/shared-ui/app-viewport.css`).
-- [ ] **App30**: substituir array `pulseNumberLabels` (línies 57,
-  804, 828, 882) per ús directe de `pulses` (duplicat exacte).
-- [ ] **App28/App29**: investigar `pulseSequence: true` al
-  `index.html` — `#pulseSeq` es detach i mai s'usa. Si es
-  confirma innecessari, canviar a `pulseSequence: false`.
-- [ ] **Apps 32-35**: eliminar comentaris vestigials sobre
-  `injectBpmAndSoundGroup` (línies 1269/1291/1845/1873 segons app —
-  cap codi associat).
+Commit `0ce8d65` (−45 línies netes).
+
+- [x] **8 apps amb `--nuzic-controls-offset-x/y: 0`** redundants
+  eliminats. App11/11A tenen `1.9rem` (funcional, no tocats).
+- [x] **App22**: `transform: translateX(--soundline-header-offset)` +
+  declaració de la var + override `transform: none` eliminats.
+- [x] **App25/25B**: ~~`main { padding: 0 }` redundant~~ — audit
+  incorrecte: és necessari per anul·lar padding d'`index.css`
+  (app-viewport.css NO toca `main`).
+- [x] **App30**: `pulseNumberLabels` substituït per ús directe
+  de `pulses`.
+- [ ] **App28/App29**: `pulseSequence: true` deferit. Canviar-lo
+  generaria `#formula` orphan; cal refactor més gran. No prioritari.
+- [x] **Apps 32-35**: comentaris vestigials sobre
+  `injectBpmAndSoundGroup` reemplaçats per descripció correcta.
 
 ### Fase C — Risc mitjà (afecten múltiples apps via libs)
 
