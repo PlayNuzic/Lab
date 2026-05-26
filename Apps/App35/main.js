@@ -10,7 +10,6 @@ import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
-import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import {
@@ -26,7 +25,6 @@ import { buildSimple12Rows } from '../../libs/app-common/plano-grid-rows.js';
 import {
   calculateVariableLg as _calcLg,
   getTotalSubdivisions as _getTotalSubdivs,
-  subdivToPosition as _subdivToPos,
   filterInvalidNotes as _filterInvalid
 } from '../../libs/plano-fraccion/fraction-math.js';
 import { renderNoteBars, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
@@ -232,10 +230,6 @@ if (typeof window !== 'undefined') {
 
 function getTotalSubdivisions() {
   return _getTotalSubdivs(currentLg, currentNumerator, currentDenominator);
-}
-
-function subdivToPosition(subdiv) {
-  return _subdivToPos(subdiv, currentNumerator, currentDenominator);
 }
 
 // ========== GRID HELPERS ==========

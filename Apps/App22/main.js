@@ -4,6 +4,7 @@ import { createSoundline } from '../../libs/app-common/soundline.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { setupPianoPreload } from '../../libs/sound/piano.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { sleep, setPlayIcon } from '../../libs/soundlines/index.js';
 
 // ============================================================================
 // ESTAT
@@ -42,14 +43,6 @@ const preferenceStorage = createPreferenceStorage('app22');
 
 const BPM = 75;
 const BASE_MIDI = 60; // C4
-
-// ============================================================================
-// UTILITATS
-// ============================================================================
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 // ============================================================================
 // AUDIO (usa MelodicTimelineAudio amb sample pool per baixa latència)
@@ -200,13 +193,6 @@ function clearAllHighlights() {
 // ============================================================================
 // REPRODUCCIÓ
 // ============================================================================
-
-function setPlayIcon(btn, playing) {
-  const iconPlay = btn.querySelector('.icon-play');
-  const iconStop = btn.querySelector('.icon-stop');
-  if (iconPlay) iconPlay.style.display = playing ? 'none' : 'block';
-  if (iconStop) iconStop.style.display = playing ? 'block' : 'none';
-}
 
 /**
  * Reprodueix l'escala Major amb animació d'intervals

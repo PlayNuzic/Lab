@@ -10,7 +10,6 @@ import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
-import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import {
@@ -23,7 +22,7 @@ import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
 import { setupScrollSync } from '../../libs/plano-modular/plano-scroll.js';
 import { buildSimple12Rows } from '../../libs/app-common/plano-grid-rows.js';
-import { getTotalSubdivisions as _getTotalSubdivs, subdivToPosition as _subdivToPos, filterInvalidNotes as _filterInvalid } from '../../libs/plano-fraccion/fraction-math.js';
+import { getTotalSubdivisions as _getTotalSubdivs, filterInvalidNotes as _filterInvalid } from '../../libs/plano-fraccion/fraction-math.js';
 import { renderNoteBars, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
@@ -231,10 +230,6 @@ if (typeof window !== 'undefined') {
 
 function getTotalSubdivisions() {
   return _getTotalSubdivs(FIXED_LG, FIXED_NUMERATOR, currentDenominator);
-}
-
-function subdivToPosition(subdiv) {
-  return _subdivToPos(subdiv, FIXED_NUMERATOR, currentDenominator);
 }
 
 // ========== GRID HELPERS ==========
