@@ -69,21 +69,23 @@ Commit `0ce8d65` (−45 línies netes).
 - [x] **Apps 32-35**: comentaris vestigials sobre
   `injectBpmAndSoundGroup` reemplaçats per descripció correcta.
 
-### Fase C — Risc mitjà (afecten múltiples apps via libs)
+### Fase C — Risc mitjà (afecten múltiples apps via libs) — ✅ COMPLETA
 
-- [ ] **App11/11A/12/15**: eliminar `<link>` a `musical-grid.css`
-  del `index.html` — ja s'importa via `@import` al `styles.css`.
-  Doble càrrega + ordre de cascada confús.
-- [ ] **libs/musical-grid/musical-grid.css**: eliminar regles base
-  `.soundline-number { font-size: 1.1rem; ... }` (línia 147+) i
-  `.pulse-marker { font-size: 1.4rem; ... }` (línia 486+) — totes
-  les apps consumidores (App11/11A/12/15/25/25B) són nuzic-only
-  i el tema sobreescriu via `body[data-visual="nuzic"]`. Cap App1-10
-  fa servir musical-grid (validat amb grep).
-- [ ] **libs/plano-modular/plano-modular.css**: avaluar si eliminar
-  variables `--plano-cell-bg` / `--plano-grid-line-color` (línies
-  24-34) — el nuzic-theme les fa transparents. Conservador: mantenir
-  com a fallback.
+Commits `5b4a95d` + `868a277` (−12 línies netes).
+
+- [x] **App11/11A/12/15/25/25B**: eliminat `<link>` a `musical-grid.css`
+  del `index.html`. App25/25B passen a `@import` per coherència
+  amb la resta. Commit `5b4a95d`.
+- [x] **libs/musical-grid/musical-grid.css**: eliminades
+  `font-size: 1.1rem; font-weight: 400` de `.soundline-number` i
+  `font-size: 1.4rem; font-weight: 400` de `.pulse-marker`. La resta
+  de la regla (position, color, z-index, flex layout) es manté
+  perquè el tema nuzic no la cobreix. Cap App1-10 fa servir
+  musical-grid (validat). Commit `868a277`.
+- [x] **libs/plano-modular/plano-modular.css**: decisió conservadora —
+  variables `--plano-cell-bg`/`--plano-grid-line-color` mantingudes
+  com a fallback. Cost de mantenir-les és nul i protegeixen un
+  hipotètic consum sense `data-visual="nuzic"`.
 
 ### Fase D — Risc alt (canvis grans, validació extensiva)
 
@@ -92,7 +94,7 @@ Commit `0ce8d65` (−45 línies netes).
   Requereix validar TOTES les apps amb BPM display (App9-35
   bàsicament). Patró: mantenir només les regles que el tema NO
   toca, eliminar la resta.
-- [ ] **Auditoria semestral**: una vegada totes les fases A-C
+- [ ] **Auditoria semestral**: una vegada totes les fases A-D
   fetes, re-executar la skill `nuzic-migrate` punt Step 15 (audit
   script) per detectar nous orphans, imports no usats o overrides
   morts.
