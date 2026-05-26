@@ -1,6 +1,6 @@
 /* App25: Melodias con Escalas - Nuzic Theme */
-/* Boilerplate de viewport viu a `libs/shared-ui/app-viewport.css`.
-   musical-grid.css ja es carrega via <link> a index.html. */
+/* Boilerplate de viewport viu a `libs/shared-ui/app-viewport.css`. */
+@import url('../../libs/musical-grid/musical-grid.css');
 
 /* `padding: 0` al main: l'app-viewport el deixa intacte i alguns layouts
    compartits afegeixen padding via `index.css`. Aquí l'anul·lem perquè la
