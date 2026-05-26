@@ -63,8 +63,9 @@ Commit `0ce8d65` (−45 línies netes).
   (app-viewport.css NO toca `main`).
 - [x] **App30**: `pulseNumberLabels` substituït per ús directe
   de `pulses`.
-- [ ] **App28/App29**: `pulseSequence: true` deferit. Canviar-lo
-  generaria `#formula` orphan; cal refactor més gran. No prioritari.
+- [x] **App28/App29**: refactoritzats. Nou paràmetre `noMiddleSlot:
+  true` al template (`renderApp`) deixa `.middle` buit, eliminant
+  la necessitat del detach manual del `#pulseSeq`. Commit `4f1660b`.
 - [x] **Apps 32-35**: comentaris vestigials sobre
   `injectBpmAndSoundGroup` reemplaçats per descripció correcta.
 
