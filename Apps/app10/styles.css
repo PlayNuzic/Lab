@@ -142,3 +142,20 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
 .controls #randomMenu {
   display: none !important;
 }
+
+/* Embed: App10 viu en un layout `D-app-narrow` que dóna a l'iframe només
+   1 columna de 3 (a diferència d'App14/App21-24 amb el mateix aspect 2/3
+   que en tenen 2 via `B-app-left`). Amb aspect 2/3 fix, l'iframe és ~la
+   meitat d'ample que les altres apps, així que el `clamp(2rem, 5vw, 3rem)`
+   del tema queda enganxat al terra de 2rem mentre la resta tenen els
+   botons a ~2.4-3rem. Aquí re-escalem amb `vh` (l'iframe és més alt que
+   ample) per recuperar el tamany visual coherent amb la resta. */
+html[data-embed="true"] body.app10 .controls:not([data-layout]) .play {
+  width: clamp(2.5rem, 7vh, 3rem) !important;
+  height: clamp(2.5rem, 7vh, 3rem) !important;
+}
+
+html[data-embed="true"] body.app10 .sound-wrapper.nuzic-inline .sound {
+  width: clamp(1.75rem, 5vh, 2.25rem);
+  height: clamp(1.75rem, 5vh, 2.25rem);
+}
