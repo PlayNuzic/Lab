@@ -38,21 +38,17 @@ Cap actualment. Pendent confirmar visual del clamp `1rem` (si encara
 
 ## Pla de neteja — pendent (per ordre de risc creixent)
 
-### Fase A — Risc nul (eliminar directament, sense validació visual)
+### Fase A — Risc nul (eliminar directament, sense validació visual) — ✅ COMPLETA
 
-- [ ] **App19**: eliminar 4 backup files orphans (~97KB)
-  - `Apps/App19/index-original-backup.html`
-  - `Apps/App19/index-test-migrated-backup.html`
-  - `Apps/App19/main-backup-original.js`
-  - `Apps/App19/main.js.backup`
-- [ ] **App32-35**: eliminar imports `gridFromOrigin` (no usat) +
-  `subdivToPosition` + wrapper local `subdivToPosition()` no cridat
-  (4 apps).
-- [ ] **App21**: eliminar funció local `createPlayButton()` (línia
-  268) mai cridada (App21 usa la importada de `libs/soundlines/`).
-- [ ] **App22**: eliminar funcions locals `sleep()` (línies 50-52) i
-  `setPlayIcon()` (línies 204-209) duplicades — substituir per imports
-  de `libs/soundlines/index.js` (com fa App21).
+Commit `574c6bc` (−3665 línies netes).
+
+- [x] **App19**: 4 backup files orphans eliminats (~110KB).
+- [x] **App32-35**: import `gridFromOrigin` (no usat) + wrapper
+  local `subdivToPosition()` no cridat eliminats. 4 apps.
+- [x] **App21**: ~~`createPlayButton()` mai cridada~~ — audit
+  incorrecte: la funció no existeix. Fals positiu.
+- [x] **App22**: `sleep()` i `setPlayIcon()` locals substituïts per
+  imports de `libs/soundlines/index.js`.
 
 ### Fase B — Risc baix (validació visual ràpida d'una app per canvi)
 
