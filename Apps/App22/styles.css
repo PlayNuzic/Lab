@@ -280,19 +280,39 @@ html, body {
   flex-shrink: 0;
 }
 
+/* Línies intermèdies: format dashed grey igual que App21 (.connection-line).
+   Les dels extrems (--edge) mantenen el seu look original (barra rosa sòlida). */
 .interval-guide-line {
   position: absolute;
   left: calc(-1 * var(--scale-structure-gap));
   width: calc(var(--scale-structure-gap) + (var(--interval-bar-width) / 2));
-  height: 0.22rem;
-  background: var(--nuzic-pink-light, #ffe5ee);
+  height: 0;
+  border-top: 2px dashed var(--nuzic-grey, #AAA699);
+  opacity: 0.5;
   transform: translateY(-50%);
   pointer-events: none;
   z-index: 0;
 }
 
 .interval-guide-line--edge {
+  height: 0.22rem;
+  border-top: none;
   background: var(--nuzic-pink, #F28AAD);
+  opacity: 1;
+}
+
+/* Highlight durant la seqüència: nuzic-blue + opacity 1, com App21.
+   Intermèdies canvien el `border-top-color`; edges (sòlides) el `background`. */
+.interval-guide-line.active {
+  opacity: 1;
+}
+
+.interval-guide-line.active:not(.interval-guide-line--edge) {
+  border-top-color: var(--nuzic-blue, #7BB4CD);
+}
+
+.interval-guide-line--edge.active {
+  background: var(--nuzic-blue, #7BB4CD);
 }
 
 .interval-bar {

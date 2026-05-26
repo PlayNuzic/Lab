@@ -153,8 +153,21 @@ function createIntervalBars() {
     line.className = 'interval-guide-line';
     line.classList.toggle('interval-guide-line--edge', index === 0 || index === MAJOR_SCALE_SEMITONES.length - 1);
     line.style.top = `${scaleSoundline.getNotePosition(semitone)}%`;
+    line.dataset.semitone = semitone;
     intervalContainer.appendChild(line);
   });
+}
+
+/**
+ * Il·lumina una línia guia (intermèdia) durant la seqüència.
+ * Les línies dels extrems (--edge) reben `.active` també però el CSS
+ * les deixa visualment intactes (com a App21 però conservant el rosa).
+ */
+function highlightGuideLine(semitone, durationMs) {
+  const line = document.querySelector(`.interval-guide-line[data-semitone="${semitone}"]`);
+  if (!line) return;
+  line.classList.add('active');
+  setTimeout(() => line.classList.remove('active'), durationMs);
 }
 
 /**
@@ -186,6 +199,9 @@ function highlightSoundlineNumber(semitone, durationMs) {
 function clearAllHighlights() {
   intervalBars.forEach(bar => bar.classList.remove('active'));
   scaleSoundline.element.querySelectorAll('.soundline-number.active').forEach(el => {
+    el.classList.remove('active');
+  });
+  document.querySelectorAll('.interval-guide-line.active').forEach(el => {
     el.classList.remove('active');
   });
 }
@@ -224,8 +240,9 @@ async function playScale() {
     const midi = BASE_MIDI + semitone;
     playNote(midi, noteDuration);
 
-    // Highlight número de la soundline
+    // Highlight número de la soundline + línia guia (com App21)
     highlightSoundlineNumber(semitone, intervalMs * 0.9);
+    highlightGuideLine(semitone, intervalMs * 0.9);
 
     // Interval bars s'encenen a partir del grau 1 (amb el bar anterior)
     // Grau 0: només soundline-number, sense bar
