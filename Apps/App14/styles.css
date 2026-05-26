@@ -46,10 +46,6 @@ html, body {
   --line-color: #999;
 }
 
-body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0;
-  --nuzic-controls-offset-y: 0;
-}
 
 /* ========== SINGLE-COLUMN LAYOUT ========== */
 .app14-main-layout {

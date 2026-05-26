@@ -1282,9 +1282,9 @@ function init() {
   // Create grid (inserted AFTER timeline-wrapper).
   createGrid();
 
-  // Reorder controls AFTER injectBpmAndSoundGroup has moved BPM into #gridContainer.
-  // The injector runs synchronously on page load, but on a slow grid-create it
-  // may defer via MutationObserver — so we re-fetch bpmParam right before reorder.
+  // Reorder controls: re-fetch bpmParam abans de la reorganització perquè
+  // entre `createGrid()` i aquest punt el DOM pot haver canviat (rare,
+  // però defensiu).
   const bpmParam = document.getElementById('bpmParam');
   const controls = document.querySelector('.controls');
   const gridContainer = document.getElementById('gridContainer');

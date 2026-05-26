@@ -51,10 +51,11 @@ let currentDenominator = DEFAULT_DENOMINATOR;
 let itSequence = [];
 
 // DOM elements
-let pulses = [];
+let pulses = [];      // (Inclou tots els .pulse-number; el layoutTimeline els
+                       // reposiciona per `data-index` — mateix array que
+                       // s'usava abans com `pulseNumberLabels`.)
 let cycleMarkers = [];
 let cycleLabels = [];
-let pulseNumberLabels = [];
 let intervalBars = []; // Rectangles iT
 
 // Controllers
@@ -801,7 +802,6 @@ function renderTimeline() {
   pulses = [];
   cycleMarkers = [];
   cycleLabels = [];
-  pulseNumberLabels = [];
   intervalBars = [];
   timeline.innerHTML = '';
 
@@ -825,7 +825,6 @@ function renderTimeline() {
       num.textContent = i;
     }
     timeline.appendChild(num);
-    pulseNumberLabels.push(num);
     pulses.push(num);
   }
 
@@ -879,7 +878,7 @@ function layoutTimeline() {
 
   // Vertical positioning handled by nuzic-theme + App30 styles.css.
   // Only horizontal percentage is dynamic per render.
-  pulseNumberLabels.forEach((num) => {
+  pulses.forEach((num) => {
     const idx = parseInt(num.dataset.index, 10);
     num.style.left = (idx / lg) * 100 + '%';
   });

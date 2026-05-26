@@ -20,7 +20,6 @@
   --scale-structure-gap: clamp(3rem, 7vw, 5.25rem);
 
   /* Header sizing */
-  --soundline-header-offset: -1.25rem;
   --soundline-title-size: clamp(1.1rem, 2vw, 1.6rem);
   --soundline-abbr-pill-size: clamp(2.4rem, 4vw, 3rem);
   --soundline-abbr-pill-font: clamp(1.1rem, 1.8vw, 1.4rem);
@@ -391,7 +390,6 @@ html, body {
 .soundline-play {
   margin-top: 0.5rem;
   flex-shrink: 0;
-  transform: translateX(var(--soundline-header-offset, -10px));
 }
 
 /* Estat actiu durant reproducció */
@@ -508,10 +506,6 @@ body[data-visual="nuzic"] .interval-number {
   color: var(--nuzic-dark, #43433B);
   font-weight: 700;
 }
-
-/* Header + play: center (remove legacy offset) */
-body[data-visual="nuzic"] .soundline-header { transform: none; }
-body[data-visual="nuzic"] .soundline-play { transform: none; }
 
 /* Play button: nuzic green circle */
 body[data-visual="nuzic"] .soundline-play {

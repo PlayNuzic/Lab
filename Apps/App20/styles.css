@@ -1,11 +1,5 @@
 /* App20 - Plano y sucesión N-iT */
 
-/* Nuzic theme overrides */
-body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 0px;
-}
-
 /* Boilerplate de viewport (html/body/#app-root/header/.app-scale-wrapper)
    viu a `libs/shared-ui/app-viewport.css`. */
 

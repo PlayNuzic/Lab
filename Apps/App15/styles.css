@@ -25,8 +25,6 @@
 
 /* Nuzic theme overrides */
 body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0;
-  --nuzic-controls-offset-y: 0;
   /* Selected cells (`.musical-cell.active`) en blau clar (mix al 40%
      amb `--nuzic-blue`) en lloc del groc per defecte. Durant play, la
      barra blava del `.play-note-highlight` cobreix la nota — la

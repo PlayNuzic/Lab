@@ -8,12 +8,6 @@
   --grid-min-height: 400px;
 }
 
-/* Nuzic theme overrides */
-body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 0px;
-}
-
 [data-theme="dark"] {
   --line-color: #999;
 }
