@@ -202,7 +202,7 @@ async function handlePlay() {
           if (!cell.querySelector('.cell-label')) {
             const label = document.createElement('span');
             label.className = 'cell-label';
-            label.textContent = `( ${note} , ${step} )`;
+            label.textContent = `( ${step} , ${note} )`;
             cell.appendChild(label);
           }
         }
@@ -349,7 +349,7 @@ async function init() {
       if (!cell.querySelector('.cell-label')) {
         const label = document.createElement('span');
         label.className = 'cell-label';
-        label.textContent = `( ${noteIndex} , ${pulseIndex} )`;
+        label.textContent = `( ${pulseIndex} , ${noteIndex} )`;
         cell.appendChild(label);
       }
     },
