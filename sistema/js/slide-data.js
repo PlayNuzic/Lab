@@ -79,7 +79,7 @@ export const slideMatrix = [
   { paso:1.5,  section:'introduccion', title:'¿Sabes cómo se mueve la música?', layout:'A-intro', hidden:true, intro:true },
   { paso:2,  section:'descubriendo', title:'¿Qué se mueve en la música?',                                 layout:'B-app-left', apps:['App11A'], aspect:'4/3', group:'plano-simple', density:'loose' },
   { paso:3,  section:'descubriendo', title:'Línea Temporal',                                              layout:'E-app-text-left', apps:['app9'],   aspect:'2/1', group:'timeline-simple' },
-  { paso:4,  section:'descubriendo', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'2/3', group:'timeline-vertical', density:'compact' },
+  { paso:4,  section:'descubriendo', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'5/9', group:'timeline-vertical', density:'compact' },
   { paso:5,  section:'descubriendo', title:'El Plano Musical',                                            layout:'B-app-left', apps:['app11'],  aspect:'4/3', group:'plano-simple', density:'compact' },
   { paso:6,  section:'descubriendo', title:'El par Nota - Pulso',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3', group:'plano-simple', density:'compact' },
   { paso:7,  section:'intervalos',   title:'Midiendo el movimiento de la Música: Los Intervalos',         layout:'A-intro', density:'loose' },
