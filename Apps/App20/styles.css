@@ -535,7 +535,7 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
   text-align: center;
   color: #43433b;
   font-weight: 700;
-  font-size: clamp(1rem, 1.8vw, 1.5rem);
+  font-size: clamp(1rem, 2.4vw, 1.5rem);
   padding: 0;
   outline: none;
   box-sizing: border-box;
@@ -573,6 +573,20 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
   background: white;
   border: 2px solid var(--nuzic-yellow, #FFBB33);
   cursor: text;
+}
+
+/* Highlight de la cel·la durant la reproducció — patró App34
+   (`.nit-editor-cell.active`: ompliment + text blanc). La fila N agafa
+   el rosa intens nuzic; la fila iT, el groc nuzic. Distint de
+   l'estat de focus (.active-input). */
+.nit-editor-cell.n-cell.active {
+  background: var(--nuzic-pink, #F28AAD) !important;
+  color: white !important;
+}
+
+.nit-editor-cell.it-cell.active {
+  background: var(--nuzic-yellow, #FFBB33) !important;
+  color: white !important;
 }
 
 /* End marker */

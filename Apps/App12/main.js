@@ -173,6 +173,13 @@ async function handlePlay() {
         });
       }
 
+      // 2b) Il·luminem les cel·les de l'EDITOR (valor N i P) del pols actual.
+      document.querySelectorAll('.editor-cell.playing').forEach(c => c.classList.remove('playing'));
+      document.querySelectorAll(`.editor-cell[data-pulse="${step}"]`).forEach(c => {
+        c.classList.add('playing');
+        setTimeout(() => c.classList.remove('playing'), intervalSec * 0.9 * 1000);
+      });
+
       // 3) Pulse sound plays AUTOMATICALLY via TimelineAudio
       //    (controlled by pulseToggleBtn + mixer 'pulse' channel)
     },
@@ -201,6 +208,11 @@ function stopPlayback() {
 
   // Clear any active playing animations
   document.querySelectorAll('.musical-cell.playing').forEach(cell => {
+    cell.classList.remove('playing');
+  });
+
+  // Clear highlights de les cel·les de l'editor.
+  document.querySelectorAll('.editor-cell.playing').forEach(cell => {
     cell.classList.remove('playing');
   });
 
@@ -405,6 +417,9 @@ function createNuzicEditor(timelineWrapper) {
       const nVal = createCell('n', false);
       nVal.value = String(pair.note);
       nVal.readOnly = true;
+      // Marquem el pols on sona aquesta nota perquè la reproducció pugui
+      // il·luminar la cel·la del valor (només les cel·les de valor).
+      nVal.dataset.pulse = String(pair.pulse);
       nCells.insertBefore(nVal, nEndMarker);
       const nSep = createCell('n', true);
       nCells.insertBefore(nSep, nEndMarker);
@@ -413,6 +428,7 @@ function createNuzicEditor(timelineWrapper) {
       const pVal = createCell('p', false);
       pVal.value = String(pair.pulse);
       pVal.readOnly = true;
+      pVal.dataset.pulse = String(pair.pulse);
       pCells.insertBefore(pVal, pEndMarker);
       const pSep = createCell('p', true);
       pCells.insertBefore(pSep, pEndMarker);

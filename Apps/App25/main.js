@@ -314,6 +314,13 @@ async function handlePlay() {
           setTimeout(() => cell.classList.remove('playing'), duration * 1000);
         }
       }
+
+      // Il·luminem la cel·la de l'EDITOR del pols actual.
+      document.querySelectorAll('.degree-editor-cell.playing').forEach(c => c.classList.remove('playing'));
+      document.querySelectorAll(`.degree-editor-cell[data-pulse="${step}"]`).forEach(c => {
+        c.classList.add('playing');
+        setTimeout(() => c.classList.remove('playing'), intervalSec * 0.9 * 1000);
+      });
     },
     () => {
       const lastNoteDelay = intervalSec * 0.9 * 1000;
@@ -341,6 +348,11 @@ function stopPlayback(delayMs = 0) {
   musicalGrid?.hidePlayhead?.();
 
   document.querySelectorAll('.musical-cell.playing').forEach(cell => {
+    cell.classList.remove('playing');
+  });
+
+  // Clear highlights de les cel·les de l'editor.
+  document.querySelectorAll('.degree-editor-cell.playing').forEach(cell => {
     cell.classList.remove('playing');
   });
 
@@ -675,6 +687,9 @@ function initDegreeEditor() {
   }
 
   function formatDegree(entry) {
+    // Silenci: mostra 's' (igual que App25B) dins una cel·la de valor blanca
+    // editable, no una cel·la rosa readonly.
+    if (entry.isRest || entry.degree === null) return 's';
     if (entry.modifier === 'r+') return `${entry.degree}r5`;
     if (entry.modifier === '+') return `${entry.degree}+`;
     if (entry.modifier === '-') return `${entry.degree}-`;
@@ -936,14 +951,14 @@ function initDegreeEditor() {
 
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
-      if (entry.isRest) {
-        // Rest: 1 empty cream cell (same space as a note+separator)
-        cellsContainer.insertBefore(createReadonlyCell(), endMarker);
-      } else {
-        // Note: value cell + cream separator
-        cellsContainer.insertBefore(createValueCell(formatDegree(entry), i), endMarker);
-        cellsContainer.insertBefore(createReadonlyCell(), endMarker);
-      }
+      // Notes I silencis es renderitzen igual: cel·la de valor BLANCA i
+      // EDITABLE (el silenci mostra 's' i es pot tornar a editar a un grau)
+      // + separador. `data-pulse` perquè la reproducció il·lumini la cel·la
+      // (notes i silencis).
+      const valueCell = createValueCell(formatDegree(entry), i);
+      valueCell.dataset.pulse = String(entry.pulse);
+      cellsContainer.insertBefore(valueCell, endMarker);
+      cellsContainer.insertBefore(createReadonlyCell(), endMarker);
     }
 
     if (entries.length < TOTAL_SPACES) {
@@ -963,13 +978,20 @@ function initDegreeEditor() {
     getPairs: () => entries.map(e => ({ ...e })),
 
     setPairs: (pairs) => {
-      // Keep ALL pairs (including rests — needed for lostDegreesMemory)
-      entries = pairs.map(p => ({
-        degree: p.degree ?? null,
-        modifier: p.modifier || null,
-        pulse: p.pulse,
-        isRest: p.isRest || false
-      }));
+      // Keep ALL pairs (including rests — needed for lostDegreesMemory).
+      // Ordenem per puls: el generador aleatori barreja l'ordre de les pairs
+      // (mantenint cada `.pulse`); sense reordenar, les cel·les de l'editor
+      // (i el seu highlight de reproducció) surten desordenades respecte als
+      // pulsos. Després d'ordenar, l'ordre visual coincideix amb el puls.
+      entries = (pairs || [])
+        .slice()
+        .sort((a, b) => (a.pulse ?? 0) - (b.pulse ?? 0))
+        .map(p => ({
+          degree: p.degree ?? null,
+          modifier: p.modifier || null,
+          pulse: p.pulse,
+          isRest: p.isRest || false
+        }));
       clearTimeout(autoJumpTimer);
       renderCells();
     },

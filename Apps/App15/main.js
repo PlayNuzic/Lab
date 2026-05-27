@@ -201,6 +201,17 @@ async function handlePlay() {
       // engine's own note scheduling, so they line up with the sounding note.
       musicalGrid?.updatePlayhead?.(step);
       highlightController?.highlightPulse(step);
+
+      // Highlight de l'EDITOR (iS + iT). Va al callback (que corre a CADA
+      // pols) i no a `schedulePlayNoteHighlights` (que només s'executa quan
+      // hi ha nota), perquè els SILENCIS també s'il·luminin. Toggle per rang
+      // re-avaluat a cada pols: la cel·la queda encesa mentre dura l'iT de la
+      // nota (`start <= step < start + iT`), com App34/35.
+      document.querySelectorAll('.editor-cell[data-pulse]').forEach(c => {
+        const start = parseInt(c.dataset.pulse, 10);
+        const it = parseInt(c.dataset.it, 10) || 1;
+        c.classList.toggle('playing', step >= start && step < start + it);
+      });
     },
     () => {
       // onComplete: delay stop so last pulse highlight is visible
@@ -362,6 +373,11 @@ function stopPlayback() {
     );
   });
   document.querySelectorAll('.musical-cell.playing').forEach(cell => {
+    cell.classList.remove('playing');
+  });
+
+  // Clear highlights de les cel·les de l'editor.
+  document.querySelectorAll('.editor-cell.playing').forEach(cell => {
     cell.classList.remove('playing');
   });
 }
@@ -1224,6 +1240,9 @@ function createNuzicIntervalEditor(gridContainer) {
     // Build cells for each entered interval (no P0 — iS0 starts at pulse 0)
     // Always 2 cells per interval (value + 1 separator), regardless of iT
     // ZIGZAG: iS value at position 0, iT value at position 1 (shifted right)
+    // Pols acumulat: l'interval i sona al pols = suma de temporalInterval[0..i-1]
+    // (mateix càlcul que `intervalsToPairs`, que alimenta `pulseGroups` del play).
+    let cumulativePulse = 0;
     for (let i = 0; i < currentIntervals.length; i++) {
       const iv = currentIntervals[i];
       const iT = iv.temporalInterval || 1;
@@ -1232,12 +1251,20 @@ function createNuzicIntervalEditor(gridContainer) {
 
       // iS row: [value][pink separator]
       const isDisplay = isRest ? 'S' : (iS > 0 ? `+${iS}` : String(iS));
-      isCells.insertBefore(createValueCell('is', isDisplay, i), isEndMarker);
+      const isValueCell = createValueCell('is', isDisplay, i);
+      isValueCell.dataset.pulse = String(cumulativePulse);
+      isValueCell.dataset.it = String(iT);
+      isCells.insertBefore(isValueCell, isEndMarker);
       isCells.insertBefore(createReadonlyCell('is'), isEndMarker);
 
       // iT row: [cream separator][value]  — shifted right (ZIGZAG)
       itCells.insertBefore(createReadonlyCell('it'), itEndMarker);
-      itCells.insertBefore(createValueCell('it', String(iT), i), itEndMarker);
+      const itValueCell = createValueCell('it', String(iT), i);
+      itValueCell.dataset.pulse = String(cumulativePulse);
+      itValueCell.dataset.it = String(iT);
+      itCells.insertBefore(itValueCell, itEndMarker);
+
+      cumulativePulse += iT;
     }
 
     // If sequence not full: add input cells with ZIGZAG offset

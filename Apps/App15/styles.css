@@ -375,7 +375,7 @@ body.dragging-note * {
 
 .editor-label {
   font-weight: 700;
-  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
+  font-size: clamp(0.85rem, 2.4vw, 1.4rem);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -404,7 +404,7 @@ body.dragging-note * {
   aspect-ratio: 1;
   text-align: center;
   color: #43433b;
-  font-size: clamp(1rem, 1.8vw, 1.5rem);
+  font-size: clamp(1rem, 2.4vw, 1.5rem);
   font-weight: 700;
   border-radius: 0;
   border-width: 0;
@@ -466,6 +466,19 @@ body.dragging-note * {
 
 .editor-cell--is.editor-input:focus {
   box-shadow: inset 0 0 0 2px var(--nuzic-pink);
+}
+
+/* Highlight de la cel·la de l'editor durant la reproducció — patró App34
+   (ompliment + text blanc). La fila iS agafa el rosa intens; la fila iT,
+   el groc nuzic. Distint de l'estat de focus (.editor-input:focus). */
+.editor-cell--is.playing {
+  background: var(--nuzic-pink, #F28AAD) !important;
+  color: white !important;
+}
+
+.editor-cell--it.playing {
+  background: var(--nuzic-yellow, #FFBB33) !important;
+  color: white !important;
 }
 
 /* End marker */

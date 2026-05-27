@@ -509,6 +509,13 @@ async function handlePlay() {
         }
       }
 
+      // Il·luminem la cel·la de l'EDITOR del pols actual.
+      document.querySelectorAll('.interval-editor-cell.playing').forEach(c => c.classList.remove('playing'));
+      document.querySelectorAll(`.interval-editor-cell[data-pulse="${step}"]`).forEach(c => {
+        c.classList.add('playing');
+        setTimeout(() => c.classList.remove('playing'), intervalSec * 0.9 * 1000);
+      });
+
       const nextStep = step + 1;
       const nextDegreeData = absoluteDegrees.find(d => d.pulse === nextStep && !d.isRest && d.degree !== null);
       if (nextDegreeData) {
@@ -536,6 +543,8 @@ function stopPlayback(delayMs = 0) {
   highlightController?.clearHighlights();
   musicalGrid?.hidePlayhead?.();
   document.querySelectorAll('.musical-cell.playing').forEach(cell => cell.classList.remove('playing'));
+  // Clear highlights de les cel·les de l'editor.
+  document.querySelectorAll('.interval-editor-cell.playing').forEach(cell => cell.classList.remove('playing'));
 
   const playIcon = playBtn?.querySelector('.icon-play');
   const stopIcon = playBtn?.querySelector('.icon-stop');
@@ -840,6 +849,9 @@ function initIntervalEditor() {
     cell.className = 'interval-editor-cell';
     cell.value = formatInterval(entry);
     cell.dataset.entryIndex = entryIndex;
+    // Marquem el pols on sona aquesta nota (pulse re-indexat = entry.pulse)
+    // perquè la reproducció pugui il·luminar la cel·la de l'editor.
+    cell.dataset.pulse = String(entry.pulse);
     cell.readOnly = false;
     cell.style.cursor = 'text';
 

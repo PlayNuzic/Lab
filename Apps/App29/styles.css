@@ -242,7 +242,7 @@ body.app29 {
 /* Yellow "Pfr" label on the left — proporcions del .it-label d'App13. */
 .pfr-editor .editor-label {
   font-weight: 700;
-  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
+  font-size: clamp(0.85rem, 2.4vw, 1.4rem);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -284,7 +284,7 @@ body.app29 {
   margin: 0;
   text-align: center;
   color: #43433b;
-  font-size: clamp(0.85rem, 1.6vw, 1.2rem);
+  font-size: clamp(0.85rem, 2.0vw, 1.2rem);
   font-weight: 700;
   border: none;
   outline: none;

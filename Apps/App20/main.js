@@ -1191,16 +1191,27 @@ function initGridEditor() {
     const maxPulses = getMaxPulses();
 
     // Committed entries (zigzag)
+    // Pols acumulat: l'entry i sona al pols = suma de temporalInterval[0..i-1]
+    // (mateix càlcul que `entriesToPairs`, que alimenta el midiMap del play).
+    let cumulativePulse = 0;
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
 
       // N row: [value][pink sep]
-      nCells.insertBefore(createValueCell('n', formatN(entry), i), nEnd);
+      const nValueCell = createValueCell('n', formatN(entry), i);
+      nValueCell.dataset.pulse = String(cumulativePulse);
+      nValueCell.dataset.it = String(entry.temporalInterval);
+      nCells.insertBefore(nValueCell, nEnd);
       nCells.insertBefore(createReadonlyCell('n'), nEnd);
 
       // iT row: [yellow sep][value]  (zigzag offset)
       itCells.insertBefore(createReadonlyCell('it'), itEnd);
-      itCells.insertBefore(createValueCell('it', String(entry.temporalInterval), i), itEnd);
+      const itValueCell = createValueCell('it', String(entry.temporalInterval), i);
+      itValueCell.dataset.pulse = String(cumulativePulse);
+      itValueCell.dataset.it = String(entry.temporalInterval);
+      itCells.insertBefore(itValueCell, itEnd);
+
+      cumulativePulse += entry.temporalInterval;
     }
 
     // Input cells (if not full)
@@ -1659,6 +1670,15 @@ async function startPlayback() {
         }
       }
 
+      // 4b. Highlight de l'EDITOR (N + iT): dura tant com l'iT de la nota
+      // (com App34/35). Toggle per rang re-avaluat a cada pols: la cel·la
+      // queda encesa mentre `start <= step < start + iT`.
+      document.querySelectorAll('.nit-editor-cell[data-pulse]').forEach(c => {
+        const start = parseInt(c.dataset.pulse, 10);
+        const it = parseInt(c.dataset.it, 10) || 1;
+        c.classList.toggle('active', step >= start && step < start + it);
+      });
+
       // 5. Cycle counter durant play: deshabilitat (input pla, no swap).
 
       // 6. Auto-scroll HORIZONTAL to keep pulse visible
@@ -1701,6 +1721,9 @@ function stopPlayback() {
   // Clear highlights
   grid?.clearHighlights();
   grid?.hidePlayhead();
+
+  // Clear highlights de les cel·les de l'editor.
+  document.querySelectorAll('.nit-editor-cell.active').forEach(c => c.classList.remove('active'));
 
   // Clear playback animation classes
   elements.cycleDigit?.classList.remove('playing-zero', 'playing-active', 'flip-out', 'flip-in');
