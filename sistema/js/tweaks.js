@@ -15,8 +15,19 @@ const savedPos = (() => {
   try { return JSON.parse(localStorage.getItem(POS_KEY)) || null; } catch { return null; }
 })();
 if (savedPos && Number.isFinite(savedPos.x) && Number.isFinite(savedPos.y)) {
-  PANEL.style.left = `${savedPos.x}px`;
-  PANEL.style.top  = `${savedPos.y}px`;
+  // Clamp la posició desada al viewport actual. Sense això, una posició
+  // guardada en una finestra més gran (o un altre monitor) deixa el panell
+  // fora de la vista — el panell existeix i és "visible" però renderitzat
+  // fora de pantalla, donant la impressió que ha desaparegut (cas típic:
+  // surt en un navegador "net" però no en un que té la posició desada).
+  // Reservem un marge perquè sempre en quedi una franja agafable.
+  const MARGIN = 60;
+  const maxX = Math.max(0, window.innerWidth - MARGIN);
+  const maxY = Math.max(0, window.innerHeight - MARGIN);
+  const x = Math.min(Math.max(0, savedPos.x), maxX);
+  const y = Math.min(Math.max(0, savedPos.y), maxY);
+  PANEL.style.left = `${x}px`;
+  PANEL.style.top  = `${y}px`;
   PANEL.style.right = 'auto';
   PANEL.style.bottom = 'auto';
 }
@@ -90,9 +101,16 @@ const editActions = document.getElementById('tw-edit-actions');
 const btnExport = document.getElementById('tw-export');
 const btnResetPaso = document.getElementById('tw-reset-paso');
 
-// Local dev: show the panel with ?tweaks=1 (Claude Design hides it by default
-// and reveals it via postMessage from its edit-mode parent).
-if (new URLSearchParams(location.search).has('tweaks')) {
+// Visibilitat del panell tweaks. Tres vies:
+//   1. `?tweaks=1` a la URL (qualsevol entorn).
+//   2. Entorn local de desenvolupament (localhost / 127.0.0.1 / file://):
+//      es mostra automàticament perquè no calgui recordar el query param.
+//   3. postMessage `__activate_edit_mode` del parent (Claude Design).
+// En producció (p.ex. nuzic.org) cap d'aquestes via aplica → queda amagat.
+const HAS_TWEAKS_PARAM = new URLSearchParams(location.search).has('tweaks');
+const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname)
+  || location.protocol === 'file:';
+if (HAS_TWEAKS_PARAM || IS_LOCAL_DEV) {
   PANEL.hidden = false;
 }
 
