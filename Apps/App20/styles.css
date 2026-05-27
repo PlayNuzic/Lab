@@ -485,6 +485,13 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
   align-items: stretch;
 }
 
+/* Separador prim fosc entre les dues files (N / iT): box-shadow al damunt
+   de les cel·les iT, així la línia té l'amplada de les caselles (no arriba
+   al final del rectangle crema) i creix amb elles. */
+.nit-editor-cell.it-cell {
+  box-shadow: 0 -2px 0 0 var(--nuzic-dark, #43433B);
+}
+
 /* Label (N or iT) — matches plano-soundline-container width */
 .nit-editor-label {
   width: var(--plano-soundline-width, 50px);
