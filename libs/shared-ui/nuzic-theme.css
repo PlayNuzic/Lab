@@ -293,8 +293,11 @@ body[data-visual="nuzic"] .grid-container .soundline-number {
   text-align: center;
   font-weight: 700;
   /* Mida unificada per a totes les apps amb musical-grid
-     (App11/11A/12/15/25/25B): mateix clamp també a pulse-marker. */
-  font-size: clamp(0.6rem, 1.2vw, 1rem);
+     (App11/11A/12/15/25/25B): mateix clamp també a pulse-marker.
+     Factor vw alt (1.6vw) perquè dins els iframes del Sistema el `vw`
+     mesura l'amplada (petita) de l'iframe; standalone segueix capat
+     al sostre 1rem. */
+  font-size: clamp(0.6rem, 1.6vw, 1rem);
   opacity: 1;
 }
 
@@ -321,7 +324,7 @@ body[data-visual="nuzic"] .plano-soundline-note {
   font-weight: 700;
   /* Mateix clamp que `.soundline-number` (musical-grid) per coherència
      visual entre App11-25B i App32-35. */
-  font-size: clamp(0.6rem, 1.2vw, 1rem);
+  font-size: clamp(0.6rem, 1.6vw, 1rem);
 }
 
 body[data-visual="nuzic"] .plano-soundline-note::before {
@@ -440,7 +443,7 @@ body[data-visual="nuzic"] .grid-container .pulse-marker {
   background: none;  /* Amagar línia vertical del marcador */
   font-weight: 700;
   /* Mateix clamp que `.soundline-number` per coherència entre apps. */
-  font-size: clamp(0.6rem, 1.2vw, 1rem);
+  font-size: clamp(0.6rem, 1.6vw, 1rem);
   opacity: 1;
   width: auto;
   height: auto;
