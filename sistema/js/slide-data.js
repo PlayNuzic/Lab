@@ -158,14 +158,11 @@ export const slideContent = {
 <p><strong>Tip:</strong> La primera escucha es siempre la escala cromática ascendente; sirve para mostrar las 12 notas antes de escucharlas en melodías aleatorias.</p>`,
   },
   5: {
-    text: `<p>Si colocamos la línea temporal en horizontal y la línea sonora en vertical creamos un <strong>plano</strong> que representa el espacio donde va a sonar la música.</p>
-<p>Es un mapa donde podemos ver cómo las notas van ocurriendo en el tiempo, cada una en su instante preciso.</p>
-<p>A cada nota le corresponde un punto en el mapa. Cada punto tiene <strong>dos números</strong> que lo definen, como las coordenadas de un lugar en el mapa.</p>
-<p>El primer número es la <em>nota</em> escogida y el segundo es el <em>pulso</em> donde está ubicada. Un pulso no puede tener más de una nota, igual que al cantar solo podemos cantar una nota a la vez.</p>`,
+    text: `<p>Hemos colocado la <mark class="hl-yellow">línea temporal</mark> en horizontal y la <mark class="hl-pink">línea sonora</mark> en vertical, y así hemos creado un plano: el espacio donde podemos representar la música.</p><p>Este plano funciona como un mapa. Nos permite ver qué notas suenan, en qué momento aparecen y cuánto dura cada una. </p><p>A cada nota le corresponde un punto en el plano. Ese punto se define con dos números, como si fueran las coordenadas de un lugar en un mapa. Lo llamamos el<strong> </strong><strong>par Pulso-Nota:</strong></p><p>El primer número indica el <mark class="hl-yellow">pulso</mark> donde la nota suena (eje horizontal). El segundo número indica la <mark class="hl-pink">nota</mark> escogida (eje vertical). </p><p>En esta primera representación, cada pulso solo puede tener una nota, igual que cuando cantamos una melodía: en cada instante solo cantamos una nota a la vez.</p><p><b><mark class="hl-box">Par P-N: representan una intersección Pulso-Nota en el plano musical.</mark></b></p>`,
     tipsTitle: 'Prueba el Plano Nuzic',
-    tips: `<p>Haz clic en cualquier celda del plano para escuchar su nota y ver sus coordenadas (nota · pulso).</p>
+    tips: `<p>Haz clic en cualquier celda del plano para escuchar su nota y ver sus coordenadas (Pulso - Nota).</p>
 <p>Pulsa ▶️ para escuchar de 4 a 8 notas aleatorias distribuidas en 8 pulsos.</p>
-<p><strong>Tip:</strong> Prueba a hacer clic en varias celdas seguidas para explorar la relación entre posición en el plano y sonido. Las coordenadas de las notas desaparecen suavemente tras 1 segundo.</p>`,
+<p><strong>Tip:</strong> Prueba a hacer clic en varias celdas seguidas para explorar la relación entre posición en el plano y sonido. </p>`,
   },
   6: {
     text: `<p>Ya tenemos el mapa para crear música moviéndonos a través de números.</p>
