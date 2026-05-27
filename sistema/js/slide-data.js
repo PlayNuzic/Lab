@@ -79,7 +79,7 @@ export const slideMatrix = [
   { paso:1.5,  section:'introduccion', title:'¿Sabes cómo se mueve la música?', layout:'A-intro', hidden:true, intro:true },
   { paso:2,  section:'descubriendo', title:'¿Qué se mueve en la música?',                                 layout:'B-app-left', apps:['App11A'], aspect:'4/3', group:'plano-simple', density:'loose' },
   { paso:3,  section:'descubriendo', title:'Línea Temporal',                                              layout:'E-app-text-left', apps:['app9'],   aspect:'2/1', group:'timeline-simple' },
-  { paso:4,  section:'descubriendo', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'2/3', group:'timeline-vertical' },
+  { paso:4,  section:'descubriendo', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'2/3', group:'timeline-vertical', density:'compact' },
   { paso:5,  section:'descubriendo', title:'El Plano Musical',                                            layout:'B-app-left', apps:['app11'],  aspect:'4/3', group:'plano-simple', density:'compact' },
   { paso:6,  section:'descubriendo', title:'El par Nota - Pulso',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3', group:'plano-simple', density:'compact' },
   { paso:7,  section:'intervalos',   title:'Midiendo el movimiento de la Música: Los Intervalos',         layout:'A-intro', density:'loose' },
@@ -150,10 +150,8 @@ export const slideContent = {
 <p><strong>Tip:</strong> En la línea temporal podemos visualizar el paso del tiempo marcado por los pulsos y oír un sonido que ocurre en un pulso y que dura una pulsación o paso.</p>`,
   },
   4: {
-    text: `<p>La <strong>línea sonora</strong> representa los sonidos que crean la música. Los sonidos que usamos para empezar son las notas musicales. Cada punto de la línea es una nota de la escala cromática con su sonido característico.</p>
-<p>A la primera nota le damos el número <strong>0</strong>. Es la nota de salida de la escala. Cada nota tiene su propio número para poder identificarla.</p>
-<p>La línea sonora la colocamos en <em>vertical</em> para formar el plano con la línea temporal, así se ve muy bien la altura de cada nota. Las notas están organizadas en orden ascendente, de más grave a más aguda.</p>
-<p>Las notas pueden seguir cualquier orden, pueden subir y bajar libremente creando así una <strong>melodía</strong>. El paso entre dos notas consecutivas es la unidad de medida que nos permite medir los movimientos de una melodía.</p>`,
+    text: `<p>La <mark class="hl-pink">línea sonora</mark> es el eje vertical y representa los sonidos que usamos para crear música.</p><p>Para empezar, trabajamos con las <strong>notas musicales</strong>. Cada punto de esta línea corresponde a una nota de la escala cromática.</p><p>A la nota de salida le damos el número <strong>0</strong>. A partir de ahí, cada nota recibe un número que nos permite identificarla.</p><p>Colocamos la <mark class="hl-pink">línea sonora</mark> como eje vertical para formar un plano junto con la línea temporal. Así podemos ver fácilmente la <strong>altura</strong> de cada nota: las notas más graves quedan abajo y las más agudas, arriba.</p><p>Una melodía aparece cuando las notas se ordenan en el tiempo. Pueden subir, bajar, repetirse o saltar de una altura a otra.</p><p><b><mark class="hl-box">La línea temporal nos dice cuándo suena una nota.<br>La línea sonora nos dice qué nota suena.</mark></b></p>
+<h3>Ahora ya tenemos el plano: el mapa donde podremos medir el movimiento de la música.</h3>`,
     tipsTitle: 'Prueba Práctica',
     tips: `<p>La app muestra la línea sonora con 12 notas (0–11) donde puedes escuchar melodías.</p>
 <p><strong>Uso básico:</strong> En la primera interacción, suena la escala cromática completa como introducción. A partir de la segunda, pulsa ▶️ para reproducir melodías aleatorias de 6 notas.</p>
