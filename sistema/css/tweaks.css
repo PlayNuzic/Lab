@@ -113,6 +113,12 @@ body[data-theme="dark"] .tweaks__btn:hover{ background: #2a2a25; }
   color: #43433b;
 }
 .tweaks__btn--hl-yellow:hover{ background: #ffe2a8; }
+.tweaks__btn--hl-box{
+  background: #7BB4CD;
+  border-color: #7BB4CD;
+  color: #fff;
+}
+.tweaks__btn--hl-box:hover{ background: #6aa3bd; }
 
 /* Collapsed state: hide body + foot, round the head's bottom corners. */
 .tweaks.is-collapsed .tweaks__body,

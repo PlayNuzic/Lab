@@ -111,7 +111,7 @@ const ALLOWED_RICH_TAGS = new Set([
 // Classes de ressaltat permeses sobre `<mark>` (marca de fons rosa/groc
 // afegida des del mode edició del panell tweaks). La resta d'atributs/
 // classes s'eliminen com sempre.
-const ALLOWED_MARK_CLASSES = new Set(['hl-pink', 'hl-yellow']);
+const ALLOWED_MARK_CLASSES = new Set(['hl-pink', 'hl-yellow', 'hl-box']);
 
 // Convert plain ASCII superscript notation `N^M` (e.g. `P(3^1)`) into
 // real <sup> markup. Only digits on either side, so `2^16` → `2<sup>16</sup>`
@@ -656,7 +656,7 @@ function clearHighlight() {
   // Desempaqueta tots els marks del camp que toquen la selecció. (Treu la
   // marca sencera encara que la selecció en cobreixi només una part —
   // comportament simple i previsible per a l'editor.)
-  const marks = [...field.querySelectorAll('mark.hl-pink, mark.hl-yellow')];
+  const marks = [...field.querySelectorAll('mark.hl-pink, mark.hl-yellow, mark.hl-box')];
   let changed = false;
   marks.forEach(m => {
     if (!range.intersectsNode(m)) return;

@@ -142,11 +142,8 @@ export const slideContent = {
 <p><strong>Tip:</strong> El plano revela que la música tiene dos dimensiones inseparables: el sonido y el tiempo.</p>`,
   },
   3: {
-    text: `<p>La línea temporal es horizontal y sirve para medir el tiempo en la música . <br>En ella marcamos unos puntos equidistantes que representan una velocidad constante, como si fueran los segundos de un reloj. <br>Definimos esta velocidad con un número, que se conoce como <b>BPM</b> (Beats Per Minute).</p>
-<p>A los puntos de la línea temporal los llamamos <strong>pulsos</strong>. Como buen instrumento de medición el pulso de partida <b>es el 0</b>.</p>
-<p>Los <b>pulsos</b> nos permiten marcar exactamente en qué instante se producen los sonidos. </p>
-<p>Como la pulsación del corazón, un <strong>paso</strong> temporal es el tiempo que pasa entre dos pulsos consecutivos. Este paso es la unidad temporal que usaremos para medir cuánto dura un sonido.<br></p>
-<p>Cuando contamos <strong>pasos</strong>, es natural hacerlo desde el 1: El paso 1 va del pulso 0 al 1, el paso 2 va del 1 al 2 etc…</p>`,
+    text: `<p>La <mark class="hl-yellow">línea temporal</mark> es el eje horizontal y nos permite <mark class="hl-yellow">medir el tiempo</mark> en la música.</p><p>En ella marcamos puntos equidistantes que representan una <strong>pulsación </strong>constante, como los segundos de un reloj o los latidos de un corazón.</p><p>La velocidad de esa pulsación se expresa con un número: los <strong>BPM</strong> (<em>beats per minute</em>), es decir, pulsos por minuto.</p><p>A cada punto de la línea temporal lo llamamos <strong>pulso</strong>. El pulso de partida es el <strong>0</strong>, porque funciona como el inicio de la medición.</p><p>Los <b>pulsos</b> nos permiten situar con precisión en qué instante aparece cada sonido.</p><p>Cuando contamos pasos, es natural empezar desde el 1: el paso 1 va del pulso 0 al pulso 1; el paso 2 va del pulso 1 al pulso 2, y así sucesivamente.</p><p><b><mark class="hl-box">Pulso = punto de referencia.<br>Pulsación = distancia entre dos pulsos</mark></b></p>
+<h3>¿Y qué pasa con el eje vertical?</h3>`,
     tipsTitle: 'Prueba la Línea Temporal',
     tips: `<p>Haz clic en ▶️ y escucha dos notas aleatorias en posiciones distintas de la línea temporal.</p>
 <p>Ajusta el BPM entre 50 y 150 para escuchar la línea más rápido o más lento.</p>

@@ -41,6 +41,28 @@ body[data-editable="true"] [contenteditable="true"]:focus{
   background: var(--nuzic-yellow-light, #ffeecc);
 }
 
+/* Caixa lila — fons sòlid #8C1AF5 amb text blanc, com una etiqueta/badge
+   destacat dins el text teòric. Padding i radi una mica més grans que
+   els ressaltats per donar-li cos de "caixa". */
+.prose mark.hl-box,
+.tips__body mark.hl-box{
+  background: #7BB4CD;
+  color: #fff;
+  /* Una mica més petit (~12%) que el text que l'envolta. Amb `em` el
+     rati es manté constant sigui quina sigui la densitat del pas
+     (compact 0.92×, normal 1×, loose 1.05×). */
+  font-size: 0.88em;
+  padding: 0.18em 0.6em;
+  border-radius: 6px;
+  font-weight: 700;
+  /* Caixa pròpia, ajustada al contingut, alineada a l'esquerra del bloc
+     de text (posició natural d'un block). */
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  text-align: left;
+}
+
 
 .slot-title{
   display: flex;

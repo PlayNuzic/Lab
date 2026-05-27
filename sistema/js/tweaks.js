@@ -100,6 +100,7 @@ const editActions = document.getElementById('tw-edit-actions');
 const editActions2 = document.getElementById('tw-edit-actions-2');
 const btnHlPink = document.getElementById('tw-hl-pink');
 const btnHlYellow = document.getElementById('tw-hl-yellow');
+const btnHlBox = document.getElementById('tw-hl-box');
 const btnHlClear = document.getElementById('tw-hl-clear');
 const btnExport = document.getElementById('tw-export');
 const btnResetPaso = document.getElementById('tw-reset-paso');
@@ -166,6 +167,7 @@ function wireHighlightButton(btn, colorClass){
 }
 wireHighlightButton(btnHlPink, 'hl-pink');
 wireHighlightButton(btnHlYellow, 'hl-yellow');
+wireHighlightButton(btnHlBox, 'hl-box');
 
 // Botó "Sin marca": treu qualsevol ressaltat de la selecció.
 if (btnHlClear) {
