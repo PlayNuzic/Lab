@@ -62,12 +62,6 @@
           <option value="loose">Amplia</option>
         </select>
       </label>
-      <label class="tweaks__row" id="tw-variant-row" hidden><span>Variante app</span>
-        <select id="tw-variant">
-          <option value="a">A</option>
-          <option value="b">B</option>
-        </select>
-      </label>
       <label class="tweaks__row"><span>Cargar iframes</span>
         <input type="checkbox" id="tw-iframe">
       </label>
@@ -75,6 +69,11 @@
         <input type="checkbox" id="tw-edit">
       </label>
       <div class="tweaks__row tweaks__row--actions" id="tw-edit-actions" hidden>
+        <button type="button" id="tw-hl-pink" class="tweaks__btn tweaks__btn--hl-pink" title="Resaltar la selección en rosa (soundline)">Marca rosa</button>
+        <button type="button" id="tw-hl-yellow" class="tweaks__btn tweaks__btn--hl-yellow" title="Resaltar la selección en amarillo (timeline)">Marca groc</button>
+        <button type="button" id="tw-hl-clear" class="tweaks__btn" title="Quitar el resaltado de la selección">Sin marca</button>
+      </div>
+      <div class="tweaks__row tweaks__row--actions" id="tw-edit-actions-2" hidden>
         <button type="button" id="tw-export" class="tweaks__btn">Exportar</button>
         <button type="button" id="tw-reset-paso" class="tweaks__btn">Restaurar paso</button>
       </div>

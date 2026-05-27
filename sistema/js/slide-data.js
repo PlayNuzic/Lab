@@ -69,36 +69,41 @@ export const layouts = {
 // below; this matrix carries only structural info (section, layout, apps).
 // Vertical fallback is now a pure CSS media query (`max-width: 900px`); no
 // JS measurement is needed.
+//
+// Camp opcional `density: 'compact'|'cozy'|'loose'` — densitat editorial
+// del pas (espaiat del contingut). Si s'omet, el sistema usa 'compact'.
+// És la font de veritat de producció; el panell tweaks pot sobreescriure-la
+// localment (localStorage) per previsualitzar, però no es desplega.
 export const slideMatrix = [
-  { paso:1,    section:'introduccion', title:'¿Te gustaría saber cómo se mueve la música?', layout:'A-intro' },
-  { paso:1.5,  section:'introduccion', title:'¿Te gustaría saber cómo se mueve la música?', layout:'A-intro', hidden:true, intro:true },
-  { paso:2,  section:'descubriendo', title:'Contar y Medir Música',                                       layout:'B-app-left', apps:['App11A'], aspect:'4/3', group:'plano-simple' },
+  { paso:1,    section:'introduccion', title:'¿Sabes cómo se mueve la música?', layout:'A-intro', density:'loose' },
+  { paso:1.5,  section:'introduccion', title:'¿Sabes cómo se mueve la música?', layout:'A-intro', hidden:true, intro:true },
+  { paso:2,  section:'descubriendo', title:'¿Qué se mueve en la música?',                                 layout:'B-app-left', apps:['App11A'], aspect:'4/3', group:'plano-simple', density:'loose' },
   { paso:3,  section:'descubriendo', title:'Línea Temporal',                                              layout:'E-app-text-left', apps:['app9'],   aspect:'2/1', group:'timeline-simple' },
   { paso:4,  section:'descubriendo', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'2/3', group:'timeline-vertical' },
-  { paso:5,  section:'descubriendo', title:'El Plano Musical',                                            layout:'B-app-left', apps:['app11'],  aspect:'4/3', group:'plano-simple' },
-  { paso:6,  section:'descubriendo', title:'El par Nota - Pulso',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3', group:'plano-simple' },
-  { paso:7,  section:'intervalos',   title:'Midiendo el movimiento de la Música: Los Intervalos',         layout:'A-intro' },
-  { paso:8,  section:'intervalos',   title:'El Intervalo Temporal',                                       layout:'E-app-text-left', apps:['app13'], aspect:'2/1', group:'timeline-simple' },
-  { paso:9,  section:'intervalos',   title:'El Intervalo Sonoro',                                         layout:'B-app-left', apps:['App14'],  aspect:'2/3', group:'timeline-vertical' },
+  { paso:5,  section:'descubriendo', title:'El Plano Musical',                                            layout:'B-app-left', apps:['app11'],  aspect:'4/3', group:'plano-simple', density:'compact' },
+  { paso:6,  section:'descubriendo', title:'El par Nota - Pulso',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3', group:'plano-simple', density:'compact' },
+  { paso:7,  section:'intervalos',   title:'Midiendo el movimiento de la Música: Los Intervalos',         layout:'A-intro', density:'loose' },
+  { paso:8,  section:'intervalos',   title:'El Intervalo Temporal',                                       layout:'E-app-text-left', apps:['app13'], aspect:'2/1', group:'timeline-simple', density:'compact' },
+  { paso:9,  section:'intervalos',   title:'El Intervalo Sonoro',                                         layout:'B-app-left', apps:['App14'],  aspect:'2/3', group:'timeline-vertical', density:'compact' },
   { paso:10, section:'intervalos',   title:'Intervalos en el Plano Musical',                              layout:'B-app-left', apps:['App15'],  aspect:'4/3', group:'plano-simple' },
-  { paso:11, section:'ampliando',    title:'Ampliando el Mapa: Patrones, Ciclos y Módulos',               layout:'A-intro' },
-  { paso:12, section:'ampliando',    title:'El compás: el módulo temporal',                               layout:'E-app-text-left', apps:['App16'],  aspect:'2/1', group:'timeline-complex' },
-  { paso:13, section:'ampliando',    title:'Línea temporal en círculo',                                   layout:'B-app-left', apps:['App17'],  aspect:'1/1', group:'circular' },
-  { paso:14, section:'ampliando',    title:'El registro de octava',                                       layout:'B-app-left', apps:['App18'],  aspect:'6/5', group:'timeline-vertical' },
+  { paso:11, section:'ampliando',    title:'Ampliando el Mapa: Patrones, Ciclos y Módulos',               layout:'A-intro', density:'loose' },
+  { paso:12, section:'ampliando',    title:'El compás: el módulo temporal',                               layout:'E-app-text-left', apps:['App16'],  aspect:'2/1', group:'timeline-complex', density:'compact' },
+  { paso:13, section:'ampliando',    title:'Línea temporal en círculo',                                   layout:'B-app-left', apps:['App17'],  aspect:'1/1', group:'circular', density:'compact' },
+  { paso:14, section:'ampliando',    title:'El registro de octava',                                       layout:'B-app-left', apps:['App18'],  aspect:'6/5', group:'timeline-vertical', density:'compact' },
   { paso:15, section:'ampliando',    title:'Plano Modular',                                               layout:'B-app-left', apps:['App19'],  aspect:'4/3', group:'plano-multi-pill', requiresLandscape:true },
-  { paso:16, section:'ampliando',    title:'Sucesión N-iT en Plano Modular',                              layout:'B-app-left', apps:['App20'],  aspect:'4/3', group:'plano-multi-pill', requiresLandscape:true },
-  { paso:17,   section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'E-app-text-left', apps:['App26'],  aspect:'5/2', group:'timeline-simple' },
-  { paso:17.5, section:'fraccionando', title:'Ciclos en la Línea Temporal',                                  layout:'E-app-text-left', apps:['App27'],  aspect:'5/2', group:'timeline-simple', hidden:true, complex:true },
+  { paso:16, section:'ampliando',    title:'Sucesión N-iT en Plano Modular',                              layout:'B-app-left', apps:['App20'],  aspect:'4/3', group:'plano-multi-pill', requiresLandscape:true, density:'compact' },
+  { paso:17,   section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'E-app-text-left', apps:['App26'],  aspect:'5/2', group:'timeline-simple', density:'compact' },
+  { paso:17.5, section:'fraccionando', title:'Ciclos en la Línea Temporal',                                  layout:'E-app-text-left', apps:['App27'],  aspect:'5/2', group:'timeline-simple', hidden:true, complex:true, density:'compact' },
   { paso:18,   section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'E-app-text-left', apps:['App28'],  aspect:'2/1', group:'timeline-simple' },
   { paso:18.5, section:'fraccionando', title:'Sucesión de Pfr en ciclos polirrítmicos',                      layout:'E-app-text-left', apps:['App29'],  aspect:'2/1', group:'timeline-simple', hidden:true, complex:true },
-  { paso:19,   section:'fraccionando', title:'Sucesión de iT Fraccionados',                                 layout:'E-app-text-left', apps:['App30'],  aspect:'5/3', group:'timeline-simple' },
-  { paso:19.5, section:'fraccionando', title:'Sucesión de iTfr en ciclos polirrítmicos',                     layout:'E-app-text-left', apps:['App31'],  aspect:'5/3', group:'timeline-simple', hidden:true, complex:true },
-  { paso:20,   section:'fraccionando', title:'Plano fraccionado con sucesión N-iTfr',                      layout:'B-app-left',      apps:['App34'],  aspect:'3/4', group:'plano-simple' },
-  { paso:20.5, section:'fraccionando', title:'Plano con fracciones complejas',                              layout:'B-app-left',      apps:['App35'],  aspect:'3/4', group:'plano-simple', hidden:true, complex:true },
-  { paso:21, section:'escalas',      title:'Escalas: Escogiendo Notas',                                   layout:'B-app-left', apps:['App21'],  aspect:'2/3', group:'scale' },
-  { paso:22, section:'escalas',      title:'Estructura Escalar',                                          layout:'B-app-left', apps:['App22'],  aspect:'2/3', group:'scale' },
-  { paso:23, section:'escalas',      title:'Transposición',                                               layout:'B-app-left', apps:['App23'],  aspect:'2/3', group:'scale' },
-  { paso:24, section:'escalas',      title:'Probando diferentes Escalas',                                 layout:'B-app-left', apps:['App24'],  aspect:'2/3', group:'scale' },
+  { paso:19,   section:'fraccionando', title:'Sucesión de iT Fraccionados',                                 layout:'E-app-text-left', apps:['App30'],  aspect:'5/3', group:'timeline-simple', density:'compact' },
+  { paso:19.5, section:'fraccionando', title:'Sucesión de iTfr en ciclos polirrítmicos',                     layout:'E-app-text-left', apps:['App31'],  aspect:'5/3', group:'timeline-simple', hidden:true, complex:true, density:'compact' },
+  { paso:20,   section:'fraccionando', title:'Plano fraccionado con sucesión N-iTfr',                      layout:'B-app-left',      apps:['App34'],  aspect:'3/4', group:'plano-simple', density:'compact' },
+  { paso:20.5, section:'fraccionando', title:'Plano con fracciones complejas',                              layout:'B-app-left',      apps:['App35'],  aspect:'3/4', group:'plano-simple', hidden:true, complex:true, density:'compact' },
+  { paso:21, section:'escalas',      title:'Escalas: Escogiendo Notas',                                   layout:'B-app-left', apps:['App21'],  aspect:'2/3', group:'scale', density:'compact' },
+  { paso:22, section:'escalas',      title:'Estructura Escalar',                                          layout:'B-app-left', apps:['App22'],  aspect:'2/3', group:'scale', density:'loose' },
+  { paso:23, section:'escalas',      title:'Transposición',                                               layout:'B-app-left', apps:['App23'],  aspect:'2/3', group:'scale', density:'loose' },
+  { paso:24, section:'escalas',      title:'Probando diferentes Escalas',                                 layout:'B-app-left', apps:['App24'],  aspect:'2/3', group:'scale', density:'compact' },
   { paso:25, section:'escalas',      title:'Melodías con Escalas',                                        layout:'B-app-left', apps:['App25'],  aspect:'4/3', group:'scale' },
   { paso:26, section:'escalas',      title:'Intervalos con Escalas: el iSº',                              layout:'B-app-left', apps:['App25B'], aspect:'4/3', group:'scale' },
 ];
@@ -115,13 +120,8 @@ export const slideContent = {
       alt: 'Foto introductoria — Imaginemos el seguimiento de una persona',
       src: 'images/paso-1.jpg',
     },
-    text: `<p>Imaginemos el seguimiento de una persona durante un día. Para conocer sus movimientos hay que saber en qué puntos ha estado, en qué momento y cuánto tiempo se ha quedado. A partir de esa información puedes deducir y trazar en un mapa cómo se ha movido la persona.</p>
-<p>Las coordenadas de los puntos donde ha estado, la hora y el tiempo, incluso la velocidad para ir de un punto a otro, se pueden describir con <strong>números</strong>.</p>
-<h3>Contar y Medir</h3>
-<p><strong>Contar</strong> es calcular con números cuántas cosas hay. Empezamos a contar unidades con el 1; a continuación le siguen el 2, el 3, el 4, el 5…hasta el infinito.</p>
-<p><strong>Medir</strong> es usar números para calcular la magnitud de algo. Puede ser una longitud, un peso, una temperatura, un intervalo de tiempo…</p>
-<p>Para <b>medir</b> usamos herramientas con escalas numéricas. Estos instrumentos tienen una línea con las unidades de medida marcadas y numeradas. La marca inicial es el <b>número 0</b>, el punto de partida de la medición. Los números que siguen nos permiten contar a cuantos pasos está cada punto del inicio.</p>
-<h3>¿Todo esto es aplicable a la música?</h3>`,
+    text: `<p>Una melodía no está quieta: avanza en el tiempo, sube, baja, salta, se repite o se detiene.</p><p>Para entender cualquier movimiento necesitamos saber dos cosas: <strong>dónde ocurre</strong> y <strong>cuándo ocurre</strong>.</p><p>Imagina que seguimos a una persona durante un día. Para conocer su recorrido, necesitamos saber en qué lugares ha estado, en qué momento ha pasado por cada uno de ellos y cuánto tiempo se ha quedado allí.</p><p>Combinando esos datos podemos trazar su movimiento en un mapa.</p><p>Con la música ocurre algo parecido: también podemos describir su movimiento usando números. Contamos los pulsos del tiempo, medimos la distancia entre las notas y así observamos cómo se mueve una melodía en un plano.</p>
+<h3><b>Veamos cómo construimos este plano</b></h3>`,
   },
   // Capítol amagat — versió animada del pas 1 amb vídeo introductori
   // en lloc de la foto. Mateix text. Es desbloqueja amb 5 clicks al
@@ -131,20 +131,12 @@ export const slideContent = {
       alt: 'Vídeo introductori animat — el seguiment d\'una persona',
       src: 'videos/paso-1.mp4',
     },
-    text: `<p>Imaginemos el seguimiento de una persona durante un día. Para conocer sus movimientos hay que saber en qué puntos ha estado, en qué momento y cuánto tiempo se ha quedado. A partir de esa información puedes deducir y trazar en un mapa cómo se ha movido la persona.</p>
-<p>Las coordenadas de los puntos donde ha estado, la hora y el tiempo, incluso la velocidad para ir de un punto a otro, se pueden describir con <strong>números</strong>.</p>
-<h3>Contar y Medir</h3>
-<p><strong>Contar</strong> es calcular con números cuántas cosas hay. Empezamos a contar unidades con el 1; a continuación le siguen el 2, el 3, el 4, el 5…hasta el infinito.</p>
-<p><strong>Medir</strong> es usar números para calcular la magnitud de algo. Puede ser una longitud, un peso, una temperatura, un intervalo de tiempo…</p>
-<p>Para <b>medir</b> usamos herramientas con escalas numéricas. Estos instrumentos tienen una línea con las unidades de medida marcadas y numeradas. La marca inicial es el <b>número 0</b>, el punto de partida de la medición. Los números que siguen nos permiten contar a cuantos pasos está cada punto del inicio.</p>
-<h3>¿Todo esto es aplicable a la música?</h3>`,
+    text: `<p>Una melodía no está quieta: avanza en el tiempo, sube, baja, salta, se repite o se detiene.</p><p>Para entender cualquier movimiento necesitamos saber dos cosas: <strong>dónde ocurre</strong> y <strong>cuándo ocurre</strong>.</p><p>Imagina que seguimos a una persona durante un día. Para conocer su recorrido, necesitamos saber en qué lugares ha estado, en qué momento ha pasado por cada uno de ellos y cuánto tiempo se ha quedado allí.</p><p>Combinando esos datos podemos trazar su movimiento en un mapa.</p><p>Con la música ocurre algo parecido: también podemos describir su movimiento usando números. Contamos los pulsos del tiempo, medimos la distancia entre las notas y así observamos cómo se mueve una melodía en un plano.</p>
+<h3><b>Veamos cómo construimos este plano</b></h3>`,
   },
   2: {
-    text: `<p>La música, como los movimientos de una persona en un día, podemos describirla y medirla con números.</p>
-<p>Si vas por una calle, escuchas unos pasos, un coche que pasa, una puerta que se cierra y, al fondo, alguien silbando una melodía. Todo esto se mueve en un tiempo y un espacio determinados, en un orden concreto.</p>
-<h3>¿Qué se mueve en la música?</h3>
-<p>Para empezar partimos de dos líneas numéricas donde poder visualizar la música. Una línea vertical para los sonidos y otra línea horizontal para el paso del tiempo, sincronizadas para describir lo que suena y plasmarlo en el plano musical. </p>
-<p>Las dos líneas tienen marcas numeradas; la marca de inicio es el número <strong>0</strong>.</p>`,
+    text: `<p>Para empezar partimos de dos líneas numéricas donde poder visualizar la música. Una <mark class="hl-yellow">línea horizontal para el paso del tiempo</mark> y otra <mark class="hl-pink">línea vertical para los sonidos</mark>.</p><p>Estas líneas están sincronizadas para describir lo que suena y plasmarlo en el plano musical.</p>
+<p>Las dos líneas tienen marcas numeradas y interseccionan en la marca de inicio <strong>0</strong>.</p>`,
     tipsTitle: 'Prueba el Plano Nuzic',
     tips: `<p>Haz clic en <strong>Play</strong> para generar una secuencia aleatoria.</p>
 <p><strong>Tip:</strong> El plano revela que la música tiene dos dimensiones inseparables: el sonido y el tiempo.</p>`,

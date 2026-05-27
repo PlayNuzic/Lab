@@ -16,6 +16,8 @@ const BTN_PREV = document.getElementById('btn-prev');
 const BTN_NEXT = document.getElementById('btn-next');
 
 const STORAGE_KEY = 'sistema.paso';
+const DENSITY_KEY = 'sistema.densityByPaso';  // { [paso]: 'compact'|'cozy'|'loose' }
+const DEFAULT_DENSITY = 'cozy';  // 'Normal' — cas base sense regla CSS especial
 const OVERRIDES_KEY = 'sistema.overrides';
 const OVERRIDES_VERSION_KEY = 'sistema.overrides.version';
 const OVERRIDES_VERSION = 2;  // bumped when paso 21 was merged into 20
@@ -103,8 +105,13 @@ function saveOverrides(o){
 // (children kept, wrapper removed) or, in the case of <span> with bold/italic
 // inline styles, converted to <strong>/<em>.
 const ALLOWED_RICH_TAGS = new Set([
-  'p','h2','h3','h4','strong','b','em','i','code','br','ul','ol','li','blockquote','sup','sub'
+  'p','h2','h3','h4','strong','b','em','i','code','br','ul','ol','li','blockquote','sup','sub','mark'
 ]);
+
+// Classes de ressaltat permeses sobre `<mark>` (marca de fons rosa/groc
+// afegida des del mode edició del panell tweaks). La resta d'atributs/
+// classes s'eliminen com sempre.
+const ALLOWED_MARK_CLASSES = new Set(['hl-pink', 'hl-yellow']);
 
 // Convert plain ASCII superscript notation `N^M` (e.g. `P(3^1)`) into
 // real <sup> markup. Only digits on either side, so `2^16` → `2<sup>16</sup>`
@@ -161,6 +168,21 @@ function sanitizeHtml(html){
     }
 
     // Allowed tag: strip every attribute (including class, style, dir, id, ...).
+    // Excepció: un `<mark>` pot conservar una classe de ressaltat permesa
+    // (hl-pink / hl-yellow). Si el `<mark>` no en té cap de vàlida,
+    // el desempaquetem (no té sentit un mark sense color).
+    if (tag === 'mark') {
+      const cls = (node.getAttribute('class') || '').trim();
+      const keep = cls.split(/\s+/).find(c => ALLOWED_MARK_CLASSES.has(c));
+      [...node.attributes].forEach(a => node.removeAttribute(a.name));
+      if (keep) {
+        node.setAttribute('class', keep);
+      } else {
+        while (node.firstChild) node.parentNode.insertBefore(node.firstChild, node);
+        node.remove();
+      }
+      return;
+    }
     [...node.attributes].forEach(a => node.removeAttribute(a.name));
   }
 
@@ -184,10 +206,15 @@ function sanitizeHtml(html){
 // el viewport.
 const NARROW_VIEWPORT_QUERY = '(max-width: 599px)';
 
+function loadDensityByPaso(){
+  try { return JSON.parse(localStorage.getItem(DENSITY_KEY)) || {}; } catch { return {}; }
+}
+
 const state = {
   paso: Number(localStorage.getItem(STORAGE_KEY)) || 1,
   variant: 'a',
-  density: 'compact',
+  // Densitat per pas: cada slide recorda la seva. Persistit a localStorage.
+  densityByPaso: loadDensityByPaso(),
   showIframe: true,
   editable: false,
   overrides: loadOverrides(),
@@ -195,6 +222,26 @@ const state = {
   complexUnlocked: sessionStorage.getItem(COMPLEX_UNLOCK_KEY) === '1',
   introUnlocked: sessionStorage.getItem(INTRO_UNLOCK_KEY) === '1',
 };
+
+// Densitat del pas actual (o un de concret). Prioritat:
+//   1. Override local del tweaks (localStorage `densityByPaso`) — només
+//      per previsualitzar mentre s'edita; no es desplega.
+//   2. Densitat editorial declarada al `slideMatrix` (camp `density`),
+//      que és la font de veritat de producció.
+//   3. DEFAULT_DENSITY ('compact').
+// Helpers exposats a tweaks.js.
+function getPasoDensity(paso = state.paso){
+  if (state.densityByPaso[paso]) return state.densityByPaso[paso];
+  const slide = slideMatrix.find(s => s.paso === paso);
+  return slide?.density || DEFAULT_DENSITY;
+}
+function setPasoDensity(value){
+  state.densityByPaso[state.paso] = value;
+  try { localStorage.setItem(DENSITY_KEY, JSON.stringify(state.densityByPaso)); } catch {}
+  render();
+}
+window.__sistemaGetDensity = () => getPasoDensity();
+window.__sistemaSetDensity = setPasoDensity;
 
 // Llista dinàmica de pasos visibles segons l'estat del easter egg.
 // Quan el capítol amagat no està actiu, els pasos *.5 marcats amb
@@ -432,17 +479,15 @@ function render(){
     PROG.appendChild(seg);
   });
 
-  // Variant row visibility in tweaks
-  const variantRow = document.getElementById('tw-variant-row');
-  const hasVariant = slide.apps && slide.apps.length > 1;
-  variantRow.hidden = !hasVariant;
-  if (!hasVariant) state.variant = 'a';
+  // Cap slide actual té dues apps; mantenim `variant` a 'a' per
+  // compatibilitat amb la lògica de `renderApp`/`renderVariantToggle`.
+  if (!(slide.apps && slide.apps.length > 1)) state.variant = 'a';
 
   // Build slide
   const slideEl = document.createElement('article');
   slideEl.className = 'slide';
   slideEl.dataset.layout = slide.layout;
-  slideEl.dataset.density = state.density;
+  slideEl.dataset.density = getPasoDensity(state.paso);
   slideEl.dataset.paso = slide.paso;
   slideEl.style.gridTemplateAreas = layout.areas;
   slideEl.style.gridTemplateRows  = layout.rows;
@@ -547,6 +592,85 @@ function persistField(paso, el){
   state.overrides[paso][field] = value;
   saveOverrides(state.overrides);
 }
+
+// Aplica (o treu) un ressaltat de fons a la selecció de text actual dins
+// d'un camp editable. `colorClass` és 'hl-pink' o 'hl-yellow'. Si la
+// selecció ja està íntegrament dins d'un `<mark>` del mateix color,
+// fa toggle off (treu el mark). Cridat des del panell tweaks via
+// `window.__sistemaApplyHighlight`.
+function applyHighlight(colorClass) {
+  if (!ALLOWED_MARK_CLASSES.has(colorClass)) return;
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+
+  const range = sel.getRangeAt(0);
+  // La selecció ha d'estar dins d'un camp de text editable rich (text/tips).
+  const startEl = range.startContainer.nodeType === Node.ELEMENT_NODE
+    ? range.startContainer
+    : range.startContainer.parentElement;
+  const field = startEl?.closest('[data-field]');
+  if (!field || field.getAttribute('contenteditable') !== 'true') return;
+  const fieldName = field.dataset.field;
+  if (fieldName !== 'text' && fieldName !== 'tips') return;  // només rich fields
+
+  // Toggle off: si la selecció està continguda dins d'un mark del mateix
+  // color, el desempaquetem.
+  const existingMark = startEl.closest(`mark.${colorClass}`);
+  if (existingMark && existingMark.contains(range.endContainer)) {
+    const parent = existingMark.parentNode;
+    while (existingMark.firstChild) parent.insertBefore(existingMark.firstChild, existingMark);
+    existingMark.remove();
+    parent.normalize();
+  } else {
+    const mark = document.createElement('mark');
+    mark.className = colorClass;
+    try {
+      range.surroundContents(mark);
+    } catch {
+      // La selecció creua límits d'elements: extreure i reinserir.
+      const contents = range.extractContents();
+      mark.appendChild(contents);
+      range.insertNode(mark);
+    }
+  }
+
+  sel.removeAllRanges();
+  persistField(state.paso, field);
+}
+window.__sistemaApplyHighlight = applyHighlight;
+
+// Treu qualsevol ressaltat (rosa o groc) que intersequi amb la selecció
+// actual. Cridat des del botó "Sin marca" del panell tweaks.
+function clearHighlight() {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+  const range = sel.getRangeAt(0);
+  const startEl = range.startContainer.nodeType === Node.ELEMENT_NODE
+    ? range.startContainer
+    : range.startContainer.parentElement;
+  const field = startEl?.closest('[data-field]');
+  if (!field || field.getAttribute('contenteditable') !== 'true') return;
+  const fieldName = field.dataset.field;
+  if (fieldName !== 'text' && fieldName !== 'tips') return;
+
+  // Desempaqueta tots els marks del camp que toquen la selecció. (Treu la
+  // marca sencera encara que la selecció en cobreixi només una part —
+  // comportament simple i previsible per a l'editor.)
+  const marks = [...field.querySelectorAll('mark.hl-pink, mark.hl-yellow')];
+  let changed = false;
+  marks.forEach(m => {
+    if (!range.intersectsNode(m)) return;
+    const parent = m.parentNode;
+    while (m.firstChild) parent.insertBefore(m.firstChild, m);
+    m.remove();
+    parent.normalize();
+    changed = true;
+  });
+
+  sel.removeAllRanges();
+  if (changed) persistField(state.paso, field);
+}
+window.__sistemaClearHighlight = clearHighlight;
 
 function goTo(paso){
   if (paso === state.paso) return;

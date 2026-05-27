@@ -99,6 +99,21 @@ body[data-theme="dark"] .tweaks__collapse:hover{ background: rgba(0,0,0,0.1); }
 .tweaks__btn:hover{ background: var(--nuzic-light); }
 body[data-theme="dark"] .tweaks__btn:hover{ background: #2a2a25; }
 
+/* Botons de marca: fons del color corresponent perquè es reconegui d'un
+   cop d'ull (rosa = soundline, groc = timeline). */
+.tweaks__btn--hl-pink{
+  background: var(--nuzic-pink-light, #ffe5ee);
+  border-color: var(--nuzic-pink, #f28aad);
+  color: #43433b;
+}
+.tweaks__btn--hl-pink:hover{ background: #ffd4e2; }
+.tweaks__btn--hl-yellow{
+  background: var(--nuzic-yellow-light, #ffeecc);
+  border-color: var(--nuzic-yellow, #ffbb33);
+  color: #43433b;
+}
+.tweaks__btn--hl-yellow:hover{ background: #ffe2a8; }
+
 /* Collapsed state: hide body + foot, round the head's bottom corners. */
 .tweaks.is-collapsed .tweaks__body,
 .tweaks.is-collapsed .tweaks__foot{ display: none; }

@@ -94,23 +94,22 @@ COLLAPSE_BTN.addEventListener('click', (e) => {
 
 const selTheme = document.getElementById('tw-theme');
 const selDensity = document.getElementById('tw-density');
-const selVariant = document.getElementById('tw-variant');
 const cbIframe = document.getElementById('tw-iframe');
 const cbEdit = document.getElementById('tw-edit');
 const editActions = document.getElementById('tw-edit-actions');
+const editActions2 = document.getElementById('tw-edit-actions-2');
+const btnHlPink = document.getElementById('tw-hl-pink');
+const btnHlYellow = document.getElementById('tw-hl-yellow');
+const btnHlClear = document.getElementById('tw-hl-clear');
 const btnExport = document.getElementById('tw-export');
 const btnResetPaso = document.getElementById('tw-reset-paso');
 
-// Visibilitat del panell tweaks. Tres vies:
-//   1. `?tweaks=1` a la URL (qualsevol entorn).
-//   2. Entorn local de desenvolupament (localhost / 127.0.0.1 / file://):
-//      es mostra automàticament perquè no calgui recordar el query param.
-//   3. postMessage `__activate_edit_mode` del parent (Claude Design).
-// En producció (p.ex. nuzic.org) cap d'aquestes via aplica → queda amagat.
-const HAS_TWEAKS_PARAM = new URLSearchParams(location.search).has('tweaks');
-const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname)
-  || location.protocol === 'file:';
-if (HAS_TWEAKS_PARAM || IS_LOCAL_DEV) {
+// Visibilitat del panell tweaks. Dues vies:
+//   1. `?tweaks=1` a la URL.
+//   2. postMessage `__activate_edit_mode` del parent (Claude Design).
+// En entorn local sense `?tweaks=1` (ni a producció) queda amagat — així
+// el Sistema es veu com el visitant final fins i tot en desenvolupament.
+if (new URLSearchParams(location.search).has('tweaks')) {
   PANEL.hidden = false;
 }
 
@@ -128,8 +127,7 @@ window.parent.postMessage({ type: '__edit_mode_available' }, '*');
 const S = window.__sistemaState;
 selPaso.value = S.paso;
 selTheme.value = document.body.dataset.theme || 'light';
-selDensity.value = S.density;
-selVariant.value = S.variant;
+selDensity.value = window.__sistemaGetDensity?.() ?? 'compact';
 cbIframe.checked = S.showIframe;
 
 selPaso.addEventListener('change', ()=>{
@@ -141,12 +139,8 @@ selTheme.addEventListener('change', ()=>{
   document.body.dataset.theme = selTheme.value;
 });
 selDensity.addEventListener('change', ()=>{
-  S.density = selDensity.value;
-  window.__sistemaRender();
-});
-selVariant.addEventListener('change', ()=>{
-  S.variant = selVariant.value;
-  window.__sistemaRender();
+  // La densitat es grava per slide (vegeu __sistemaSetDensity a slides.js).
+  window.__sistemaSetDensity?.(selDensity.value);
 });
 cbIframe.addEventListener('change', ()=>{
   S.showIframe = cbIframe.checked;
@@ -156,10 +150,39 @@ cbEdit.addEventListener('change', ()=>{
   S.editable = cbEdit.checked;
   document.body.dataset.editable = cbEdit.checked ? 'true' : 'false';
   editActions.hidden = !cbEdit.checked;
+  if (editActions2) editActions2.hidden = !cbEdit.checked;
   window.__sistemaRender();
 });
+
+// Marques de ressaltat: apliquen un fons rosa/groc a la selecció de
+// text dins d'un camp editable (text/tips). `mousedown` amb preventDefault
+// perquè el clic al botó no esborri la selecció del camp contenteditable.
+function wireHighlightButton(btn, colorClass){
+  if (!btn) return;
+  btn.addEventListener('mousedown', (e) => { e.preventDefault(); });
+  btn.addEventListener('click', () => {
+    window.__sistemaApplyHighlight?.(colorClass);
+  });
+}
+wireHighlightButton(btnHlPink, 'hl-pink');
+wireHighlightButton(btnHlYellow, 'hl-yellow');
+
+// Botó "Sin marca": treu qualsevol ressaltat de la selecció.
+if (btnHlClear) {
+  btnHlClear.addEventListener('mousedown', (e) => { e.preventDefault(); });
+  btnHlClear.addEventListener('click', () => {
+    window.__sistemaClearHighlight?.();
+  });
+}
 btnExport.addEventListener('click', async ()=>{
-  const json = JSON.stringify(S.overrides, null, 2);
+  // Exportem textos (overrides → slideContent) i densitats per pas
+  // (densityByPaso → camp `density` del slideMatrix). Dues seccions
+  // separades perquè cadascuna va a un lloc diferent del codi.
+  const payload = {
+    overrides: S.overrides || {},
+    densityByPaso: S.densityByPaso || {},
+  };
+  const json = JSON.stringify(payload, null, 2);
   try {
     await navigator.clipboard.writeText(json);
     btnExport.textContent = '¡Copiado!';
@@ -169,7 +192,7 @@ btnExport.addEventListener('click', async ()=>{
     const w = window.open('', '_blank');
     if (w) { w.document.body.innerText = json; }
   }
-  console.log('[sistema] overrides JSON:\n', json);
+  console.log('[sistema] export JSON:\n', json);
 });
 btnResetPaso.addEventListener('click', ()=>{
   const p = S.paso;
@@ -180,10 +203,10 @@ btnResetPaso.addEventListener('click', ()=>{
   window.__sistemaRender();
 });
 
-// Keep select synced when nav changes paso
+// Keep selects synced when nav changes paso (paso + density per slide)
 const origRender = window.__sistemaRender;
 window.__sistemaRender = function(){
   origRender();
   selPaso.value = S.paso;
-  selVariant.value = S.variant;
+  selDensity.value = window.__sistemaGetDensity?.() ?? 'compact';
 };

@@ -18,6 +18,29 @@ body[data-editable="true"] [contenteditable="true"]:focus{
   background: rgba(124, 214, 179, 0.06);
 }
 
+/* Ressaltat de fons aplicat des del mode edició (botons del panell
+   tweaks). Rosa = soundline, groc = timeline. Fons translúcid clar amb
+   una mica de padding perquè el text "respiri" dins de la franja. El
+   color del text es manté (inherit) per llegibilitat. */
+.prose mark.hl-pink,
+.tips__body mark.hl-pink,
+.prose mark.hl-yellow,
+.tips__body mark.hl-yellow{
+  color: inherit;
+  padding: 0.05em 0.15em;
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.prose mark.hl-pink,
+.tips__body mark.hl-pink{
+  background: var(--nuzic-pink-light, #ffe5ee);
+}
+.prose mark.hl-yellow,
+.tips__body mark.hl-yellow{
+  background: var(--nuzic-yellow-light, #ffeecc);
+}
+
 
 .slot-title{
   display: flex;
