@@ -480,8 +480,9 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
 /* Each editor row: label + cells */
 .nit-editor-bar {
   display: flex;
+  /* Sense height fix: la fila la determinen les cel·les (com App34), si no
+     una alçada fixa diferent de la cel·la deixa espai mort vertical. */
   align-items: stretch;
-  height: 2rem;
 }
 
 /* Label (N or iT) — matches plano-soundline-container width */
@@ -513,16 +514,21 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
   align-items: stretch;
 }
 
-/* Individual cell — fixed width with aspect-ratio like App15 */
+/* Individual cell — rectangular (no square): a diferència de la resta
+   d'editors, App20 mostra notació de registre "NrR" (fins a "11r6", 4
+   caràcters), que no cap en una cel·la quadrada d'1.8em. Per això ampliem
+   l'amplada a 2.7em (mantenint l'alçada d'1.8em) i NO usem aspect-ratio.
+   N i iT comparteixen amplada → les columnes queden alineades. */
 .nit-editor-cell {
-  width: 5%;
-  min-width: 1.25rem;
-  aspect-ratio: 1;
+  width: 2.7em;
+  height: 1.8em;
+  min-width: 2.7em;
+  flex: 0 0 auto;
   border: none;
   text-align: center;
+  color: #43433b;
   font-weight: 700;
-  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
-  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(1rem, 1.8vw, 1.5rem);
   padding: 0;
   outline: none;
   box-sizing: border-box;

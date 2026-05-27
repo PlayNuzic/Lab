@@ -393,12 +393,18 @@ body.dragging-note * {
 }
 
 .editor-cell {
-  width: 5%;
+  /* App15 usa cel·les en % (no em): les cel·les de valor (.it-end) i les
+     buides s'intercalen i han de tenir la MATEIXA amplada per alinear-se.
+     4% + box-sizing (per la vora de 2px de les .it-end) ho garanteix.
+     aspect-ratio + stretch (sense height fix) les manté quadrades omplint
+     la fila. */
+  width: calc(4%);
   min-width: 1.25rem;
+  box-sizing: border-box;
   aspect-ratio: 1;
   text-align: center;
   color: #43433b;
-  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
+  font-size: clamp(1rem, 1.8vw, 1.5rem);
   font-weight: 700;
   border-radius: 0;
   border-width: 0;
@@ -438,9 +444,9 @@ body.dragging-note * {
 /* Value cell separator (end of interval group) */
 .editor-cell.it-end:not(:placeholder-shown) {
   border: 2px solid var(--nuzic-yellow-light);
-  margin-right: 2px;
-  width: calc(5% - 2px);
-  min-width: calc(1.25rem - 2px);
+  margin-right: 0;
+  width: calc(4%);
+  min-width: 1.25rem;
 }
 
 .editor-cell--is.it-end:not(:placeholder-shown) {
@@ -463,10 +469,12 @@ body.dragging-note * {
 }
 
 /* End marker */
+/* End-marker: amplada fixa i sense aspect-ratio (com App34). Així s'estira
+   a l'alçada de les cel·les en lloc de ser un quadrat gran que forçaria la
+   fila més alta que les cel·les (deixant-les rectangulars amb espai mort). */
 .editor-end-marker {
-  width: 5%;
-  min-width: 1.25rem;
-  aspect-ratio: 1;
+  width: 1.5rem;
+  flex-shrink: 0;
   background: var(--nuzic-dark);
   display: none;
   align-items: center;

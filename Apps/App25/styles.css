@@ -133,12 +133,17 @@ main {
 
 /* Exact same sizing as App12/App15 editor cells */
 .degree-editor-cell {
-  width: 5%;
-  min-width: 1.5625rem;
+  /* Cel·la dimensionada a partir del número: width en `em` (relatiu al
+     font de la pròpia cel·la) → la cel·la s'adapta al número. */
+  width: 1.8em;
+  height: 1.8em;
+  min-width: 1.8em;
+  flex: 0 0 auto;
+  box-sizing: border-box;
   aspect-ratio: 1;
   text-align: center;
   color: #43433b;
-  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
+  font-size: clamp(1rem, 1.8vw, 1.5rem);
   font-weight: 700;
   border-radius: 0;
   border-width: 0;
@@ -182,10 +187,11 @@ main {
 }
 
 /* End marker */
+/* End-marker: amplada fixa i sense aspect-ratio (com App34). S'estira a
+   l'alçada de les cel·les en lloc de forçar la fila més alta. */
 .degree-editor-end {
-  width: 5%;
-  min-width: 1.5625rem;
-  aspect-ratio: 1;
+  width: 1.5rem;
+  flex-shrink: 0;
   background: var(--nuzic-dark, #43433B);
   display: none;
   align-items: center;

@@ -112,12 +112,18 @@ html, body {
 }
 
 .editor-cell {
-  width: 5%;   /* 1/16 = 2 cells per pulse (8 pulses × 2 = 16) */
-  min-width: 25px;
+  /* Cel·la dimensionada a partir del número: width en `em` (relatiu al
+     font de la pròpia cel·la) → la cel·la s'adapta al número. 1.8em fa
+     que el dígit ompli ~55% i la cel·la no es desbordi. */
+  width: 1.8em;
+  height: 1.8em;
+  min-width: 1.8em;
+  flex: 0 0 auto;
+  box-sizing: border-box;
   aspect-ratio: 1;  /* keep square */
   text-align: center;
   color: #43433b;
-  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
+  font-size: clamp(1rem, 1.8vw, 1.5rem);
   font-weight: 700;
   border-radius: 0;
   border-width: 0;
@@ -173,10 +179,12 @@ html, body {
 }
 
 /* End marker */
+/* End-marker: amplada fixa i sense aspect-ratio (com App34). S'estira a
+   l'alçada de les cel·les en lloc de ser un quadrat gran que forçaria la
+   fila més alta que les cel·les (deixant espai mort vertical). */
 .editor-end-marker {
-  width: 5%;
-  min-width: 25px;
-  aspect-ratio: 1;
+  width: 1.5rem;
+  flex-shrink: 0;
   background: var(--nuzic-dark);
   display: none;
   align-items: center;
