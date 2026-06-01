@@ -8,10 +8,10 @@ import { initMixerMenu, updateMixerChannelLabel } from '../../libs/app-common/mi
 import { initRandomMenu } from '../../libs/random/menu.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
-import { getMixer, subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
+import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createMatrixHighlightController } from '../../libs/app-common/matrix-highlight-controller.js';
-import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { createMelodicAudioInitializer, setupAudioDefaults, CHANNEL_TIERS, createMixerPersistence } from '../../libs/app-common/audio-init.js';
 import { isPianoLoaded, setupPianoPreload } from '../../libs/sound/piano.js';
 import { isFluteLoaded } from '../../libs/sound/flute.js';
 import { degToSemi, scaleSemis, motherScalesData } from '../../libs/scales/index.js';
@@ -96,9 +96,7 @@ async function initAudio() {
     audio = await _initAudio();
 
     if (audio) {
-      audio.setEffectsEnabled(true);
-      audio.setCompressorThreshold(-3);
-      audio.setLimiterThreshold(-1);
+      setupAudioDefaults(audio, { channels: CHANNEL_TIERS.MELODIC_PULSE });
     }
 
     const p1Stored = localStorage.getItem('app25:p1Toggle');
@@ -1295,59 +1293,10 @@ async function init() {
     });
   }
 
-  // Mixer state persistence
-  const MIXER_STORAGE_KEY = 'app25-mixer';
-  const MIXER_CHANNELS = ['pulse', 'instrument'];
-
-  function loadMixerState() {
-    try {
-      const saved = localStorage.getItem(MIXER_STORAGE_KEY);
-      if (!saved) return;
-      const state = JSON.parse(saved);
-
-      if (state.master) {
-        if (typeof state.master.volume === 'number') setVolume(state.master.volume);
-        if (typeof state.master.muted === 'boolean') setMute(state.master.muted);
-      }
-
-      if (state.channels) {
-        MIXER_CHANNELS.forEach(id => {
-          const ch = state.channels[id];
-          if (ch) {
-            if (typeof ch.volume === 'number') setChannelVolume(id, ch.volume);
-            if (typeof ch.muted === 'boolean') setChannelMute(id, ch.muted);
-          }
-        });
-      }
-    } catch (e) {
-      console.warn('Error loading mixer state:', e);
-    }
-  }
-
-  let mixerSaveTimeout = null;
-  subscribeMixer((snapshot) => {
-    if (mixerSaveTimeout) clearTimeout(mixerSaveTimeout);
-    mixerSaveTimeout = setTimeout(() => {
-      const state = {
-        master: {
-          volume: snapshot.master.volume,
-          muted: snapshot.master.muted
-        },
-        channels: {}
-      };
-      snapshot.channels.forEach(ch => {
-        if (MIXER_CHANNELS.includes(ch.id)) {
-          state.channels[ch.id] = {
-            volume: ch.volume,
-            muted: ch.muted
-          };
-        }
-      });
-      localStorage.setItem(MIXER_STORAGE_KEY, JSON.stringify(state));
-    }, 100);
-  });
-
-  setTimeout(loadMixerState, 50);
+  // Mixer state persistence (helper centralitzat)
+  const mixerPersist = createMixerPersistence({ storageKey: 'app25-mixer' });
+  setTimeout(() => mixerPersist.hydrate(audio), 50);
+  mixerPersist.subscribe(audio);
 
   // Audio toggles
   const pulseToggleBtn = document.getElementById('pulseToggleBtn');
