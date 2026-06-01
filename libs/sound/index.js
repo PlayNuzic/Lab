@@ -185,7 +185,7 @@ export async function ensureAudio() {
       if (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) {
         try {
           const Ctor = window.AudioContext || window.webkitAudioContext;
-          const ctx = new Ctor({ latencyHint: 'interactive' });
+          const ctx = new Ctor({ latencyHint: 'interactive', sampleRate: 44100 });
           await ctx.close?.();
         } catch {}
       }
@@ -338,7 +338,7 @@ async function getPreviewContext() {
   if (!Ctor) throw new Error('AudioContext not available');
 
   if (!previewContext || previewContext.state === 'closed') {
-    previewContext = new Ctor({ latencyHint: 'interactive' });
+    previewContext = new Ctor({ latencyHint: 'interactive', sampleRate: 44100 });
     previewGain = null;
     previewSources.clear();
   }
@@ -631,12 +631,12 @@ export class TimelineAudio {
       }
 
       if (!ctx && FallbackCtor) {
-        ctx = new FallbackCtor({ latencyHint: 'interactive' });
+        ctx = new FallbackCtor({ latencyHint: 'interactive', sampleRate: 44100 });
       }
 
       if (!ctx || !isBaseAudioContext(ctx)) {
         if (!FallbackCtor) throw new Error('AudioContext not available');
-        ctx = new FallbackCtor({ latencyHint: 'interactive' });
+        ctx = new FallbackCtor({ latencyHint: 'interactive', sampleRate: 44100 });
       }
 
       if (!ctx || !isBaseAudioContext(ctx) || typeof ctx.audioWorklet === 'undefined' ||

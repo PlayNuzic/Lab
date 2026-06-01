@@ -165,12 +165,21 @@ export function createSamplerPool(config) {
   }
 
   /**
-   * Apply ADSR envelope to a GainNode
+   * Apply ADSR envelope to a GainNode.
+   * Defensa contra Firefox: el default `gain.value` és 1.0. Si no hi ha un
+   * `cancelScheduledValues` + `setValueAtTime(0, now)` previs i `when`
+   * coincideix amb `now`, Firefox de vegades arrenca el ramp des d'1.0 →
+   * click i pic inicial. Chrome ho tolera silenciosament.
    */
   function applyEnvelope(gainNode, when, duration, velocity = 1) {
     const now = context.currentTime;
     const startTime = Math.max(when, now);
     const { attack, decay, sustain, release } = adsr;
+
+    // Slate net: cancel·la qualsevol valor pendent i ancora a 0 al moment
+    // actual abans del primer setValueAtTime futur.
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.setValueAtTime(0, now);
 
     // Start at 0
     gainNode.gain.setValueAtTime(0, startTime);
@@ -213,6 +222,27 @@ export function createSamplerPool(config) {
     const startTime = Math.max(when, now);
     const adjustedDuration = drift > 0 ? Math.max(0.01, duration - drift) : duration;
 
+    // Voice stealing: si superem `poolSize` veus simultànies per la
+    // mateixa nota, fem fade-out suau de la més antiga abans d'allotjar.
+    // Sense això, escales ràpides amb release llarg apilen veus que
+    // interfereixen constructivament → peaks de volum aleatoris
+    // (especialment audibles en Firefox per la seva summació diferent).
+    const noteVoices = voicePool.get(sample.noteName) || [];
+    while (noteVoices.length >= poolSize) {
+      const oldest = noteVoices.shift();
+      if (oldest && oldest.active) {
+        try {
+          const fadeEnd = now + 0.01;
+          oldest.envelopeGain.gain.cancelScheduledValues(now);
+          oldest.envelopeGain.gain.setValueAtTime(oldest.envelopeGain.gain.value, now);
+          oldest.envelopeGain.gain.linearRampToValueAtTime(0, fadeEnd);
+          oldest.source.stop(fadeEnd + 0.005);
+        } catch {
+          // Voice may have already stopped
+        }
+      }
+    }
+
     // Create BufferSource
     const source = context.createBufferSource();
     source.buffer = sample.buffer;
@@ -222,8 +252,11 @@ export function createSamplerPool(config) {
       source.detune.value = sample.detuneCents;
     }
 
-    // Create envelope GainNode
+    // Create envelope GainNode amb gain inicial 0 síncron — el default
+    // de Web Audio és 1.0 i un ramp programat sense ancoratge previ pot
+    // començar des d'1.0 en alguns navegadors (sobretot Firefox).
     const envelopeGain = context.createGain();
+    envelopeGain.gain.value = 0;
 
     // Connect: source -> envelope -> destination
     source.connect(envelopeGain);
@@ -243,17 +276,26 @@ export function createSamplerPool(config) {
       source,
       envelopeGain,
       midi,
+      noteName: sample.noteName,
       startTime,
       endTime,
       active: true
     };
 
     activeVoices.add(voice);
+    noteVoices.push(voice);
+    voicePool.set(sample.noteName, noteVoices);
 
     // Cleanup when done
     source.onended = () => {
       voice.active = false;
       activeVoices.delete(voice);
+      const list = voicePool.get(voice.noteName);
+      if (list) {
+        const idx = list.indexOf(voice);
+        if (idx >= 0) list.splice(idx, 1);
+        if (list.length === 0) voicePool.delete(voice.noteName);
+      }
       try {
         source.disconnect();
         envelopeGain.disconnect();
@@ -287,6 +329,7 @@ export function createSamplerPool(config) {
         }
       }
     }
+    voicePool.clear();
   }
 
   /**
