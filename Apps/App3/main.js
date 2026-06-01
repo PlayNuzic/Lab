@@ -1,5 +1,5 @@
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
-import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { createRhythmAudioInitializer, setupAudioDefaults, CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeNumberFontRem, solidMenuBackground } from './utils.js';
 import { initRandomMenu, mergeRandomConfig, applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/random/index.js';
@@ -86,11 +86,10 @@ if (titleHeading && titleTextNode) {
   attachHover(titleButton, { text: 'Click para ver información detallada' });
 }
 
+// Canals registrats al motor (TimelineAudio constructor);
+// setupAudioDefaults(audio, {channels: RHYTHM_SUB}) dins initAudio()
+// els personalitza si cal.
 const globalMixer = getMixer();
-if (globalMixer) {
-  globalMixer.registerChannel('pulse', { allowSolo: true, label: 'Pulso' });
-  globalMixer.registerChannel('subdivision', { allowSolo: true, label: 'Subdivisión' });
-}
 
 let numeratorInput;
 let denominatorInput;
@@ -285,6 +284,9 @@ const _baseInitAudio = createRhythmAudioInitializer({
 async function initAudio() {
   if (!audio) {
     audio = await _baseInitAudio();
+    if (audio) {
+      setupAudioDefaults(audio, { channels: CHANNEL_TIERS.RHYTHM_SUB });
+    }
 
     // Apply App3-specific audio toggles
     if (typeof audio.setPulseEnabled === 'function') {

@@ -5,7 +5,7 @@
 // Playback one-shot (sense loop)
 
 import { getMixer, subscribeMixer, setChannelMute } from '../../libs/sound/index.js';
-import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { createRhythmAudioInitializer, setupAudioDefaults, CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
@@ -152,9 +152,8 @@ function createPfrLayout() {
 // ========== MIXER SETUP ==========
 const globalMixer = getMixer();
 if (globalMixer) {
-  globalMixer.registerChannel('pulse', { allowSolo: true, label: 'Pulso' });
-  globalMixer.registerChannel('accent', { allowSolo: true, label: 'Seleccion' });
-  globalMixer.registerChannel('subdivision', { allowSolo: true, label: 'Subdivision' });
+  // Canals registrats al motor (TimelineAudio constructor);
+  // setupAudioDefaults dins initAudio() els personalitza via RHYTHM_FULL.
 }
 
 // ========== HOVER TOOLTIPS ==========
@@ -278,6 +277,9 @@ const _baseInitAudio = createRhythmAudioInitializer({
 async function initAudio() {
   if (!audio) {
     audio = await _baseInitAudio();
+    if (audio) {
+      setupAudioDefaults(audio, { channels: CHANNEL_TIERS.RHYTHM_FULL });
+    }
 
     // Apply audio toggles
     if (typeof audio.setPulseEnabled === 'function') {

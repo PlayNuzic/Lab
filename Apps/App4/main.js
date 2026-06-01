@@ -3,7 +3,7 @@ import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu, randomizeFractional } from '../../libs/random/index.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
-import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { createRhythmAudioInitializer, setupAudioDefaults, CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
 import { fromLgAndTempo, toPlaybackPulseCount, gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
@@ -370,12 +370,9 @@ if (notationContentEl) {
   });
 }
 
+// Canals registrats al motor (TimelineAudio constructor);
+// setupAudioDefaults dins initAudio() els personalitza via RHYTHM_FULL.
 const globalMixer = getMixer();
-if (globalMixer) {
-  globalMixer.registerChannel('pulse', { allowSolo: true, label: 'Pulso' });
-  globalMixer.registerChannel('subdivision', { allowSolo: true, label: 'Subdivisión' });
-  globalMixer.registerChannel('accent', { allowSolo: true, label: 'Seleccionado' });
-}
 
 const FRACTION_NUMERATOR_KEY = 'n';
 const FRACTION_DENOMINATOR_KEY = 'd';
@@ -1597,6 +1594,9 @@ const _baseInitAudio = createRhythmAudioInitializer({
 async function initAudio() {
   if (!audio) {
     audio = await _baseInitAudio();
+    if (audio) {
+      setupAudioDefaults(audio, { channels: CHANNEL_TIERS.RHYTHM_FULL });
+    }
 
     // Apply App4-specific configurations after initialization
     if (typeof audio.setVoiceHandler === 'function') {
