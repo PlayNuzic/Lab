@@ -178,15 +178,9 @@ main {
   border: 2px solid var(--nuzic-pink-light, #ffe5ee);
 }
 
-/* Separator cells that belong to a rest: dotted */
-.interval-editor-cell.is-rest {
-  background-image: linear-gradient(to right, var(--nuzic-pink, #F28AAD) 50%, transparent 50%);
-  background-size: 6px 2px;
-  background-repeat: repeat-x;
-  background-position: center;
-  background-color: var(--nuzic-pink-light, #ffe5ee);
-  opacity: 0.75;
-}
+/* (Anteriorment marcàvem les cel·les "is-rest" de l'editor amb línia
+   discontínua rosa; tret per coherència amb App25, que no decora les
+   cel·les no editables quan hi ha un silenci.) */
 
 /* Value cells: white */
 .interval-editor-cell:not(:placeholder-shown) {
