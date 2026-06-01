@@ -5,6 +5,7 @@
 
 import { TimelineAudio, waitForUserInteraction } from '../sound/index.js';
 import { ensureToneLoaded } from '../sound/tone-loader.js';
+import { ensurePreferredSampleRateContext } from '../sound/audio-context-helper.js';
 
 // Gamification hooks - optional integration
 let gamificationHooks = null;
@@ -58,6 +59,10 @@ export function createAudioInitializer(config = {}) {
 
         // Wait for user interaction before creating AudioContext to avoid browser warnings
         await waitForUserInteraction();
+
+        // Pin sampleRate=44100 abans que Tone.js creï el seu context
+        // (eliminem el resampling silenciós a Firefox/Linux 48kHz)
+        ensurePreferredSampleRateContext();
 
         const instance = new TimelineAudio();
 
@@ -174,6 +179,10 @@ export function createMelodicAudioInitializer(config = {}) {
         // 1. Load Tone.js FIRST (critical for avoiding race condition)
         // ensureToneLoaded() waits for user interaction internally
         await ensureToneLoaded();
+
+        // Pin sampleRate=44100 abans que Tone.js creï el seu context
+        // (eliminem el resampling silenciós a Firefox/Linux 48kHz)
+        ensurePreferredSampleRateContext();
 
         // 2. Start Tone.js AudioContext IMMEDIATELY after user gesture
         // This MUST happen before any other async operations to avoid InvalidAccessError

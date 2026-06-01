@@ -5,6 +5,13 @@
 import { waitForUserInteraction } from './user-interaction.js';
 import { ensureToneLoaded } from './tone-loader.js';
 
+// Tots els samples del motor (Salamander piano, click samples, etc.) són
+// 44.1 kHz. Si l'AudioContext corre a una altra rate (Firefox/Linux usa
+// 48 kHz per defecte), el navegador fa resampling per cada buffer amb un
+// filtre que afegeix ripple d'amplitud — causa principal del "volum
+// inestable" cross-browser. Forcem 44100 per eliminar aquesta capa.
+const PREFERRED_SAMPLE_RATE = 44100;
+
 /**
  * Get the Tone.js AudioContext
  * @returns {AudioContext|null}
@@ -36,6 +43,32 @@ function isRunning(ctx) {
 }
 
 /**
+ * Si Tone.js encara no ha creat el seu AudioContext, n'instanciem un amb
+ * sampleRate=44100 i li'l donem via Tone.setContext(). Si ja n'hi ha un
+ * però corre a una rate diferent, també el substituïm. Cal cridar-ho
+ * després del gest d'usuari i abans de Tone.start().
+ */
+export function ensurePreferredSampleRateContext() {
+  if (typeof Tone === 'undefined') return;
+  if (typeof window === 'undefined') return;
+  const Ctor = window.AudioContext || window.webkitAudioContext;
+  if (!Ctor) return;
+
+  const current = getToneContext();
+  if (current && current.sampleRate === PREFERRED_SAMPLE_RATE) return;
+
+  try {
+    const next = new Ctor({ latencyHint: 'interactive', sampleRate: PREFERRED_SAMPLE_RATE });
+    if (typeof Tone.setContext === 'function') {
+      Tone.setContext(next);
+    }
+  } catch (err) {
+    // Si el navegador rebutja sampleRate (poc comú) seguim amb el default
+    console.warn('Could not pin AudioContext sampleRate to 44100:', err?.message || err);
+  }
+}
+
+/**
  * Ensure Tone.js AudioContext is started and running
  * This function handles all the complexity of starting the audio context:
  * - Waits for user interaction
@@ -62,6 +95,11 @@ export async function ensureToneContextRunning() {
 
   // Wait for user interaction before attempting to start audio
   await waitForUserInteraction();
+
+  // Forcem el sampleRate ABANS de Tone.start() perquè el context que
+  // crea Tone.js per defecte usa la rate del dispositiu (48kHz a
+  // Firefox/Linux), provocant resampling silenciós a cada buffer.
+  ensurePreferredSampleRateContext();
 
   // Try Tone.start()
   if (typeof Tone.start === 'function') {
