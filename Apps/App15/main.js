@@ -6,12 +6,12 @@ import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
-import { getMixer, subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
+import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createMatrixHighlightController } from '../../libs/app-common/matrix-highlight-controller.js';
 import { clearElement } from '../../libs/app-common/dom-utils.js';
 import { intervalsToPairs } from '../../libs/matrix-seq/index.js';
-import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { createMelodicAudioInitializer, setupAudioDefaults, CHANNEL_TIERS, createMixerPersistence } from '../../libs/app-common/audio-init.js';
 import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
@@ -86,16 +86,9 @@ async function initAudio() {
   if (!audio) {
     audio = await _initAudio();
 
-    // Configure FX defaults: FX On, Comp -3, Lim -1
+    // Configuració canònica d'àudio (FX, canals); valors a CANONICAL_FX
     if (audio) {
-      audio.setEffectsEnabled(true);
-      audio.setCompressorThreshold(-3);
-      audio.setLimiterThreshold(-1);
-
-      // Set all mixer faders to 0.75 (75%)
-      setVolume(0.75); // Master
-      setChannelVolume('pulse', 0.75);
-      setChannelVolume('instrument', 0.75);
+      setupAudioDefaults(audio, { channels: CHANNEL_TIERS.MELODIC_FULL });
     }
 
     // Sync P1 toggle state with audio engine (P1 defaults to enabled in audio,
@@ -1695,65 +1688,10 @@ async function initializeApp() {
     });
   }
 
-  // Mixer state persistence
-  const MIXER_STORAGE_KEY = 'app15-mixer';
-  const MIXER_CHANNELS = ['pulse', 'instrument'];
-
-  // Load saved mixer state
-  function loadMixerState() {
-    try {
-      const saved = localStorage.getItem(MIXER_STORAGE_KEY);
-      if (!saved) return;
-      const state = JSON.parse(saved);
-
-      // Restore master
-      if (state.master) {
-        if (typeof state.master.volume === 'number') setVolume(state.master.volume);
-        if (typeof state.master.muted === 'boolean') setMute(state.master.muted);
-      }
-
-      // Restore channels
-      if (state.channels) {
-        MIXER_CHANNELS.forEach(id => {
-          const ch = state.channels[id];
-          if (ch) {
-            if (typeof ch.volume === 'number') setChannelVolume(id, ch.volume);
-            if (typeof ch.muted === 'boolean') setChannelMute(id, ch.muted);
-          }
-        });
-      }
-    } catch (e) {
-      console.warn('Error loading mixer state:', e);
-    }
-  }
-
-  // Save mixer state on changes
-  let mixerSaveTimeout = null;
-  subscribeMixer((snapshot) => {
-    // Debounce saves to avoid excessive writes
-    if (mixerSaveTimeout) clearTimeout(mixerSaveTimeout);
-    mixerSaveTimeout = setTimeout(() => {
-      const state = {
-        master: {
-          volume: snapshot.master.volume,
-          muted: snapshot.master.muted
-        },
-        channels: {}
-      };
-      snapshot.channels.forEach(ch => {
-        if (MIXER_CHANNELS.includes(ch.id)) {
-          state.channels[ch.id] = {
-            volume: ch.volume,
-            muted: ch.muted
-          };
-        }
-      });
-      localStorage.setItem(MIXER_STORAGE_KEY, JSON.stringify(state));
-    }, 100);
-  });
-
-  // Load mixer state after a short delay (after mixer is initialized)
-  setTimeout(loadMixerState, 50);
+  // Mixer state persistence (helper centralitzat)
+  const mixerPersist = createMixerPersistence({ storageKey: 'app15-mixer' });
+  setTimeout(() => mixerPersist.hydrate(audio), 50);
+  mixerPersist.subscribe(audio);
 
   // Audio toggles (sync with mixer)
   const pulseToggleBtn = document.getElementById('pulseToggleBtn');
