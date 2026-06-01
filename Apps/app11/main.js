@@ -4,7 +4,7 @@
 import { createMusicalGrid } from '../../libs/musical-grid/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
-import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { createMelodicAudioInitializer, setupAudioDefaults, CHANNEL_TIERS, createMixerPersistence } from '../../libs/app-common/audio-init.js';
 import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
@@ -40,9 +40,16 @@ const _initAudio = createMelodicAudioInitializer({
   getPreferences: () => preferenceStorage.load() || {}
 });
 
+const mixerPersist = createMixerPersistence({ storageKey: 'app11-mixer' });
+
 async function initAudio() {
   if (!audio) {
     audio = await _initAudio();
+    if (audio) {
+      setupAudioDefaults(audio, { channels: CHANNEL_TIERS.MELODIC_PULSE });
+      mixerPersist.hydrate(audio);
+      mixerPersist.subscribe(audio);
+    }
   }
   return audio;
 }
