@@ -708,24 +708,7 @@ function createAppLayout() {
     <!-- Columna esquerra: àrea de soundlines -->
     <div class="soundlines-area">
       <div class="soundlines-wrapper">
-        <!-- Soundline cromàtica -->
-        <div class="soundline-column">
-          <div class="soundline-header">
-            <h3 class="soundline-title">Escala<br>Cromática</h3>
-          </div>
-          <div class="soundline-block">
-            <div class="soundline-abbr-pill">N</div>
-            <div id="chromaticSoundline" class="soundline-container"></div>
-          </div>
-          ${createPlayButtonHTML('playChromaticBtn', 'Reproducir escala cromática')}
-        </div>
-
-        <!-- Línies de connexió -->
-        <div class="connection-area">
-          <svg id="connectionLines" class="connection-lines"></svg>
-        </div>
-
-        <!-- Soundline d'escala -->
+        <!-- Soundline d'escala (esquerra) -->
         <div class="soundline-column">
           <div class="soundline-header">
             <h3 id="scaleSoundlineTitle" class="soundline-title">Escala<br>Major</h3>
@@ -735,6 +718,23 @@ function createAppLayout() {
             <div id="scaleSoundline" class="soundline-container"></div>
           </div>
           ${createPlayButtonHTML('playScaleBtn', 'Reproducir escala')}
+        </div>
+
+        <!-- Línies de connexió -->
+        <div class="connection-area">
+          <svg id="connectionLines" class="connection-lines"></svg>
+        </div>
+
+        <!-- Soundline cromàtica (dreta) -->
+        <div class="soundline-column">
+          <div class="soundline-header">
+            <h3 class="soundline-title">Escala<br>Cromática</h3>
+          </div>
+          <div class="soundline-block">
+            <div class="soundline-abbr-pill">N</div>
+            <div id="chromaticSoundline" class="soundline-container"></div>
+          </div>
+          ${createPlayButtonHTML('playChromaticBtn', 'Reproducir escala cromática')}
         </div>
       </div>
     </div>
