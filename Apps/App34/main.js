@@ -5,7 +5,7 @@
 // Àudio melòdic amb selector d'instrument + so de cicle
 
 import { getMixer, setChannelMute } from '../../libs/sound/index.js';
-import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { createMelodicAudioInitializer, setupAudioDefaults, CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
 import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
@@ -158,12 +158,9 @@ if (randomBtn) attachHover(randomBtn, { text: 'Aleatorizar fracción y notas' })
 if (resetBtn) attachHover(resetBtn, { text: 'Reset App' });
 
 // ========== MIXER SETUP ==========
+// Canals registrats al motor; setupAudioDefaults dins initAudio() els
+// personalitza via CHANNEL_TIERS.MELODIC_FULL.
 const globalMixer = getMixer();
-if (globalMixer) {
-  globalMixer.registerChannel('pulse', { allowSolo: true, label: 'Metrónomo' });
-  globalMixer.registerChannel('subdivision', { allowSolo: true, label: 'Subdivisión' });
-  globalMixer.registerChannel('instrument', { allowSolo: true, label: 'Instrumento', volume: 1 });
-}
 
 // ========== THEME & MUTE PERSISTENCE ==========
 const muteButton = document.getElementById('muteBtn');
@@ -196,6 +193,9 @@ const _baseInitAudio = createMelodicAudioInitializer({
 async function initAudio() {
   if (!audio) {
     audio = await _baseInitAudio();
+    if (audio) {
+      setupAudioDefaults(audio, { channels: CHANNEL_TIERS.MELODIC_FULL });
+    }
 
     // Apply saved mute state
     const savedMute = loadOpt('mute');
