@@ -7,7 +7,7 @@ import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { createCycleCounter } from '../../libs/app-common/cycle-counter.js';
 import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
-import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { createMelodicAudioInitializer, setupAudioDefaults, CHANNEL_TIERS, createMixerPersistence } from '../../libs/app-common/audio-init.js';
 import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { isFluteLoaded } from '../../libs/sound/flute.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
@@ -141,9 +141,16 @@ const _initAudio = createMelodicAudioInitializer({
   getPreferences: () => preferenceStorage.load() || {}
 });
 
+const mixerPersist = createMixerPersistence({ storageKey: 'app20-mixer' });
+
 async function initAudio() {
   if (!audio) {
     audio = await _initAudio();
+    if (audio) {
+      setupAudioDefaults(audio, { channels: CHANNEL_TIERS.MELODIC_PULSE });
+      mixerPersist.hydrate(audio);
+      mixerPersist.subscribe(audio);
+    }
   }
   return audio;
 }
