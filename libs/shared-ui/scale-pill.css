@@ -99,6 +99,8 @@ body[data-visual="nuzic"][data-theme="dark"] .bpm-inline.visible.param.escala .a
   cursor: pointer;
   outline: none;
   padding: 0 0.25rem;
+  text-align: center;
+  text-align-last: center;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -107,6 +109,7 @@ body[data-visual="nuzic"][data-theme="dark"] .bpm-inline.visible.param.escala .a
   background-position: right 0.25rem center;
   background-size: 26px 26px;
   padding-right: 2rem;
+  padding-left: 2rem;
 }
 
 [data-theme="dark"] .escala-select {
