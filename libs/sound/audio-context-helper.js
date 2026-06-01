@@ -62,6 +62,7 @@ export function ensurePreferredSampleRateContext() {
     if (typeof Tone.setContext === 'function') {
       Tone.setContext(next);
     }
+    console.log(`[audio] AudioContext sampleRate = ${next.sampleRate} Hz (requested ${PREFERRED_SAMPLE_RATE})`);
   } catch (err) {
     // Si el navegador rebutja sampleRate (poc comú) seguim amb el default
     console.warn('Could not pin AudioContext sampleRate to 44100:', err?.message || err);
