@@ -680,6 +680,24 @@ export class TimelineAudio {
       this._bus.melodic = ctx.createGain(); // Channel for melodic instruments (piano, violin)
       this._bus.melodic.gain.value = 0.75; // Default channel volume at 75%
 
+      // Fixar canal count explícit (stereo) a tots els buses. Sense
+      // això, GainNode usa 'max' i canvia de canals dinàmicament segons
+      // les fonts que rep — pot crear glitches breus quan una font
+      // mono nova entra (Salamander piano és mono, click samples també).
+      const busNodes = [
+        this._bus.master, this._bus.pulso, this._bus.start,
+        this._bus.seleccionados, this._bus.cycle, this._bus.melodic
+      ];
+      for (const node of busNodes) {
+        try {
+          node.channelCount = 2;
+          node.channelCountMode = 'explicit';
+          node.channelInterpretation = 'speakers';
+        } catch {
+          // Mock de test
+        }
+      }
+
       this._bus.pulso.connect(this._bus.master);
       this._bus.start.connect(this._bus.master);
       this._bus.seleccionados.connect(this._bus.master);
@@ -703,6 +721,31 @@ export class TimelineAudio {
           reverbWet: ctx.createGain(),
           reverbMix: ctx.createGain()  // Output node after dry/wet mixing
         };
+
+        // Fixar canal count explícit a stereo a tota la cadena master.
+        // Sense això, BiquadFilterNode i DynamicsCompressorNode usen
+        // `channelCountMode: 'max'` per defecte: cada vegada que una nova
+        // font mono/stereo entra, el node reconfigura els canals → glitch
+        // audible (Firefox avisa: "channelCount changes for
+        // BiquadFilterNode may produce audio issues"). És una causa
+        // documentada de salts de volum per nota en escales.
+        const masterChain = [
+          this._bus.effects.eq,
+          this._bus.effects.compressor,
+          this._bus.effects.limiter,
+          this._bus.effects.reverbDry,
+          this._bus.effects.reverbWet,
+          this._bus.effects.reverbMix
+        ];
+        for (const node of masterChain) {
+          try {
+            node.channelCount = 2;
+            node.channelCountMode = 'explicit';
+            node.channelInterpretation = 'speakers';
+          } catch {
+            // Algun mock de test pot no acceptar aquestes assignacions
+          }
+        }
 
         // Configure EQ (highshelf for subtle presence boost)
         this._bus.effects.eq.type = 'highshelf';
