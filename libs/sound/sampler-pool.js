@@ -19,6 +19,25 @@ const ADSR_DEFAULTS = {
 };
 
 /**
+ * Compensació empírica de loudness per cents de detune.
+ * El resampling de Web Audio (especialment l'anti-aliasing filter de
+ * Firefox) atenua/realça contingut espectral asimètricament segons la
+ * direcció del detune. Per al piano Salamander (samples cada tritó):
+ *   • Notes desplaçades amunt: perden lleugerament brillantor + pic
+ *     d'amplitud → cal compensar amunt (~ +0.5 dB / 100 cents).
+ *   • Notes desplaçades avall: guanyen una mica de cos → cal atenuar
+ *     (~ -0.3 dB / 100 cents).
+ * Convertit a factor lineal multiplicador sobre la velocity.
+ * Coeficients empírics — el rang del piano és ±300 cents (un tritó)
+ * així que el factor cau dins [0.95, 1.18] aproximadament.
+ */
+function detuneGainFactor(cents) {
+  if (!cents) return 1;
+  const dB = cents > 0 ? (cents / 100) * 0.5 : (cents / 100) * 0.3;
+  return Math.pow(10, dB / 20);
+}
+
+/**
  * Create a low-latency sampler pool from a Tone.Sampler
  *
  * @param {Object} config
@@ -252,6 +271,11 @@ export function createSamplerPool(config) {
       source.detune.value = sample.detuneCents;
     }
 
+    // Compensar la variació de loudness perceptiva induïda pel
+    // resampling per cents. Sense això, notes a la mateixa velocity
+    // soaven amb fins a ~1.5 dB de variació entre samples adjacents.
+    const compensatedVelocity = velocity * detuneGainFactor(sample.detuneCents);
+
     // Create envelope GainNode amb gain inicial 0 síncron — el default
     // de Web Audio és 1.0 i un ramp programat sense ancoratge previ pot
     // començar des d'1.0 en alguns navegadors (sobretot Firefox).
@@ -263,7 +287,7 @@ export function createSamplerPool(config) {
     envelopeGain.connect(destination);
 
     // Apply ADSR envelope (use adjusted duration to compensate for callback drift)
-    const endTime = applyEnvelope(envelopeGain, startTime, adjustedDuration, velocity);
+    const endTime = applyEnvelope(envelopeGain, startTime, adjustedDuration, compensatedVelocity);
 
     // Start playback
     source.start(startTime);
