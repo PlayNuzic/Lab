@@ -6,13 +6,12 @@
  * - Cycle define cuántas veces se repite el módulo antes de parar
  */
 
-import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { createRhythmAudioInitializer, setupAudioDefaults, CHANNEL_TIERS, createMixerPersistence } from '../../libs/app-common/audio-init.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/index.js';
 import { createPreferenceStorage, registerFactoryReset } from '../../libs/app-common/preferences.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
-import { subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
 import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.js';
 import { createTotalLengthDisplay } from '../../libs/app-common/total-length-display.js';
@@ -75,7 +74,6 @@ let totalLengthController;   // Shared module for total length display
 
 const preferenceStorage = createPreferenceStorage({ prefix: 'app17', separator: '-' });
 const MIXER_STORAGE_KEY = 'app17-mixer';
-const MIXER_CHANNELS = ['start', 'pulse'];
 
 // ============================================
 // AUDIO SETUP
@@ -104,9 +102,16 @@ const _baseInitAudio = createRhythmAudioInitializer({
   defaultInstrument: 'piano'
 });
 
+const mixerPersist = createMixerPersistence({ storageKey: MIXER_STORAGE_KEY });
+
 async function initAudio() {
   if (!audio) {
     audio = await _baseInitAudio();
+    if (audio) {
+      setupAudioDefaults(audio, { channels: CHANNEL_TIERS.RHYTHM_ACCENT });
+      mixerPersist.hydrate(audio);
+      mixerPersist.subscribe(audio);
+    }
     if (typeof window !== 'undefined') window.__labAudio = audio;
   }
   return audio;
@@ -117,56 +122,7 @@ if (typeof window !== 'undefined') {
 }
 
 // ============================================
-// MIXER STATE PERSISTENCE
-// ============================================
-
-function loadMixerState() {
-  try {
-    const saved = localStorage.getItem(MIXER_STORAGE_KEY);
-    if (!saved) return;
-    const state = JSON.parse(saved);
-
-    if (state.master) {
-      if (typeof state.master.volume === 'number') setVolume(state.master.volume);
-      if (typeof state.master.muted === 'boolean') setMute(state.master.muted);
-    }
-
-    if (state.channels) {
-      MIXER_CHANNELS.forEach(id => {
-        const ch = state.channels[id];
-        if (ch) {
-          if (typeof ch.volume === 'number') setChannelVolume(id, ch.volume);
-          if (typeof ch.muted === 'boolean') setChannelMute(id, ch.muted);
-        }
-      });
-    }
-  } catch (e) {
-    console.warn('Error loading mixer state:', e);
-  }
-}
-
-let mixerSaveTimeout = null;
-subscribeMixer((snapshot) => {
-  if (mixerSaveTimeout) clearTimeout(mixerSaveTimeout);
-  mixerSaveTimeout = setTimeout(() => {
-    const state = {
-      master: {
-        volume: snapshot.master.volume,
-        muted: snapshot.master.muted
-      },
-      channels: {}
-    };
-    snapshot.channels.forEach(ch => {
-      if (MIXER_CHANNELS.includes(ch.id)) {
-        state.channels[ch.id] = {
-          volume: ch.volume,
-          muted: ch.muted
-        };
-      }
-    });
-    localStorage.setItem(MIXER_STORAGE_KEY, JSON.stringify(state));
-  }, 100);
-});
+// MIXER STATE PERSISTENCE: ara via createMixerPersistence (audio-init.js)
 
 // ============================================
 // TIMELINE CONTROLLER
@@ -1008,8 +964,7 @@ async function initializeApp() {
     });
   }
 
-  // Load mixer state after a short delay
-  setTimeout(loadMixerState, 50);
+  // Persistència del mixer: gestionada via createMixerPersistence dins initAudio
 
   // Initialize P0 toggle from menu checkbox
   const p0Checkbox = document.getElementById('startIntervalToggle');
