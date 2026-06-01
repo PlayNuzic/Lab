@@ -242,3 +242,197 @@ export function createMelodicAudioInitializer(config = {}) {
 
   return initAudio;
 }
+
+// =============================================================================
+// CONFIGURACIÓ CANÒNICA D'ÀUDIO (Fase A de la centralització)
+// =============================================================================
+// Valors únics de FX, canals i persistència que TOTES les apps comparteixen
+// (a no ser que opt-out explícit). El motor (libs/sound/index.js) duplica
+// aquests defaults al constructor; aquesta secció els documenta i ofereix
+// helpers per aplicar-los/sobreescriure'ls des de qualsevol app.
+
+/**
+ * Configuració canònica de la cadena d'efectes master. Aplicats per
+ * defecte al motor; les apps no els han de tocar (a menys que el cas
+ * d'ús ho requereixi explícitament).
+ */
+export const CANONICAL_FX = Object.freeze({
+  compressor: { threshold: -6, knee: 30, ratio: 2, attack: 0.02, release: 0.25 },
+  limiter:    { threshold: -0.5, knee: 0, ratio: 20, attack: 0.003, release: 0.1 },
+  eq:         { type: 'highshelf', frequency: 3000, gain: 1.5 },
+  reverb:     { wet: 0 }
+});
+
+/**
+ * Tiers de canals de mixer per app. `MelodicTimelineAudio` ja registra
+ * automàticament tots els canals base (pulse, start, accent, subdivision,
+ * instrument), així que un tier només "personalitza" els labels visibles.
+ */
+export const CHANNEL_TIERS = Object.freeze({
+  RHYTHM_BASIC:  [{ id: 'pulse', label: 'Pulso' }],
+  RHYTHM_ACCENT: [
+    { id: 'pulse', label: 'Pulso' },
+    { id: 'accent', label: 'Seleccionado', allowSolo: true }
+  ],
+  RHYTHM_SUB: [
+    { id: 'pulse', label: 'Pulso' },
+    { id: 'subdivision', label: 'Subdivisión' }
+  ],
+  RHYTHM_FULL: [
+    { id: 'pulse', label: 'Pulso' },
+    { id: 'subdivision', label: 'Subdivisión' },
+    { id: 'accent', label: 'Seleccionado', allowSolo: true }
+  ],
+  MELODIC_BASIC: [
+    { id: 'instrument', label: 'Instrumento', volume: 1, allowSolo: true }
+  ],
+  MELODIC_PULSE: [
+    { id: 'pulse', label: 'Pulso' },
+    { id: 'instrument', label: 'Instrumento', volume: 1, allowSolo: true }
+  ],
+  MELODIC_FULL: [
+    { id: 'pulse', label: 'Pulso' },
+    { id: 'subdivision', label: 'Subdivisión' },
+    { id: 'instrument', label: 'Instrumento', volume: 1, allowSolo: true }
+  ]
+});
+
+/**
+ * Aplica configuració canònica a una instància d'àudio ja inicialitzada.
+ * Idempotent: si crides dues vegades amb les mateixes opcions, l'estat
+ * final és el mateix.
+ *
+ * @param {Object} audio - instància de TimelineAudio o MelodicTimelineAudio
+ * @param {Object} options
+ * @param {Object} [options.fx] - override de CANONICAL_FX (poc comú)
+ * @param {Array} [options.channels] - llista de canals a registrar
+ *                                     (de CHANNEL_TIERS o custom)
+ * @param {boolean} [options.enableEffects=true] - encén la cadena FX
+ * @returns {void}
+ */
+export function setupAudioDefaults(audio, options = {}) {
+  if (!audio) return;
+  const { fx = CANONICAL_FX, channels = [], enableEffects = true } = options;
+
+  // 1. FX chain
+  if (typeof audio.setEffectsEnabled === 'function') {
+    audio.setEffectsEnabled(enableEffects);
+  }
+  if (enableEffects && fx) {
+    if (typeof audio.setCompressorThreshold === 'function' && fx.compressor) {
+      audio.setCompressorThreshold(fx.compressor.threshold);
+    }
+    if (typeof audio.setLimiterThreshold === 'function' && fx.limiter) {
+      audio.setLimiterThreshold(fx.limiter.threshold);
+    }
+    if (typeof audio.setReverbWet === 'function' && fx.reverb && Number.isFinite(fx.reverb.wet)) {
+      audio.setReverbWet(fx.reverb.wet);
+    }
+  }
+
+  // 2. Canals: idempotent. `registerChannel` ja és segur per
+  // doble-registre (sobreescriu metadata sense duplicar nodes).
+  if (Array.isArray(channels) && channels.length && audio.mixer
+      && typeof audio.mixer.registerChannel === 'function') {
+    for (const ch of channels) {
+      const { id, ...meta } = ch;
+      if (!id) continue;
+      audio.mixer.registerChannel(id, meta);
+    }
+  }
+}
+
+/**
+ * Crea un controlador de persistència del mixer via localStorage.
+ *
+ * Ús típic:
+ *   const persist = createMixerPersistence({ storageKey: 'app19:mixer' });
+ *   persist.hydrate(audio);     // carrega volums guardats
+ *   persist.subscribe(audio);   // comença a desar canvis
+ *
+ * Idempotent: hydrate sense estat guardat no fa res; subscribe doble
+ * no duplica listeners.
+ *
+ * @param {Object} options
+ * @param {string} options.storageKey - clau localStorage (e.g. 'app19:mixer')
+ * @param {number} [options.debounceMs=120] - retard d'escriptura
+ * @returns {{hydrate: (audio:Object)=>void, subscribe: (audio:Object)=>()=>void}}
+ */
+export function createMixerPersistence({ storageKey, debounceMs = 120 } = {}) {
+  if (!storageKey) {
+    return { hydrate() {}, subscribe() { return () => {}; } };
+  }
+
+  let writeTimer = null;
+  let unsubscribe = null;
+
+  function readState() {
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(storageKey) : null;
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeState(state) {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(storageKey, JSON.stringify(state));
+      }
+    } catch {
+      // localStorage ple o sandbox: ignorem
+    }
+  }
+
+  function hydrate(audio) {
+    if (!audio || !audio.mixer) return;
+    const state = readState();
+    if (!state || typeof state !== 'object') return;
+    if (Number.isFinite(state.master)) {
+      audio.mixer.setMasterVolume?.(state.master);
+    }
+    if (state.channels && typeof state.channels === 'object') {
+      for (const [id, vol] of Object.entries(state.channels)) {
+        if (Number.isFinite(vol)) {
+          audio.mixer.setChannelVolume?.(id, vol);
+        }
+      }
+    }
+    if (state.mutes && typeof state.mutes === 'object') {
+      for (const [id, muted] of Object.entries(state.mutes)) {
+        audio.mixer.setChannelMute?.(id, !!muted);
+      }
+    }
+  }
+
+  function subscribe(audio) {
+    if (!audio || !audio.mixer || typeof audio.mixer.subscribe !== 'function') {
+      return () => {};
+    }
+    if (unsubscribe) return unsubscribe;
+
+    unsubscribe = audio.mixer.subscribe((snapshot) => {
+      if (writeTimer) clearTimeout(writeTimer);
+      writeTimer = setTimeout(() => {
+        writeTimer = null;
+        const payload = {
+          master: snapshot?.master?.volume,
+          channels: {},
+          mutes: {}
+        };
+        if (Array.isArray(snapshot?.channels)) {
+          for (const ch of snapshot.channels) {
+            if (!ch || !ch.id) continue;
+            if (Number.isFinite(ch.volume)) payload.channels[ch.id] = ch.volume;
+            if (typeof ch.muted === 'boolean') payload.mutes[ch.id] = ch.muted;
+          }
+        }
+        writeState(payload);
+      }, debounceMs);
+    });
+    return unsubscribe;
+  }
+
+  return { hydrate, subscribe };
+}

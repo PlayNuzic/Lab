@@ -125,19 +125,69 @@ function _computeEffectiveMute(channel) {
 }
 ```
 
+### 1.5.1 Cadena FX Master (Canònic)
+
+```javascript
+// libs/sound/index.js — defaults aplicats automàticament al constructor
+EQ:        highshelf, frequency 3000 Hz, gain +1.5 dB
+Compressor: threshold -6 dB, knee 30, ratio 2:1, attack 20ms, release 250ms
+Limiter:    threshold -0.5 dB, knee 0, ratio 20:1, attack 3ms, release 100ms
+Reverb:     wet 0 (off per defecte)
+```
+
+**Regla**: cap app ha de cridar `setCompressorThreshold` / `setLimiterThreshold`
+des de `main.js`. Els valors canònics estan fixats al motor i exposats a
+`libs/app-common/audio-init.js → CANONICAL_FX`. Si una app necessita un
+escenari especial, l'override va al `setupAudioDefaults(audio, { fx: ... })`.
+
+### 1.5.2 Flux Canònic d'Inicialització
+
+```javascript
+// libs/app-common/audio-init.js
+import { setupAudioDefaults, CHANNEL_TIERS, createMixerPersistence } from '.../audio-init.js';
+
+// 1) Crida estàndard després de instance.ready():
+setupAudioDefaults(audio, {
+  channels: CHANNEL_TIERS.MELODIC_PULSE,  // tier adequat per l'app
+  enableEffects: true                       // default true
+});
+
+// 2) (Opcional) volums persistents — només apps amb mixer-menu visible
+const persist = createMixerPersistence({ storageKey: 'app19:mixer' });
+persist.hydrate(audio);     // restaura abans del primer play
+persist.subscribe(audio);   // desa canvis (debounce 120ms)
+```
+
 ### 1.6 Canals d'Àudio per Defecte
 
 ```javascript
-// melodic-audio.js
-// Instrument: volum 1.0 (100%)
+// melodic-audio.js — auto-registre al constructor
+// (les apps NO cal que tornin a registrar-los; només personalitzar labels via tier)
 this.mixer.registerChannel('instrument', {
-    allowSolo: true, label: 'Instrumento', volume: 1
+    allowSolo: true, label: 'Instrumento', volume: 1   // volum 1.0
 });
-// Rhythm channels: volum 0.1 (10%)
 for (const ch of ['pulse', 'start', 'accent', 'subdivision']) {
-    this.mixer.registerChannel(ch, { volume: 0.1 });
+    this.mixer.registerChannel(ch, { volume: 0.1 });   // volum 0.1
 }
 ```
+
+#### Tiers de canals (`CHANNEL_TIERS`)
+
+| Tier | Canals | Apps típiques |
+|------|--------|---------------|
+| `RHYTHM_BASIC` | pulse | apps rítmiques mínimes |
+| `RHYTHM_ACCENT` | pulse + accent | App5, App16, App17 |
+| `RHYTHM_SUB` | pulse + subdivision | App3, App26, App27 |
+| `RHYTHM_FULL` | pulse + subdivision + accent | App4, App28, App29 |
+| `MELODIC_BASIC` | instrument | App9, App10, App13, App14, App18, App21-24 |
+| `MELODIC_PULSE` | pulse + instrument | App11, App19, App20, App25, App25B |
+| `MELODIC_FULL` | pulse + subdivision + instrument | App12, App15, App30-35 |
+
+#### Persistència de mixer (localStorage)
+
+Només les apps amb **mixer-menu visible** habiliten `createMixerPersistence`:
+App11, App12, App15, App16, App17, App19, App20, App25, App25B. La resta
+sona amb defaults a cada càrrega.
 
 ### 1.7 Sampler i ADSR
 

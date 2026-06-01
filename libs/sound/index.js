@@ -752,9 +752,10 @@ export class TimelineAudio {
         this._bus.effects.eq.frequency.value = 3000;  // 3kHz - presence range
         this._bus.effects.eq.gain.value = 1.5;        // Subtle +1.5dB boost
 
-        // Configure Compressor (transparent glue - very gentle)
+        // Configure Compressor (canonical Nuzic glue — values harmonitzats
+        // a libs/app-common/audio-init.js → CANONICAL_FX)
         const comp = this._bus.effects.compressor;
-        comp.threshold.value = -12;  // Only loud peaks trigger compression
+        comp.threshold.value = -6;   // Comp threshold canònic (era -12)
         comp.knee.value = 30;        // Soft knee = transparent transition
         comp.ratio.value = 2;        // Low ratio = gentle glue
         comp.attack.value = 0.02;    // 20ms - lets transients through
@@ -762,7 +763,7 @@ export class TimelineAudio {
 
         // Configure Limiter (safety only - transparent unless clipping)
         const lim = this._bus.effects.limiter;
-        lim.threshold.value = -1;    // Only triggers near clipping
+        lim.threshold.value = -0.5;  // Limiter threshold canònic (era -1)
         lim.knee.value = 0;          // Hard knee for true limiting
         lim.ratio.value = 20;        // Maximum ratio
         lim.attack.value = 0.003;    // 3ms - fast but not instant
