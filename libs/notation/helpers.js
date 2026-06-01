@@ -215,6 +215,33 @@ export function midiSequenceToChromaticParts(midis, prefMap = null){
     }
   }
 
+  // Consistència del tònic en escales cícliques: si la primera i l'última
+  // nota són el mateix pitch class (la seqüència torna al grau 0 a
+  // l'octava), el final ha de tenir la mateixa grafia que el principi.
+  // Sense això, una whole-tone com C D E F# G# A# C5 acaba sortint com
+  // ...A# B# perquè el caminant de lletres avança +1 a cada pas sense
+  // veure mai el tònic. Només s'aplica quan no hi ha forced-spelling per
+  // armadura (prefMap buit): si l'usuari ha imposat una grafia concreta
+  // al pc del tònic, ja és consistent per construcció.
+  const hasForced = prefMap && Object.keys(prefMap).length > 0;
+  if(full.length >= 3 && !hasForced){
+    const first = full[0];
+    const last = full[full.length - 1];
+    if(first.pc === last.pc && first.letter !== last.letter){
+      const m = midis[midis.length - 1];
+      const base = letterToPc[first.letter];
+      let diff = (first.pc - base + 12) % 12;
+      if(diff > 6) diff -= 12;
+      const octave = Math.floor((m - diff) / 12) - 1;
+      full[full.length - 1] = {
+        key: `${first.letter}/${octave}`,
+        accidental: first.accidental,
+        pc: first.pc,
+        letter: first.letter
+      };
+    }
+  }
+
   return full.map(({key, accidental}) => ({key, accidental}));
 }
 
