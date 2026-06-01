@@ -92,7 +92,7 @@ export function drawPentagram(container, midis = [], options = {}) {
           voice.addTickable(note);
           noteObjs.push({ note });
         });
-        new Formatter({ softmaxFactor: 5 }).joinVoices([voice]).format([voice], width - 100);
+        new Formatter({ softmaxFactor: 5 }).joinVoices([voice]).format([voice], Math.max(80, stave.getNoteEndX() - stave.getNoteStartX() - 10));
         voice.draw(context, stave);
         noteObjs.forEach((o,i)=>{
           let el = o.note && o.note.attrs && o.note.attrs.el;
@@ -194,7 +194,7 @@ export function drawPentagram(container, midis = [], options = {}) {
         });
       }
 
-      new Formatter({ softmaxFactor: 5 }).joinVoices([voice]).format([voice], width - 100);
+      new Formatter({ softmaxFactor: 5 }).joinVoices([voice]).format([voice], Math.max(80, stave.getNoteEndX() - stave.getNoteStartX() - 10));
       voice.draw(context, stave);
 
       // Afegir data-idx als elements SVG de les notes per permetre highlights
