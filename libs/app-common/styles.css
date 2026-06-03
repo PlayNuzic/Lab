@@ -525,6 +525,12 @@ body[data-theme='dark'] .fraction-info-bubble {
 }
 
 .mixer-menu {
+  /* Scalable dimensions (relative). px reserved for borders/radius/shadows. */
+  --mix-fader: clamp(7rem, 20vh, 9.5rem);   /* fader length */
+  --mix-track: 0.4rem;                       /* slider rail thickness */
+  --mix-thumb: 1.6rem;                       /* slider thumb diameter */
+  --mix-slider-thick: 2.25rem;               /* slider hit-area thickness */
+  --mix-dial: clamp(2rem, 5vw, 2.4rem);      /* FX knob diameter */
   display: none;
   position: fixed;
   top: 50%;
@@ -617,7 +623,7 @@ body[data-theme='dark'] .fraction-info-bubble {
   flex-direction: column;
   align-items: center;
   gap: 0.6rem;
-  min-width: 84px;
+  min-width: 5.25rem;
 }
 
 .mixer-channel__label {
@@ -628,7 +634,7 @@ body[data-theme='dark'] .fraction-info-bubble {
 }
 
 .mixer-channel__slider-wrapper {
-  height: 150px;
+  height: var(--mix-fader);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -639,8 +645,8 @@ body[data-theme='dark'] .fraction-info-bubble {
 .mixer-channel__slider {
   -webkit-appearance: none;
   appearance: none;
-  width: 150px;
-  height: 36px;
+  width: var(--mix-fader);
+  height: var(--mix-slider-thick);
   transform: rotate(-90deg);
   background: transparent;
   cursor: pointer;
@@ -653,7 +659,7 @@ body[data-theme='dark'] .fraction-info-bubble {
 }
 
 .mixer-channel__slider::-webkit-slider-runnable-track {
-  height: 6px;
+  height: var(--mix-track);
   background: var(--nuzic-grey, #AAA699);
   border-radius: 999px;
 }
@@ -661,11 +667,11 @@ body[data-theme='dark'] .fraction-info-bubble {
 .mixer-channel__slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 28px;
-  height: 28px;
+  width: var(--mix-thumb);
+  height: var(--mix-thumb);
   border-radius: 50%;
   background: var(--nuzic-dark, #43433b);
-  margin-top: -11px;
+  margin-top: calc((var(--mix-track) - var(--mix-thumb)) / 2);
   box-shadow: 0 0 0 2px var(--nuzic-light, #eee8d8);
   cursor: grab;
 }
@@ -680,14 +686,14 @@ body[data-theme='dark'] .fraction-info-bubble {
 }
 
 .mixer-channel__slider::-moz-range-track {
-  height: 6px;
+  height: var(--mix-track);
   background: var(--nuzic-grey, #AAA699);
   border-radius: 999px;
 }
 
 .mixer-channel__slider::-moz-range-thumb {
-  width: 28px;
-  height: 28px;
+  width: var(--mix-thumb);
+  height: var(--mix-thumb);
   border-radius: 50%;
   background: var(--nuzic-dark, #43433b);
   border: 2px solid var(--nuzic-light, #eee8d8);
@@ -728,13 +734,13 @@ body[data-theme='dark'] .fraction-info-bubble {
 .mixer-channel__sound {
   position: relative;
   width: 100%;
-  min-width: 84px;
+  min-width: 5.25rem;
 }
 
 .mixer-channel__sound .dropdown-toggle {
   width: 100%;
   box-sizing: border-box;
-  padding: 4px 18px 4px 8px;
+  padding: 0.25rem 1.1rem 0.25rem 0.5rem;
   border: 1.5px solid var(--nuzic-grey, #AAA699);
   border-radius: 999px;
   background: var(--nuzic-white, #fff);
@@ -752,10 +758,10 @@ body[data-theme='dark'] .fraction-info-bubble {
 .mixer-channel__sound .dropdown-toggle::after {
   content: '';
   position: absolute;
-  right: 8px;
+  right: 0.5rem;
   top: 50%;
   transform: translateY(-50%);
-  border-width: 5px 4px 0 4px;
+  border-width: 5px 4px 0 4px;   /* triangle arrow — px keeps the glyph crisp */
   border-style: solid;
   border-color: currentColor transparent transparent transparent;
 }
@@ -765,7 +771,7 @@ body[data-theme='dark'] .fraction-info-bubble {
   position: absolute;
   left: 0;
   right: 0;
-  margin-top: 3px;
+  margin-top: 0.2rem;
   border: 1.5px solid var(--nuzic-grey, #AAA699);
   border-radius: 10px;
   background-color: var(--nuzic-white, #fff);
@@ -778,12 +784,12 @@ body[data-theme='dark'] .fraction-info-bubble {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 156px;
+  max-height: clamp(8rem, 30vh, 12rem);
   overflow-y: auto;
 }
 
 .mixer-channel__sound .dropdown-panel li {
-  padding: 5px 10px;
+  padding: 0.3rem 0.6rem;
   cursor: pointer;
   font-size: clamp(0.66rem, 1.3vw, 0.8rem);
   white-space: nowrap;
@@ -796,7 +802,7 @@ body[data-theme='dark'] .fraction-info-bubble {
 
 .mixer-channel__sound .dropdown-exit {
   width: 100%;
-  padding: 5px 10px;
+  padding: 0.3rem 0.6rem;
   border: none;
   border-top: 1px solid var(--nuzic-grey, #AAA699);
   background: transparent;
@@ -824,15 +830,7 @@ body[data-theme='dark'] .fraction-info-bubble {
   }
 
   .mixer-channel {
-    min-width: 72px;
-  }
-
-  .mixer-channel__slider-wrapper {
-    height: 130px;
-  }
-
-  .mixer-channel__slider {
-    width: 130px;
+    min-width: 4.5rem;
   }
 }
 
@@ -871,19 +869,6 @@ body[data-theme='dark'] .fraction-info-bubble {
   opacity: 0.4;
 }
 
-/* P1 Toggle Control (special channel without slider) */
-.mixer-channel--p1-toggle {
-  min-width: 80px;
-}
-
-.mixer-channel--p1-toggle .mixer-channel__slider-wrapper--hidden {
-  visibility: hidden;
-  height: 0;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-}
-
 /* The FX ON/OFF row is a lone pill — not the M | S frame, so reset the container */
 .mixer-channel__actions--single {
   justify-content: center;
@@ -892,16 +877,6 @@ body[data-theme='dark'] .fraction-info-bubble {
   border-radius: 0;
   overflow: visible;
   height: auto;
-}
-
-.mixer-action--p1-toggle {
-  min-width: 48px;
-  position: relative;
-}
-
-.mixer-action--p1-toggle .icon-on,
-.mixer-action--p1-toggle .icon-off {
-  transition: opacity 0.2s ease;
 }
 
 /* FX block — knobs row + ON, directly under the Master Mute button */
@@ -924,7 +899,7 @@ body[data-theme='dark'] .fraction-info-bubble {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 0.15rem;
   justify-content: flex-start;
 }
 
@@ -939,14 +914,16 @@ body[data-theme='dark'] .fraction-info-bubble {
 
 .mixer-knob__dial {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: var(--mix-dial);
+  height: var(--mix-dial);
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .mixer-knob__dial svg {
   display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .mixer-knob__input {
@@ -993,17 +970,8 @@ body[data-theme='dark'] .fraction-info-bubble {
 }
 
 @media (max-width: 600px) {
-  .mixer-channel--fx {
-    min-width: 0;
-  }
-
   .mixer-channel__knobs {
     gap: 0.4rem;
-  }
-
-  .mixer-knob__dial {
-    width: 32px;
-    height: 32px;
   }
 }
 
