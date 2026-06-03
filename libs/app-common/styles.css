@@ -597,13 +597,16 @@ body[data-theme='dark'] .fraction-info-bubble {
   align-items: flex-start;
 }
 
-/* Master (vertical fader, top) + FX (below) share one bordered box on the right */
+/* Master (vertical fader, top) + FX (below) share one bordered box on the right.
+   Raised (negative margin cancels border + top padding) so the Master label,
+   fader and Mute align with the channel strips on the left. */
 .mixer-rack {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.85rem;
-  padding: 0.85rem 1rem;
+  padding: 0.5rem 1rem 0.85rem;
+  margin-top: calc(-0.5rem - 2px);
   border: 2px solid var(--nuzic-grey, #AAA699);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.35);
@@ -661,10 +664,19 @@ body[data-theme='dark'] .fraction-info-bubble {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--selection-color);
+  background: var(--nuzic-dark, #43433b);
   margin-top: -11px;
-  box-shadow: 0 0 0 2px currentColor;
+  box-shadow: 0 0 0 2px var(--nuzic-light, #eee8d8);
   cursor: grab;
+}
+
+/* Master fader thumb stands out in green */
+.mixer-channel--master .mixer-channel__slider::-webkit-slider-thumb {
+  background: var(--nuzic-green, #7cd6b3);
+}
+
+.mixer-channel--master .mixer-channel__slider::-moz-range-thumb {
+  background: var(--nuzic-green, #7cd6b3);
 }
 
 .mixer-channel__slider::-moz-range-track {
@@ -677,8 +689,8 @@ body[data-theme='dark'] .fraction-info-bubble {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--selection-color);
-  border: 2px solid currentColor;
+  background: var(--nuzic-dark, #43433b);
+  border: 2px solid var(--nuzic-light, #eee8d8);
   cursor: grab;
 }
 
@@ -844,6 +856,17 @@ body[data-theme='dark'] .fraction-info-bubble {
   color: var(--nuzic-white, #fff);
 }
 
+/* Mute lights up yellow, Solo lights up red */
+.mixer-action.mixer-action--mute.active {
+  background: var(--nuzic-yellow, #ffbb33);
+  color: var(--nuzic-dark, #43433b);
+}
+
+.mixer-action.mixer-action--solo.active {
+  background: var(--nuzic-red, #e76f68);
+  color: var(--nuzic-white, #fff);
+}
+
 .mixer-channel.suppressed .mixer-channel__slider {
   opacity: 0.4;
 }
@@ -881,40 +904,37 @@ body[data-theme='dark'] .fraction-info-bubble {
   transition: opacity 0.2s ease;
 }
 
-/* FX block — sits below the Master fader inside the right rack */
+/* FX block — knobs row + ON, directly under the Master Mute button */
 .mixer-channel--fx {
   min-width: 0;
-  width: 100%;
   gap: 0.5rem;
-  border-top: 1.5px solid var(--nuzic-grey, #AAA699);
-  padding-top: 0.85rem;
 }
 
 .mixer-channel__knobs {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.3rem;
-  height: auto;
+  flex-direction: row;          /* Comp · Reverb · Limit, horitzontal */
+  align-items: flex-start;
   justify-content: center;
+  gap: 0.6rem;
+  height: auto;
 }
 
-/* Circular Knob - horizontal layout: label | dial | value */
+/* Circular Knob — compact vertical: label / dial / value */
 .mixer-knob {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  justify-content: center;
+  gap: 2px;
+  justify-content: flex-start;
 }
 
 .mixer-knob__label {
-  font-size: 0.8rem;
-  color: var(--text-muted, #888);
+  font-size: clamp(0.55rem, 1.2vw, 0.68rem);
+  color: var(--nuzic-dark, #43433b);
   text-transform: uppercase;
   font-weight: 600;
-  min-width: 32px;
-  text-align: right;
+  min-width: 0;
+  text-align: center;
 }
 
 .mixer-knob__dial {
@@ -940,11 +960,11 @@ body[data-theme='dark'] .fraction-info-bubble {
 }
 
 .mixer-knob__value {
-  font-size: 0.9rem;
-  color: var(--text-color);
+  font-size: clamp(0.58rem, 1.2vw, 0.72rem);
+  color: inherit;
   font-variant-numeric: tabular-nums;
-  min-width: 24px;
-  text-align: left;
+  min-width: 0;
+  text-align: center;
 }
 
 /* FX Toggle (ON/OFF) — standalone pill */
@@ -959,8 +979,8 @@ body[data-theme='dark'] .fraction-info-bubble {
 }
 
 .mixer-action.mixer-action--fx-toggle.active {
-  background: var(--selection-color, var(--nuzic-yellow, #FFBB33));
-  color: var(--nuzic-white, #fff);
+  background: var(--nuzic-green, #7cd6b3);
+  color: var(--nuzic-dark, #43433b);
 }
 
 .mixer-action--fx-toggle .icon-on,
@@ -969,26 +989,21 @@ body[data-theme='dark'] .fraction-info-bubble {
 }
 
 .mixer-channel--fx.suppressed .mixer-knob__dial svg circle:last-child {
-  stroke: var(--line-color, #444);
+  stroke: var(--nuzic-grey, #AAA699);
 }
 
 @media (max-width: 600px) {
   .mixer-channel--fx {
-    min-width: 70px;
+    min-width: 0;
   }
 
   .mixer-channel__knobs {
-    height: 130px;
-    gap: 0.2rem;
+    gap: 0.4rem;
   }
 
   .mixer-knob__dial {
     width: 32px;
     height: 32px;
-  }
-
-  .mixer-knob__label {
-    font-size: 0.5rem;
   }
 }
 

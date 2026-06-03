@@ -142,7 +142,7 @@ function createKnob({ label, min, max, value, onChange, inverted = false }) {
   bgCircle.setAttribute('cy', size / 2);
   bgCircle.setAttribute('r', radius);
   bgCircle.setAttribute('fill', 'none');
-  bgCircle.setAttribute('stroke', 'var(--line-color, #444)');
+  bgCircle.setAttribute('stroke', 'var(--nuzic-grey, #AAA699)');
   bgCircle.setAttribute('stroke-width', strokeWidth);
   svg.appendChild(bgCircle);
 
@@ -152,7 +152,7 @@ function createKnob({ label, min, max, value, onChange, inverted = false }) {
   valueArc.setAttribute('cy', size / 2);
   valueArc.setAttribute('r', radius);
   valueArc.setAttribute('fill', 'none');
-  valueArc.setAttribute('stroke', 'var(--selection-color, #4a9eff)');
+  valueArc.setAttribute('stroke', 'var(--nuzic-green, #7cd6b3)');
   valueArc.setAttribute('stroke-width', strokeWidth);
   valueArc.setAttribute('stroke-linecap', 'round');
   valueArc.setAttribute('stroke-dasharray', circumference);
@@ -333,13 +333,7 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   fxWrapper.className = 'mixer-channel mixer-channel--fx suppressed';
   fxWrapper.dataset.channel = 'fx';
 
-  // Label row: "FX" text label (no button here anymore)
-  const fxLabel = document.createElement('span');
-  fxLabel.className = 'mixer-channel__label';
-  fxLabel.textContent = 'FX';
-  fxWrapper.appendChild(fxLabel);
-
-  // Knobs container (replaces slider wrapper for FX column)
+  // Knobs row (Comp · Reverb · Limit) — sits directly under the Master Mute button
   const knobsWrapper = document.createElement('div');
   knobsWrapper.className = 'mixer-channel__knobs';
 
@@ -355,6 +349,16 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   });
   knobsWrapper.appendChild(compKnob.element);
 
+  // Reverb knob (wet amount: 0-75%)
+  const reverbKnob = createKnob({
+    label: 'Revb',
+    min: 0,
+    max: 75,
+    value: 18,
+    onChange: (val) => window.NuzicAudioEngine?.setReverbWet(val / 100)
+  });
+  knobsWrapper.appendChild(reverbKnob.element);
+
   // Limiter knob (threshold range: -3dB to -0.5dB)
   // inverted: arc fills at -3dB (max limiting), empties at -0.5dB (minimal limiting)
   const limKnob = createKnob({
@@ -366,16 +370,6 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     onChange: (val) => window.NuzicAudioEngine?.setLimiterThreshold(val)
   });
   knobsWrapper.appendChild(limKnob.element);
-
-  // Reverb knob (wet amount: 0-75%)
-  const reverbKnob = createKnob({
-    label: 'Revb',
-    min: 0,
-    max: 75,
-    value: 18,
-    onChange: (val) => window.NuzicAudioEngine?.setReverbWet(val / 100)
-  });
-  knobsWrapper.appendChild(reverbKnob.element);
 
   fxWrapper.appendChild(knobsWrapper);
 
