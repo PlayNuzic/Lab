@@ -1,4 +1,4 @@
-import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { createRhythmAudioInitializer, setupAudioDefaults } from '../../libs/app-common/audio-init.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu, mergeRandomConfig, applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/random/index.js';
@@ -758,6 +758,14 @@ const _baseInitAudio = createRhythmAudioInitializer({
 async function initAudio() {
   if (!audio) {
     audio = await _baseInitAudio();
+    // Configuració canònica d'àudio (FX, canals); App5 manté els seus
+    // labels propis (Intervalos / Seleccionados)
+    if (audio) {
+      setupAudioDefaults(audio, { channels: [
+        { id: 'pulse', label: 'Intervalos' },
+        { id: 'accent', label: 'Seleccionados', allowSolo: true }
+      ] });
+    }
     // Expose audio instance for sound dropdown preview
     if (typeof window !== 'undefined') window.__labAudio = audio;
   }
