@@ -172,10 +172,14 @@ function createKnob({ label, min, max, value, onChange, inverted = false }) {
   input.className = 'mixer-knob__input';
   knobContainer.appendChild(input);
 
+  // Knob readout: integers stay clean, fractional thresholds like -0.5 keep one
+  // decimal (Math.round(-0.5) === 0 would otherwise hide the real limiter value).
+  const formatKnobValue = (v) => `${Math.round(v * 10) / 10}`;
+
   // Value display
   const valueDisplay = document.createElement('span');
   valueDisplay.className = 'mixer-knob__value';
-  valueDisplay.textContent = `${value}`;
+  valueDisplay.textContent = formatKnobValue(value);
 
   // Layout: label (left) | dial (center) | value (right)
   wrapper.appendChild(labelEl);
@@ -189,7 +193,7 @@ function createKnob({ label, min, max, value, onChange, inverted = false }) {
     if (inverted) normalized = 1 - normalized; // Invert: full arc at min, empty at max
     const offset = circumference * (1 - normalized * 0.75); // 270° arc
     valueArc.setAttribute('stroke-dashoffset', offset);
-    valueDisplay.textContent = `${Math.round(val)}`;
+    valueDisplay.textContent = formatKnobValue(val);
   };
 
   updateKnob(value);
