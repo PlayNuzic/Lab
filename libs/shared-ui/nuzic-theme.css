@@ -20,6 +20,21 @@
    FASE 1: Tokens de color base (light mode)
    -------------------------------------------------------------------------- */
 
+/* Estat de càrrega de samples d'àudio: mentre el piano (o un altre
+   instrument) descarrega les mostres del CDN, piano.js posa
+   `data-audio-loading` al <body>. Mostrem un cursor "progress" perquè
+   l'usuari sàpiga que l'àudio s'està preparant i no interpreti el silenci
+   inicial com un error. Subtil i no bloquejant (no és cap overlay). */
+body[data-audio-loading] {
+  cursor: progress;
+}
+body[data-audio-loading] .play,
+body[data-audio-loading] #playBtn,
+body[data-audio-loading] .musical-cell,
+body[data-audio-loading] .plano-cell {
+  cursor: progress;
+}
+
 body[data-visual="nuzic"] {
   /* Palette nuzic — colors primaris i variants clares */
   --nuzic-white: white;

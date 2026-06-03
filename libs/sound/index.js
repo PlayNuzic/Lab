@@ -820,6 +820,12 @@ export class TimelineAudio {
 
       await tryResumeContext(ctx);
 
+      // Warm-up del graf: un cop el context està running i el graf
+      // connectat, el "escalfem" perquè la primera nota/seqüència real
+      // no caigui en un graf fred (1a nota muda) ni en un rellotge de
+      // worklet inestable (primer play atropellat). Vegeu _primeGraph.
+      this._primeGraph();
+
       this.isReady = true;
     };
 
@@ -920,6 +926,29 @@ export class TimelineAudio {
       try { source.stop(0); } catch {}
       try { source.disconnect(); } catch {}
       this._activeSources.delete(source);
+    }
+  }
+
+  /**
+   * Escalfa el graf d'àudio reproduint un buffer silenciós d'1 sample a
+   * través del bus master. Patró estàndard de Web Audio (iOS-unlock +
+   * graph priming): força el context a processar render quanta des de
+   * la inicialització, de manera que (1) la primera nota audible no es
+   * perdi en un graf fred i (2) el rellotge del worklet ja estigui
+   * estable quan arribi el primer `play()` (evita el "primer play
+   * atropellat"). Idempotent i silenciós si el context no existeix.
+   */
+  _primeGraph() {
+    try {
+      const ctx = this._ctx;
+      if (!ctx || typeof ctx.createBuffer !== 'function') return;
+      const buffer = ctx.createBuffer(1, 1, ctx.sampleRate || 44100);
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(this._bus?.master || ctx.destination);
+      src.start();
+    } catch {
+      // Mock de test o navegador sense suport: ignorem.
     }
   }
 

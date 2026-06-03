@@ -15,6 +15,22 @@ let loadPromise = null;
 let preloadInitiated = false;
 
 /**
+ * Marca/desmarca l'estat global de càrrega de samples al <body> via
+ * l'atribut `data-audio-loading`. Una regla CSS central (nuzic-theme.css)
+ * mostra un cursor "progress" mentre dura, perquè l'usuari sàpiga que
+ * l'àudio encara s'està preparant i no interpreti el silenci com un error.
+ */
+function setAudioLoadingFlag(on) {
+  try {
+    if (typeof document === 'undefined' || !document.body) return;
+    if (on) document.body.setAttribute('data-audio-loading', '1');
+    else document.body.removeAttribute('data-audio-loading');
+  } catch {
+    // Entorn sense DOM (tests): ignorem.
+  }
+}
+
+/**
  * Load piano sampler with Salamander samples from CDN
  * @returns {Promise<Tone.Sampler>} Loaded sampler instance
  */
@@ -56,6 +72,7 @@ export async function loadPiano() {
 
   const Tone = window.Tone;
 
+  setAudioLoadingFlag(true);
   loadPromise = (async () => {
     try {
       // Verify AudioContext is running before creating sampler
@@ -72,11 +89,18 @@ export async function loadPiano() {
         }
       }
 
-      // Create URLs for Salamander piano samples (C and F# for each octave)
+      // URLs dels samples Salamander: C, D#, F# i A per octava (cada 3
+      // semitons / tercera menor — l'estàndard de @tonejs/piano). Abans
+      // només C i F# (cada 6 semitons): el detune màxim per nota baixa de
+      // ±300 a ±150 cents → millor timbre i menys variació de loudness
+      // entre notes adjacents (complementa la compensació de detune del
+      // SamplerPool). Tots quatre existeixen al CDN per a les octaves 1-7.
       const urls = {};
       for (let octave = 1; octave <= 7; octave++) {
         urls[`C${octave}`] = `C${octave}.mp3`;
+        urls[`D#${octave}`] = `Ds${octave}.mp3`;
         urls[`F#${octave}`] = `Fs${octave}.mp3`;
+        urls[`A${octave}`] = `A${octave}.mp3`;
       }
 
       // Create sampler - wrap in try-catch to see exact error
@@ -131,6 +155,7 @@ export async function loadPiano() {
       }
 
       isLoaded = true;
+      setAudioLoadingFlag(false);
       console.log('Piano loaded successfully');
       return sampler;
     } catch (err) {
@@ -138,6 +163,7 @@ export async function loadPiano() {
       loadPromise = null;
       sampler = null;
       isLoaded = false;
+      setAudioLoadingFlag(false);
       throw err;
     }
   })();
@@ -281,12 +307,17 @@ export function setupPianoPreload(options = {}) {
     // Ensure Tone.js is loaded before preloading piano
     await ensureToneLoaded();
 
-    // Preload piano in background
-    preloadPiano(options);
+    // El gest d'usuari ja ha passat: carreguem immediatament (delay 0)
+    // perquè els samples estiguin llestos com més aviat millor i el
+    // primer clic de cel·la no es quedi mut esperant la descàrrega.
+    preloadPiano({ ...options, delay: 0 });
   };
 
-  // Listen for first interaction
-  const events = ['click', 'touchstart', 'keydown'];
+  // Escoltem `pointerdown` (es dispara ABANS de `click`, mentre el dit o
+  // el ratolí encara està premut) per començar la càrrega uns ms abans
+  // que el handler de clic de la cel·la cridi initAudio(). touchstart i
+  // keydown cobreixen tàctil antic i navegació per teclat.
+  const events = ['pointerdown', 'touchstart', 'keydown'];
   const handler = () => {
     events.forEach(e => document.removeEventListener(e, handler, { capture: true }));
     triggerPreload();
