@@ -409,24 +409,20 @@ function createNuzicEditor(timelineWrapper) {
     nCells.querySelectorAll('.editor-cell').forEach(c => c.remove());
     pCells.querySelectorAll('.editor-cell').forEach(c => c.remove());
 
-    // Build cells for each entered pair: [white:value][color] per row
-    for (const pair of currentPairs) {
-      // N: white value + pink separator
-      const nVal = createCell('n', false);
-      nVal.value = String(pair.note);
-      nVal.readOnly = true;
-      // Marquem el pols on sona aquesta nota perquè la reproducció pugui
-      // il·luminar la cel·la del valor (només les cel·les de valor).
-      nVal.dataset.pulse = String(pair.pulse);
+    // Build cells for each entered pair: [editable value][color separator]
+    // Les cel·les de valor són EDITABLES amb validació + navegació de tecles
+    // (arrows / Tab / Enter), reordenament per puls en editar P, etc.
+    for (let i = 0; i < currentPairs.length; i++) {
+      const pair = currentPairs[i];
+
+      // N: editable value + pink separator
+      const nVal = createValueCell('n', pair, i);
       nCells.insertBefore(nVal, nEndMarker);
       const nSep = createCell('n', true);
       nCells.insertBefore(nSep, nEndMarker);
 
-      // P: white value + cream separator
-      const pVal = createCell('p', false);
-      pVal.value = String(pair.pulse);
-      pVal.readOnly = true;
-      pVal.dataset.pulse = String(pair.pulse);
+      // P: editable value + cream separator
+      const pVal = createValueCell('p', pair, i);
       pCells.insertBefore(pVal, pEndMarker);
       const pSep = createCell('p', true);
       pCells.insertBefore(pSep, pEndMarker);
@@ -446,9 +442,18 @@ function createNuzicEditor(timelineWrapper) {
       const pSep = createCell('p', true);
       pCells.insertBefore(pSep, pEndMarker);
 
-      // Auto-focus: alternate between N and P based on last entered
+      // Auto-focus: alternate between N and P based on last entered.
+      // Default lastEnteredType='n' fa que el caret comenci a P (P→N flow).
       const focusTarget = lastEnteredType === 'n' ? pInput : nInput;
-      setTimeout(() => focusTarget.focus(), 30);
+      setTimeout(() => {
+        // No robem focus si l'usuari ja està editant una altra cel·la
+        // (p.ex. ha navegat amb Tab des d'una cel·la de valor).
+        const active = document.activeElement;
+        if (active && active.classList.contains('editor-cell') && active !== focusTarget) {
+          return;
+        }
+        focusTarget.focus();
+      }, 30);
     }
 
     // End markers
@@ -465,10 +470,157 @@ function createNuzicEditor(timelineWrapper) {
     return cell;
   }
 
+  // Helper: cel·les editables (value + input) en ordre de columna
+  // (N0, P0, N1, P1, …, Ninput, Pinput). Per a Tab/Shift+Tab.
+  function getEditableCellsColumnOrder() {
+    const ns = Array.from(nCells.querySelectorAll('.editor-cell:not([readonly])'));
+    const ps = Array.from(pCells.querySelectorAll('.editor-cell:not([readonly])'));
+    const max = Math.max(ns.length, ps.length);
+    const result = [];
+    for (let i = 0; i < max; i++) {
+      if (ns[i]) result.push(ns[i]);
+      if (ps[i]) result.push(ps[i]);
+    }
+    return result;
+  }
+
+  // Navegació de tecles compartida entre cel·les de valor i d'input:
+  // Enter (commit/blur), Tab (columna), Arrows horitzontals (mateixa fila),
+  // Arrows verticals (salta entre N i P). preventDefault perquè no quedi
+  // capturat pel caret de l'input.
+  function addCellNavigation(cell, type) {
+    cell.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        cell.blur();
+        return;
+      }
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const pIdx = cell.dataset.pairIndex;
+        const row = cell.dataset.row || type;
+        cell.blur(); // el blur pot re-renderitzar — re-pesquem
+        const cells = getEditableCellsColumnOrder();
+        let i = cells.indexOf(cell);
+        if (i === -1 && pIdx !== undefined) {
+          i = cells.findIndex(c =>
+            c.dataset.pairIndex === pIdx
+            && (c.dataset.row || (c.classList.contains('editor-cell--n') ? 'n' : 'p')) === row
+          );
+        }
+        const dst = e.shiftKey ? cells[i - 1] : cells[i + 1];
+        if (dst) dst.focus();
+        return;
+      }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const rowCells = type === 'n'
+          ? Array.from(nCells.querySelectorAll('.editor-cell:not([readonly])'))
+          : Array.from(pCells.querySelectorAll('.editor-cell:not([readonly])'));
+        const i = rowCells.indexOf(cell);
+        const dst = e.key === 'ArrowRight' ? rowCells[i + 1] : rowCells[i - 1];
+        if (dst) dst.focus();
+        return;
+      }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const otherRow = type === 'n' ? 'p' : 'n';
+        let dst = null;
+        if (cell.dataset.pairIndex !== undefined) {
+          dst = document.querySelector(
+            `.editor-cell--${otherRow}[data-pair-index="${cell.dataset.pairIndex}"]:not([readonly])`
+          );
+        }
+        if (!dst) {
+          // Cel·la d'input: salta a l'input de l'altra fila.
+          const otherContainer = otherRow === 'n' ? nCells : pCells;
+          dst = otherContainer.querySelector('.editor-input');
+        }
+        if (dst) dst.focus();
+      }
+    });
+  }
+
+  // Cel·la de valor EDITABLE per a un parell ja commitejat (substitueix
+  // el patró antic de cel·la readonly: ara es pot editar in-place amb
+  // validació, tooltip i, en P, re-ordenament per puls).
+  function createValueCell(type, pair, pairIndex) {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.inputMode = 'numeric';
+    cell.maxLength = 2;
+    cell.className = `editor-cell editor-cell--${type}`;
+    cell.value = type === 'n' ? String(pair.note) : String(pair.pulse);
+    cell.dataset.pairIndex = String(pairIndex);
+    cell.dataset.pulse = String(pair.pulse);
+    cell.dataset.row = type;
+    cell.readOnly = false;
+
+    let originalValue = cell.value;
+
+    cell.addEventListener('focus', () => {
+      originalValue = cell.value;
+      cell.select();
+    });
+
+    cell.addEventListener('blur', () => {
+      const val = cell.value.trim();
+      if (!val || val === originalValue) { cell.value = originalValue; return; }
+
+      if (!/^\d+$/.test(val)) {
+        showEditorTooltip(cell, type === 'n' ? 'Nota: 0-11' : 'Pulso: 0-7');
+        cell.value = originalValue;
+        return;
+      }
+
+      const num = parseInt(val, 10);
+      const idx = parseInt(cell.dataset.pairIndex, 10);
+      const target = currentPairs[idx];
+      if (!target) { cell.value = originalValue; return; }
+
+      if (type === 'n') {
+        if (num < 0 || num > 11) {
+          showEditorTooltip(cell, 'Nota: 0-11');
+          cell.value = originalValue;
+          return;
+        }
+        target.note = num;
+        renderEditor();
+        syncGridFromPairs(currentPairs);
+      } else {
+        if (num < 0 || num > 7) {
+          showEditorTooltip(cell, 'Pulso: 0-7');
+          cell.value = originalValue;
+          return;
+        }
+        if (currentPairs.some((p, i) => i !== idx && p.pulse === num)) {
+          showEditorTooltip(cell, 'Pulso ya usado');
+          cell.value = originalValue;
+          return;
+        }
+        const beforeOrder = currentPairs.map(p => p.pulse).join(',');
+        target.pulse = num;
+        currentPairs.sort((a, b) => a.pulse - b.pulse);
+        const afterOrder = currentPairs.map(p => p.pulse).join(',');
+        if (beforeOrder !== afterOrder) {
+          showEditorTooltip(cell, 'Reordenado por pulso');
+        }
+        renderEditor();
+        syncGridFromPairs(currentPairs);
+      }
+    });
+
+    addCellNavigation(cell, type);
+
+    return cell;
+  }
+
   let pendingNote = null;
   let pendingPulse = null;
   let autoJumpTimer = null;
-  let lastEnteredType = 'p'; // tracks which field was entered last → next focus goes to the OTHER
+  // Tracks which field was entered last → next focus goes to the OTHER.
+  // Default 'n' fa que el caret comenci a P (ordre P→N en l'entrada).
+  let lastEnteredType = 'n';
 
   // Simple tooltip
   let tooltipEl = null;
@@ -607,22 +759,24 @@ function createNuzicEditor(timelineWrapper) {
         e.preventDefault();
         clearTimeout(autoJumpTimer);
 
-        if (type === 'p') {
-          if (pendingPulse !== null) {
-            pendingPulse = null;
-          } else if (pendingNote !== null) {
-            // Go back to N input
+        // Flux P→N: Backspace en N retrocedeix a P; Backspace en P (sense
+        // pending) elimina l'últim parell committed.
+        if (type === 'n') {
+          if (pendingNote !== null) {
             pendingNote = null;
-            const nInput = nCells.querySelector('.editor-input');
-            if (nInput) { nInput.value = ''; nInput.focus(); }
+          } else if (pendingPulse !== null) {
+            // Go back to P input
+            pendingPulse = null;
+            const pInput = pCells.querySelector('.editor-input');
+            if (pInput) { pInput.value = ''; pInput.focus(); }
           } else if (currentPairs.length > 0) {
             currentPairs.pop();
             renderEditor();
             syncGridFromPairs(currentPairs);
           }
-        } else if (type === 'n') {
-          if (pendingNote !== null) {
-            pendingNote = null;
+        } else if (type === 'p') {
+          if (pendingPulse !== null) {
+            pendingPulse = null;
           } else if (currentPairs.length > 0) {
             currentPairs.pop();
             renderEditor();
@@ -631,6 +785,9 @@ function createNuzicEditor(timelineWrapper) {
         }
       }
     });
+
+    // Navegació: fletxes, Tab, Enter (compartit amb les cel·les de valor).
+    addCellNavigation(cell, type);
 
     return cell;
   }
