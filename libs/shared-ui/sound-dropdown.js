@@ -201,6 +201,17 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
     }
   };
   document.addEventListener('click', onDocClick, true);
+
+  // Keep multiple dropdowns bound to the same sound in sync (e.g. header ↔ mixer):
+  // when one commits, the others refresh their label without re-dispatching.
+  window.addEventListener('sharedui:sound', (e) => {
+    const d = e?.detail;
+    if (!d || d.type !== eventType) return;
+    if (!soundNames.includes(d.value) || d.value === selected) return;
+    selected = d.value;
+    pending = selected;
+    updateLabel();
+  });
 }
 
 /**

@@ -262,6 +262,16 @@ export function initInstrumentDropdown(container, { storageKey, eventType, onSel
     }
   });
 
+  // Keep multiple instrument dropdowns in sync (e.g. header ↔ mixer): refresh the
+  // label when another dropdown changes the instrument, without looping.
+  window.addEventListener('sharedui:instrument', (e) => {
+    const v = e?.detail?.instrument;
+    if (!v || !instrumentNames.includes(v) || v === selected) return;
+    selected = v;
+    pending = v;
+    updateLabel();
+  });
+
   return {
     getSelected: () => selected,
     setSelected: (value) => {

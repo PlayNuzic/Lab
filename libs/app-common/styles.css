@@ -530,17 +530,17 @@ body[data-theme='dark'] .fraction-info-bubble {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  padding: 1rem 1.5rem 1rem 1.25rem;  /* Extra padding on right for FX knob values */
-  border: 2px solid var(--line-color);
-  border-radius: 12px;
+  padding: 1.5rem;                 /* symmetric, generous — no buttons clipped at the frame */
+  border: 2px solid var(--nuzic-grey, #AAA699);
+  border-radius: 16px;
   z-index: 1100;  /* Above dropdowns (z-index: 1000) but below portrait warnings */
-  background-color: var(--bg-light);
-  color: var(--text-light);
+  background-color: var(--nuzic-light, #eee8d8);  /* crema */
+  color: var(--nuzic-dark, #43433b);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
-  width: min(560px, 92vw);
-  max-width: 92vw;
-  max-height: 85vh;
-  overflow: hidden;
+  width: max-content;
+  max-width: 94vw;
+  max-height: 88vh;
+  overflow: visible;               /* let per-channel sound dropdowns escape the frame */
   pointer-events: none;
 }
 
@@ -586,27 +586,42 @@ body[data-theme='dark'] .fraction-info-bubble {
 
 .mixer-menu-content {
   display: flex;
-  gap: 1.5rem;
-  justify-content: space-between;
-  align-items: flex-end;
-  min-width: 320px;
-  overflow-x: auto;
-  padding-bottom: 0.35rem;
-  scrollbar-gutter: stable both-edges;
+  gap: 1.25rem;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.mixer-strips {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+/* Master (vertical fader, top) + FX (below) share one bordered box on the right */
+.mixer-rack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border: 2px solid var(--nuzic-grey, #AAA699);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.35);
 }
 
 .mixer-channel {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  min-width: 90px;
+  gap: 0.6rem;
+  min-width: 84px;
 }
 
 .mixer-channel__label {
   font-weight: 600;
   text-align: center;
   line-height: 1.2;
+  font-size: clamp(0.8rem, 1.6vw, 0.95rem);
 }
 
 .mixer-channel__slider-wrapper {
@@ -636,7 +651,7 @@ body[data-theme='dark'] .fraction-info-bubble {
 
 .mixer-channel__slider::-webkit-slider-runnable-track {
   height: 6px;
-  background: var(--line-color);
+  background: var(--nuzic-grey, #AAA699);
   border-radius: 999px;
 }
 
@@ -654,7 +669,7 @@ body[data-theme='dark'] .fraction-info-bubble {
 
 .mixer-channel__slider::-moz-range-track {
   height: 6px;
-  background: var(--line-color);
+  background: var(--nuzic-grey, #AAA699);
   border-radius: 999px;
 }
 
@@ -667,29 +682,121 @@ body[data-theme='dark'] .fraction-info-bubble {
   cursor: grab;
 }
 
+/* M | S as a single pill (two half-pills), echoing the BPM spinner shape */
 .mixer-channel__actions {
-  display: flex;
-  gap: 0.5rem;
+  display: inline-flex;
+  align-items: stretch;
+  height: clamp(2rem, 5vw, 2.5rem);
+  border: 2px solid var(--nuzic-dark, #43433b);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--nuzic-white, #fff);
 }
 
 .mixer-action {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
+  border: 0;
+  border-radius: 0;
   color: inherit;
   background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, transform 0.1s ease;
+  padding: 0 0.7rem;
+  min-width: 2.1rem;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+/* Divider between the two halves of the M | S pill */
+.mixer-action--solo {
+  border-left: 2px solid var(--nuzic-dark, #43433b);
+}
+
+/* Per-channel sound / instrument selector (below the M | S pill) */
+.mixer-channel__sound {
+  position: relative;
+  width: 100%;
+  min-width: 84px;
+}
+
+.mixer-channel__sound .dropdown-toggle {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 18px 4px 8px;
+  border: 1.5px solid var(--nuzic-grey, #AAA699);
+  border-radius: 999px;
+  background: var(--nuzic-white, #fff);
+  color: var(--nuzic-dark, #43433b);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: clamp(0.62rem, 1.3vw, 0.78rem);
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mixer-channel__sound .dropdown-toggle::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 5px 4px 0 4px;
+  border-style: solid;
+  border-color: currentColor transparent transparent transparent;
+}
+
+.mixer-channel__sound .dropdown-panel {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-top: 3px;
+  border: 1.5px solid var(--nuzic-grey, #AAA699);
+  border-radius: 10px;
+  background-color: var(--nuzic-white, #fff);
+  color: var(--nuzic-dark, #43433b);
+  z-index: 1200;
+  overflow: hidden;
+}
+
+.mixer-channel__sound .dropdown-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 156px;
+  overflow-y: auto;
+}
+
+.mixer-channel__sound .dropdown-panel li {
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: clamp(0.66rem, 1.3vw, 0.8rem);
+  white-space: nowrap;
+}
+
+.mixer-channel__sound .dropdown-panel li.selected {
+  background: var(--selection-color, var(--nuzic-yellow, #FFBB33));
+  color: var(--nuzic-white, #fff);
+}
+
+.mixer-channel__sound .dropdown-exit {
+  width: 100%;
+  padding: 5px 10px;
+  border: none;
+  border-top: 1px solid var(--nuzic-grey, #AAA699);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
 }
 
 @media (max-width: 600px) {
   .mixer-menu {
-    padding: 0.75rem 1rem;
-    width: min(500px, 94vw);
+    padding: 1rem;
+    width: max-content;
+    max-width: 96vw;
   }
 
   .mixer-menu-title {
@@ -697,11 +804,15 @@ body[data-theme='dark'] .fraction-info-bubble {
   }
 
   .mixer-menu-content {
-    gap: 1rem;
+    gap: 0.85rem;
+  }
+
+  .mixer-strips {
+    gap: 0.6rem;
   }
 
   .mixer-channel {
-    min-width: 80px;
+    min-width: 72px;
   }
 
   .mixer-channel__slider-wrapper {
@@ -709,23 +820,14 @@ body[data-theme='dark'] .fraction-info-bubble {
   }
 
   .mixer-channel__slider {
-    width: 120px;
-  }
-
-  .mixer-channel__actions {
-    gap: 0.4rem;
-  }
-
-  .mixer-action {
-    width: 38px;
-    height: 38px;
+    width: 130px;
   }
 }
 
 .mixer-action svg {
   color: inherit;
-  width: 60%;
-  height: 60%;
+  width: 1.15rem;
+  height: 1.15rem;
   fill: currentColor;
 }
 
@@ -734,16 +836,12 @@ body[data-theme='dark'] .fraction-info-bubble {
 }
 
 .mixer-action:active {
-  transform: scale(0.92);
-  color: var(--selection-color);
-  border-color: var(--selection-color);
-  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+  transform: scale(0.96);
 }
 
 .mixer-action.active {
-  color: var(--selection-color);
-  border-color: var(--selection-color);
-  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+  background: var(--selection-color, var(--nuzic-yellow, #FFBB33));
+  color: var(--nuzic-white, #fff);
 }
 
 .mixer-channel.suppressed .mixer-channel__slider {
@@ -763,8 +861,14 @@ body[data-theme='dark'] .fraction-info-bubble {
   padding: 0;
 }
 
+/* The FX ON/OFF row is a lone pill — not the M | S frame, so reset the container */
 .mixer-channel__actions--single {
   justify-content: center;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
+  height: auto;
 }
 
 .mixer-action--p1-toggle {
@@ -777,17 +881,21 @@ body[data-theme='dark'] .fraction-info-bubble {
   transition: opacity 0.2s ease;
 }
 
-/* FX Effects Column */
+/* FX block — sits below the Master fader inside the right rack */
 .mixer-channel--fx {
-  min-width: 110px;
+  min-width: 0;
+  width: 100%;
+  gap: 0.5rem;
+  border-top: 1.5px solid var(--nuzic-grey, #AAA699);
+  padding-top: 0.85rem;
 }
 
 .mixer-channel__knobs {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  height: 150px;
+  align-items: stretch;
+  gap: 0.3rem;
+  height: auto;
   justify-content: center;
 }
 
@@ -839,10 +947,20 @@ body[data-theme='dark'] .fraction-info-bubble {
   text-align: left;
 }
 
-/* FX Toggle (P1-style ON/OFF button in actions row) */
-.mixer-action--fx-toggle {
-  min-width: 48px;
+/* FX Toggle (ON/OFF) — standalone pill */
+.mixer-action.mixer-action--fx-toggle {
+  min-width: 3rem;
+  height: clamp(1.8rem, 4.5vw, 2.1rem);
+  padding: 0 0.85rem;
+  border: 2px solid var(--nuzic-dark, #43433b);
+  border-radius: 999px;
+  background: var(--nuzic-white, #fff);
   position: relative;
+}
+
+.mixer-action.mixer-action--fx-toggle.active {
+  background: var(--selection-color, var(--nuzic-yellow, #FFBB33));
+  color: var(--nuzic-white, #fff);
 }
 
 .mixer-action--fx-toggle .icon-on,
@@ -875,8 +993,26 @@ body[data-theme='dark'] .fraction-info-bubble {
 }
 
 body[data-theme='dark'] .mixer-menu {
-  background-color: var(--bg-dark);
-  color: var(--text-dark);
+  background-color: var(--nuzic-dark, #43433b);
+  color: var(--nuzic-light, #eee8d8);
+  border-color: var(--nuzic-grey, #AAA699);
+}
+
+body[data-theme='dark'] .mixer-rack {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+body[data-theme='dark'] .mixer-channel__actions,
+body[data-theme='dark'] .mixer-action.mixer-action--fx-toggle,
+body[data-theme='dark'] .mixer-channel__sound .dropdown-toggle,
+body[data-theme='dark'] .mixer-channel__sound .dropdown-panel {
+  border-color: var(--nuzic-light, #eee8d8);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--nuzic-light, #eee8d8);
+}
+
+body[data-theme='dark'] .mixer-action--solo {
+  border-left-color: var(--nuzic-light, #eee8d8);
 }
 
 .random-menu label {

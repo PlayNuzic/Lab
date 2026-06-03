@@ -1,4 +1,3 @@
-import { solidMenuBackground } from './utils.js';
 import {
   subscribeMixer,
   setVolume,
@@ -10,8 +9,100 @@ import {
   getChannelState,
   getMixer
 } from '../sound/index.js';
+import { initSoundDropdown } from '../shared-ui/sound-dropdown.js';
+import { initInstrumentDropdown } from '../shared-ui/instrument-dropdown.js';
 
 const DEFAULT_LONG_PRESS = 500;
+
+// ── Per-channel sound selectors ──────────────────────────────────────────────
+// Each mixer channel can host its own sound/instrument selector right below the
+// M/S buttons. The selectors reuse the SAME storage keys + events as the header's
+// hidden sound menu, so both views stay in sync with zero per-app wiring.
+const CHANNEL_SOUND = {
+  pulse:       { kind: 'rhythm', storageKey: 'baseSound',   eventType: 'baseSound',   apply: (a, v) => a?.setBase?.(v),   defaultValue: 'click9' },
+  start:       { kind: 'rhythm', storageKey: 'startSound',  eventType: 'startSound',  apply: (a, v) => a?.setStart?.(v),  defaultValue: 'click7' },
+  accent:      { kind: 'rhythm', storageKey: 'accentSound', eventType: 'accentSound', apply: (a, v) => a?.setAccent?.(v), defaultValue: 'click8' },
+  subdivision: { kind: 'rhythm', storageKey: 'cycleSound',  eventType: 'cycleSound',  apply: (a, v) => a?.setCycle?.(v),  defaultValue: 'click10' },
+  instrument:  { kind: 'instrument' }
+};
+
+// Canonical channel labels (requested renames). Applied by channel id so every
+// app stays consistent without editing each app's config. Any other id keeps the
+// label the app passes (e.g. App5's "Intervalos").
+const CANONICAL_LABEL_BY_ID = {
+  subdivision: 'Fracción',
+  instrument: 'Instrumento'
+};
+
+function resolveChannelLabel(id, label) {
+  if (CANONICAL_LABEL_BY_ID[id]) return CANONICAL_LABEL_BY_ID[id];
+  if (id === 'accent') {
+    const t = (label || '').trim();
+    if (/^(seleccion|acento)$/i.test(t)) return 'Seleccionado';
+  }
+  return label || id;
+}
+
+// Same audio resolution order as the header (libs/shared-ui/header.js)
+function getMixerAudio() {
+  if (typeof window === 'undefined') return Promise.resolve(null);
+  if (window.__labAudio) return Promise.resolve(window.__labAudio);
+  if (typeof window.__labInitAudio === 'function') {
+    return Promise.resolve(window.__labInitAudio())
+      .then(a => a || window.__labAudio || window.NuzicAudioEngine || null)
+      .catch(() => window.__labAudio || window.NuzicAudioEngine || null);
+  }
+  return Promise.resolve(window.NuzicAudioEngine || null);
+}
+
+function mixerAppId() {
+  try {
+    const m = (window.location?.pathname || '').match(/App(\d+[A-Za-z]*)/i);
+    return m ? m[1].toLowerCase() : null;
+  } catch { return null; }
+}
+
+// Build the dropdown that lives under a channel's M/S buttons (null if the
+// channel controls no selectable sound, e.g. master).
+function buildChannelSound(channelId) {
+  const desc = CHANNEL_SOUND[channelId];
+  if (!desc) return null;
+  const container = document.createElement('div');
+  container.className = 'mixer-channel__sound';
+  if (desc.kind === 'instrument') {
+    const appId = mixerAppId();
+    initInstrumentDropdown(container, {
+      storageKey: appId ? `app${appId}:selectedInstrument` : 'selectedInstrument',
+      eventType: 'instrument',
+      onSelect: (instrument) => {
+        window.dispatchEvent(new CustomEvent('sharedui:instrument', { detail: { instrument } }));
+      },
+      defaultValue: 'piano'
+    });
+  } else {
+    initSoundDropdown(container, {
+      storageKey: desc.storageKey,
+      eventType: desc.eventType,
+      getAudio: getMixerAudio,
+      apply: desc.apply,
+      defaultValue: desc.defaultValue
+    });
+  }
+  return container;
+}
+
+// Cream (nuzic) background for the mixer specifically. Mirrors solidMenuBackground
+// but uses the nuzic palette so the panel is the requested crema, not --bg-light.
+function applyMixerBackground(panel) {
+  if (!panel) return;
+  const dark = document.body?.dataset?.theme === 'dark';
+  const body = getComputedStyle(document.body);
+  const lightBg = (body.getPropertyValue('--nuzic-light') || '').trim() || '#eee8d8';
+  const darkBg = (body.getPropertyValue('--nuzic-dark') || '').trim() || '#43433b';
+  panel.style.backgroundColor = dark ? darkBg : lightBg;
+  panel.style.color = dark ? lightBg : darkBg;
+  panel.style.backgroundImage = 'none';
+}
 
 function createLetterIcon(letter) {
   return `\n    <svg aria-hidden="true" viewBox="0 0 40 40" focusable="false">\n      <text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle"\n            font-family="inherit" font-size="48" fill="currentColor">${letter}</text>\n    </svg>\n  `;
@@ -137,11 +228,17 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   const content = document.createElement('div');
   content.className = 'mixer-menu-content';
 
+  // Per-channel strips on the left; Master + FX share a bordered rack on the right.
+  const strips = document.createElement('div');
+  strips.className = 'mixer-strips';
+  const rack = document.createElement('div');
+  rack.className = 'mixer-rack';
+
   const controlMap = new Map();
   const mixer = getMixer();
   const knownChannels = Array.isArray(channels) && channels.length ? channels : [
     { id: 'pulse', label: 'Pulso', allowSolo: true },
-    { id: 'subdivision', label: 'Subdivisión', allowSolo: true },
+    { id: 'subdivision', label: 'Fracción', allowSolo: true },
     { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
   ];
 
@@ -169,9 +266,12 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     wrapper.className = 'mixer-channel';
     wrapper.dataset.channel = channelId;
 
+    const resolvedLabel = resolveChannelLabel(channelId, config.label);
+    config.label = resolvedLabel;
+
     const labelEl = document.createElement('span');
     labelEl.className = 'mixer-channel__label';
-    labelEl.textContent = config.label || channelId;
+    labelEl.textContent = resolvedLabel;
     wrapper.appendChild(labelEl);
 
     const sliderWrapper = document.createElement('div');
@@ -206,7 +306,17 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     }
 
     wrapper.appendChild(actions);
-    content.appendChild(wrapper);
+
+    // Per-channel sound/instrument selector below the M/S buttons (synced with header).
+    const soundSelector = buildChannelSound(channelId);
+    if (soundSelector) wrapper.appendChild(soundSelector);
+
+    if (config.isMaster) {
+      wrapper.classList.add('mixer-channel--master');
+      rack.appendChild(wrapper);
+    } else {
+      strips.appendChild(wrapper);
+    }
 
     controlMap.set(channelId, {
       config,
@@ -290,7 +400,10 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   fxActions.appendChild(fxToggle);
   fxWrapper.appendChild(fxActions);
 
-  content.appendChild(fxWrapper);
+  // Master (top, vertical fader) + FX (below) live together in the right rack.
+  rack.appendChild(fxWrapper);
+  content.appendChild(strips);
+  content.appendChild(rack);
 
   // Store knob references for state sync
   const fxControls = { fxToggle, fxWrapper, compKnob, limKnob, reverbKnob };
@@ -347,7 +460,7 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     if (menuOpen) return;
     menu.classList.add('open');
     menuOpen = true;
-    solidMenuBackground(menu);
+    applyMixerBackground(menu);
 
     // Synchronize FX effects state when opening
     const audio = window.NuzicAudioEngine;
@@ -612,7 +725,7 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   });
 
   window.addEventListener('sharedui:theme', () => {
-    if (menuOpen) solidMenuBackground(menu);
+    if (menuOpen) applyMixerBackground(menu);
   });
 
   // Sync mixer mute button when header mute button changes
@@ -724,8 +837,9 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     updateChannelLabel: (channelId, newLabel) => {
       const control = controlMap.get(channelId);
       if (control?.labelEl) {
-        control.labelEl.textContent = newLabel;
-        control.config.label = newLabel;
+        const resolved = resolveChannelLabel(channelId, newLabel);
+        control.labelEl.textContent = resolved;
+        control.config.label = resolved;
       }
     }
   };
