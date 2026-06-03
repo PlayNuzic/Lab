@@ -1121,6 +1121,77 @@ function createNuzicIntervalEditor(gridContainer) {
     return cell;
   }
 
+  // Helper: cel·les editables (value + input) en ordre de columna
+  // (iS0, iT0, iS1, iT1, …, iSinput, iTinput). Per a Tab/Shift+Tab.
+  function getEditableCellsColumnOrder() {
+    const iss = Array.from(isCells.querySelectorAll('.editor-cell:not([readonly])'));
+    const its = Array.from(itCells.querySelectorAll('.editor-cell:not([readonly])'));
+    const max = Math.max(iss.length, its.length);
+    const result = [];
+    for (let i = 0; i < max; i++) {
+      if (iss[i]) result.push(iss[i]);
+      if (its[i]) result.push(its[i]);
+    }
+    return result;
+  }
+
+  // Navegació de tecles compartida (mateix patró que App12):
+  // Enter (commit/blur), Tab (columna), Arrows horitzontals (mateixa fila),
+  // Arrows verticals (salta entre iS i iT). preventDefault perquè no quedi
+  // capturat pel caret de l'input.
+  function addCellNavigation(cell, type) {
+    cell.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        cell.blur();
+        return;
+      }
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const idx = cell.dataset.intervalIndex;
+        const row = type;
+        cell.blur(); // el blur pot re-renderitzar — re-pesquem
+        const cells = getEditableCellsColumnOrder();
+        let i = cells.indexOf(cell);
+        if (i === -1 && idx !== undefined) {
+          i = cells.findIndex(c =>
+            c.dataset.intervalIndex === idx
+            && (c.classList.contains('editor-cell--is') ? 'is' : 'it') === row
+          );
+        }
+        const dst = e.shiftKey ? cells[i - 1] : cells[i + 1];
+        if (dst) dst.focus();
+        return;
+      }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const rowCells = type === 'is'
+          ? Array.from(isCells.querySelectorAll('.editor-cell:not([readonly])'))
+          : Array.from(itCells.querySelectorAll('.editor-cell:not([readonly])'));
+        const i = rowCells.indexOf(cell);
+        const dst = e.key === 'ArrowRight' ? rowCells[i + 1] : rowCells[i - 1];
+        if (dst) dst.focus();
+        return;
+      }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const otherRow = type === 'is' ? 'it' : 'is';
+        let dst = null;
+        if (cell.dataset.intervalIndex !== undefined) {
+          dst = document.querySelector(
+            `.editor-cell--${otherRow}[data-interval-index="${cell.dataset.intervalIndex}"]:not([readonly])`
+          );
+        }
+        if (!dst) {
+          // Cel·la d'input: salta a l'input de l'altra fila.
+          const otherContainer = otherRow === 'is' ? isCells : itCells;
+          dst = otherContainer.querySelector('.editor-input');
+        }
+        if (dst) dst.focus();
+      }
+    });
+  }
+
   function createValueCell(type, displayValue, intervalIndex) {
     const cell = document.createElement('input');
     cell.type = 'text';
@@ -1139,9 +1210,7 @@ function createNuzicIntervalEditor(gridContainer) {
       cell.select();
     });
 
-    cell.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') cell.blur();
-    });
+    addCellNavigation(cell, type);
 
     cell.addEventListener('blur', () => {
       const val = cell.value.trim();
@@ -1415,6 +1484,9 @@ function createNuzicIntervalEditor(gridContainer) {
         }
       }
     });
+
+    // Navegació: fletxes, Tab, Enter (compartit amb les cel·les de valor).
+    addCellNavigation(cell, type);
 
     return cell;
   }

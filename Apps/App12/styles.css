@@ -166,6 +166,14 @@ html, body {
   z-index: 1;
 }
 
+/* Mentre s'edita un value cell (focused) i s'ha esborrat el valor, el fons
+   ha de mantenir-se blanc — no tornar al color de placeholder fins que es
+   desenfoca. (Els `.editor-input` ja tenen `background: white !important`.) */
+.editor-cell--n:focus,
+.editor-cell--p:focus {
+  background: white;
+}
+
 /* Active input */
 .editor-input {
   background: white !important;
