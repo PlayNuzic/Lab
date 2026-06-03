@@ -174,7 +174,8 @@ initMixerMenu({
   menu: mixerMenu,
   triggers: mixerTriggers,
   channels: [
-    { id: 'pulse', label: 'Metrónomo', allowSolo: true },
+    { id: 'start', label: 'P0', allowSolo: true },
+    { id: 'pulse', label: 'Pulso', allowSolo: true },
     { id: 'subdivision', label: 'Subdivisión', allowSolo: true },
     { id: 'instrument', label: 'Instrumento', allowSolo: true },
     { id: 'master', label: 'Master', allowSolo: false, isMaster: true }

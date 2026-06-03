@@ -33,9 +33,13 @@ export class MelodicTimelineAudio extends TimelineAudio {
       volume: 1
     });
 
-    // Lower rhythm channel volumes so instrument stands out
+    // Canals rítmics (metrònom, P0, accent, cicle) a 0.6: audibles sota
+    // l'instrument (1.0) però clarament presents. Abans 0.1, que els feia
+    // gairebé inaudibles → el P0 semblava "perdut" i els canvis de so del
+    // metrònom al menú no se sentien. (Volum per defecte; cada canal és
+    // ajustable al mixer-menu i es persisteix.)
     for (const ch of ['pulse', 'start', 'accent', 'subdivision']) {
-      this.mixer.registerChannel(ch, { volume: 0.1 });
+      this.mixer.registerChannel(ch, { volume: 0.6 });
     }
 
     console.log('MelodicTimelineAudio initialized with instrument channel');

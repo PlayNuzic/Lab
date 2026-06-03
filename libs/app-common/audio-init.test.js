@@ -166,7 +166,8 @@ describe('Audio Initialization Components', () => {
     });
 
     test('hydrate restores master and channel volumes from storage', () => {
-      localStorage.setItem('test:mixer', JSON.stringify({
+      // createMixerPersistence afegeix ':v2' a la clau (migració de defaults)
+      localStorage.setItem('test:mixer:v2', JSON.stringify({
         master: 0.5,
         channels: { pulse: 0.3, instrument: 0.9 },
         mutes: { pulse: true }
@@ -216,7 +217,7 @@ describe('Audio Initialization Components', () => {
         ]
       });
       jest.advanceTimersByTime(60);
-      const saved = JSON.parse(localStorage.getItem('test:write'));
+      const saved = JSON.parse(localStorage.getItem('test:write:v2'));
       expect(saved.master).toBe(0.4);
       expect(saved.channels.pulse).toBe(0.6);
       expect(saved.channels.instrument).toBe(1);

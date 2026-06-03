@@ -1172,6 +1172,7 @@ function initApp() {
       menu: mixerMenu,
       triggers: [elements.playBtn],
       channels: [
+        { id: 'start', label: 'P0', allowSolo: true },
         { id: 'pulse', label: 'Pulso', allowSolo: true },
         { id: 'instrument', label: instrumentLabel, allowSolo: true },
         { id: 'master', label: 'Master', allowSolo: false, isMaster: true }

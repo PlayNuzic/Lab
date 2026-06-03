@@ -363,12 +363,18 @@ export function createMixerPersistence({ storageKey, debounceMs = 120 } = {}) {
     return { hydrate() {}, subscribe() { return () => {}; } };
   }
 
+  // Versió de la clau: en pujar-la descartem l'estat antic que podria
+  // contenir volums per defecte obsolets (p.ex. els canals rítmics
+  // melòdics a 0.1, que sobreescriurien el nou 0.6 i mantindrien el P0
+  // "perdut"). v2 = canvi de defaults dels canals rítmics melòdics.
+  const key = `${storageKey}:v2`;
+
   let writeTimer = null;
   let unsubscribe = null;
 
   function readState() {
     try {
-      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(storageKey) : null;
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
@@ -378,7 +384,7 @@ export function createMixerPersistence({ storageKey, debounceMs = 120 } = {}) {
   function writeState(state) {
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(storageKey, JSON.stringify(state));
+        localStorage.setItem(key, JSON.stringify(state));
       }
     } catch {
       // localStorage ple o sandbox: ignorem
