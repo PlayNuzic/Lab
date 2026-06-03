@@ -22,18 +22,11 @@ const OVERRIDES_KEY = 'sistema.overrides';
 const OVERRIDES_VERSION_KEY = 'sistema.overrides.version';
 const OVERRIDES_VERSION = 2;  // bumped when paso 21 was merged into 20
 
-// Easter egg: hi ha dos capítols amagats independents.
-//   - "complex" → pasos 17.5/18.5/19.5/20.5 (Fraccions Complexes).
-//     Es desbloqueja amb 5 clicks al badge d'un pas del capítol
-//     "Fraccionando". Pas amagat marcat amb `complex: true`.
-//   - "intro" → pas 1.5 (vídeo introductori animat). Es desbloqueja
-//     amb 5 clicks al badge del pas 1 (secció "introduccion"). Pas
-//     amagat marcat amb `intro: true`.
-// Cada capítol té un flag de sessionStorage propi i és independent.
-// El 5è clic dispara el toggle. Comptador per capítol (no es comparteix).
-// Tancar pestanya = tots dos es tornen a amagar.
+// Easter egg: capítol amagat "complex" → pasos 17.5/18.5/19.5/20.5
+// (Fraccions Complexes). Es desbloqueja amb 5 clicks al badge d'un pas
+// del capítol "Fraccionando". Pas amagat marcat amb `complex: true`.
+// Flag de sessionStorage: tancar pestanya = es torna a amagar.
 const COMPLEX_UNLOCK_KEY = 'sistema.complexUnlocked';
-const INTRO_UNLOCK_KEY = 'sistema.introUnlocked';
 const HIDDEN_CLICK_THRESHOLD = 5;
 const HIDDEN_CLICK_WINDOW_MS = 1500;
 
@@ -220,7 +213,6 @@ const state = {
   overrides: loadOverrides(),
   narrowViewport: window.matchMedia(NARROW_VIEWPORT_QUERY).matches,
   complexUnlocked: sessionStorage.getItem(COMPLEX_UNLOCK_KEY) === '1',
-  introUnlocked: sessionStorage.getItem(INTRO_UNLOCK_KEY) === '1',
 };
 
 // Densitat del pas actual (o un de concret). Prioritat:
@@ -251,7 +243,6 @@ function getVisibleSlides(){
   return slideMatrix.filter(s =>
     !s.hidden
     || (s.complex && state.complexUnlocked)
-    || (s.intro && state.introUnlocked)
   );
 }
 function getVisiblePasos(){
@@ -305,8 +296,6 @@ function renderTitle(slide, section){
   let closeBtn = '';
   if (state.complexUnlocked && slide.complex) {
     closeBtn = '<button class="paso-badge__close" type="button" data-close-chapter="complex" aria-label="Cerrar fracciones complejas" title="Cerrar fracciones complejas">Cerrar fracciones complejas</button>';
-  } else if (state.introUnlocked && slide.intro) {
-    closeBtn = '<button class="paso-badge__close" type="button" data-close-chapter="intro" aria-label="Cerrar intro animada" title="Cerrar intro animada">Cerrar intro animada</button>';
   }
   return `
     <div class="slot-title">
@@ -460,7 +449,6 @@ function render(){
     return s && (
       !s.hidden
       || (s.complex && state.complexUnlocked)
-      || (s.intro && state.introUnlocked)
     );
   });
   visibleInSection.forEach(p => {
@@ -468,7 +456,7 @@ function render(){
     const seg = document.createElement('button');
     seg.type = 'button';
     seg.className = 'progress-seg';
-    if (s?.complex || s?.intro) seg.classList.add('progress-seg--complex');
+    if (s?.complex) seg.classList.add('progress-seg--complex');
     seg.dataset.paso = p;
     seg.setAttribute('aria-label', `Anar al Paso ${formatPaso(p)}`);
     if (p < state.paso) seg.classList.add('is-done');
@@ -690,41 +678,27 @@ function go(delta){
   if (next != null) goTo(next);
 }
 
-// Easter egg: 5 clicks consecutius sobre el `.paso-badge` d'un pas
-// d'un capítol amb variant amagada alterna l'estat d'aquell capítol.
-// El comptador es reseteja si passa més de HIDDEN_CLICK_WINDOW_MS
-// entre clicks. Mapping secció → capítol amagat:
-//   'fraccionando' → 'complex' (pasos 17.5/18.5/19.5/20.5)
-//   'introduccion' → 'intro'   (pas 1.5)
-const SECTION_TO_HIDDEN_CHAPTER = {
-  fraccionando: 'complex',
-  introduccion: 'intro',
-};
-const hiddenClickCounts = { complex: 0, intro: 0 };
+// Easter egg: 5 clicks consecutius sobre el `.paso-badge` d'un pas de la
+// secció "fraccionando" desbloquegen el capítol amagat "complex" (pasos
+// 17.5/18.5/19.5/20.5). El comptador es reseteja si passa més de
+// HIDDEN_CLICK_WINDOW_MS entre clicks.
+let hiddenClickCount = 0;
 let hiddenClickTimer = null;
 function resetHiddenClicks() {
-  hiddenClickCounts.complex = 0;
-  hiddenClickCounts.intro = 0;
+  hiddenClickCount = 0;
 }
 function handleBadgeClick(){
   const slide = getSlide(state.paso);
-  const chapter = slide ? SECTION_TO_HIDDEN_CHAPTER[slide.section] : null;
-  if (chapter) {
-    // Lògica de l'easter egg: incrementem el comptador del capítol
-    // vinculat a aquesta secció i resetegem l'altre (per si l'usuari
-    // està jugant amb dos capítols alhora).
-    for (const k of Object.keys(hiddenClickCounts)) {
-      if (k !== chapter) hiddenClickCounts[k] = 0;
-    }
-    hiddenClickCounts[chapter] += 1;
+  if (slide && slide.section === 'fraccionando') {
+    hiddenClickCount += 1;
     if (hiddenClickTimer) clearTimeout(hiddenClickTimer);
     hiddenClickTimer = setTimeout(resetHiddenClicks, HIDDEN_CLICK_WINDOW_MS);
-    if (hiddenClickCounts[chapter] >= HIDDEN_CLICK_THRESHOLD) {
+    if (hiddenClickCount >= HIDDEN_CLICK_THRESHOLD) {
       // 5è click dins finestra: dispara el toggle del capítol amagat
       // i tanca el menú (no el deixem obert després del salt).
       resetHiddenClicks();
       closeSectionsMenu();
-      toggleHiddenChapter(chapter);
+      toggleHiddenChapter();
       return;
     }
   } else {
@@ -735,26 +709,23 @@ function handleBadgeClick(){
   toggleSectionsMenu();
 }
 
-function toggleHiddenChapter(chapter){
-  const stateKey = chapter === 'intro' ? 'introUnlocked' : 'complexUnlocked';
-  const storageKey = chapter === 'intro' ? INTRO_UNLOCK_KEY : COMPLEX_UNLOCK_KEY;
-  const slideFlag = chapter; // 'intro' o 'complex'
-  state[stateKey] = !state[stateKey];
-  if (state[stateKey]) {
-    sessionStorage.setItem(storageKey, '1');
-    // En activar, saltem automàticament a la slide *.5 corresponent
-    // a la slide entera on l'usuari era (p.ex. clicar 5 cops al pas
-    // 1 obre el pas 1.5; al pas 18, el 18.5).
+function toggleHiddenChapter(){
+  state.complexUnlocked = !state.complexUnlocked;
+  if (state.complexUnlocked) {
+    sessionStorage.setItem(COMPLEX_UNLOCK_KEY, '1');
+    // En activar, saltem automàticament a la slide *.5 corresponent a
+    // la slide entera on l'usuari era (p.ex. clicar 5 cops al pas 18
+    // obre el pas 18.5).
     if (Number.isInteger(state.paso)) {
       const variantB = state.paso + 0.5;
       const variantSlide = slideMatrix.find(s => s.paso === variantB);
-      if (variantSlide && variantSlide[slideFlag]) {
+      if (variantSlide && variantSlide.complex) {
         state.paso = variantB;
         state.variant = 'a';
       }
     }
   } else {
-    sessionStorage.removeItem(storageKey);
+    sessionStorage.removeItem(COMPLEX_UNLOCK_KEY);
     // Si l'usuari era en una slide *.5 que acabem d'amagar, retrocedeix
     // a la versió entera corresponent (Math.floor).
     if (!pasoExists(state.paso)) {
@@ -772,9 +743,7 @@ function toggleHiddenChapter(chapter){
 STAGE.addEventListener('click', (e) => {
   const closeBtn = e.target.closest('.paso-badge__close');
   if (closeBtn) {
-    const chapter = closeBtn.dataset.closeChapter;
-    if (chapter === 'complex' && state.complexUnlocked) toggleHiddenChapter('complex');
-    else if (chapter === 'intro' && state.introUnlocked) toggleHiddenChapter('intro');
+    if (closeBtn.dataset.closeChapter === 'complex' && state.complexUnlocked) toggleHiddenChapter();
     return;
   }
   if (e.target.closest('.paso-badge')) {
@@ -946,11 +915,10 @@ function populateSectionsMenu() {
       // Saltem els amagats que el seu flag no està actiu.
       if (slide.hidden) {
         if (slide.complex && !state.complexUnlocked) return;
-        if (slide.intro && !state.introUnlocked) return;
       }
       const item = document.createElement('li');
       item.className = 'sistema-nav__sections-menu__step';
-      if (slide.complex || slide.intro) item.classList.add('is-hidden-chapter');
+      if (slide.complex) item.classList.add('is-hidden-chapter');
       item.setAttribute('role', 'option');
       item.dataset.paso = String(p);
       item.textContent = `${formatPaso(p)} · ${slide.title}`;

@@ -75,15 +75,14 @@ export const layouts = {
 // És la font de veritat de producció; el panell tweaks pot sobreescriure-la
 // localment (localStorage) per previsualitzar, però no es desplega.
 export const slideMatrix = [
-  { paso:1,    section:'introduccion', title:'¿Sabes cómo se mueve la música?', layout:'A-intro', density:'loose' },
-  { paso:1.5,  section:'introduccion', title:'¿Sabes cómo se mueve la música?', layout:'A-intro', hidden:true, intro:true },
-  { paso:2,  section:'descubriendo', title:'¿Qué se mueve en la música?',                                 layout:'B-app-left', apps:['App11A'], aspect:'4/3', group:'plano-simple', density:'loose' },
-  { paso:3,  section:'descubriendo', title:'Línea Temporal',                                              layout:'E-app-text-left', apps:['app9'],   aspect:'2/1', group:'timeline-simple' },
-  { paso:4,  section:'descubriendo', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'5/9', group:'timeline-vertical', density:'compact' },
+  { paso:1,    section:'introduccion', title:'¿Sabías que los números son el adn de la música?', layout:'A-intro', density:'loose' },
+  { paso:2,  section:'descubriendo', title:'¿Qué se mueve en la música?',                                 layout:'B-app-left', apps:['App11A'], aspect:'4/3', group:'plano-simple', density:'compact' },
+  { paso:3,  section:'descubriendo', title:'Línea Temporal',                                              layout:'E-app-text-left', apps:['app9'],   aspect:'2/1', group:'timeline-simple', density:'compact' },
+  { paso:4,  section:'descubriendo', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'5/9', group:'timeline-vertical' },
   { paso:5,  section:'descubriendo', title:'El Plano Musical',                                            layout:'B-app-left', apps:['app11'],  aspect:'4/3', group:'plano-simple', density:'compact' },
-  { paso:6,  section:'descubriendo', title:'El par Nota - Pulso',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3', group:'plano-simple', density:'compact' },
+  { paso:6,  section:'descubriendo', title:'El par Pulso - Nota',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3', group:'plano-simple', density:'compact' },
   { paso:7,  section:'intervalos',   title:'Midiendo el movimiento de la Música: Los Intervalos',         layout:'A-intro', density:'loose' },
-  { paso:8,  section:'intervalos',   title:'El Intervalo Temporal',                                       layout:'E-app-text-left', apps:['app13'], aspect:'2/1', group:'timeline-simple', density:'compact' },
+  { paso:8,  section:'intervalos',   title:'El movimiento en la Música: Los Intervalos',                  layout:'E-app-text-left', apps:['app13'], aspect:'2/1', group:'timeline-simple', density:'compact' },
   { paso:9,  section:'intervalos',   title:'El Intervalo Sonoro',                                         layout:'B-app-left', apps:['App14'],  aspect:'2/3', group:'timeline-vertical', density:'compact' },
   { paso:10, section:'intervalos',   title:'Intervalos en el Plano Musical',                              layout:'B-app-left', apps:['App15'],  aspect:'4/3', group:'plano-simple' },
   { paso:11, section:'ampliando',    title:'Ampliando el Mapa: Patrones, Ciclos y Módulos',               layout:'A-intro', density:'loose' },
@@ -112,37 +111,24 @@ export const slideMatrix = [
 // Each entry declares the blocks present in the slide. The renderer picks
 // them up and places them into the layout's grid areas.
 //
-// Image source for paso 1: posa el fitxer a `sistema/images/paso-1.jpg`
-// (o el nom que vulguis) i descomenta la línia `src` de sota.
 export const slideContent = {
   1: {
-    image: {
-      alt: 'Foto introductoria — Imaginemos el seguimiento de una persona',
-      src: 'images/paso-1.jpg',
-    },
-    text: `<p>Una melodía no está quieta: avanza en el tiempo, sube, baja, salta, se repite o se detiene.</p><p>Para entender cualquier movimiento necesitamos saber dos cosas: <strong>dónde ocurre</strong> y <strong>cuándo ocurre</strong>.</p><p>Imagina que seguimos a una persona durante un día. Para conocer su recorrido, necesitamos saber en qué lugares ha estado, en qué momento ha pasado por cada uno de ellos y cuánto tiempo se ha quedado allí.</p><p>Combinando esos datos podemos trazar su movimiento en un mapa.</p><p>Con la música ocurre algo parecido: también podemos describir su movimiento usando números. Contamos los pulsos del tiempo, medimos la distancia entre las notas y así observamos cómo se mueve una melodía en un plano.</p>
-<h3><b>Veamos cómo construimos este plano</b></h3>`,
-  },
-  // Capítol amagat — versió animada del pas 1 amb vídeo introductori
-  // en lloc de la foto. Mateix text. Es desbloqueja amb 5 clicks al
-  // badge del pas 1 (vegeu state.introUnlocked a slides.js).
-  1.5: {
     video: {
       alt: 'Vídeo introductori animat — el seguiment d\'una persona',
       src: 'videos/paso-1.mp4',
     },
-    text: `<p>Una melodía no está quieta: avanza en el tiempo, sube, baja, salta, se repite o se detiene.</p><p>Para entender cualquier movimiento necesitamos saber dos cosas: <strong>dónde ocurre</strong> y <strong>cuándo ocurre</strong>.</p><p>Imagina que seguimos a una persona durante un día. Para conocer su recorrido, necesitamos saber en qué lugares ha estado, en qué momento ha pasado por cada uno de ellos y cuánto tiempo se ha quedado allí.</p><p>Combinando esos datos podemos trazar su movimiento en un mapa.</p><p>Con la música ocurre algo parecido: también podemos describir su movimiento usando números. Contamos los pulsos del tiempo, medimos la distancia entre las notas y así observamos cómo se mueve una melodía en un plano.</p>
-<h3><b>Veamos cómo construimos este plano</b></h3>`,
+    text: `<p>Bienvenido al Sistema Interactivo Nuzic, un método pedagógico que te ayudará a comprender la música a partir de los números. Estás a punto de recorrer la música desde cero: empezarás descubriendo que todo lo que suena se puede contar y medir.</p><p>Asociamos los números a elementos de la música como notas, pulsos o intervalos, y así podemos describir y analizar cualquier música. </p><p>Podemos unir estos números en secuencias y crear ritmos y melodías.</p><p><b></b><br></p>
+<h3><br></h3>`,
   },
   2: {
-    text: `<p>Para empezar partimos de dos líneas numéricas donde poder visualizar la música. Una <mark class="hl-yellow">línea horizontal para el paso del tiempo</mark> y otra <mark class="hl-pink">línea vertical para los sonidos</mark>.</p><p>Estas líneas están sincronizadas para describir lo que suena y plasmarlo en el plano musical.</p>
+    text: `<p>Una melodía no está quieta: avanza en el tiempo, sube, baja, salta, se repite o se detiene.</p><p>Para entender cualquier movimiento necesitamos saber dos cosas: <strong>dónde ocurre</strong> y <strong>cuándo ocurre</strong>.</p><p>Imagina que seguimos a una persona durante un día. Para conocer su recorrido, necesitamos saber en qué lugares ha estado, en qué momento ha pasado por cada uno de ellos y cuánto tiempo se ha quedado allí.</p><p>Combinando esos datos podemos trazar su movimiento en un mapa.</p><p>Con la música ocurre algo parecido: también podemos describir su movimiento usando números. Contamos los pulsos del tiempo, medimos la distancia entre las notas y así observamos cómo se mueve una melodía en un plano.</p><h3><b>Veamos cómo construimos este plano</b></h3><p>Para empezar partimos de dos líneas numéricas donde poder visualizar la música. Una <mark class="hl-yellow">línea horizontal para el paso del tiempo</mark> y otra <mark class="hl-pink">línea vertical para los sonidos</mark>.</p><p>Estas líneas están sincronizadas para describir lo que suena y plasmarlo en el plano musical.</p>
 <p>Las dos líneas tienen marcas numeradas y interseccionan en la marca de inicio <strong>0</strong>.</p>`,
     tipsTitle: 'Prueba el Plano Nuzic',
     tips: `<p>Haz clic en <strong>Play</strong> para generar una secuencia aleatoria.</p>
 <p><strong>Tip:</strong> El plano revela que la música tiene dos dimensiones inseparables: el sonido y el tiempo.</p>`,
   },
   3: {
-    text: `<p>La <mark class="hl-yellow">línea temporal</mark> es el eje horizontal y nos permite <mark class="hl-yellow">medir el tiempo</mark> en la música.</p><p>En ella marcamos puntos equidistantes que representan una <strong>pulsación </strong>constante, como los segundos de un reloj o los latidos de un corazón.</p><p>La velocidad de esa pulsación se expresa con un número: los <strong>BPM</strong> (<em>beats per minute</em>), es decir, pulsos por minuto.</p><p>A cada punto de la línea temporal lo llamamos <strong>pulso</strong>. El pulso de partida es el <strong>0</strong>, porque funciona como el inicio de la medición.</p><p>Los <b>pulsos</b> nos permiten situar con precisión en qué instante aparece cada sonido.</p><p>Cuando contamos pasos, es natural empezar desde el 1: el paso 1 va del pulso 0 al pulso 1; el paso 2 va del pulso 1 al pulso 2, y así sucesivamente.</p><p><mark class="hl-box"><b>Pulso</b> = punto de referencia.<br><b>Pulsación</b> = distancia entre dos pulsos</mark></p>
+    text: `<p>La <mark class="hl-yellow">línea temporal</mark> es el eje horizontal y nos permite <mark class="hl-yellow">medir el tiempo</mark> en la música.</p><p>En ella marcamos puntos equidistantes que representan una <strong>pulsación </strong>constante, como los segundos de un reloj o los latidos de un corazón.</p><p>La velocidad de esa pulsación se expresa con un número: los <strong>BPM</strong> (<em>beats per minute</em>), es decir, pulsos por minuto.</p><p>A cada punto de la línea temporal lo llamamos <strong>pulso</strong>. El pulso de partida es el <strong>0</strong>, porque funciona como el inicio de la medición.</p><p>Los <b>pulsos</b> nos permiten situar con precisión en qué instante aparece cada sonido. </p><p>Entre un pulso y el siguiente hay un <b>paso temporal</b>. Llamamos paso temporal a la unidad de medición de la duración de un sonido.</p><p>Cuando contamos pasos, es natural empezar desde el 1: el paso 1 va del pulso 0 al pulso 1; el paso 2 va del pulso 1 al pulso 2, y así sucesivamente.</p><p><mark class="hl-box"><b>Pulso</b> = un punto en la línea temporal.<br><b>Pulsación</b> = repetición rítmica de los pulsos<br><b>Paso temporal</b> = distancia entre dos pulsos consecutivos. Se usa como unidad de medida. </mark></p>
 <h3>¿Y qué pasa con el eje vertical?</h3>`,
     tipsTitle: 'Prueba la Línea Temporal',
     tips: `<p>Haz clic en ▶️ y escucha dos notas aleatorias en posiciones distintas de la línea temporal.</p>
@@ -158,19 +144,18 @@ export const slideContent = {
 <p><strong>Tip:</strong> La primera escucha es siempre la escala cromática ascendente; sirve para mostrar las 12 notas antes de escucharlas en melodías aleatorias.</p>`,
   },
   5: {
-    text: `<p>Hemos colocado la <mark class="hl-yellow">línea temporal</mark> en horizontal y la <mark class="hl-pink">línea sonora</mark> en vertical, y así hemos creado un plano: el espacio donde podemos representar la música.</p><p>Este plano funciona como un mapa. Nos permite ver qué notas suenan, en qué momento aparecen y cuánto dura cada una. </p><p>A cada nota le corresponde un punto en el plano. Ese punto se define con dos números, como si fueran las coordenadas de un lugar en un mapa. Lo llamamos el<strong> </strong><strong>par Pulso-Nota:</strong></p><p>El primer número indica el <mark class="hl-yellow">pulso</mark> donde la nota suena (eje horizontal). El segundo número indica la <mark class="hl-pink">nota</mark> escogida (eje vertical). </p><p>En esta primera representación, cada pulso solo puede tener una nota, igual que cuando cantamos una melodía: en cada instante solo cantamos una nota a la vez.</p><p><mark class="hl-box"><b>Par P-N</b>: representan una intersección Pulso-Nota en el plano musical.</mark></p>`,
+    text: `<p>Hemos colocado la <mark class="hl-yellow">línea temporal</mark> en horizontal y la <mark class="hl-pink">línea sonora</mark> en vertical, y así hemos creado un plano: el espacio donde podemos representar la música.</p><p>Este plano funciona como un mapa. Nos permite ver qué notas suenan, en qué momento aparecen y cuánto dura cada una. </p><p>A cada nota le corresponde un punto en el plano. Ese punto se define con dos números, como si fueran las coordenadas de un lugar en un mapa. Lo llamamos el<strong> </strong><strong>par Pulso-Nota:</strong></p><p>El primer número indica el <mark class="hl-yellow">pulso</mark> donde la nota suena (eje horizontal). El segundo número indica la <mark class="hl-pink">nota</mark> escogida (eje vertical). </p><p>En esta primera representación, cada pulso solo puede tener una nota, igual que cuando cantamos una melodía: en cada instante solo cantamos una nota a la vez.</p><p><mark class="hl-box"><b>Par P-N</b>: representa una intersección Pulso-Nota en el plano musical.</mark></p>`,
     tipsTitle: 'Prueba el Plano Nuzic',
     tips: `<p>Haz clic en cualquier celda del plano para escuchar su nota y ver sus coordenadas (Pulso - Nota).</p>
 <p>Pulsa ▶️ para escuchar de 4 a 8 notas aleatorias distribuidas en 8 pulsos.</p>
 <p><strong>Tip:</strong> Prueba a hacer clic en varias celdas seguidas para explorar la relación entre posición en el plano y sonido. </p>`,
   },
   6: {
-    text: `<p>Ya tenemos el mapa para crear música moviéndonos a través de números.</p>
-<p>Cada nota tendrá dos números distintos, sincronizados e interdependientes: uno define la nota y otro la sitúa en el tiempo; uno lo elegimos en la línea sonora, otro en la línea temporal.</p>
-<p>Para distinguir los dos números les ponemos una letra delante, una <strong>N</strong> para la nota, <code>N(x)</code>, y una <strong>P</strong> para el pulso, <code>P(y)</code>.</p>
-<p>Para crear una melodía, escogemos y ordenamos sucesiones de números. A cada número de una nota le corresponderá un número de pulso. Estamos ordenando sonidos en el tiempo.</p>
-<p>Los números de la línea sonora pueden subir y bajar y se pueden repetir. También podemos usar un silencio en vez de una nota, escribiéndolo con <code>s</code>. Los números de la línea temporal solo pueden ir en una dirección y no se pueden repetir, como el paso del tiempo.</p>
-<p>Nos regimos por la estructura del plano: 12 números para las notas (0–11) y 8 para los pulsos (0–7).</p>`,
+    text: `<p>Ya tenemos el mapa para crear música.</p>
+<p>Cada sonido musical viene marcado por dos parámetros distintos, dos números sincronizados e interdependientes: uno sitúa el sonido en el tiempo; el otro define la nota. Un parámetro lo elegimos en la línea temporal; el otro en la línea sonora.</p>
+<p>Para distinguir los dos números les ponemos una letra delante, una <b>P</b> para el pulso, <code>P(x)</code>y una <b>N</b> para la nota, <code>N(y)</code>. Para crear una melodía, escogemos y ordenamos <b>sucesiones</b> de números. A cada número de un pulso le corresponderá un número de nota. Así estamos ordenando sonidos en el tiempo.</p>
+<p>Los números de la línea sonora pueden subir y bajar y se pueden repetir. También podemos usar un silencio en vez de una nota. El silencio lo anotamos como “S”. Los números en la línea temporal solo pueden ir hacia adelante y no se pueden repetir, como sucede con el tiempo.</p>
+<p>Los números de la línea sonora pueden subir y bajar y se pueden repetir. También podemos usar un silencio en vez de una nota, escribiéndolo con <code>s</code>. Los números de la línea temporal solo pueden ir en una dirección y no se pueden repetir, como el paso del tiempo.</p><p>/h3/Ahora que ya tenemos las notas situadas, vamos a ver cómo se mueve la música./h3/</p>`,
     tipsTitle: 'Prueba el Plano Nuzic',
     tips: `<p>Usa el <strong>editor N-P</strong> para introducir pares y crear una sucesión. O haz clic en celdas del plano para añadir o quitar notas.</p>
 <p>Pulsa ▶️ para reproducir, 🎲 para generar una sucesión aleatoria, 🗑 para reiniciar.</p>
