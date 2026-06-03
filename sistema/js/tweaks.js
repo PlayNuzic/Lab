@@ -102,6 +102,7 @@ const btnHlPink = document.getElementById('tw-hl-pink');
 const btnHlYellow = document.getElementById('tw-hl-yellow');
 const btnHlBox = document.getElementById('tw-hl-box');
 const btnHlClear = document.getElementById('tw-hl-clear');
+const btnClearFormat = document.getElementById('tw-clear-format');
 const btnExport = document.getElementById('tw-export');
 const btnResetPaso = document.getElementById('tw-reset-paso');
 
@@ -174,6 +175,14 @@ if (btnHlClear) {
   btnHlClear.addEventListener('mousedown', (e) => { e.preventDefault(); });
   btnHlClear.addEventListener('click', () => {
     window.__sistemaClearHighlight?.();
+  });
+}
+// Botó "Sin formato": desempaqueta tags de format (b/strong/em/i/h2-4/
+// code/sup/sub/span/font) i strippeja inline styles. Preserva marks.
+if (btnClearFormat) {
+  btnClearFormat.addEventListener('mousedown', (e) => { e.preventDefault(); });
+  btnClearFormat.addEventListener('click', () => {
+    window.__sistemaClearFormatting?.();
   });
 }
 btnExport.addEventListener('click', async ()=>{

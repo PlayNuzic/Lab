@@ -20,7 +20,7 @@ const DENSITY_KEY = 'sistema.densityByPaso';  // { [paso]: 'compact'|'cozy'|'loo
 const DEFAULT_DENSITY = 'cozy';  // 'Normal' — cas base sense regla CSS especial
 const OVERRIDES_KEY = 'sistema.overrides';
 const OVERRIDES_VERSION_KEY = 'sistema.overrides.version';
-const OVERRIDES_VERSION = 2;  // bumped when paso 21 was merged into 20
+const OVERRIDES_VERSION = 3;  // v3: paso 7 deleted, 8..26 shifted to 7..25 (also 17.5..20.5 → 16.5..19.5)
 
 // Easter egg: capítol amagat "complex" → pasos 17.5/18.5/19.5/20.5
 // (Fraccions Complexes). Es desbloqueja amb 5 clicks al badge d'un pas
@@ -53,6 +53,26 @@ function migrateOverridesV2(stored) {
   return out;
 }
 
+// v3: paso 7 (A-intro "Midiendo el movimiento") va ser eliminat. Pasos
+// 8-26 baixen una posició → 7-25. Pasos ocults 17.5/18.5/19.5/20.5 →
+// 16.5/17.5/18.5/19.5. Mateixa transformació també aplicada a
+// `densityByPaso` (sessionStorage-independent: viu a localStorage propi).
+function migrateOverridesV3(stored) {
+  const out = {};
+  for (const [k, v] of Object.entries(stored)) {
+    const n = Number(k);
+    if (n === 7) continue;  // El pas 7 va desaparèixer; res a mapejar.
+    let target = n;
+    if (Number.isInteger(n) && n >= 8) target = n - 1;
+    else if (n === 17.5) target = 16.5;
+    else if (n === 18.5) target = 17.5;
+    else if (n === 19.5) target = 18.5;
+    else if (n === 20.5) target = 19.5;
+    out[target] = v;
+  }
+  return out;
+}
+
 // Text overrides (edit-mode persistence). Structure:
 //   { [paso]: { title?: string, text?: string, tipsTitle?: string, tips?: string } }
 // Each field stores the edited HTML (innerHTML for rich text, textContent for
@@ -63,15 +83,27 @@ function migrateOverridesV2(stored) {
 // stripped of inline styles, foreign fonts and class attributes — leaving
 // only semantic tags (p, strong, em, h2/h3/h4, code, br, ul/ol/li). The
 // sistema's own typography (Ubuntu via --font-body) then applies uniformly.
+// Aplica les migracions de renumeració acumulades a un store paso-keyed
+// (overrides o densityByPaso, indistintament — totes dues són
+// { [paso]: ... }).
+function applyPasoMigrations(stored, ver) {
+  let out = stored;
+  if (ver < 2) out = migrateOverridesV2(out);
+  if (ver < 3) out = migrateOverridesV3(out);
+  return out;
+}
+
 function loadOverrides(){
   try {
     let stored = JSON.parse(localStorage.getItem(OVERRIDES_KEY)) || {};
     let dirty = false;
 
-    // One-time renumbering migration (see migrateOverridesV2 above).
+    // One-time renumbering migrations (vegeu migrateOverridesVN amunt).
     const ver = Number(localStorage.getItem(OVERRIDES_VERSION_KEY)) || 1;
     if (ver < OVERRIDES_VERSION) {
-      stored = migrateOverridesV2(stored);
+      stored = applyPasoMigrations(stored, ver);
+      // El bump de la versió el fa loadOverrides per últim (després de
+      // loadDensityByPaso, que també llegeix el ver per saber si migrar).
       localStorage.setItem(OVERRIDES_VERSION_KEY, String(OVERRIDES_VERSION));
       dirty = true;
     }
@@ -106,19 +138,37 @@ const ALLOWED_RICH_TAGS = new Set([
 // classes s'eliminen com sempre.
 const ALLOWED_MARK_CLASSES = new Set(['hl-pink', 'hl-yellow', 'hl-box']);
 
-// Convert plain ASCII superscript notation `N^M` (e.g. `P(3^1)`) into
-// real <sup> markup. Only digits on either side, so `2^16` → `2<sup>16</sup>`
-// without disturbing other `^` uses (regex, math expressions in code blocks
-// are already escaped or wrapped in <code>).
-function expandSuperscriptNotation(html){
+// Marcadors de text que l'editor de tweaks no pot generar fàcilment des
+// del contenteditable (no hi ha botó dedicat). Es processen tant en
+// guardar (via sanitizeHtml) com en mostrar (via expandSlideMarkers
+// abans d'innerHTML), perquè els autors poden escriure'ls a la mà.
+//
+//   N^M           → N<sup>M</sup>   (superíndex per a P(3^1), 2^16, etc.)
+//   /h3/X/h3/     → <h3>X</h3>      (heading que el contenteditable
+//                                    converteix en text gros en bold)
+//   /textnormal/X/textnormal/ → X    (escape per a text enganxat amb
+//                                    estils inline que es transformen en
+//                                    bold/gros — strippejant els marcadors
+//                                    s'aprofita la sanitització que elimina
+//                                    els <span style="...">)
+function expandSlideMarkers(html){
   if (!html || typeof html !== 'string') return html;
-  return html.replace(/(\d)\^(\d+)/g, '$1<sup>$2</sup>');
+  // Superíndex: dígit ^ dígits → <sup>
+  html = html.replace(/(\d)\^(\d+)/g, '$1<sup>$2</sup>');
+  // /h3/.../h3/ → <h3>...</h3> (DOTALL — pot incloure salts de línia
+  // si el contingut és multi-paràgraf, però normalment una sola línia).
+  html = html.replace(/\/h3\/([\s\S]*?)\/h3\//g, '<h3>$1</h3>');
+  // /textnormal/ marcador: només se strippeja (deixa el contingut a la
+  // mercè dels tags pare/CSS, que s'esperen normals després de
+  // sanititzar inline styles).
+  html = html.replace(/\/textnormal\//g, '');
+  return html;
 }
 
 function sanitizeHtml(html){
   if (!html || typeof html !== 'string') return html;
-  // Pre-process plain `N^M` notation into real <sup> tags before tokenizing.
-  html = expandSuperscriptNotation(html);
+  // Pre-process slide markers (superscript, /h3/, /textnormal/) before tokenizing.
+  html = expandSlideMarkers(html);
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
 
@@ -200,7 +250,17 @@ function sanitizeHtml(html){
 const NARROW_VIEWPORT_QUERY = '(max-width: 599px)';
 
 function loadDensityByPaso(){
-  try { return JSON.parse(localStorage.getItem(DENSITY_KEY)) || {}; } catch { return {}; }
+  try {
+    let stored = JSON.parse(localStorage.getItem(DENSITY_KEY)) || {};
+    const ver = Number(localStorage.getItem(OVERRIDES_VERSION_KEY)) || 1;
+    if (ver < OVERRIDES_VERSION) {
+      stored = applyPasoMigrations(stored, ver);
+      // El bump del version key el fa loadOverrides, que s'executa
+      // després; aquí només persistim el nou objecte migrat.
+      try { localStorage.setItem(DENSITY_KEY, JSON.stringify(stored)); } catch {}
+    }
+    return stored;
+  } catch { return {}; }
 }
 
 const state = {
@@ -309,7 +369,7 @@ function renderTitle(slide, section){
 
 function renderText(content, paso){
   const raw = getOverride(paso, 'text') ?? (content.text || fillerContent.text);
-  const text = expandSuperscriptNotation(raw);
+  const text = expandSlideMarkers(raw);
   return `
     <div class="slot-text">
       <div class="prose" data-field="text">${text}</div>
@@ -321,7 +381,7 @@ function renderTips(content, paso){
   const hasTips = tipsOverride != null || (content && content.tips);
   if (!hasTips) return '';
   const label = getOverride(paso, 'tipsTitle') ?? (content.tipsTitle || 'Tips');
-  const body = expandSuperscriptNotation(tipsOverride ?? content.tips);
+  const body = expandSlideMarkers(tipsOverride ?? content.tips);
   return `
     <aside class="slot-tips tips" role="note">
       <div class="tips__label" data-field="tipsTitle">${label}</div>
@@ -659,6 +719,62 @@ function clearHighlight() {
   if (changed) persistField(state.paso, field);
 }
 window.__sistemaClearHighlight = clearHighlight;
+
+// Tags que considerem "format" i que el botó "Sin formato" desempaqueta
+// (deixa el contingut, treu el wrapper). La estructura (`p`, `br`, llistes,
+// `blockquote`) i els ressaltats (`mark`) es conserven.
+const FORMATTING_TAGS = new Set(['strong','b','em','i','u','s','sup','sub','code','h2','h3','h4','span','font']);
+
+// Treu format de la selecció: desempaqueta `<strong>/<b>/<em>/<i>/<h2-4>/
+// <code>/<sup>/<sub>/<span>/<font>` i strippeja estils inline. Preserva
+// `<mark hl-*>` i l'estructura (`<p>`, `<br>`, llistes, `<blockquote>`).
+// Cridat des del botó "Sin formato" del panell tweaks.
+function clearFormatting() {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+  const range = sel.getRangeAt(0);
+  const startEl = range.startContainer.nodeType === Node.ELEMENT_NODE
+    ? range.startContainer
+    : range.startContainer.parentElement;
+  const field = startEl?.closest('[data-field]');
+  if (!field || field.getAttribute('contenteditable') !== 'true') return;
+  const fieldName = field.dataset.field;
+  if (fieldName !== 'text' && fieldName !== 'tips') return;
+
+  const tmp = document.createElement('div');
+  tmp.appendChild(range.extractContents());
+
+  // Walk depth-first: unwrap formatting tags, strip inline attrs de la resta
+  // (excepte `<mark>` que conserva la classe hl-*).
+  function process(node) {
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    [...node.childNodes].forEach(process);
+    const tag = node.tagName.toLowerCase();
+    if (FORMATTING_TAGS.has(tag)) {
+      const parent = node.parentNode;
+      while (node.firstChild) parent.insertBefore(node.firstChild, node);
+      node.remove();
+      return;
+    }
+    if (tag === 'mark') {
+      const cls = (node.getAttribute('class') || '').split(/\s+/)
+        .find(c => ALLOWED_MARK_CLASSES.has(c));
+      [...node.attributes].forEach(a => node.removeAttribute(a.name));
+      if (cls) node.setAttribute('class', cls);
+      return;
+    }
+    [...node.attributes].forEach(a => node.removeAttribute(a.name));
+  }
+  [...tmp.childNodes].forEach(process);
+
+  const frag = document.createDocumentFragment();
+  while (tmp.firstChild) frag.appendChild(tmp.firstChild);
+  range.insertNode(frag);
+
+  sel.removeAllRanges();
+  persistField(state.paso, field);
+}
+window.__sistemaClearFormatting = clearFormatting;
 
 function goTo(paso){
   if (paso === state.paso) return;
