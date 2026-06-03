@@ -60,6 +60,18 @@ body[data-editable="true"] [contenteditable="true"]:focus{
   text-align: left;
 }
 
+/* Neutralitza font-size/family inherits dels fills: si l'usuari enganxa
+   text amb estils inline (típic d'un copy-paste extern), tot dins la
+   caixa segueix la mida `0.88em` del propi `.hl-box`. `font-weight`
+   intencionalment NO es toca — perquè `<strong>`/`<b>` segueixin fent
+   bold. */
+.prose mark.hl-box *,
+.tips__body mark.hl-box *{
+  font-size: inherit !important;
+  font-family: inherit !important;
+  line-height: inherit !important;
+}
+
 
 .slot-title{
   display: flex;
