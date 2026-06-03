@@ -11,6 +11,7 @@ import {
 } from '../sound/index.js';
 import { initSoundDropdown } from '../shared-ui/sound-dropdown.js';
 import { initInstrumentDropdown } from '../shared-ui/instrument-dropdown.js';
+import { CANONICAL_FX } from './audio-init.js';
 
 const DEFAULT_LONG_PRESS = 500;
 
@@ -337,13 +338,22 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   const knobsWrapper = document.createElement('div');
   knobsWrapper.className = 'mixer-channel__knobs';
 
+  // Initial knob values come from CANONICAL_FX (the same defaults setupAudioDefaults
+  // applies to every app), so the knobs read correctly even before the audio context
+  // exists. Once audio is initialised, openMenu() re-syncs them to the live values.
+  const fxDefaults = {
+    comp: CANONICAL_FX?.compressor?.threshold ?? -6,
+    limit: CANONICAL_FX?.limiter?.threshold ?? -0.5,
+    reverb: Math.round((CANONICAL_FX?.reverb?.wet ?? 0) * 100)
+  };
+
   // Compressor knob (threshold range: -18dB to 0dB)
   // inverted: arc fills at -18dB (max compression), empties at 0dB (no compression)
   const compKnob = createKnob({
     label: 'Comp',
     min: -18,
     max: 0,
-    value: -12,
+    value: fxDefaults.comp,
     inverted: true,
     onChange: (val) => window.NuzicAudioEngine?.setCompressorThreshold(val)
   });
@@ -354,7 +364,7 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     label: 'Revb',
     min: 0,
     max: 75,
-    value: 18,
+    value: fxDefaults.reverb,
     onChange: (val) => window.NuzicAudioEngine?.setReverbWet(val / 100)
   });
   knobsWrapper.appendChild(reverbKnob.element);
@@ -365,7 +375,7 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     label: 'Limit',
     min: -3,
     max: -0.5,
-    value: -1,
+    value: fxDefaults.limit,
     inverted: true,
     onChange: (val) => window.NuzicAudioEngine?.setLimiterThreshold(val)
   });
