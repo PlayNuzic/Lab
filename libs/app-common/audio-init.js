@@ -260,7 +260,7 @@ export const CANONICAL_FX = Object.freeze({
   compressor: { threshold: -6, knee: 30, ratio: 2, attack: 0.02, release: 0.25 },
   limiter:    { threshold: -0.5, knee: 0, ratio: 20, attack: 0.003, release: 0.1 },
   eq:         { type: 'highshelf', frequency: 3000, gain: 1.5 },
-  reverb:     { wet: 0 }
+  reverb:     { wet: 0.12 }
 });
 
 /**

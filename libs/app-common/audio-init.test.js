@@ -77,7 +77,7 @@ describe('Audio Initialization Components', () => {
       expect(CANONICAL_FX.compressor.threshold).toBe(-6);
       expect(CANONICAL_FX.limiter.threshold).toBe(-0.5);
       expect(CANONICAL_FX.eq.gain).toBe(1.5);
-      expect(CANONICAL_FX.reverb.wet).toBe(0);
+      expect(CANONICAL_FX.reverb.wet).toBe(0.12);
     });
 
     test('is frozen', () => {
@@ -127,7 +127,7 @@ describe('Audio Initialization Components', () => {
       expect(audio.calls.fxEnabled).toEqual([true]);
       expect(audio.calls.compThresh).toEqual([-6]);
       expect(audio.calls.limThresh).toEqual([-0.5]);
-      expect(audio.calls.reverbWet).toEqual([0]);
+      expect(audio.calls.reverbWet).toEqual([0.12]);
     });
 
     test('registers channels from tier', () => {

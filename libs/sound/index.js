@@ -775,11 +775,12 @@ export class TimelineAudio {
         lim.attack.value = 0.003;    // 3ms - fast but not instant
         lim.release.value = 0.1;     // 100ms - smoother recovery
 
-        // Configure Reverb (synthetic impulse response)
+        // Configure Reverb (synthetic impulse response). Wet canònic 12%
+        // (harmonitzat amb CANONICAL_FX a libs/app-common/audio-init.js).
         this._bus.effects.reverb.buffer = this._createReverbImpulse(ctx, 1.5, 2);
-        this._bus.effects.reverbDry.gain.value = 0.82;  // 82% dry (default 18% wet)
-        this._bus.effects.reverbWet.gain.value = 0.18;  // 18% wet by default
-        this._reverbWetValue = 0.18;
+        this._bus.effects.reverbDry.gain.value = 0.88;  // 88% dry (12% wet)
+        this._bus.effects.reverbWet.gain.value = 0.12;  // 12% wet by default
+        this._reverbWetValue = 0.12;
 
         // Wire up reverb dry/wet parallel paths:
         // limiter → [dry path] → reverbMix
