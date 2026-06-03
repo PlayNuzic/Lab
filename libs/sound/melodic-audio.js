@@ -238,12 +238,26 @@ export class MelodicTimelineAudio extends TimelineAudio {
   }
 
   /**
-   * Stop playback - extends parent stop() to also release instrument notes
+   * Stop playback - extends parent stop() to also release instrument notes.
+   * @param {Object} [opts]
+   * @param {boolean} [opts.graceful] - força final suau (deixa sonar les
+   *   cues ADSR). Si no s'indica, s'infereix de _endedNaturally (final
+   *   natural de seqüència). Quan és true NO cridem stopAll(): cada nota
+   *   ja té el seu source.stop(endTime+0.01) programat i sona la cua
+   *   sencera, evitant el tall sec de 50ms.
    */
-  stop() {
-    super.stop();
+  stop(opts = {}) {
+    // Llegim el flag ABANS que super.stop() el consumeixi.
+    const graceful = opts.graceful ?? this._endedNaturally;
+    super.stop({ ...opts, graceful });
 
-    // Stop low-latency pool
+    if (graceful) {
+      // Final natural: deixem que les notes ja programades sonin la seva
+      // cua completa. No fem stopAll() ni releaseAll() (era el tall abrupte).
+      return;
+    }
+
+    // Stop d'usuari: silenci ràpid (click-free) de totes les veus.
     if (this._samplerPool) {
       this._samplerPool.stopAll();
     }

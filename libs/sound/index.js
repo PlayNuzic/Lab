@@ -444,6 +444,12 @@ export class TimelineAudio {
     this.isReady = false;
     this.isPlaying = false;
 
+    // Flag que distingeix "la seqüència ha acabat sola" (final natural,
+    // posat a true al missatge 'done' del worklet) de "l'usuari prem Stop".
+    // El consumeix stop(): si és true, deixem que les cues ADSR ja
+    // programades sonin senceres en lloc del tall ràpid de 50ms.
+    this._endedNaturally = false;
+
     this.totalRef = 0;
     this.intervalRef = 0;
     this.loopRef = true;
@@ -1287,6 +1293,8 @@ export class TimelineAudio {
     this._pulseCounter = -1;
     this._lastAbsoluteStep = null;
     this._lastCycleState = null;
+    // Nova seqüència: encara no ha acabat de forma natural.
+    this._endedNaturally = false;
 
     const resolutionOpt = Number.isFinite(options?.baseResolution)
       ? options.baseResolution
@@ -1358,8 +1366,14 @@ export class TimelineAudio {
     }
   }
 
-  stop() {
+  stop(opts = {}) {
     if (!this._ctx) return;
+
+    // graceful: final natural → deixem que els sons ja programats acabin
+    // la seva cua en lloc de tallar-los. Es pot forçar amb opts.graceful;
+    // si no, s'infereix del flag _endedNaturally (posat al 'done' del worklet).
+    const graceful = opts.graceful ?? this._endedNaturally;
+    this._endedNaturally = false;
 
     // Capture timing info before clearing
     const wasPlaying = this.isPlaying;
@@ -1377,7 +1391,12 @@ export class TimelineAudio {
       this._schedulerId = null;
     }
     this._node?.port?.postMessage({ action: 'stop' });
-    this._stopAllPlayers();
+    // Tall dur dels BufferSources rítmics només si NO és final natural.
+    // En final natural, els sources ja programats acaben el seu buffer i
+    // s'auto-netegen via source.onended (cap clic, cap tall sec).
+    if (!graceful) {
+      this._stopAllPlayers();
+    }
     this._lastStep = null;
     this._lastPulseTime = null;
     this._lastAbsoluteStep = null;
@@ -1799,6 +1818,10 @@ export class TimelineAudio {
         }
       }
     } else if (msg.type === 'done') {
+      // Final natural de seqüència: marquem el flag perquè el stop() que
+      // l'app cridi (directament o via onComplete) sigui graceful i deixi
+      // sonar la cua de l'última nota.
+      this._endedNaturally = true;
       // Call onComplete callback - app is responsible for calling stop() when ready
       // This allows apps to add delays to let the last pulse ring out
       if (typeof this.onCompleteRef === 'function') {
