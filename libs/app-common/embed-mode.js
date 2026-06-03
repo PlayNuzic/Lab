@@ -13,6 +13,24 @@
 if (new URLSearchParams(location.search).has('embed')) {
   document.documentElement.setAttribute('data-embed', 'true');
 
+  // Evita scroll-jump al parent (Sistema) quan una app fa `.focus()` sobre
+  // un input/botó durant la init (típic d'editors amb auto-focus a la
+  // primera cel·la). Sense `preventScroll`, el browser porta l'iframe a la
+  // vista del parent → la pàgina del Sistema baixa fins a l'app i interromp
+  // la lectura del text del pas. En mode embed apliquem `preventScroll:true`
+  // per defecte; les apps poden continuar passant options explícites
+  // (es respecten si tenen `preventScroll` definit).
+  const _focus = HTMLElement.prototype.focus;
+  HTMLElement.prototype.focus = function(options) {
+    if (options == null) {
+      return _focus.call(this, { preventScroll: true });
+    }
+    if (typeof options === 'object' && !('preventScroll' in options)) {
+      return _focus.call(this, { ...options, preventScroll: true });
+    }
+    return _focus.call(this, options);
+  };
+
   // El Sistema (parent) ens envia el seu propi mode (horitzontal/vertical)
   // via postMessage cada cop que el viewport del browser creua el
   // breakpoint de 900px. Algunes apps (App23, App24) volen apilar les
