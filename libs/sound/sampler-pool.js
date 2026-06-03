@@ -236,9 +236,16 @@ export function createSamplerPool(config) {
     }
 
     const now = context.currentTime;
+    // `when <= 0` és el sentinella de "toca ARA" (previews de cel·la, etc.):
+    // NO és una nota programada que arriba tard. Sense aquest guard, el
+    // càlcul de drift feia drift = now (enorme) → adjustedDuration es
+    // col·lapsava a 0.01s i la nota es tallava a 10ms (sonava truncada i
+    // "desafinada"). La compensació de drift només té sentit per a notes
+    // amb un `when` real (programades pel scheduler) que arriben endarrerides.
+    const effectiveWhen = (when > 0) ? when : now;
     // Compensate for callback drift: if when is in the past, shorten duration accordingly
-    const drift = Math.max(0, now - when);
-    const startTime = Math.max(when, now);
+    const drift = Math.max(0, now - effectiveWhen);
+    const startTime = Math.max(effectiveWhen, now);
     const adjustedDuration = drift > 0 ? Math.max(0.01, duration - drift) : duration;
 
     // Voice stealing: si superem `poolSize` veus simultànies per la
