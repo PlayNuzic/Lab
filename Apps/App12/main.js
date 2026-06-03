@@ -107,6 +107,13 @@ async function handlePlay() {
     return;
   }
 
+  // Auto-fill gaps with silences: al fer play, els pulsos sense parell es
+  // converteixen en silencis explícits a l'editor + grid. Així l'usuari veu
+  // tota la seqüència (notes + silencis) coherent amb l'audio.
+  if (gridEditor.fillGapsWithSilences && gridEditor.fillGapsWithSilences()) {
+    syncGridFromPairs(gridEditor.getPairs());
+  }
+
   const allPairs = gridEditor.getPairs();
 
   // Group pairs by pulse for polyphonic playback (skip rests)
@@ -349,6 +356,21 @@ function syncGridFromPairs(pairs) {
     }
   });
 
+  // Marquem cada silenci amb `.rest` a la cel·la de la fila de la nota
+  // PRECEDENT (per ordre de puls), de la mateixa manera que App15: el
+  // silenci continua "ressonant" a la mateixa altura de la nota anterior.
+  // Si no hi ha cap nota prèvia, default fila 0.
+  const sortedByPulse = [...pairs].sort((a, b) => a.pulse - b.pulse);
+  let lastNoteRow = 0;
+  sortedByPulse.forEach(p => {
+    if (p.isRest) {
+      const cell = musicalGrid.getCellElement(lastNoteRow, p.pulse);
+      if (cell) cell.classList.add('rest');
+    } else if (p.note !== null && p.note !== undefined) {
+      lastNoteRow = p.note;
+    }
+  });
+
   // Highlight interval paths (if enabled)
   if (musicalGrid.highlightIntervalPath) {
     // Pass polyphonic flag to enable voice separation
@@ -550,7 +572,9 @@ function createNuzicEditor(timelineWrapper) {
     cell.inputMode = 'numeric';
     cell.maxLength = 2;
     cell.className = `editor-cell editor-cell--${type}`;
-    cell.value = type === 'n' ? String(pair.note) : String(pair.pulse);
+    cell.value = type === 'n'
+      ? (pair.isRest ? 's' : String(pair.note))
+      : String(pair.pulse);
     cell.dataset.pairIndex = String(pairIndex);
     cell.dataset.pulse = String(pair.pulse);
     cell.dataset.row = type;
@@ -567,27 +591,41 @@ function createNuzicEditor(timelineWrapper) {
       const val = cell.value.trim();
       if (!val || val === originalValue) { cell.value = originalValue; return; }
 
-      if (!/^\d+$/.test(val)) {
-        showEditorTooltip(cell, type === 'n' ? 'Nota: 0-11' : 'Pulso: 0-7');
-        cell.value = originalValue;
-        return;
-      }
-
-      const num = parseInt(val, 10);
       const idx = parseInt(cell.dataset.pairIndex, 10);
       const target = currentPairs[idx];
       if (!target) { cell.value = originalValue; return; }
 
       if (type === 'n') {
+        // Silenci: "s", "S", ".", "·" → marca el parell com a rest.
+        if (val === 's' || val === 'S' || val === '.' || val === '·') {
+          target.note = null;
+          target.isRest = true;
+          renderEditor();
+          syncGridFromPairs(currentPairs);
+          return;
+        }
+        if (!/^\d+$/.test(val)) {
+          showEditorTooltip(cell, 'Nota: 0-11 o "s"');
+          cell.value = originalValue;
+          return;
+        }
+        const num = parseInt(val, 10);
         if (num < 0 || num > 11) {
-          showEditorTooltip(cell, 'Nota: 0-11');
+          showEditorTooltip(cell, 'Nota: 0-11 o "s"');
           cell.value = originalValue;
           return;
         }
         target.note = num;
+        target.isRest = false;
         renderEditor();
         syncGridFromPairs(currentPairs);
       } else {
+        if (!/^\d+$/.test(val)) {
+          showEditorTooltip(cell, 'Pulso: 0-7');
+          cell.value = originalValue;
+          return;
+        }
+        const num = parseInt(val, 10);
         if (num < 0 || num > 7) {
           showEditorTooltip(cell, 'Pulso: 0-7');
           cell.value = originalValue;
@@ -639,7 +677,7 @@ function createNuzicEditor(timelineWrapper) {
     tooltipEl._timer = setTimeout(() => tooltipEl.classList.remove('visible'), 2000);
   }
 
-  function addPair(note, pulse) {
+  function addPair(note, pulse, isRest = false) {
     // Rule 3: no duplicate pulses
     if (currentPairs.some(p => p.pulse === pulse)) {
       const pInput = pCells.querySelector('.editor-input:not([readonly])');
@@ -647,11 +685,12 @@ function createNuzicEditor(timelineWrapper) {
       return false;
     }
     const wasLength = currentPairs.length;
-    currentPairs.push({ note, pulse });
+    const newPair = { note: isRest ? null : note, pulse, isRest: !!isRest };
+    currentPairs.push(newPair);
     // Rule 4: auto-sort by pulse ascending
     currentPairs.sort((a, b) => a.pulse - b.pulse);
     // Tooltip when reordering happened
-    const newIndex = currentPairs.findIndex(p => p.note === note && p.pulse === pulse);
+    const newIndex = currentPairs.indexOf(newPair);
     if (newIndex !== wasLength) {
       const anchor = lastEnteredType === 'p'
         ? pCells.querySelector('.editor-input')
@@ -666,7 +705,9 @@ function createNuzicEditor(timelineWrapper) {
     const pulse = pendingPulse;
     if (note === null || pulse === null) return;
 
-    if (addPair(note, pulse)) {
+    // pendingNote === 's' indica silenci.
+    const isRest = note === 's';
+    if (addPair(isRest ? null : note, pulse, isRest)) {
       pendingNote = null;
       pendingPulse = null;
       renderEditor();
@@ -691,6 +732,22 @@ function createNuzicEditor(timelineWrapper) {
       const val = e.target.value;
       // Allow empty (user is deleting)
       if (val === '') return;
+
+      // 's' / 'S' / '.' / '·' = silenci (només a la fila N).
+      // Es commiteja com a parell amb isRest=true al pols pending (o salta a P).
+      if (type === 'n' && (val === 's' || val === 'S' || val === '.' || val === '·')) {
+        pendingNote = 's';
+        lastEnteredType = 'n';
+        clearTimeout(autoJumpTimer);
+        if (pendingPulse !== null) {
+          commitPair();
+        } else {
+          const pInput = pCells.querySelector('.editor-input');
+          if (pInput) pInput.focus();
+        }
+        return;
+      }
+
       // Strip non-numeric
       if (!/^-?\d+$/.test(val)) { e.target.value = ''; return; }
 
@@ -699,7 +756,7 @@ function createNuzicEditor(timelineWrapper) {
       if (type === 'n') {
         // Rule 1: Note 0-11
         if (num < 0 || num > 11) {
-          showEditorTooltip(cell, 'Nota: 0-11');
+          showEditorTooltip(cell, 'Nota: 0-11 o "s"');
           e.target.value = '';
           clearTimeout(autoJumpTimer);
           pendingNote = null;
@@ -796,7 +853,11 @@ function createNuzicEditor(timelineWrapper) {
   gridEditor = {
     getPairs: () => currentPairs.map(p => ({ ...p })),
     setPairs: (pairs) => {
-      currentPairs = pairs.filter(p => p.note !== null && !p.isRest);
+      // Accepta notes i silencis (isRest=true). Filtrem entrades sense pols
+      // vàlid però conservem rests perquè es renderitzin com a 's'.
+      currentPairs = (pairs || [])
+        .filter(p => p && typeof p.pulse === 'number' && (p.isRest || p.note !== null))
+        .map(p => ({ ...p }));
       renderEditor();
     },
     clear: () => {
@@ -804,6 +865,25 @@ function createNuzicEditor(timelineWrapper) {
       pendingNote = null;
       pendingPulse = null;
       renderEditor();
+      // Sync visual: neteja `.active`/`.rest` de la graella (musicalGrid.clear
+      // només treu `.active`/`.highlighted`; calia això per als silencis).
+      syncGridFromPairs(currentPairs);
+    },
+    // Omple els pulsos sense parell amb silencis (per a l'auto-fill al play).
+    fillGapsWithSilences: () => {
+      const existing = new Set(currentPairs.map(p => p.pulse));
+      let added = false;
+      for (let p = 0; p < TOTAL_SPACES; p++) {
+        if (!existing.has(p)) {
+          currentPairs.push({ note: null, pulse: p, isRest: true });
+          added = true;
+        }
+      }
+      if (added) {
+        currentPairs.sort((a, b) => a.pulse - b.pulse);
+        renderEditor();
+      }
+      return added;
     },
     clearHighlights: () => {
       // No-op: nuzic editor doesn't have per-cell highlights
