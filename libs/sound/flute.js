@@ -72,15 +72,29 @@ export async function loadFlute() {
 
   loadPromise = (async () => {
     try {
-      // Verify AudioContext is running before creating sampler
-      const ctx = Tone.context?.rawContext || Tone.context;
-      console.log('Flute: AudioContext state before creating sampler:', ctx?.state);
+      // Wait for the engine's melodic channel FIRST, then pin Tone.js to its
+      // AudioContext BEFORE building the sampler — same cross-context fix as
+      // piano.js (Chrome enforces same-context connects; Firefox is lax).
+      let melodicChannel = null;
+      for (let i = 0; i < 10 && !melodicChannel; i++) {
+        melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
+        if (!melodicChannel && i < 9) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      if (melodicChannel?.context) {
+        const toneCtx = Tone.getContext?.()?.rawContext || Tone.getContext?.() || Tone.context;
+        if (toneCtx !== melodicChannel.context && typeof Tone.setContext === 'function') {
+          console.log('Flute: aligning Tone.js to the engine AudioContext');
+          Tone.setContext(melodicChannel.context);
+        }
+      }
 
+      // Resume the (now engine-aligned) context if suspended
+      const ctx = Tone.context?.rawContext || Tone.context;
       if (ctx?.state === 'suspended') {
-        console.log('Flute: Context suspended, attempting resume...');
         try {
           await ctx.resume();
-          console.log('Flute: Context resumed, state:', ctx.state);
         } catch (resumeErr) {
           console.warn('Flute: Resume failed:', resumeErr.message);
         }
@@ -92,8 +106,7 @@ export async function loadFlute() {
         urls[note] = `${note}.mp3`;
       });
 
-      // Create sampler - wrap in try-catch to see exact error
-      console.log('Flute: About to create Tone.Sampler...');
+      // Create the sampler — now guaranteed to live in the engine's context
       try {
         sampler = new Tone.Sampler({
           urls,
@@ -101,37 +114,22 @@ export async function loadFlute() {
           release: 0.8,   // Longer release for smoother decay
           baseUrl: BASE_URL
         });
-        console.log('Flute: Tone.Sampler created successfully');
       } catch (samplerErr) {
         console.error('Flute: Tone.Sampler constructor failed:', samplerErr.name, samplerErr.message);
-        console.error('Flute: Full error:', samplerErr);
         throw samplerErr;
       }
 
-      // Wait for melodic channel to be available (audio engine initialization)
-      // Retry up to 10 times with 100ms delay
-      let melodicChannel = null;
-      console.log('Flute: Waiting for melodic channel...');
-      for (let i = 0; i < 10 && !melodicChannel; i++) {
-        melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
-        if (!melodicChannel && i < 9) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
-
-      // Connect to melodic channel (goes through master effects chain) or fallback to destination
-      console.log('Flute: About to connect sampler, melodicChannel:', !!melodicChannel);
+      // Connect to the melodic channel (same context) or fall back to the
+      // destination. Connect failure is non-fatal so the flute still plays.
       try {
         if (melodicChannel) {
           sampler.connect(melodicChannel);
-          console.log('Flute connected to melodic channel (through effects chain)');
         } else {
           sampler.toDestination();
-          console.log('Flute connected directly to destination (no effects chain)');
         }
       } catch (connectErr) {
-        console.error('Flute: Connect failed:', connectErr.name, connectErr.message);
-        throw connectErr;
+        console.warn('Flute: connect failed, using destination:', connectErr.message);
+        try { sampler.toDestination(); } catch {}
       }
 
       // Wait for all samples to load

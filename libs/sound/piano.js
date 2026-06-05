@@ -75,26 +75,40 @@ export async function loadPiano() {
   setAudioLoadingFlag(true);
   loadPromise = (async () => {
     try {
-      // Verify AudioContext is running before creating sampler
-      const ctx = Tone.context?.rawContext || Tone.context;
-      console.log('Piano: AudioContext state before creating sampler:', ctx?.state);
+      // Wait for the engine's melodic channel FIRST, then pin Tone.js to its
+      // AudioContext BEFORE building the sampler. Otherwise the preload path can
+      // create the sampler in a stale context and sampler.connect() throws
+      // InvalidAccessError — Chrome enforces same-context connects, Firefox is
+      // lax (which is why it only broke in Chrome). Retry up to 10×100ms.
+      let melodicChannel = null;
+      for (let i = 0; i < 10 && !melodicChannel; i++) {
+        melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
+        if (!melodicChannel && i < 9) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      if (melodicChannel?.context) {
+        const toneCtx = Tone.getContext?.()?.rawContext || Tone.getContext?.() || Tone.context;
+        if (toneCtx !== melodicChannel.context && typeof Tone.setContext === 'function') {
+          console.log('Piano: aligning Tone.js to the engine AudioContext');
+          Tone.setContext(melodicChannel.context);
+        }
+      }
 
+      // Resume the (now engine-aligned) context if suspended
+      const ctx = Tone.context?.rawContext || Tone.context;
       if (ctx?.state === 'suspended') {
-        console.log('Piano: Context suspended, attempting resume...');
         try {
           await ctx.resume();
-          console.log('Piano: Context resumed, state:', ctx.state);
         } catch (resumeErr) {
           console.warn('Piano: Resume failed:', resumeErr.message);
         }
       }
 
       // URLs dels samples Salamander: C, D#, F# i A per octava (cada 3
-      // semitons / tercera menor — l'estàndard de @tonejs/piano). Abans
-      // només C i F# (cada 6 semitons): el detune màxim per nota baixa de
-      // ±300 a ±150 cents → millor timbre i menys variació de loudness
-      // entre notes adjacents (complementa la compensació de detune del
-      // SamplerPool). Tots quatre existeixen al CDN per a les octaves 1-7.
+      // semitons / tercera menor — l'estàndard de @tonejs/piano). El detune
+      // màxim per nota baixa de ±300 a ±150 cents → millor timbre i menys
+      // variació de loudness. Tots quatre existeixen al CDN per a octaves 1-7.
       const urls = {};
       for (let octave = 1; octave <= 7; octave++) {
         urls[`C${octave}`] = `C${octave}.mp3`;
@@ -103,45 +117,29 @@ export async function loadPiano() {
         urls[`A${octave}`] = `A${octave}.mp3`;
       }
 
-      // Create sampler - wrap in try-catch to see exact error
-      console.log('Piano: About to create Tone.Sampler...');
+      // Create the sampler — now guaranteed to live in the engine's context
       try {
         sampler = new Tone.Sampler({
           urls,
           release: 0.8,
           baseUrl: 'https://tonejs.github.io/audio/salamander/'
         });
-        console.log('Piano: Tone.Sampler created successfully');
       } catch (samplerErr) {
         console.error('Piano: Tone.Sampler constructor failed:', samplerErr.name, samplerErr.message);
-        console.error('Piano: Full error:', samplerErr);
         throw samplerErr;
       }
 
-      // Wait for melodic channel to be available (audio engine initialization)
-      // Retry up to 10 times with 100ms delay
-      let melodicChannel = null;
-      console.log('Piano: Waiting for melodic channel...');
-      for (let i = 0; i < 10 && !melodicChannel; i++) {
-        melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
-        if (!melodicChannel && i < 9) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
-
-      // Connect to melodic channel (goes through master effects chain) or fallback to destination
-      console.log('Piano: About to connect sampler, melodicChannel:', !!melodicChannel);
+      // Connect to the melodic channel (same context) or fall back to the
+      // destination. Connect failure is non-fatal so the piano still plays.
       try {
         if (melodicChannel) {
           sampler.connect(melodicChannel);
-          console.log('Piano connected to melodic channel (through effects chain)');
         } else {
           sampler.toDestination();
-          console.log('Piano connected directly to destination (no effects chain)');
         }
       } catch (connectErr) {
-        console.error('Piano: Connect failed:', connectErr.name, connectErr.message);
-        throw connectErr;
+        console.warn('Piano: connect failed, using destination:', connectErr.message);
+        try { sampler.toDestination(); } catch {}
       }
 
       // Wait for all samples to load
