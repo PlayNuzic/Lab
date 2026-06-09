@@ -296,27 +296,32 @@ body[data-theme="dark"] .slot-text code{ background: #2a2a25; color: var(--nuzic
 body[data-theme="dark"] .iframe-frame:has(.iframe-placeholder){ background: #2a2a25; }
 .iframe-frame iframe{ width: 100%; height: 100%; border: 0; display: block; }
 
-/* Paso 10 (Intervalos en el Plano Musical): el plànol iS-iT necessita
-   una mica més d'alçada per mostrar bé la sucesión sense escurçar-se. */
-.slide[data-paso="10"] .iframe-frame{ max-height: 1200px; }
+/* NOTA: les regles d'iframe específiques d'app es seleccionen per
+   `data-app` (posat pel renderer amb el nom de l'app del pas), MAI per
+   `data-paso`: les renumeracions de passos (v3, v4) ja havien desfasat
+   dues vegades les versions antigues d'aquestes regles. */
 
-/* Pasos 21-23 (apps d'escala App21-App23) — pugem el cap a 800px
-   perquè a pantalles altes les soundlines tinguin més alçada útil.
+/* App15 (Intervalos en el Plano Musical): el plànol iS-iT necessita
+   una mica més d'alçada per mostrar bé la sucesión sense escurçar-se. */
+.slide[data-app="App15"] .iframe-frame{ max-height: 1200px; }
+
+/* Apps d'escala App21-App23 — pugem el cap a 800px perquè a pantalles
+   altes les soundlines tinguin més alçada útil.
    App21/App22 són aspect 2/3 (vertical) amb una sola columna; App23
    és aspect 2/3 amb la columna dreta (pastilla + steps + pentagrama)
    apilada sota la d'esquerra dins l'iframe via media query. App24
    manté aspect 3/2 fins que es migri al patró de dues columnes. */
-.slide[data-paso="21"] .iframe-frame,
-.slide[data-paso="22"] .iframe-frame,
-.slide[data-paso="23"] .iframe-frame{ max-height: 800px; }
+.slide[data-app="App21"] .iframe-frame,
+.slide[data-app="App22"] .iframe-frame,
+.slide[data-app="App23"] .iframe-frame{ max-height: 800px; }
 
-/* Paso 20 / 20·B (App34 / App35 — plano-2D 12 files + fracció + nit-editor) —
+/* App34 / App35 (plano-2D 12 files + fracció + nit-editor) —
    aspect 3/4 amb max-height 900px perquè el matrix sencer + .middle +
    nit-editor + controls hi càpiguen sense retallar. */
-.slide[data-paso="20"] .iframe-frame,
-.slide[data-paso="20.5"] .iframe-frame{ max-height: 900px; }
+.slide[data-app="App34"] .iframe-frame,
+.slide[data-app="App35"] .iframe-frame{ max-height: 900px; }
 
-/* Paso 23 (App23) — aspect adaptatiu al viewport del sistema:
+/* App23 — aspect adaptatiu al viewport del sistema:
    • Per sobre del breakpoint del sistema (≥901px) el slot d'app és
      prou ample per cabir el layout horitzontal de dues columnes;
      forcem aspect 3/2 (horitzontal) sobreescrivint la var inline.
@@ -330,7 +335,7 @@ body[data-theme="dark"] .iframe-frame:has(.iframe-placeholder){ background: #2a2
      guanyar-li specificitat des d'un stylesheet extern cal `!important`
      sobre la custom property. Sense això, l'inline guanya i el ratio
      2/3 declarat a slide-data es manté també a viewports amples. */
-  .slide[data-paso="23"] .iframe-frame { --iframe-aspect: 3 / 2 !important; }
+  .slide[data-app="App23"] .iframe-frame { --iframe-aspect: 3 / 2 !important; }
 }
 
 /* En mode sistema-vertical (viewport browser ≤900px), els iframes
@@ -340,15 +345,16 @@ body[data-theme="dark"] .iframe-frame:has(.iframe-placeholder){ background: #2a2
    `.iframe-frame { height: NNNpx }` inline.
    Aquí desactivem `aspect-ratio`, `max-height` i `min-height` perquè
    l'altura inline pugui prevaldre.
-   Excepcions (mantenen mida fixa amb scroll intern):
-     - Apps de plànol/grid extens (2, 5, 6, 10, 15, 16, 20, 20.5, 25, 26):
-       ocupen tot el viewport si es deixen créixer.
-     - Apps amb soundline vertical (4, 9, 14, 21, 22): el seu contingut
-       usa `clamp(..., 80vh, ...)`; alliberar el body col·lapsa els
-       `vh` i el contingut queda xafat.
-   La llista ha de coincidir amb `NO_EXPAND_PASOS` a sistema/js/slides.js. */
+   Excepcions (mantenen mida fixa amb scroll intern): el renderer posa
+   la classe `slide--no-expand` als passos l'app dels quals és al set
+   `NO_EXPAND_APPS` de sistema/js/slides.js (font de veritat única):
+     - Apps de plànol/grid extens: ocupen tot el viewport si es deixen
+       créixer.
+     - Apps amb soundline vertical: el seu contingut usa
+       `clamp(..., 80vh, ...)`; alliberar el body col·lapsa els `vh` i
+       el contingut queda xafat. */
 @media (max-width: 900px) {
-  .slide:not([data-paso="2"]):not([data-paso="4"]):not([data-paso="5"]):not([data-paso="6"]):not([data-paso="9"]):not([data-paso="10"]):not([data-paso="14"]):not([data-paso="15"]):not([data-paso="16"]):not([data-paso="20"]):not([data-paso="20.5"]):not([data-paso="21"]):not([data-paso="22"]):not([data-paso="25"]):not([data-paso="26"]) .iframe-frame {
+  .slide:not(.slide--no-expand) .iframe-frame {
     aspect-ratio: auto !important;
     max-height: none !important;
     min-height: 0 !important;

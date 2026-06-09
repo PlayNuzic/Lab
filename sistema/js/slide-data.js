@@ -5,16 +5,19 @@
 // This mirrors the PDF precisely: each slide fits exactly one viewport, and the
 // positioning of each piece within the slide varies per paso.
 //
-// Currently wired: pasos 1-25 (paso 7 va ser eliminat el 2026-06-03 i la
-// resta es van renumerar 8→7, 9→8 ... 26→25; ídem ocults 17.5→16.5 ...).
+// Currently wired: pasos 1-28 (renumeració 2026-06-09: el paso 1 entra al
+// capítol "Descubriendo" — la secció "Introducción" desapareix — i
+// s'afegeixen passos intro parallax als capítols intervalos (7),
+// fraccionando (17) i escalas (22); l'antic paso 10 es converteix en
+// l'intro parallax d'Ampliando (11). Desplaçaments: 7-15 → +1,
+// 16-19.5 → +2, 20-25 → +3.)
 
 export const sections = [
-  { id:'introduccion', title:'Introducción',                       slides:[1] },
-  { id:'descubriendo', title:'Descubriendo la Música',              slides:[2,3,4,5,6] },
-  { id:'intervalos',   title:'Midiendo el movimiento: Los intervalos', slides:[7,8,9] },
-  { id:'ampliando',    title:'Ampliando',                          slides:[10,11,12,13,14,15] },
-  { id:'fraccionando', title:'Fraccionando',                       slides:[16,16.5,17,17.5,18,18.5,19,19.5] },
-  { id:'escalas',      title:'Escalas',                            slides:[20,21,22,23,24,25] },
+  { id:'descubriendo', title:'Descubriendo la Música',              slides:[1,2,3,4,5,6] },
+  { id:'intervalos',   title:'Midiendo el movimiento: Los intervalos', slides:[7,8,9,10] },
+  { id:'ampliando',    title:'Ampliando',                          slides:[11,12,13,14,15,16] },
+  { id:'fraccionando', title:'Fraccionando',                       slides:[17,18,18.5,19,19.5,20,20.5,21,21.5] },
+  { id:'escalas',      title:'Escalas',                            slides:[22,23,24,25,26,27,28] },
 ];
 
 // Grid layouts — the skeleton shared across pasos. Each defines the grid areas
@@ -24,6 +27,11 @@ export const sections = [
 // Each layout declares its own `cols`, `rows`, and `areas`. The renderer
 // applies them inline to the slide's grid. The default is a 3-column
 // grid (1fr 1fr 1fr); intro slides override to 50/50.
+//
+// Cas especial: el layout 'P-parallax' (passos intro de capítol) NO és
+// un grid — el renderer hi fa branch i pinta un slide full-bleed amb
+// capes de fons en parallax i les frases del text com a blocs que
+// s'activen amb el mouse. No necessita entrada en aquest objecte.
 export const layouts = {
   // Intro slides (1, 2, 11): image left 50% + title/text right 50%.
   // 2-column grid (PDF pages 1-2): the image and the text area share the
@@ -75,40 +83,44 @@ export const layouts = {
 // És la font de veritat de producció; el panell tweaks pot sobreescriure-la
 // localment (localStorage) per previsualitzar, però no es desplega.
 export const slideMatrix = [
-  { paso:1,    section:'introduccion', title:'¿Sabías que los números son el adn de la música?', layout:'A-intro', density:'loose' },
+  { paso:1,    section:'descubriendo', title:'¿Sabías que los números son el adn de la música?', layout:'A-intro', density:'loose' },
   { paso:2,  section:'descubriendo', title:'¿Qué se mueve en la música?',                                 layout:'B-app-left', apps:['App11A'], aspect:'4/3', group:'plano-simple', density:'compact' },
   { paso:3,  section:'descubriendo', title:'Línea Temporal',                                              layout:'E-app-text-left', apps:['app9'],   aspect:'2/1', group:'timeline-simple', density:'compact' },
   { paso:4,  section:'descubriendo', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'5/9', group:'timeline-vertical' },
   { paso:5,  section:'descubriendo', title:'El Plano Musical',                                            layout:'B-app-left', apps:['app11'],  aspect:'4/3', group:'plano-simple', density:'compact' },
   { paso:6,  section:'descubriendo', title:'El par Pulso - Nota',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3', group:'plano-simple', density:'compact' },
-  { paso:7,  section:'intervalos',   title:'El movimiento en la Música: Los Intervalos',                  layout:'E-app-text-left', apps:['app13'], aspect:'2/1', group:'timeline-simple', density:'compact' },
-  { paso:8,  section:'intervalos',   title:'El Intervalo Sonoro',                                         layout:'B-app-left', apps:['App14'],  aspect:'2/3', group:'timeline-vertical', density:'compact' },
-  { paso:9, section:'intervalos',   title:'Intervalos en el Plano Musical',                              layout:'B-app-left', apps:['App15'],  aspect:'4/3', group:'plano-simple' },
-  { paso:10, section:'ampliando',    title:'Ampliando el Mapa: Patrones, Ciclos y Módulos',               layout:'A-intro', density:'loose' },
-  { paso:11, section:'ampliando',    title:'El compás: el módulo temporal',                               layout:'E-app-text-left', apps:['App16'],  aspect:'2/1', group:'timeline-complex', density:'compact' },
-  { paso:12, section:'ampliando',    title:'Línea temporal en círculo',                                   layout:'B-app-left', apps:['App17'],  aspect:'1/1', group:'circular', density:'compact' },
-  { paso:13, section:'ampliando',    title:'El registro de octava',                                       layout:'B-app-left', apps:['App18'],  aspect:'6/5', group:'timeline-vertical', density:'compact' },
-  { paso:14, section:'ampliando',    title:'Plano Modular',                                               layout:'B-app-left', apps:['App19'],  aspect:'4/3', group:'plano-multi-pill', requiresLandscape:true },
-  { paso:15, section:'ampliando',    title:'Sucesión N-iT en Plano Modular',                              layout:'B-app-left', apps:['App20'],  aspect:'4/3', group:'plano-multi-pill', requiresLandscape:true, density:'compact' },
-  { paso:16,   section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'E-app-text-left', apps:['App26'],  aspect:'5/2', group:'timeline-simple', density:'compact' },
-  { paso:16.5, section:'fraccionando', title:'Ciclos en la Línea Temporal',                                  layout:'E-app-text-left', apps:['App27'],  aspect:'5/2', group:'timeline-simple', hidden:true, complex:true, density:'compact' },
-  { paso:17,   section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'E-app-text-left', apps:['App28'],  aspect:'2/1', group:'timeline-simple' },
-  { paso:17.5, section:'fraccionando', title:'Sucesión de Pfr en ciclos polirrítmicos',                      layout:'E-app-text-left', apps:['App29'],  aspect:'2/1', group:'timeline-simple', hidden:true, complex:true },
-  { paso:18,   section:'fraccionando', title:'Sucesión de iT Fraccionados',                                 layout:'E-app-text-left', apps:['App30'],  aspect:'5/3', group:'timeline-simple', density:'compact' },
-  { paso:18.5, section:'fraccionando', title:'Sucesión de iTfr en ciclos polirrítmicos',                     layout:'E-app-text-left', apps:['App31'],  aspect:'5/3', group:'timeline-simple', hidden:true, complex:true, density:'compact' },
-  { paso:19,   section:'fraccionando', title:'Plano fraccionado con sucesión N-iTfr',                      layout:'B-app-left',      apps:['App34'],  aspect:'3/4', group:'plano-simple', density:'compact' },
-  { paso:19.5, section:'fraccionando', title:'Plano con fracciones complejas',                              layout:'B-app-left',      apps:['App35'],  aspect:'3/4', group:'plano-simple', hidden:true, complex:true, density:'compact' },
-  { paso:20, section:'escalas',      title:'Escalas: Escogiendo Notas',                                   layout:'B-app-left', apps:['App21'],  aspect:'2/3', group:'scale', density:'compact' },
-  { paso:21, section:'escalas',      title:'Estructura Escalar',                                          layout:'B-app-left', apps:['App22'],  aspect:'2/3', group:'scale', density:'loose' },
-  { paso:22, section:'escalas',      title:'Transposición',                                               layout:'B-app-left', apps:['App23'],  aspect:'2/3', group:'scale', density:'loose' },
-  { paso:23, section:'escalas',      title:'Probando diferentes Escalas',                                 layout:'B-app-left', apps:['App24'],  aspect:'2/3', group:'scale', density:'compact' },
-  { paso:24, section:'escalas',      title:'Melodías con Escalas',                                        layout:'B-app-left', apps:['App25'],  aspect:'4/3', group:'scale' },
-  { paso:25, section:'escalas',      title:'Intervalos con Escalas: el iSº',                              layout:'B-app-left', apps:['App25B'], aspect:'4/3', group:'scale' },
+  { paso:7,  section:'intervalos',   title:'Los Intervalos',                                              layout:'P-parallax', parallax:{ symbols:['iT', 'iS', 'P', 'N', '+3', '−2'] } },
+  { paso:8,  section:'intervalos',   title:'El movimiento en la Música: Los Intervalos',                  layout:'E-app-text-left', apps:['app13'], aspect:'2/1', group:'timeline-simple', density:'compact' },
+  { paso:9,  section:'intervalos',   title:'El Intervalo Sonoro',                                         layout:'B-app-left', apps:['App14'],  aspect:'2/3', group:'timeline-vertical', density:'compact' },
+  { paso:10, section:'intervalos',   title:'Intervalos en el Plano Musical',                              layout:'B-app-left', apps:['App15'],  aspect:'4/3', group:'plano-simple' },
+  { paso:11, section:'ampliando',    title:'Ampliando el Mapa: Patrones, Ciclos y Módulos',               layout:'P-parallax', parallax:{ symbols:['0 1 2', 'P(3¹)', 'r4', '0 1 2 3'] } },
+  { paso:12, section:'ampliando',    title:'El compás: el módulo temporal',                               layout:'E-app-text-left', apps:['App16'],  aspect:'2/1', group:'timeline-complex', density:'compact' },
+  { paso:13, section:'ampliando',    title:'Línea temporal en círculo',                                   layout:'B-app-left', apps:['App17'],  aspect:'1/1', group:'circular', density:'compact' },
+  { paso:14, section:'ampliando',    title:'El registro de octava',                                       layout:'B-app-left', apps:['App18'],  aspect:'6/5', group:'timeline-vertical', density:'compact' },
+  { paso:15, section:'ampliando',    title:'Plano Modular',                                               layout:'B-app-left', apps:['App19'],  aspect:'4/3', group:'plano-multi-pill', requiresLandscape:true },
+  { paso:16, section:'ampliando',    title:'Sucesión N-iT en Plano Modular',                              layout:'B-app-left', apps:['App20'],  aspect:'4/3', group:'plano-multi-pill', requiresLandscape:true, density:'compact' },
+  { paso:17,   section:'fraccionando', title:'Fraccionando el tiempo',                                      layout:'P-parallax', parallax:{ symbols:['1/2', '1/3', '0.1', '1.2', 'Pfr'] } },
+  { paso:18,   section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'E-app-text-left', apps:['App26'],  aspect:'5/2', group:'timeline-simple', density:'compact' },
+  { paso:18.5, section:'fraccionando', title:'Ciclos en la Línea Temporal',                                  layout:'E-app-text-left', apps:['App27'],  aspect:'5/2', group:'timeline-simple', hidden:true, complex:true, density:'compact' },
+  { paso:19,   section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'E-app-text-left', apps:['App28'],  aspect:'2/1', group:'timeline-simple' },
+  { paso:19.5, section:'fraccionando', title:'Sucesión de Pfr en ciclos polirrítmicos',                      layout:'E-app-text-left', apps:['App29'],  aspect:'2/1', group:'timeline-simple', hidden:true, complex:true },
+  { paso:20,   section:'fraccionando', title:'Sucesión de iT Fraccionados',                                 layout:'E-app-text-left', apps:['App30'],  aspect:'5/3', group:'timeline-simple', density:'compact' },
+  { paso:20.5, section:'fraccionando', title:'Sucesión de iTfr en ciclos polirrítmicos',                     layout:'E-app-text-left', apps:['App31'],  aspect:'5/3', group:'timeline-simple', hidden:true, complex:true, density:'compact' },
+  { paso:21,   section:'fraccionando', title:'Plano fraccionado con sucesión N-iTfr',                      layout:'B-app-left',      apps:['App34'],  aspect:'3/4', group:'plano-simple', density:'compact' },
+  { paso:21.5, section:'fraccionando', title:'Plano con fracciones complejas',                              layout:'B-app-left',      apps:['App35'],  aspect:'3/4', group:'plano-simple', hidden:true, complex:true, density:'compact' },
+  { paso:22, section:'escalas',      title:'Las Escalas',                                                 layout:'P-parallax', parallax:{ symbols:['Nº', 'eE', 'iSº', '0 2 4 5 7 9 11'] } },
+  { paso:23, section:'escalas',      title:'Escalas: Escogiendo Notas',                                   layout:'B-app-left', apps:['App21'],  aspect:'2/3', group:'scale', density:'compact' },
+  { paso:24, section:'escalas',      title:'Estructura Escalar',                                          layout:'B-app-left', apps:['App22'],  aspect:'2/3', group:'scale', density:'loose' },
+  { paso:25, section:'escalas',      title:'Transposición',                                               layout:'B-app-left', apps:['App23'],  aspect:'2/3', group:'scale', density:'loose' },
+  { paso:26, section:'escalas',      title:'Probando diferentes Escalas',                                 layout:'B-app-left', apps:['App24'],  aspect:'2/3', group:'scale', density:'compact' },
+  { paso:27, section:'escalas',      title:'Melodías con Escalas',                                        layout:'B-app-left', apps:['App25'],  aspect:'4/3', group:'scale' },
+  { paso:28, section:'escalas',      title:'Intervalos con Escalas: el iSº',                              layout:'B-app-left', apps:['App25B'], aspect:'4/3', group:'scale' },
 ];
 
-// Content — real text for pasos 1-6 (from the PDF), filler for 7+.
-// Each entry declares the blocks present in the slide. The renderer picks
-// them up and places them into the layout's grid areas.
+// Content — one entry per paso. Each entry declares the blocks present in
+// the slide; the renderer places them into the layout's grid areas. En els
+// passos intro parallax (7, 11, 17, 22), `text` conté una frase per <p> —
+// el renderer les converteix en blocs que s'activen amb el mouse.
 //
 export const slideContent = {
   1: {
@@ -159,7 +171,16 @@ export const slideContent = {
 <p>Pulsa ▶️ para reproducir, 🎲 para generar una sucesión aleatoria, 🗑 para reiniciar.</p>
 <p><strong>Tip:</strong> Pasar del azar a la intención es el salto creativo fundamental. Es el primer paso hacia la composición consciente: decides tú qué nota suena en qué momento.</p>`,
   },
+  // Pas intro parallax — Midiendo el movimiento: Los intervalos.
   7: {
+    text: `<p>La música es movimiento: las notas avanzan en el tiempo, suben, bajan y saltan.</p>
+<p>Hasta ahora hemos situado cada sonido con posiciones: un pulso y una nota.</p>
+<p>Ahora veremos como medir las distancias entre esas posiciones con los <b>intervalos</b>.</p>
+<p>Un intervalo es un número que muestra el resultado de restar entre dos posiciones.</p>
+<p>El intervalo temporal (<b>iT</b>) mide la duración de un sonido; el intervalo sonoro (<b>iS</b>), la distancia entre dos notas.</p>
+<p>Pensar en distancias que unen posiciones, es empezar a entender la música como movimiento.</p>`,
+  },
+  8: {
     text: `<p>El movimiento de la música se mide en intervalos: el intervalo temporal (iT) y el intervalo sonoro (iS). El intervalo temporal mide la duración de un sonido musical; el intervalo sonoro mide la distancia entre dos notas.</p>
 <h3>El intervalo temporal iT(n) mide la distancia entre dos pulsos escogidos.</h3>
 <p>¿Recordáis que llamábamos paso temporal a la distancia entre dos pulsos consecutivos? Pues el intervalo temporal mide la cantidad de pasos temporales que dura un sonido. </p>
@@ -176,7 +197,7 @@ export const slideContent = {
 <p>Pulsa ▶️ para reproducir, 🎲 para generar una sucesión aleatoria, y 🗑 para reiniciar.</p>
 <p><strong>Tip:</strong> Descubre cómo la distancia entre los sonidos crea el movimiento. Cambiar el orden de los iT cambia completamente el ritmo.</p>`,
   },
-  8: {
+  9: {
     text: `<h3>El intervalo sonoro iS(n) mide la distancia entre dos notas consecutivas.</h3>
 <p>Cada distancia define un salto melódico.</p>
 <p>Usamos como unidad de medida una sola nota. Es el caso del iS(1). En el caso del iS(0) no hay salto y se repite la misma nota.</p>
@@ -190,7 +211,7 @@ export const slideContent = {
 <p><strong>Tip:</strong> El iS enseña que una melodía es movimiento: no solo importa dónde empieces, sino cuánto te mueves.</p>
 <p>Observa cómo la línea sonora destaca los iS con flechas durante la reproducción. Los valores positivos suben y los negativos bajan.</p>`,
   },
-  9: {
+  10: {
     text: `<p>Para componer una pequeña melodía desde el punto de vista del movimiento, combinamos una sucesión de iS sincronizados con iT.</p>
 <p>El punto de salida es una nota situada en el par N(0)-P(0).</p>
 <p>Los pares iS-iT van dibujando la melodía. El primer iS situa la primera nota en el plano.</p>
@@ -202,18 +223,20 @@ export const slideContent = {
 <p>Pulsa ▶️ para reproducir, 🎲 para generar una secuencia aleatoria, 🗑 para reiniciar.</p>
 <p><strong>Tip:</strong> En esta App se juega con distancias en lugar de posiciones fijas. Es como la diferencia entre decir "ve a la calle 5" y "avanza 3 calles" — el mismo destino, dos formas de pensarlo.</p>`,
   },
-  10: {
+  // Pas intro parallax — Ampliando. La imatge es fa servir com a capa
+  // suau de fons darrere les frases (no com a bloc d'imatge del grid).
+  11: {
     image: {
       alt: 'Ilustración — Patrones, ciclos y módulos',
       src: 'images/paso-11.jpg',
     },
-    text: `<p>La realidad está llena de ciclos: patrones que se repiten infinitamente o un cierto número de veces. Están en todas partes. En la naturaleza (estaciones del año, ciclos lunares, órbitas planetarias) y en la cultura humana, que crea los suyos propios (horas, días, meses, años, etapas de la vida, etc).</p>
-<p>En matemáticas estos ciclos se llaman <b>módulos</b> y crean la aritmética modular, que es la base de muchas técnicas de cálculo.</p>
-<p>En la música los <b>módulos</b> estructuran tanto el tiempo como el sonido. Ayudan a pensar en estructuras y a ordenar ideas musicales.</p>
-<p>Por ejemplo, para contar todos los pulsos de una pieza, es más útil usar un módulo como el <b>compás</b>. Decimos que una canción tiene 40 compases de 4 en vez de 160 pulsos.</p>
-<p>Los módulos nos permiten trabajar con una cantidad reducida de números que se repiten. Esto es muy útil para entender y analizar estructuras musicales.</p>`,
+    text: `<p>La realidad está llena de ciclos: estaciones, fases lunares, días, horas… ciclos que se repiten.</p>
+<p>Lo que se repite no aburre: ordena el mundo. En matemáticas lo llaman <b>módulo</b>.</p>
+<p>La música también los usa: el <b>compás</b> agrupa los pulsos y el <b>registro</b> agrupa las notas.</p>
+<p>Con unos pocos números que giran y vuelven puedes construir estructuras inmensas.</p>
+<p>Tu plano musical está a punto de hacerse grande. Mucho más grande.</p>`,
   },
-  11: {
+  12: {
     text: `<p>El módulo temporal es el <strong>compás</strong>. El compás se repite las veces que queramos. Organiza los pulsos de la línea temporal en grupos.</p>
 <p>El compás es una nueva "unidad de medida" que agrupa varios números en su interior, añadiendo estructura al grupo de números y facilitando ordenar estructuras mayores.</p>
 <p>La cantidad de pulsos por compás es libre y hay que <b>decidirla a priori</b>. Aunque a partir de un cierto número de pulsos, la idea de compás no se percibe claramente y deja de tener sentido.</p>
@@ -225,7 +248,7 @@ export const slideContent = {
 <p>Pulsa ▶️ para reproducir, 🎲 para generar una secuencia aleatoria, 🗑 para reiniciar.</p>
 <p><strong>Tip:</strong> La app muestra que el compás es un ciclo de números que se repiten. Usa + y − para cambiar el número de pulsos y observa como se adapta la línea sonora.</p>`,
   },
-  12: {
+  13: {
     text: `<p>La visualización como círculo es muy útil para entender la <b>línea temporal con compás</b>.</p>
 <p>La longitud total de la línea dependerá de cuántos pulsos tenga el compás y de cuantas repeticiones del compás definamos.</p>
 <p>Al multiplicar los dos números se obtiene la <b>Longitud Total.</b> Por ejemplo, con compás de 3 Pulsos y 5 repeticiones nos da una <b>Longitud total</b> de 15 pulsos.</p>
@@ -236,7 +259,7 @@ export const slideContent = {
 <p>Pulsa ▶️ para reproducir, 🎲 para generar una secuencia aleatoria, 🗑 para reiniciar.</p>
 <p><b>Tips:</b> Compara esta representación circular con la lineal del paso 12. Mismo concepto, dos visualizaciones. El círculo hace evidente lo que la línea sugiere. La música no avanza solo en línea sino que <b>gira</b> para volver al siguiente <b>punto de partida</b>, creando espirales en el tiempo.</p>`,
   },
-  13: {
+  14: {
     text: `<h2>El <b>módulo</b> de las notas</h2>
 <p>La totalidad de las notas usadas se organizan en módulos de 12 notas que se repiten. Se numeran del 0 al 11. El 0 corresponde a la nota Do.</p>
 <p>Esta estructura de 12 notas es fija, y se llama <strong>registro de octava</strong>.</p>
@@ -248,7 +271,7 @@ export const slideContent = {
 <p>Pulsa ▶️ para reproducir la secuencia otra vez, 🎲 para generar melodías y registro aleatoriamente, 🗑 para reiniciar.</p>
 <p>La nota 0 está resaltada en rosa para marcar el inicio de cada registro. El registro 4 corresponde al Do central del piano (nota C4).</p>`,
   },
-  14: {
+  15: {
     text: `<p>Al plano musical podemos añadirle los módulos registro y compás en las líneas para crear música más variada o compleja.</p>
 <p>En el plano queda representado el registro de cada nota y el compás de cada pulso.</p>
 <p>Cada par Nota-Pulso lleva los superíndices que especifican el registro y el compás.</p>
@@ -259,7 +282,7 @@ export const slideContent = {
 <p>Pulsa ▶️ para reproducir, 🎲 para generar melodías aleatoriamente, 🗑 para reiniciar.</p>
 <p>Usa el scroll vertical para moverte entre registros y el horizontal para moverte por los compases.</p>`,
   },
-  15: {
+  16: {
     text: `<p>Podemos crear melodías desde las <b>posiciones</b> (par N-P), como en el paso 6, o desde los <b>movimientos</b> (par iS-iT), como en el paso 10. Ahora vamos a crear melodías usando <strong>posiciones</strong> y <strong>distancias</strong>: escogiendo directamente la nota y asignándole una duración con el par <b>N-iT</b>.</p>
 <p>La <strong>sucesión N-iT</strong> define cada nota y cuánto tiempo suena. El número de la <strong>N</strong> nos dice qué nota es, y el número del <strong>iT</strong> nos dice cuánto dura. Juntos crean el par usado en la notación tradicional.</p>
 <p>Observa cómo la misma sucesión de N suena muy diferente si cambias los iT: alargar o acortar las duraciones transforma completamente el carácter de la melodía sin cambiar ninguna nota.</p>
@@ -269,22 +292,30 @@ export const slideContent = {
 <p>Pulsa ▶️ para reproducir, 🎲 para generar melodías aleatoriamente, 🗑 para reiniciar.</p>
 <p><strong>Tip:</strong> Esta app combina el par N-iT, que es conceptualmente el par usado al escribir con notación musical.</p>`,
   },
-  16: {
+  // Pas intro parallax — Fraccionando.
+  17: {
+    text: `<p>Entre un pulso y el siguiente también hay movimiento.</p>
+<p>Acércate: divide el pulso y descubrirás un mundo nuevo de posibilidades rítmicas.</p>
+<p>La <b>fracción</b> activa una nueva pulsación, latiendo dentro de la pulsación.</p>
+<p>Conoce los <b>pulsos fraccionados</b>: el tejido fino del tiempo.</p>
+<p>Aquí es donde el ritmo se vuelve vivo. ¿Lo fraccionamos?</p>`,
+  },
+  18: {
     text: `<p>Hasta ahora hemos medido el tiempo en pulsos enteros: P(1 2 3...). Pero también hay música <strong>entre</strong> los pulsos. Para representar los sonidos que ocurren dentro de un pulso entero, debemos añadir otra velocidad, relativa al BPM. Lo hacemos subdividiendo el pulso en partes iguales. Para este fin usamos <b>fracciones</b> sobre los pulsos enteros.</p><p>Estas <b>fracciones simples</b> tienen siempre un <b>1</b> en el <b>numerador</b> y un <b>número entero </b>que escojamos en el <b>denominador</b>. El resultado serán pulsos "más pequeños" que irán más rápido que los pulsos enteros. Cuánto <b>mayor</b> sea el denominador, <b>más rápido</b> irán los nuevos pulsos. La fracción 1/1 representa un pulso entero. La fracción 1/2 divide el pulso en dos partes, 1/3 lo divide en tres partes, etc.</p><p>Para numerar los pulsos fraccionados (<b>Pfr</b>), escribimos un punto después del pulso entero y seguidamente el número que corresponde a cada uno de los Pfr. Cada pulso fraccionado (<b>Pfr</b>) se identifica con un punto decimal. Por ejemplo, dentro del pulso entero <b>0</b> con fracción 1/3 tenemos <strong>0.1</strong> y <strong>0.2</strong> antes de llegar al pulso 1; dentro del pulso 1 tenemos <strong>1.1</strong> y <strong>1.2</strong>; y así sucesivamente. </p><p>Las fracciones simples siempre tienen el numerador fijado en 1. Son la manera más directa, pero no la única, de subdividir el tiempo.</p>`,
     tipsTitle: 'Prueba las fracciones',
     tips: `<p>Visualiza fracciones simples (1/d) en una sección de 6 pulsos de la línea temporal.</p><p>Cambia el denominador de la fracción (1-8) con los botones <strong>+</strong> y <strong>-</strong> y observa cómo se divide cada pulso entero en más o menos partes. </p><p>Pulsa ▶️ para reproducir la sucesión, 🎲 para generar una sucesión aleatoriamente, 🗑 para reiniciar.</p><p><b>Tip:</b> Esta app revela la subdivisión de los pulsos: entre un pulso y el siguiente cabe un tejido fino de tiempo. 1/1 = solo pulsos enteros sin subdivisión. 1/2 = divide cada pulso en 2. 1/3 = los tresillos tradicionales. Escucha cómo la subdivisión se acelera al aumentar el denominador.</p>`,
   },
-  17: {
+  19: {
     text: `<p>Podemos crear ritmos seleccionando pulsos enteros y fraccionados. Los pulsos fraccionados usan una velocidad más rápida que permite crear sutilezas en los ritmos.</p><p>Para ello escogemos una fracción y a continuación creamos la sucesión: P ⅓( 1.2 3.1 4 ...). </p><p>Los <b>pulsos fraccionados (Pfr)</b> resultantes nos permiten realizar y componer ritmos muy variados con gran precisión.</p><p>Por ejemplo, podemos crear una sucesión de Pfr(0.3 1.2 2.1) e ir cambiando la fracción para observar que efecto provoca en el ritmo. O mantener la fracción e ir cambiando de posición los Pfr escogidos.</p>`,
     tipsTitle: 'Prueba la sucesión de Pfr',
     tips: `<p>Crea una sucesión de pulsos fraccionados (Pfr) sobre fracciones simples. </p><p>Edita en el <b>denominador</b> de la fracción. </p><p>Crea la sucesión de Pfr escribiendo 2 dígitos. El pulso entero + la posición del Pfr o selecciona qué Pfr suenan en la línea temporal fraccionada.</p><p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para reiniciar.</p><p><b><strong>Tips:</strong> </b>Prueba a usar distintas sucesiones de Pfr para crear diferentes ritmos. O una misma sucesión de PFr cambiando el denominador de la fracción. Por ejemplo: la sucesión Pfr(0.3 1.2 2.1) en fracciones de ¼ a ⅛ .</p>`,
   },
-  18: {
+  20: {
     text: `<p>Así como el intervalo temporal (<b>iT</b>) mide la distancia entre dos pulsos escogidos, el iT fraccionado (<b>iTfr</b>) mide la distancia entre dos pulsos fraccionados (Pfr).</p><p>Los iTFr dividen el tiempo total en partes fraccionadas. La suma de todos los iTFr equivale al número de pulsos totales, es decir, la longitud del lienzo. </p><p>Con una sucesión de iTFr, así como una de PFr, se pueden crear ritmos con mayor precisión y detalle. La diferencia está en pasar de pensar en <b>posiciones</b> en el tiempo (PFr) para pensar en la <b>distancia</b> entre ellos (iTFr).</p>`,
     tipsTitle: 'Prueba los iTfr',
     tips: `<p>Combina fracciones simples con intervalos temporales fraccionados. </p><p>Edita el denominador en la fracción. Crea la sucesión de <b>iTfr</b> introduciendo en el editor las duracines O arrastra sobre la línea temporal para crear intervalos temporales.</p><p>El display de suma de iT y iT disponibles se actualiza para mostrar cuantos iT hay en cada momento. Cada iT suena como una nota melódica. La primera nota de cada ciclo es Do4, las demás Sol4. Haz clic en un intervalo para eliminarlo. Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para reiniciar.</p><p><b>Tips:</b> Pasar de seleccionar puntos a trazar duraciones cambia la forma de pensar el ritmo: ya no son momentos aislados sino bloques de tiempo con peso y presencia. </p>`,
   },
-  19: {
+  21: {
     text: `<p>Si repartimos los <b>iTfr</b> por el plano musical se pueden crear fácilmente melodías con un <b>caracter rítmico própio</b>, que podemos tratar como ideas, repetir y variar. Es una manera de dar coherencia interna a melodías sin caer en la monotonía. </p><p>Usar <b>iTfr</b> nos permite crear movimiento entre pulsos, desde doblar la velocidad (1/2), a más rápido cuanto más alto sea el denominador de la fracción.</p><p>Cada melodía tiene disonible dos velocidades, la de los pulsos enteros (BPM) y también una pulsación más rápida que encaja a cada pulso entero. </p><p>En el editor <b>N-iT</b> cada par define una nota y su duración en iTFr.</p><p>Una misma sucesión N-iT cambia de carácter al pasar de 1/3 a 1/4 o a 1/5, aunque las notas y las duraciones se mantienen proporcionalmente.</p>`,
     tipsTitle: 'Prueba el Plano N-iTfr',
     tips: `<p>Combina el plano fraccionado con un editor <b>N-iT</b> para crear melodías en el plano.</p><p>Edita el denominador. Usa el editor para introducir pares <b>N-iT</b>. O arrastra sobre el plano para crear notas.</p><p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para reiniciar.</p><p><b>Tips: </b>El editor permite pensar la melodía como una sucesión numérica de posiciones y distancias, mientras el plano muestra el resultado visual global. \nVer ambas representaciones a la vez conecta el pensamiento numérico con la visión espacial y las formas geométricas.</p>`,
@@ -292,27 +323,35 @@ export const slideContent = {
   // Capítol amagat — Fracciones complejas. Textos propis (revisats al
   // draft sistema/textos-fracciones-complejas-DRAFT.md). L'usuari farà
   // retocs des del Sistema (edit-mode → localStorage).
-  16.5: {
+  18.5: {
     text: `<p>En el paso anterior subdividimos cada pulso entero con fracciones simples (1/d): el numerador era siempre <b>1</b> y el ciclo encajaba dentro de un solo pulso. Ahora ampliamos el lenguaje a las <b>fracciones complejas</b>, donde el numerador es <b>mayor que 1</b>. La fracción ya no sucede dentro de un pulso, sino que define un <b>ciclo </b>de<b> varios pulsos</b>.</p><p>El numerador <b>n</b> dice cuántos pulsos enteros abarca el ciclo; el denominador <b>d</b> dice en cuántas partes iguales se divide ese ciclo. Por ejemplo, con 2/3, cada <b>dos</b> pulsos enteros se reparten en <b>tres</b> partes iguales; con 3/4, cada tres pulsos se reparten en cuatro. Los nuevos pulsos fraccionados (<b>PFr</b>) ya no van de pulso entero a pulso entero, sino que crean pulsos a una <b>velocidad propia</b> en un <b>ciclo</b> que se repite <b>cada pulsos</b> del numerador.</p><p>La nueva velocidad de los PFr se calcula con la fórmula <b>(d × BPM) / n</b>. Si <b>n &lt; d</b> los PFr van <b>más rápidos</b> que los pulsos enteros; si <b>n &gt; d</b> van <b>más lentos</b>; si <b>n = d</b>, coinciden con el pulso entero. Por eso 2/3 acelera la velocidad (3 PFr en el espacio de 2 pulsos enteros) mientras que 3/2 reduce la velocidad (2 PFr en el espacio de 3 pulsos enteros).</p><p>Para que un ciclo encaje exactamente en la línea temporal, la <b>Longitud fraccionada (LgFr)</b> debe ser divisible por el numerador. Si la fracción es <b>reducible</b> (p.ej. 2/4 = 1/2) la velocidad es la misma que la fracción simple equivalente, pero el ciclo es más largo. Si <b>n y d son primos entre sí</b> (p.ej. 2/3, 3/4, 3/5) la fracción tiene una <b>pulsación propia</b> que no se reduce a ninguna simple.</p>`,
     tipsTitle: 'Prueba las fracciones complejas',
     tips: `<p>Reproduce fracciones complejas (numerador mayor que 1) sobre una sección de la línea temporal. El ciclo abarca <b>n pulsos enteros</b> divididos en <b>d pulsos fraccionados (Pfr)</b>.</p><p>Cambia <b>numerador</b> y <b>denominador</b> de forma independiente con los botones <strong>+</strong> y <strong>-</strong>. Observa cómo cambia la velocidad de los PFr respecto a los pulsos enteros. La app funciona en bucle.</p><p>Si la fracción se puede reducir (p.ej. 4/6 = 2/3), la velocidad es la misma pero el ciclo dura el doble.</p><p>Pulsa ▶️ para reproducir, 🎲 para generar una fracción aleatoriamente, 🗑 para reiniciar.</p><p><b>Tip:</b> Las fracciones complejas abren un nivel rítmico que las simples no alcanzan: el <b>ciclo polirrítmico</b>. Compara 2/3, 3/4 y 3/2 con el mismo BPM; son tres relaciones temporales distintas. </p>`,
   },
-  17.5: {
+  19.5: {
     text: `<p>Igual que con las fracciones simples, también podemos crear ritmos seleccionando <b>pulsos fraccionados (PFr)</b> sobre el <b>ciclo</b> de una <b>fracción compleja</b>. La diferencia es que ahora el ciclo abarca <b>varios pulsos enteros</b>.</p><p>Por ejemplo, escogemos la fracción 5/4 y construimos la sucesión: P 5/4( 0.1 0.3). Como un ciclo abarca varios pulsos, la numeración de los PFr <b>se reinicia cada n pulsos</b>, no a cada pulso entero.</p><p>Los <b>PFr complejos</b> permiten componer ritmos con una pulsación independiente que no encaja dentro de un solo pulso entero. Es la base de las <b>polirritmias</b>: dos velocidades simultáneas que comparten un mismo BPM pero recorren el ciclo de manera distinta.</p>`,
     tipsTitle: 'Prueba la sucesión de PFr en ciclos',
     tips: `<p>Crea una sucesión de pulsos fraccionados (PFr) sobre fracciones complejas (n/d, n &gt; 1).</p><p>Edita <b>numerador</b> y <b>denominador</b> independientemente. Crea la sucesión escribiendo en el editor la posición del PFr (p.ej. <b>0.2</b>), o selecciona directamente los PFr en la línea temporal fraccionada. La app funciona en bucle.</p><p>Las fracciones reducibles (p.ej. 4/6) suenan igual que su forma simple equivalente (2/3) pero alargan el ciclo audible.</p><p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para reiniciar.</p><p><b>Tips:</b> Una misma sucesión de PFr cambia radicalmente al alterar la fracción. Por ejemplo, prueba PFr(0.1 0.3) en 3/4 y 3/5 — los números son los mismos, la sensación rítmica es distinta. </p>`,
   },
-  18.5: {
+  20.5: {
     text: `<p>El <b>intervalo temporal fraccionado</b> (<b>iTFr</b>) mide la <b>distancia</b> entre dos<b> </b>PFr <b>consecutivos</b>, igual que el iT mide la distancia entre dos pulsos enteros. Con fracciones, simples o complejas, esa distancia se cuenta en unidades del nuevo ciclo (Pfr): cada <b>iTFr </b>abarca uno o más <b>Pfr</b> del ciclo de la fracción n/d.</p><p>Como el ciclo abarca varios pulsos enteros, el <b>total de iTFr disponibles</b> es <b>Lg × d / n</b>: la longitud de la línea por el denominador, dividida por el numerador. La suma de todos los iTFr de una sucesión equivale a este total.</p><p>Con una sucesión de iTFr podemos pensar en ritmos como bloques de tiempo con identidad.</p>`,
     tipsTitle: 'Prueba los iTFr complejos',
     tips: `<p>Combina fracciones complejas (n/d, n &gt; 1) con intervalos temporales fraccionados (iTfr).</p><p>Edita <b>numerador</b> y <b>denominador</b>. Crea la sucesión de <b>iTFr</b> introduciendo duraciones en el editor o arrastrando sobre la línea temporal fraccionada para crear intervalos.</p><p>El display de suma de iT y iT disponibles se actualiza para mostrar cuántos iTFr hay en cada momento. Cada iTFr suena como una nota melódica: la primera nota de cada ciclo es Do4, las demás Sol4. Haz clic en un intervalo para eliminarlo. La app funciona en bucle.</p><p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para reiniciar.</p><p><b>Tips:</b> Pensar las polirritmias como duraciones (iTFr) y no como posiciones (PFr) cambia la sensación de movimiento: cada sucesión tiene peso propio dentro del ciclo. Prueba la misma sucesión de iTFr en 2/3 y 3/4 — los bloques se mantienen, pero la velocidad relativa al pulso entero cambia por completo.</p>`,
   },
-  19.5: {
+  21.5: {
     text: `<p>Si llevamos los <b>iTFr</b> al plano 2D y los repartimos por la línea sonora, podemos crear melodías con una <b>identidad polirrítmica propia</b>. Cada melodía tiene disponible dos velocidades; la que sigue el pulso y también una pulsación que encaja cada <b>n </b>(numerador) pulsos enteros. Esta combinación rítmica solo se consigue con las fracciones compuestas.</p><p>El editor <b>N-iT</b> funciona igual que con fracciones simples: cada par define una nota y su duración en iTFr. Pero ahora la duración se mide dentro del ciclo n/d. Una misma sucesión N-iT cambia de carácter al pasar de 2/3 a 3/4 o a 3/5, aunque las notas y las duraciones se mantienen proporcionalmente.</p>`,
     tipsTitle: 'Prueba el Plano N-iT con fracciones complejas',
     tips: `<p>Combina el plano fraccionado complejo con el editor zigzag para crear sucesiones N-iT polirrítmicas.</p><p>Edita <b>numerador</b> y <b>denominador</b> de la fracción. Usa el editor para introducir pares N-iT o arrastra sobre el plano para crear notas con duración.</p><p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para reiniciar.</p><p><b>Tips:</b> Mantén una sucesión N-iT y ve cambiando la fracción: la misma melodía aparece en versiones polirrítmicas distintas. Es una forma directa de descubrir cómo una idea musical se transforma al cambiar la pulsación subyacente sin tocar ni las notas ni los números de duración. El plano muestra el resultado visual, el editor las relaciones numéricas — pensar ambas a la vez conecta el lenguaje rítmico con la forma geométrica.</p>`,
   },
-  20: {
+  // Pas intro parallax — Escalas.
+  22: {
+    text: `<p>De las doce notas disponibles del registro, podemos escoger una selección de notas.</p>
+<p>Esas selecciones tienen nombre y carácter único. ¿Te suena la escala mayor o la menor?</p>
+<p>Las escalas son una paleta de colores sonoros.</p>
+<p>Cambia la escala y la misma melodía se vuelve alegre, misteriosa, luminosa u oscura.</p>
+<p>Elegir escalas es elegir un mundo. Entra y escúchalos todos.</p>`,
+  },
+  23: {
     text: `<p>Históricamente la música se ha estudiado a partir de las siete notas de la escala Mayor Diatónica. La escala cromática llega después, como resultado de siglos de desarrollo. </p>
 <p>El sistema Nuzic parte con la escala cromática <b>como módulo</b> para el resto de escalas.</p>
 <p>Entonces, una <b>escala</b> es un grupo de <b>notas</b> que escogemos entre las 12 disponibles de la escala cromática.</p>
@@ -324,7 +363,7 @@ export const slideContent = {
 <p>Pulsa ▶️ en la escala mayor para escuchar la escala mayor.<br></p>
 <p><b><strong>Tips:</strong> </b>Fíjate en cómo cambia la numeración para la misma nota en la escala mayor o en la cromática. Observa las líneas de conexión entre ambas escalas — las 12 notas de la escala cromática son el conjunto base para el resto de escalas.</p>`,
   },
-  21: {
+  24: {
     text: `<p>Como acabamos de ver en el paso anterior, las distancias entre las Nº de una escala no son siempre las mismas. Este hecho es precisamente lo que le da carácter sonoro a una escala.</p>
 <p>Si ordenamos estas distancias, obtenemos la <strong>estructura escalar (eE)</strong>, es decir, las distancias entre notas de una escala en orden ascendente y medidas en <strong>iS</strong> (intervalos Sonoros).</p>
 <p>Cada escala tiene su <b>eE</b> propia. En la app ejemplo se muestra la de la escala Mayor.</p>`,
@@ -333,7 +372,7 @@ export const slideContent = {
 <p>Pulsa ▶️ para escuchar la escala mayor con una animación que destaca la eE.</p>
 <p><strong>Tips:</strong> En la linea sonora, a la izquierda, se muestran los grados de la escala mayor (Nº). A la derecha se muestra la estructura Escalar de la escala mayor: <b>eE(2 2 1 2 2 2 1)</b>.</p>`,
   },
-  22: {
+  25: {
     text: `<p>Las escalas pueden empezar en cualquiera de las doce notas del registro. Decimos entonces que la escala se <b>transporta</b>. Es decir, la eE se mantiene pero la Nº(0) cambia.</p>
 <p>Cuando transportamos una escala cambiamos la Nota de salida correspondiente a la Nº(0). Toda la estructura escalar se desplaza y a las mismas Nº le corresponden otras N.</p>`,
     tipsTitle: 'Prueba el cambio de escala',
@@ -341,7 +380,7 @@ export const slideContent = {
 <p>Selecciona una nota de salida. Pulsa ▶️ en la escala cromática o ▶️ en la escala escogida para escuchar. Verás que el pentagrama se actualiza automáticamente.</p>
 <p><strong>Tips: </strong>Transportar es aplicar la misma receta (eE) desde un punto de partida diferente. La escala suena "igual pero distinta" — conserva su carácter pero cambia de altura. Es como cantar la misma canción más aguda o más grave.</p>`,
   },
-  23: {
+  26: {
     text: `<p>Hay muchas escalas posibles combinando 12 notas. Cada <b>escala</b> tiene su propia <strong>eE</strong> y se puede <b>transportar</b> a cualquiera de las N del registro (escala cromática).</p>
 <p>Hemos visto en el paso anterior que cuando transportamos una escala cambiamos la Nota de salida correspondiente a la Nº(0).</p>
 <p>Y cuando cambiamos de escala cambiamos las distancias entre las notas, es decir, la <b>eE</b>. La misma Nota de salida pero distintas distancias entre <b>Nº</b>.</p>
@@ -354,7 +393,7 @@ export const slideContent = {
 <p><strong>Tips:</strong> Al elegir escala y nota de salida, las líneas de conexión, el pentagrama y la estructura escalar (eE) se actualizan en tiempo real.</p>
 <p>Compara la eE de diferentes escalas para entender sus diferentes distancias. Cada escala es un mundo sonoro distinto. Tómate tiempo para descubrirlas.</p>`,
   },
-  24: {
+  27: {
     text: `<p>Podemos definir una melodía creando una sucesión de <b>Nº</b>.</p>
 <p>Entonces, cambiar de escala y escuchar la diferencia. Las Notas de la melodía pueden cambiar, aunque las Nº son las mismas. Comprobamos así como la <b>eE</b> cambia el carácter de la melodía.</p>
 <p>También podemos cambiar la <b>transposición</b> y escuchar la melodía en diferentes tonos.</p>
@@ -366,7 +405,7 @@ export const slideContent = {
 <p>Pulsa ▶️ para reproducir, 🎲 para generar melodías aleatoriamente, 🗑 para reiniciar.</p>
 <p><b>Tips</b>: Esta app demuestra que la melodía no son las notas concretas sino las relaciones entre Nº de la escala. Por ejemplo, crea una melodía en una escala "mayor" y después cambia a una "menor" — los grados se mantienen pero el carácter cambia completamente.<br>Si una escala tiene menos grados que la anterior, los grados "perdidos" se recuerdan internamente y reaparecen al volver a una escala más larga.</p>`,
   },
-  25: {
+  28: {
     text: `<p>Como ya hemos visto, el <strong>intervalo sonoro de grado</strong> (<b>iSº</b>) mide la distancia entre dos Nº de una escala.</p>
 <p>En el paso anterior hemos definido una melodía con Nº. Proponemos ahora definir una melodía creando una sucesión de iSº.</p>
 <p>Al cambiar de escala los <b>iSº</b> de la melodía se mantienen, pero al usar una estructura escalar (<b>eE</b>) diferente, las distancias reales de la melodía cambian.</p>

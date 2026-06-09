@@ -20,9 +20,9 @@ const DENSITY_KEY = 'sistema.densityByPaso';  // { [paso]: 'compact'|'cozy'|'loo
 const DEFAULT_DENSITY = 'cozy';  // 'Normal' — cas base sense regla CSS especial
 const OVERRIDES_KEY = 'sistema.overrides';
 const OVERRIDES_VERSION_KEY = 'sistema.overrides.version';
-const OVERRIDES_VERSION = 3;  // v3: paso 7 deleted, 8..26 shifted to 7..25 (also 17.5..20.5 → 16.5..19.5)
+const OVERRIDES_VERSION = 4;  // v4: intro parallax pasos added (7/17/22); 7-15 → +1, 16-19.5 → +2, 20-25 → +3
 
-// Easter egg: capítol amagat "complex" → pasos 17.5/18.5/19.5/20.5
+// Easter egg: capítol amagat "complex" → pasos 18.5/19.5/20.5/21.5
 // (Fraccions Complexes). Es desbloqueja amb 5 clicks al badge d'un pas
 // del capítol "Fraccionando". Pas amagat marcat amb `complex: true`.
 // Flag de sessionStorage: tancar pestanya = es torna a amagar.
@@ -73,6 +73,26 @@ function migrateOverridesV3(stored) {
   return out;
 }
 
+// v4 (2026-06-09): el paso 1 entra a "Descubriendo" (mateix número) i
+// s'afegeixen passos intro parallax als capítols intervalos (7),
+// fraccionando (17) i escalas (22). L'antic paso 10 ("Ampliando el
+// Mapa") es converteix en l'intro parallax d'Ampliando (11) amb text
+// nou — els seus overrides es descarten perquè no tapin el redisseny.
+// Desplaçaments: 1-6 igual, 7-15 → +1, 16-19.5 → +2, 20-25 → +3.
+function migrateOverridesV4(stored) {
+  const out = {};
+  for (const [k, v] of Object.entries(stored)) {
+    const n = Number(k);
+    if (n === 10) continue;  // Pas redissenyat (intro parallax): override antic descartat.
+    let target = n;
+    if (n >= 20) target = n + 3;
+    else if (n >= 16) target = n + 2;
+    else if (n >= 7) target = n + 1;
+    out[target] = v;
+  }
+  return out;
+}
+
 // Text overrides (edit-mode persistence). Structure:
 //   { [paso]: { title?: string, text?: string, tipsTitle?: string, tips?: string } }
 // Each field stores the edited HTML (innerHTML for rich text, textContent for
@@ -90,6 +110,7 @@ function applyPasoMigrations(stored, ver) {
   let out = stored;
   if (ver < 2) out = migrateOverridesV2(out);
   if (ver < 3) out = migrateOverridesV3(out);
+  if (ver < 4) out = migrateOverridesV4(out);
   return out;
 }
 
@@ -315,11 +336,26 @@ function lastPaso(){
   return list[list.length - 1];
 }
 
+// Deep-link: `?paso=N` a l'URL salta directament a un pas (p.ex.
+// sistema/index.html?paso=23). Si apunta a un pas del capítol amagat
+// (x.5), desbloqueja el capítol per a aquesta sessió.
+const urlPaso = Number(new URLSearchParams(location.search).get('paso'));
+if (Number.isFinite(urlPaso) && urlPaso > 0) {
+  const target = slideMatrix.find(s => s.paso === urlPaso);
+  if (target) {
+    state.paso = urlPaso;
+    if (target.complex && !state.complexUnlocked) {
+      state.complexUnlocked = true;
+      sessionStorage.setItem(COMPLEX_UNLOCK_KEY, '1');
+    }
+  }
+}
+
 // Si el paso desat a localStorage ja no és vàlid (p.ex. un *.5 desat amb
 // el flag actiu, ara reobrim la pestanya i el flag s'ha perdut), tornem
 // al pas enter més proper o al primer disponible.
 if (!pasoExists(state.paso)) {
-  const fallback = Math.max(1, Math.min(26, Math.floor(state.paso) || 1));
+  const fallback = Math.max(1, Math.min(28, Math.floor(state.paso) || 1));
   state.paso = pasoExists(fallback) ? fallback : firstPaso();
 }
 
@@ -484,6 +520,154 @@ function renderApp(slide){
     </div>`;
 }
 
+// ---- Pas intro parallax (layout 'P-parallax') ----
+// Slide full-bleed sense grid, en mode seqüencial: una frase activa en
+// gran al primer pla i la resta atenuades al darrere; l'scroll (roda,
+// swipe, fletxes ↑/↓ o clic als punts) avança/retrocedeix per les
+// frases mentre les capes de fons es desplacen exageradament segons el
+// progrés (vegeu parallax.css). El text reutilitza el camp `text`
+// estàndard (un <p> per frase) i el mateix data-field, així el mode
+// edició, el sanitizer i els overrides funcionen sense cap codi de
+// persistència addicional.
+function renderParallax(slide, section, content){
+  const symbols = slide.parallax?.symbols || [];
+  const layers = symbols.map((s, i) =>
+    `<span class="parallax-layer" data-depth="${(0.25 + (i % 3) * 0.2).toFixed(2)}">${s}</span>`
+  ).join('');
+  // Si el pas declara una imatge (p.ex. Ampliando), va com a capa suau
+  // de fons darrere dels símbols, no com a bloc del grid.
+  const bgImage = content.image?.src
+    ? `<div class="parallax-img" data-depth="0.12" style="background-image:url('${content.image.src}')"></div>`
+    : '';
+  const raw = getOverride(slide.paso, 'text') ?? (content.text || fillerContent.text);
+  const text = expandSlideMarkers(raw);
+  return `
+    <div class="parallax-bg" aria-hidden="true">${bgImage}${layers}</div>
+    <div class="parallax-content">
+      ${renderTitle(slide, section)}
+      <div class="parallax-frases prose" data-field="text">${text}</div>
+      <div class="parallax-dots" role="tablist" aria-label="Frases del capítulo"></div>
+    </div>
+    <div class="parallax-scroll-hint" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      <span>Haz scroll</span>
+    </div>`;
+}
+
+// Controlador del slide parallax actiu (o null si el pas actual no és
+// parallax). Exposa `step(±1)` perquè el keydown global pugui moure les
+// frases amb ↑/↓. Es recrea a cada render del pas; els listeners vells
+// moren amb el seu slideEl.
+let parallaxCtrl = null;
+
+function wireParallax(slideEl){
+  const frases = [...slideEl.querySelectorAll('.parallax-frases > p')];
+  if (!frases.length) { parallaxCtrl = null; return; }
+  const layers = slideEl.querySelectorAll('.parallax-bg [data-depth]');
+  const dotsBox = slideEl.querySelector('.parallax-dots');
+  const hint = slideEl.querySelector('.parallax-scroll-hint');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Punts de progrés (un per frase) — també serveixen de navegació.
+  const dots = frases.map((_, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'parallax-dot';
+    b.setAttribute('aria-label', `Frase ${i + 1} de ${frases.length}`);
+    b.addEventListener('click', () => { hideHint(); setActive(i); });
+    dotsBox.appendChild(b);
+    return b;
+  });
+
+  let active = 0;
+
+  function hideHint(){
+    if (hint) hint.classList.add('is-hidden');
+  }
+
+  // Col·loca cada frase segons la distància (d) a l'activa: l'activa en
+  // gran al centre, les altres apilades amunt/avall, encongides,
+  // atenuades i desenfocades. El fons es mou amb el progrés (t: 0..1)
+  // multiplicat pel depth de cada capa — exagerat a propòsit.
+  function setActive(i){
+    active = Math.max(0, Math.min(frases.length - 1, i));
+    frases.forEach((p, j) => {
+      const d = j - active;
+      const abs = Math.abs(d);
+      p.classList.toggle('is-active', d === 0);
+      p.style.opacity = d === 0 ? '1' : String(Math.max(0.07, 0.26 - abs * 0.07));
+      p.style.transform = `translateY(calc(-50% + ${d * 19}vh)) scale(${d === 0 ? 1 : 0.68})`;
+      p.style.filter = d === 0 ? 'none' : `blur(${Math.min(abs * 1.6, 4)}px)`;
+      p.style.zIndex = String(10 - abs);
+    });
+    dots.forEach((b, j) => {
+      b.classList.toggle('is-active', j === active);
+      b.setAttribute('aria-current', j === active ? 'true' : 'false');
+    });
+    if (!reduced) {
+      const t = frases.length > 1 ? active / (frases.length - 1) : 0;
+      layers.forEach((l, k) => {
+        const depth = parseFloat(l.dataset.depth) || 0.2;
+        const dir = k % 2 === 0 ? 1 : -1;
+        l.style.transform =
+          `translate(${(dir * (t - 0.5) * depth * 60).toFixed(1)}vw, ${((0.5 - t) * depth * 90).toFixed(1)}vh)`
+          + ` rotate(${(dir * (t - 0.5) * depth * 24).toFixed(1)}deg)`
+          + ` scale(${(1 + t * depth * 0.8).toFixed(3)})`;
+      });
+    }
+  }
+
+  function step(delta){
+    if (state.editable) return false;
+    const next = active + delta;
+    if (next < 0 || next >= frases.length) return false;
+    hideHint();
+    setActive(next);
+    return true;
+  }
+
+  // Roda: un pas per gest. El cooldown + llindar d'acumulació eviten que
+  // un sol cop de trackpad (desenes d'events amb inèrcia) salti diverses
+  // frases. preventDefault perquè la pàgina no es mogui — excepte en
+  // mode edició, on cal poder fer scroll lliurement sobre el text.
+  let lastStep = 0;
+  let acc = 0;
+  slideEl.addEventListener('wheel', (e) => {
+    if (state.editable) return;
+    e.preventDefault();
+    const now = performance.now();
+    if (now - lastStep < 450) { acc = 0; return; }
+    acc += e.deltaY;
+    if (Math.abs(acc) < 24) return;
+    const delta = acc > 0 ? 1 : -1;
+    acc = 0;
+    if (step(delta)) lastStep = now;
+  }, { passive: false });
+
+  // Clic sobre una frase atenuada: l'activa directament (alternativa
+  // ràpida a l'scroll). Sobre l'activa no fa res.
+  frases.forEach((p, i) => {
+    p.addEventListener('click', () => {
+      if (state.editable || i === active) return;
+      hideHint();
+      setActive(i);
+    });
+  });
+
+  // Swipe vertical en tàctil.
+  let touchY = null;
+  slideEl.addEventListener('touchstart', (e) => { touchY = e.touches[0].clientY; }, { passive: true });
+  slideEl.addEventListener('touchend', (e) => {
+    if (touchY == null) return;
+    const dy = touchY - e.changedTouches[0].clientY;
+    if (Math.abs(dy) > 40) step(dy > 0 ? 1 : -1);
+    touchY = null;
+  }, { passive: true });
+
+  setActive(0);
+  parallaxCtrl = { step };
+}
+
 function render(){
   const slide = getSlide(state.paso);
   if (!slide) return;
@@ -537,23 +721,40 @@ function render(){
   slideEl.dataset.layout = slide.layout;
   slideEl.dataset.density = getPasoDensity(state.paso);
   slideEl.dataset.paso = slide.paso;
-  slideEl.style.gridTemplateAreas = layout.areas;
-  slideEl.style.gridTemplateRows  = layout.rows;
-  if (layout.cols) slideEl.style.gridTemplateColumns = layout.cols;
+  // `data-app` + `slide--no-expand`: claus ESTABLES per a les regles
+  // d'iframe de slides.css (max-height/aspect per app i excepcions del
+  // mode vertical). Keyed per nom d'app i no per número de pas perquè
+  // les renumeracions no les desfasin (va passar a la v3 i a la v4).
+  if (slide.apps?.length) slideEl.dataset.app = slide.apps[0];
+  if (!pasoExpandsOnVertical(slide.paso)) slideEl.classList.add('slide--no-expand');
 
-  // Render only the slots that the layout references. Unused slots are
-  // skipped automatically by checking which area names appear in `areas`.
-  const areasStr = layout.areas;
-  const parts = [];
-  if (areasStr.includes('title')) parts.push(renderTitle(slide, section));
-  if (areasStr.includes('text'))  parts.push(renderText(content, slide.paso));
-  if (areasStr.includes('image')) parts.push(renderImage(content));
-  if (areasStr.includes('app'))   parts.push(renderApp(slide));
-  if (areasStr.includes('tips'))  parts.push(renderTips(content, slide.paso));
+  if (slide.layout === 'P-parallax') {
+    // Pas intro de capítol: full-bleed, sense grid. El data-section
+    // tria la paleta d'accent del capítol (vegeu parallax.css).
+    slideEl.classList.add('slide--parallax');
+    slideEl.dataset.section = slide.section;
+    slideEl.innerHTML = renderParallax(slide, section, content);
+  } else {
+    slideEl.style.gridTemplateAreas = layout.areas;
+    slideEl.style.gridTemplateRows  = layout.rows;
+    if (layout.cols) slideEl.style.gridTemplateColumns = layout.cols;
 
-  slideEl.innerHTML = parts.join('\n');
+    // Render only the slots that the layout references. Unused slots are
+    // skipped automatically by checking which area names appear in `areas`.
+    const areasStr = layout.areas;
+    const parts = [];
+    if (areasStr.includes('title')) parts.push(renderTitle(slide, section));
+    if (areasStr.includes('text'))  parts.push(renderText(content, slide.paso));
+    if (areasStr.includes('image')) parts.push(renderImage(content));
+    if (areasStr.includes('app'))   parts.push(renderApp(slide));
+    if (areasStr.includes('tips'))  parts.push(renderTips(content, slide.paso));
+    slideEl.innerHTML = parts.join('\n');
+  }
+
   STAGE.innerHTML = '';
   STAGE.appendChild(slideEl);
+  if (slide.layout === 'P-parallax') wireParallax(slideEl);
+  else parallaxCtrl = null;
 
   // Variant toggle wiring
   slideEl.querySelectorAll('.variant-toggle button').forEach(btn => {
@@ -880,6 +1081,9 @@ document.addEventListener('keydown', e => {
   if (e.target.closest('input,select,textarea,[contenteditable="true"],[contenteditable=""]')) return;
   if (e.key === 'ArrowLeft')  go(-1);
   if (e.key === 'ArrowRight') go(+1);
+  // En un pas intro parallax, ↑/↓ mouen les frases (com l'scroll).
+  if (e.key === 'ArrowDown' && parallaxCtrl) { if (parallaxCtrl.step(1))  e.preventDefault(); }
+  if (e.key === 'ArrowUp'   && parallaxCtrl) { if (parallaxCtrl.step(-1)) e.preventDefault(); }
 });
 
 // Populate tweaks "Go to paso" select — només pasos visibles (els
@@ -921,22 +1125,27 @@ else narrowMQ.addListener(onNarrowChange);
 const SYSTEM_VERTICAL_MQ = '(max-width: 900px)';
 const systemVerticalMQ = window.matchMedia(SYSTEM_VERTICAL_MQ);
 
-// Pasos exclosos del comportament "iframe creix a l'alçada del contingut"
-// en mode vertical. Inclou:
-//  - Apps de plànol/grid extens (App11A=2, App11=5, App12=6, App15=10,
-//    App19=15, App20=16, App34=20, App35=20.5, App25=25, App25B=26)
-//    que tenen scroll intern propi i ocuparien tot el viewport del
-//    browser si es deixessin créixer.
+// Apps excloses del comportament "iframe creix a l'alçada del contingut"
+// en mode vertical. Identificades per NOM D'APP (no per número de pas):
+// les renumeracions de passos ja han desfasat aquesta llista dues vegades;
+// el nom d'app és estable. Inclou:
+//  - Apps de plànol/grid extens (App11A, app11, App12, App15, App19,
+//    App20, App34, App35, App25, App25B) que tenen scroll intern propi
+//    i ocuparien tot el viewport del browser si es deixessin créixer.
 //  - Apps amb soundline vertical o estructura vertical compacta on
 //    el contingut usa `clamp(..., 80vh, ...)`: quan alliberem el body
 //    a `height: auto`, els `vh` col·lapsen i el contingut queda xafat.
-//    (App10=4, App14=9, App18=14, App21=21, App22=22.)
-// Per a TOTS aquests pasos no enviem `vertical: true` als iframes, així
+//    (app10, App14, App18, App21, App22.)
+// Per a TOTES aquestes apps no enviem `vertical: true` als iframes, així
 // `embed.css` no allibera html/body/main i tot manté la seva geometria
 // fixa amb scroll intern propi.
-const NO_EXPAND_PASOS = new Set([2, 4, 5, 6, 9, 10, 14, 15, 16, 20, 20.5, 21, 22, 25, 26]);
+const NO_EXPAND_APPS = new Set([
+  'App11A', 'app10', 'app11', 'App12', 'App14', 'App15', 'App18', 'App19',
+  'App20', 'App34', 'App35', 'App21', 'App22', 'App25', 'App25B',
+]);
 function pasoExpandsOnVertical(paso) {
-  return !NO_EXPAND_PASOS.has(paso);
+  const app = getSlide(paso)?.apps?.[0];
+  return !(app && NO_EXPAND_APPS.has(app));
 }
 
 function broadcastSystemMode() {

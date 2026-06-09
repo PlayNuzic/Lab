@@ -1,0 +1,232 @@
+/* Parallax intro slides — passos d'introducció de capítol (7, 11, 17, 22).
+   Mode seqüencial dirigit per scroll: la frase activa es mostra en gran al
+   primer pla ocupant tota l'amplada; la resta queden apilades al darrere,
+   encongides, atenuades i desenfocades. L'scroll (roda/swipe/fletxes ↑↓ o
+   els punts de progrés) canvia la frase activa, i les capes de fons amb
+   els símbols del capítol es desplacen exageradament segons el progrés
+   (transform inline des de wireParallax a slides.js). La paleta d'accent
+   es tria per capítol via `data-section` (posat pel renderer). */
+
+.slide--parallax[data-section="intervalos"]  { --px-accent: var(--nuzic-blue);   --px-soft: var(--nuzic-blue-light); }
+.slide--parallax[data-section="ampliando"]   { --px-accent: var(--nuzic-yellow); --px-soft: var(--nuzic-yellow-light); }
+.slide--parallax[data-section="fraccionando"]{ --px-accent: var(--nuzic-red);    --px-soft: var(--nuzic-red-light); }
+.slide--parallax[data-section="escalas"]     { --px-accent: var(--nuzic-green);  --px-soft: var(--nuzic-green-light); }
+
+.slide--parallax{
+  position: relative;
+  /* Anul·la el grid d'`.slide` (display:flex ignora les grid-template
+     del media query de grid.css, que porten !important). */
+  display: flex;
+  align-items: stretch;
+  /* Omple el viewport disponible (descomptant nav i padding del stage)
+     perquè el pas intro se senti com una portada de capítol. */
+  min-height: calc(100vh - var(--nav-h) - 2 * var(--slide-pad-y));
+  overflow: hidden;           /* clip de les capes que es mouen */
+  isolation: isolate;
+  border-radius: 18px;
+  padding: clamp(24px, 3.5vw, 56px);
+  background:
+    radial-gradient(120% 120% at 85% 10%, var(--px-soft) 0%, transparent 55%),
+    var(--bg);
+}
+/* En dark mode els *-light de la paleta són massa clars com a glow:
+   barregem l'accent amb transparent per a un halo subtil. */
+body[data-theme="dark"] .slide--parallax{
+  background:
+    radial-gradient(120% 120% at 85% 10%,
+      color-mix(in srgb, var(--px-accent) 16%, transparent) 0%,
+      transparent 55%),
+    var(--bg);
+}
+
+/* ---- Capes de fons ---- */
+.parallax-bg{
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+/* Imatge opcional del pas (p.ex. Ampliando reutilitza paso-11.jpg).
+   inset negatiu = marge de recorregut perquè el moviment exagerat no
+   descobreixi les vores. */
+.parallax-img{
+  position: absolute;
+  inset: -18%;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.10;
+  filter: saturate(0.8);
+  will-change: transform;
+  transition: transform 0.7s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+.parallax-layer{
+  position: absolute;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(80px, 14vw, 260px);
+  line-height: 1;
+  color: var(--px-accent);
+  opacity: 0.12;
+  white-space: nowrap;
+  user-select: none;
+  will-change: transform;
+  transition: transform 0.7s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+/* Posicions de fins a 6 capes (els slides en declaren 4-6). */
+.parallax-layer:nth-of-type(1){ top: 2%;  left: 50%; }
+.parallax-layer:nth-of-type(2){ top: 52%; left: 70%; font-size: clamp(60px, 10vw, 180px); }
+.parallax-layer:nth-of-type(3){ top: 68%; left: 4%;  font-size: clamp(52px, 8vw, 150px); }
+.parallax-layer:nth-of-type(4){ top: 10%; left: 2%;  font-size: clamp(44px, 6vw, 110px); }
+.parallax-layer:nth-of-type(5){ top: 34%; left: 84%; font-size: clamp(44px, 6vw, 110px); }
+.parallax-layer:nth-of-type(6){ top: 82%; left: 52%; font-size: clamp(52px, 8vw, 150px); }
+
+/* ---- Contingut ---- */
+.parallax-content{
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.slide--parallax .slot-title{
+  flex: 0 0 auto;
+  justify-content: flex-start;
+}
+.slide--parallax .slide__title{
+  font-size: clamp(30px, 2.6vw + 0.5rem, 50px);
+}
+
+/* Escenari de frases: ocupa tot l'espai restant (tota l'amplada del
+   slide). Les frases es col·loquen apilades al centre vertical; la
+   posició/escala/opacitat exactes vénen per estil inline des de
+   setActive() (slides.js), aquí només la base i la transició. */
+.parallax-frases{
+  position: relative;
+  flex: 1;
+  min-height: 38vh;
+}
+.parallax-frases > p{
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 2.4vw + 0.7rem, 48px);
+  line-height: 1.3;
+  text-wrap: balance;
+  transform: translateY(-50%);
+  transform-origin: left center;
+  will-change: transform, opacity, filter;
+  transition:
+    transform 0.55s cubic-bezier(0.22, 0.9, 0.3, 1),
+    opacity 0.55s ease,
+    filter 0.55s ease;
+  /* Les frases atenuades es poden clicar per activar-les. */
+  cursor: pointer;
+}
+.parallax-frases > p.is-active{
+  font-weight: 700;
+  cursor: default;
+}
+/* Èmfasi en color d'accent, fosquejat cap al fg per garantir contrast
+   (el groc d'Ampliando pur seria il·legible sobre blanc). */
+.parallax-frases p b,
+.parallax-frases p strong{
+  color: color-mix(in srgb, var(--px-accent) 60%, var(--fg));
+}
+
+/* ---- Punts de progrés ---- */
+.parallax-dots{
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding-top: 10px;
+}
+.parallax-dot{
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  background: color-mix(in srgb, var(--px-accent) 30%, transparent);
+  cursor: pointer;
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+.parallax-dot:hover{
+  background: color-mix(in srgb, var(--px-accent) 55%, transparent);
+}
+.parallax-dot.is-active{
+  background: var(--px-accent);
+  transform: scale(1.4);
+}
+.parallax-dot:focus-visible{
+  outline: 2px solid var(--fg-soft);
+  outline-offset: 2px;
+}
+
+/* ---- Avís de scroll ---- */
+.parallax-scroll-hint{
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-soft);
+  opacity: 0.85;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+.parallax-scroll-hint.is-hidden{ opacity: 0; }
+.parallax-scroll-hint svg{
+  animation: px-bounce 1.6s ease-in-out infinite;
+}
+@keyframes px-bounce{
+  0%, 100%{ transform: translateY(0); }
+  50%     { transform: translateY(6px); }
+}
+
+/* Mode edició: el carrusel es desactiva (vegeu el guard de wheel/step a
+   slides.js) i les frases tornen a fluir en estàtic, totes visibles, per
+   editar còmodament. Els !important guanyen als estils inline de JS. */
+body[data-editable="true"] .slide--parallax{ overflow: auto; }
+body[data-editable="true"] .parallax-frases > p{
+  position: static !important;
+  transform: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  font-size: var(--fs-h2);
+  margin-bottom: 0.8em;
+}
+body[data-editable="true"] .parallax-dots,
+body[data-editable="true"] .parallax-scroll-hint{ display: none; }
+
+@media (prefers-reduced-motion: reduce){
+  .parallax-frases > p,
+  .parallax-layer,
+  .parallax-img{ transition: none; }
+  .parallax-scroll-hint svg{ animation: none; }
+}
+
+@media (max-width: 900px){
+  .slide--parallax{
+    min-height: calc(100vh - var(--nav-h) - 2 * var(--slide-pad-y));
+    padding: clamp(20px, 5vw, 36px);
+  }
+  .parallax-frases > p{
+    font-size: clamp(20px, 5.5vw, 32px);
+  }
+  .parallax-layer{ opacity: 0.08; }
+}
