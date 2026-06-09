@@ -65,8 +65,11 @@ body[data-theme="dark"] .tweaks__collapse:hover{ background: rgba(0,0,0,0.1); }
   gap: 10px;
   font-size: 13px;
   font-weight: 400;
+  /* Cap fill (select amb opcions llargues) pot eixamplar la fila més
+     enllà del panell. */
+  min-width: 0;
 }
-.tweaks__row span{ color: var(--fg-soft); }
+.tweaks__row span{ color: var(--fg-soft); white-space: nowrap; }
 .tweaks__row select,
 .tweaks__row input[type="checkbox"]{
   font-family: inherit;
@@ -77,6 +80,16 @@ body[data-theme="dark"] .tweaks__collapse:hover{ background: rgba(0,0,0,0.1); }
   border-radius: 4px;
   padding: 4px 6px;
 }
+/* Els selects encongeixen dins la fila en lloc d'imposar l'amplada de
+   la seva opció més llarga (p.ex. "7. Los Intervalos" a "Ir a paso") —
+   el text sobrant es talla amb el·lipsi. */
+.tweaks__row select{
+  flex: 1;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
 .tweaks__foot{
   padding: 8px 14px 10px;
   font-size: 11px;
@@ -84,7 +97,13 @@ body[data-theme="dark"] .tweaks__collapse:hover{ background: rgba(0,0,0,0.1); }
   border-top: 1px solid var(--rule);
 }
 
-.tweaks__row--actions{ justify-content: flex-end; gap: 6px; }
+/* Files de botons (marques, exportar...): salten de línia dins el
+   panell en lloc de sobresortir pels costats. */
+.tweaks__row--actions{
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .tweaks__btn{
   appearance: none;
   border: 1px solid var(--rule);
