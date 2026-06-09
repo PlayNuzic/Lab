@@ -54,6 +54,16 @@
 9. **Clic sobre frase atenuada** als intros parallax: l'activa directament
    (a més de l'scroll/swipe/fletxes/punts).
 
+10. **Paso 1 en format parallax + 1·B ocult** (mateixa sessió, més tard):
+    el nou paso 1 és un intro parallax (paleta rosa "descubriendo", 5 frases
+    del text original); l'antic paso 1 (vídeo + text complet) passa a ser el
+    pas ocult **1·B (paso 1.5)** rere el flag individual `intro1b` (5 clicks
+    al badge d'un pas de "Descubriendo"). El mecanisme d'easter egg es va
+    generalitzar: `HIDDEN_FLAGS` (slides.js) mapeja flag → sessionStorage key,
+    etiqueta del botó de tancar i secció que el desbloqueja; els passos ocults
+    porten `hidden:true, flag:'<nom>'` al slideMatrix (el camp `complex:true`
+    va desaparèixer). Migració **v5**: overrides/densitats del paso 1 → 1.5.
+
 ## Notes
 
 - El `paso` desat a localStorage (`sistema.paso`) NO es migra (mateix criteri

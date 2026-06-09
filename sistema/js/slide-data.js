@@ -13,7 +13,7 @@
 // 16-19.5 → +2, 20-25 → +3.)
 
 export const sections = [
-  { id:'descubriendo', title:'Descubriendo la Música',              slides:[1,2,3,4,5,6] },
+  { id:'descubriendo', title:'Descubriendo la Música',              slides:[1,1.5,2,3,4,5,6] },
   { id:'intervalos',   title:'Midiendo el movimiento: Los intervalos', slides:[7,8,9,10] },
   { id:'ampliando',    title:'Ampliando',                          slides:[11,12,13,14,15,16] },
   { id:'fraccionando', title:'Fraccionando',                       slides:[17,18,18.5,19,19.5,20,20.5,21,21.5] },
@@ -83,7 +83,10 @@ export const layouts = {
 // És la font de veritat de producció; el panell tweaks pot sobreescriure-la
 // localment (localStorage) per previsualitzar, però no es desplega.
 export const slideMatrix = [
-  { paso:1,    section:'descubriendo', title:'¿Sabías que los números son el adn de la música?', layout:'A-intro', density:'loose' },
+  { paso:1,    section:'descubriendo', title:'¿Sabías que los números son el adn de la música?', layout:'P-parallax', parallax:{ symbols:['0 1 2 3', 'N', 'P', 'BPM'] } },
+  // 1·B — l'antic paso 1 (vídeo + text complet), ocult rere el flag
+  // individual `intro1b` (5 clicks al badge d'un pas de "Descubriendo").
+  { paso:1.5,  section:'descubriendo', title:'¿Sabías que los números son el adn de la música?', layout:'A-intro', density:'loose', hidden:true, flag:'intro1b' },
   { paso:2,  section:'descubriendo', title:'¿Qué se mueve en la música?',                                 layout:'B-app-left', apps:['App11A'], aspect:'4/3', group:'plano-simple', density:'compact' },
   { paso:3,  section:'descubriendo', title:'Línea Temporal',                                              layout:'E-app-text-left', apps:['app9'],   aspect:'2/1', group:'timeline-simple', density:'compact' },
   { paso:4,  section:'descubriendo', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'5/9', group:'timeline-vertical' },
@@ -101,13 +104,13 @@ export const slideMatrix = [
   { paso:16, section:'ampliando',    title:'Sucesión N-iT en Plano Modular',                              layout:'B-app-left', apps:['App20'],  aspect:'4/3', group:'plano-multi-pill', requiresLandscape:true, density:'compact' },
   { paso:17,   section:'fraccionando', title:'Fraccionando el tiempo',                                      layout:'P-parallax', parallax:{ symbols:['1/2', '1/3', '0.1', '1.2', 'Pfr'] } },
   { paso:18,   section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'E-app-text-left', apps:['App26'],  aspect:'5/2', group:'timeline-simple', density:'compact' },
-  { paso:18.5, section:'fraccionando', title:'Ciclos en la Línea Temporal',                                  layout:'E-app-text-left', apps:['App27'],  aspect:'5/2', group:'timeline-simple', hidden:true, complex:true, density:'compact' },
+  { paso:18.5, section:'fraccionando', title:'Ciclos en la Línea Temporal',                                  layout:'E-app-text-left', apps:['App27'],  aspect:'5/2', group:'timeline-simple', hidden:true, flag:'complex', density:'compact' },
   { paso:19,   section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'E-app-text-left', apps:['App28'],  aspect:'2/1', group:'timeline-simple' },
-  { paso:19.5, section:'fraccionando', title:'Sucesión de Pfr en ciclos polirrítmicos',                      layout:'E-app-text-left', apps:['App29'],  aspect:'2/1', group:'timeline-simple', hidden:true, complex:true },
+  { paso:19.5, section:'fraccionando', title:'Sucesión de Pfr en ciclos polirrítmicos',                      layout:'E-app-text-left', apps:['App29'],  aspect:'2/1', group:'timeline-simple', hidden:true, flag:'complex' },
   { paso:20,   section:'fraccionando', title:'Sucesión de iT Fraccionados',                                 layout:'E-app-text-left', apps:['App30'],  aspect:'5/3', group:'timeline-simple', density:'compact' },
-  { paso:20.5, section:'fraccionando', title:'Sucesión de iTfr en ciclos polirrítmicos',                     layout:'E-app-text-left', apps:['App31'],  aspect:'5/3', group:'timeline-simple', hidden:true, complex:true, density:'compact' },
+  { paso:20.5, section:'fraccionando', title:'Sucesión de iTfr en ciclos polirrítmicos',                     layout:'E-app-text-left', apps:['App31'],  aspect:'5/3', group:'timeline-simple', hidden:true, flag:'complex', density:'compact' },
   { paso:21,   section:'fraccionando', title:'Plano fraccionado con sucesión N-iTfr',                      layout:'B-app-left',      apps:['App34'],  aspect:'3/4', group:'plano-simple', density:'compact' },
-  { paso:21.5, section:'fraccionando', title:'Plano con fracciones complejas',                              layout:'B-app-left',      apps:['App35'],  aspect:'3/4', group:'plano-simple', hidden:true, complex:true, density:'compact' },
+  { paso:21.5, section:'fraccionando', title:'Plano con fracciones complejas',                              layout:'B-app-left',      apps:['App35'],  aspect:'3/4', group:'plano-simple', hidden:true, flag:'complex', density:'compact' },
   { paso:22, section:'escalas',      title:'Las Escalas',                                                 layout:'P-parallax', parallax:{ symbols:['Nº', 'eE', 'iSº', '0 2 4 5 7 9 11'] } },
   { paso:23, section:'escalas',      title:'Escalas: Escogiendo Notas',                                   layout:'B-app-left', apps:['App21'],  aspect:'2/3', group:'scale', density:'compact' },
   { paso:24, section:'escalas',      title:'Estructura Escalar',                                          layout:'B-app-left', apps:['App22'],  aspect:'2/3', group:'scale', density:'loose' },
@@ -123,7 +126,16 @@ export const slideMatrix = [
 // el renderer les converteix en blocs que s'activen amb el mouse.
 //
 export const slideContent = {
+  // Pas intro parallax — Descubriendo la Música (portada del Sistema).
   1: {
+    text: `<p>Bienvenido al Sistema Interactivo Nuzic, un método pedagógico que te ayudará a comprender la música a partir de los números.</p>
+<p>Estás a punto de recorrer la música desde cero: empezarás descubriendo que todo lo que suena se puede contar y medir.</p>
+<p>Asociamos los números a elementos de la música como notas, pulsos o intervalos, y así podemos describir y analizar cualquier música.</p>
+<p>Podemos unir estos números en secuencias y crear ritmos y melodías.</p>
+<p>¡Adéntrate en el mundo de los números y la música!</p>`,
+  },
+  // 1·B — contingut original del pas 1 (vídeo + text complet).
+  1.5: {
     video: {
       alt: 'Vídeo introductori animat — el seguiment d\'una persona',
       src: 'videos/paso-1.mp4',

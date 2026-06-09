@@ -20,13 +20,27 @@ const DENSITY_KEY = 'sistema.densityByPaso';  // { [paso]: 'compact'|'cozy'|'loo
 const DEFAULT_DENSITY = 'cozy';  // 'Normal' — cas base sense regla CSS especial
 const OVERRIDES_KEY = 'sistema.overrides';
 const OVERRIDES_VERSION_KEY = 'sistema.overrides.version';
-const OVERRIDES_VERSION = 4;  // v4: intro parallax pasos added (7/17/22); 7-15 → +1, 16-19.5 → +2, 20-25 → +3
+const OVERRIDES_VERSION = 5;  // v5: paso 1 → 1.5 (1·B ocult); el nou paso 1 és l'intro parallax
 
-// Easter egg: capítol amagat "complex" → pasos 18.5/19.5/20.5/21.5
-// (Fraccions Complexes). Es desbloqueja amb 5 clicks al badge d'un pas
-// del capítol "Fraccionando". Pas amagat marcat amb `complex: true`.
-// Flag de sessionStorage: tancar pestanya = es torna a amagar.
-const COMPLEX_UNLOCK_KEY = 'sistema.complexUnlocked';
+// Easter eggs: passos/capítols amagats, cadascun amb el seu flag
+// individual. Un pas amagat porta `hidden: true` + `flag: '<nom>'` al
+// slideMatrix. Es desbloqueja amb 5 clicks al badge d'un pas de la
+// secció associada al flag. Flag de sessionStorage: tancar pestanya =
+// es torna a amagar.
+//   complex → pasos 18.5/19.5/20.5/21.5 (Fraccions Complexes)
+//   intro1b → paso 1.5 (l'antic paso 1 amb vídeo, ara 1·B)
+const HIDDEN_FLAGS = {
+  complex: {
+    storageKey: 'sistema.complexUnlocked',
+    closeLabel: 'Cerrar fracciones complejas',
+    section: 'fraccionando',
+  },
+  intro1b: {
+    storageKey: 'sistema.introBUnlocked',
+    closeLabel: 'Cerrar paso 1·B',
+    section: 'descubriendo',
+  },
+};
 const HIDDEN_CLICK_THRESHOLD = 5;
 const HIDDEN_CLICK_WINDOW_MS = 1500;
 
@@ -93,6 +107,19 @@ function migrateOverridesV4(stored) {
   return out;
 }
 
+// v5 (2026-06-09): l'antic paso 1 (vídeo, A-intro) passa a ser el pas
+// ocult 1·B (paso 1.5, flag intro1b) i el nou paso 1 és un intro
+// parallax amb text nou. Els overrides/densitats del paso 1 segueixen
+// el seu contingut cap a 1.5.
+function migrateOverridesV5(stored) {
+  const out = {};
+  for (const [k, v] of Object.entries(stored)) {
+    const n = Number(k);
+    out[n === 1 ? 1.5 : n] = v;
+  }
+  return out;
+}
+
 // Text overrides (edit-mode persistence). Structure:
 //   { [paso]: { title?: string, text?: string, tipsTitle?: string, tips?: string } }
 // Each field stores the edited HTML (innerHTML for rich text, textContent for
@@ -111,6 +138,7 @@ function applyPasoMigrations(stored, ver) {
   if (ver < 2) out = migrateOverridesV2(out);
   if (ver < 3) out = migrateOverridesV3(out);
   if (ver < 4) out = migrateOverridesV4(out);
+  if (ver < 5) out = migrateOverridesV5(out);
   return out;
 }
 
@@ -293,8 +321,16 @@ const state = {
   editable: false,
   overrides: loadOverrides(),
   narrowViewport: window.matchMedia(NARROW_VIEWPORT_QUERY).matches,
-  complexUnlocked: sessionStorage.getItem(COMPLEX_UNLOCK_KEY) === '1',
+  // Desbloqueig per flag dels passos amagats (vegeu HIDDEN_FLAGS).
+  unlocked: Object.fromEntries(
+    Object.entries(HIDDEN_FLAGS).map(([f, d]) => [f, sessionStorage.getItem(d.storageKey) === '1'])
+  ),
 };
+
+// Un pas amagat és visible només si el seu flag està desbloquejat.
+function isSlideVisible(s){
+  return !s.hidden || state.unlocked[s.flag];
+}
 
 // Densitat del pas actual (o un de concret). Prioritat:
 //   1. Override local del tweaks (localStorage `densityByPaso`) — només
@@ -321,10 +357,7 @@ window.__sistemaSetDensity = setPasoDensity;
 // `hidden:true` queden fora de la navegació, de la barra de progrés
 // i del clamping de "següent/anterior".
 function getVisibleSlides(){
-  return slideMatrix.filter(s =>
-    !s.hidden
-    || (s.complex && state.complexUnlocked)
-  );
+  return slideMatrix.filter(isSlideVisible);
 }
 function getVisiblePasos(){
   return getVisibleSlides().map(s => s.paso);
@@ -344,9 +377,9 @@ if (Number.isFinite(urlPaso) && urlPaso > 0) {
   const target = slideMatrix.find(s => s.paso === urlPaso);
   if (target) {
     state.paso = urlPaso;
-    if (target.complex && !state.complexUnlocked) {
-      state.complexUnlocked = true;
-      sessionStorage.setItem(COMPLEX_UNLOCK_KEY, '1');
+    if (target.hidden && target.flag && !state.unlocked[target.flag]) {
+      state.unlocked[target.flag] = true;
+      sessionStorage.setItem(HIDDEN_FLAGS[target.flag].storageKey, '1');
     }
   }
 }
@@ -390,8 +423,9 @@ function renderTitle(slide, section){
   // el seu capítol (no apareix als pasos enters ni a la resta del
   // Sistema).
   let closeBtn = '';
-  if (state.complexUnlocked && slide.complex) {
-    closeBtn = '<button class="paso-badge__close" type="button" data-close-chapter="complex" aria-label="Cerrar fracciones complejas" title="Cerrar fracciones complejas">Cerrar fracciones complejas</button>';
+  if (slide.hidden && state.unlocked[slide.flag]) {
+    const label = HIDDEN_FLAGS[slide.flag].closeLabel;
+    closeBtn = `<button class="paso-badge__close" type="button" data-close-chapter="${slide.flag}" aria-label="${escapeAttr(label)}" title="${escapeAttr(label)}">${label}</button>`;
   }
   return `
     <div class="slot-title">
@@ -690,17 +724,14 @@ function render(){
   // secció no mostra els pasos amagats.
   const visibleInSection = section.slides.filter(p => {
     const s = slideMatrix.find(x => x.paso === p);
-    return s && (
-      !s.hidden
-      || (s.complex && state.complexUnlocked)
-    );
+    return s && isSlideVisible(s);
   });
   visibleInSection.forEach(p => {
     const s = slideMatrix.find(x => x.paso === p);
     const seg = document.createElement('button');
     seg.type = 'button';
     seg.className = 'progress-seg';
-    if (s?.complex) seg.classList.add('progress-seg--complex');
+    if (s?.hidden) seg.classList.add('progress-seg--complex');
     seg.dataset.paso = p;
     seg.setAttribute('aria-label', `Anar al Paso ${formatPaso(p)}`);
     if (p < state.paso) seg.classList.add('is-done');
@@ -995,10 +1026,11 @@ function go(delta){
   if (next != null) goTo(next);
 }
 
-// Easter egg: 5 clicks consecutius sobre el `.paso-badge` d'un pas de la
-// secció "fraccionando" desbloquegen el capítol amagat "complex" (pasos
-// 17.5/18.5/19.5/20.5). El comptador es reseteja si passa més de
-// HIDDEN_CLICK_WINDOW_MS entre clicks.
+// Easter egg: 5 clicks consecutius sobre el `.paso-badge` d'un pas d'una
+// secció amb flag amagat associat (vegeu HIDDEN_FLAGS) desbloquegen el
+// seu pas/capítol amagat: "fraccionando" → complex (18.5...21.5),
+// "descubriendo" → intro1b (1·B). El comptador es reseteja si passa més
+// de HIDDEN_CLICK_WINDOW_MS entre clicks.
 let hiddenClickCount = 0;
 let hiddenClickTimer = null;
 function resetHiddenClicks() {
@@ -1006,16 +1038,18 @@ function resetHiddenClicks() {
 }
 function handleBadgeClick(){
   const slide = getSlide(state.paso);
-  if (slide && slide.section === 'fraccionando') {
+  const flag = slide && Object.keys(HIDDEN_FLAGS)
+    .find(f => HIDDEN_FLAGS[f].section === slide.section);
+  if (flag) {
     hiddenClickCount += 1;
     if (hiddenClickTimer) clearTimeout(hiddenClickTimer);
     hiddenClickTimer = setTimeout(resetHiddenClicks, HIDDEN_CLICK_WINDOW_MS);
     if (hiddenClickCount >= HIDDEN_CLICK_THRESHOLD) {
-      // 5è click dins finestra: dispara el toggle del capítol amagat
+      // 5è click dins finestra: dispara el toggle del pas amagat
       // i tanca el menú (no el deixem obert després del salt).
       resetHiddenClicks();
       closeSectionsMenu();
-      toggleHiddenChapter();
+      toggleHiddenChapter(flag);
       return;
     }
   } else {
@@ -1026,23 +1060,25 @@ function handleBadgeClick(){
   toggleSectionsMenu();
 }
 
-function toggleHiddenChapter(){
-  state.complexUnlocked = !state.complexUnlocked;
-  if (state.complexUnlocked) {
-    sessionStorage.setItem(COMPLEX_UNLOCK_KEY, '1');
+function toggleHiddenChapter(flag){
+  const def = HIDDEN_FLAGS[flag];
+  if (!def) return;
+  state.unlocked[flag] = !state.unlocked[flag];
+  if (state.unlocked[flag]) {
+    sessionStorage.setItem(def.storageKey, '1');
     // En activar, saltem automàticament a la slide *.5 corresponent a
     // la slide entera on l'usuari era (p.ex. clicar 5 cops al pas 18
-    // obre el pas 18.5).
+    // obre el pas 18.5; al pas 1, el pas 1·B).
     if (Number.isInteger(state.paso)) {
       const variantB = state.paso + 0.5;
       const variantSlide = slideMatrix.find(s => s.paso === variantB);
-      if (variantSlide && variantSlide.complex) {
+      if (variantSlide && variantSlide.flag === flag) {
         state.paso = variantB;
         state.variant = 'a';
       }
     }
   } else {
-    sessionStorage.removeItem(COMPLEX_UNLOCK_KEY);
+    sessionStorage.removeItem(def.storageKey);
     // Si l'usuari era en una slide *.5 que acabem d'amagar, retrocedeix
     // a la versió entera corresponent (Math.floor).
     if (!pasoExists(state.paso)) {
@@ -1060,7 +1096,8 @@ function toggleHiddenChapter(){
 STAGE.addEventListener('click', (e) => {
   const closeBtn = e.target.closest('.paso-badge__close');
   if (closeBtn) {
-    if (closeBtn.dataset.closeChapter === 'complex' && state.complexUnlocked) toggleHiddenChapter();
+    const flag = closeBtn.dataset.closeChapter;
+    if (HIDDEN_FLAGS[flag] && state.unlocked[flag]) toggleHiddenChapter(flag);
     return;
   }
   if (e.target.closest('.paso-badge')) {
@@ -1238,12 +1275,10 @@ function populateSectionsMenu() {
       const slide = slideMatrix.find(s => s.paso === p);
       if (!slide) return;
       // Saltem els amagats que el seu flag no està actiu.
-      if (slide.hidden) {
-        if (slide.complex && !state.complexUnlocked) return;
-      }
+      if (!isSlideVisible(slide)) return;
       const item = document.createElement('li');
       item.className = 'sistema-nav__sections-menu__step';
-      if (slide.complex) item.classList.add('is-hidden-chapter');
+      if (slide.hidden) item.classList.add('is-hidden-chapter');
       item.setAttribute('role', 'option');
       item.dataset.paso = String(p);
       item.textContent = `${formatPaso(p)} · ${slide.title}`;
