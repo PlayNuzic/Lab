@@ -232,9 +232,9 @@ export const slideContent = {
     },
     text: `<p>La realidad está llena de ciclos: estaciones, fases lunares, días, horas… ciclos que se repiten.</p>
 <p>Lo que se repite no aburre: ordena el mundo. En matemáticas lo llaman <b>módulo</b>.</p>
-<p>La música también los usa: el <b>compás</b> agrupa los pulsos y el <b>registro</b> agrupa las notas.</p>
+<p>La música también usa módulos: el <b>compás</b> agrupa los pulsos y el <b>registro</b> agrupa las notas.</p>
 <p>Con unos pocos números que giran y vuelven puedes construir estructuras inmensas.</p>
-<p>Tu plano musical está a punto de hacerse grande. Mucho más grande.</p>`,
+<p>El plano musical está a punto de hacerse grande. Mucho más grande.</p>`,
   },
   12: {
     text: `<p>El módulo temporal es el <strong>compás</strong>. El compás se repite las veces que queramos. Organiza los pulsos de la línea temporal en grupos.</p>
@@ -296,7 +296,7 @@ export const slideContent = {
   17: {
     text: `<p>Entre un pulso y el siguiente también hay movimiento.</p>
 <p>Acércate: divide el pulso y descubrirás un mundo nuevo de posibilidades rítmicas.</p>
-<p>La <b>fracción</b> activa una nueva pulsación, latiendo dentro de la pulsación.</p>
+<p>La <b>fracción</b> activa una nueva pulsación, que late dentro de la pulsación.</p>
 <p>Conoce los <b>pulsos fraccionados</b>: el tejido fino del tiempo.</p>
 <p>Aquí es donde el ritmo se vuelve vivo. ¿Lo fraccionamos?</p>`,
   },
@@ -346,10 +346,10 @@ export const slideContent = {
   // Pas intro parallax — Escalas.
   22: {
     text: `<p>De las doce notas disponibles del registro, podemos escoger una selección de notas.</p>
-<p>Esas selecciones tienen nombre y carácter único. ¿Te suena la escala mayor o la menor?</p>
-<p>Las escalas son una paleta de colores sonoros.</p>
+<p>De esas selecciones nacen las escalas. ¿Te suena la escala mayor o la menor?</p>
+<p>Las escalas son una paleta de colores sonoros con nombre y carácter únicos.</p>
 <p>Cambia la escala y la misma melodía se vuelve alegre, misteriosa, luminosa u oscura.</p>
-<p>Elegir escalas es elegir un mundo. Entra y escúchalos todos.</p>`,
+<p>Elegir escalas es elegir un mundo. Entra y escúchalos.</p>`,
   },
   23: {
     text: `<p>Históricamente la música se ha estudiado a partir de las siete notas de la escala Mayor Diatónica. La escala cromática llega después, como resultado de siglos de desarrollo. </p>
