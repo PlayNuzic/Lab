@@ -660,22 +660,70 @@ function wireParallax(slideEl){
     return true;
   }
 
-  // Roda: un pas per gest. El cooldown + llindar d'acumulació eviten que
-  // un sol cop de trackpad (desenes d'events amb inèrcia) salti diverses
-  // frases. preventDefault perquè la pàgina no es mogui — excepte en
-  // mode edició, on cal poder fer scroll lliurement sobre el text.
-  let lastStep = 0;
-  let acc = 0;
+  // Roda: un pas per GEST, no per temps. El trackpad continua emetent
+  // events decreixents (inèrcia) durant centenars de ms després de
+  // l'empenta; amb un cooldown fix, la cua del mateix gest disparava
+  // una segona frase. Ara el pas DESARMA la roda i només es rearma
+  // quan es detecta un gest nou: una pausa real entre events
+  // (REARM_GAP) o un canvi de direcció. Una empenta llarga = una frase.
+  // preventDefault perquè la pàgina no es mogui — excepte en mode
+  // edició, on cal poder fer scroll lliurement sobre el text.
+  const WHEEL_REARM_GAP_MS = 100;     // pausa que delimita un gest nou
+  const WHEEL_STEP_THRESHOLD = 50;    // delta acumulat per disparar un pas
+  // Temps mínim entre passos en la MATEIXA direcció: per molta inèrcia
+  // (o rampa d'acceleració) que porti el gest, mai pot encadenar
+  // frases més ràpid que això — s'atura a cada frase. Alineat amb la
+  // durada de la transició visual (~550ms a parallax.css).
+  const WHEEL_STEP_COOLDOWN_MS = 450;
+  let wheelArmed = true;
+  let wheelAcc = 0;
+  let lastWheelTime = 0;
+  let lastWheelSign = 0;
+  let lastWheelAbs = 0;
+  let lastStepTime = 0;
   slideEl.addEventListener('wheel', (e) => {
     if (state.editable) return;
     e.preventDefault();
+    const abs = Math.abs(e.deltaY);
+    // Events sense component vertical real (deriva horitzontal del
+    // trackpad, deltaY≈0 residual) no compten com a activitat: si
+    // actualitzessin el rellotge del gap, la pausa que delimita un
+    // gest nou no es detectaria mai i la roda quedaria bloquejada.
+    if (abs < 1) return;
     const now = performance.now();
-    if (now - lastStep < 450) { acc = 0; return; }
-    acc += e.deltaY;
-    if (Math.abs(acc) < 24) return;
-    const delta = acc > 0 ? 1 : -1;
-    acc = 0;
-    if (step(delta)) lastStep = now;
+    const gap = now - lastWheelTime;
+    lastWheelTime = now;
+    const sign = Math.sign(e.deltaY);
+
+    if (!wheelArmed) {
+      // Gest nou si: pausa clara des de l'últim event, direcció
+      // invertida, o un pic d'energia clarament per sobre de la cua
+      // d'inèrcia (que sempre decau) — una empenta nova en la mateixa
+      // direcció enmig de la cua es detecta per aquest salt.
+      // El cooldown des de l'ÚLTIM PAS limita el ritme en la mateixa
+      // direcció: la rampa d'un cop fort (deltes creixents) ja no pot
+      // encadenar frases en cascada. Invertir la direcció no espera.
+      const cooled = now - lastStepTime > WHEEL_STEP_COOLDOWN_MS;
+      const fresh = (sign !== 0 && sign !== lastWheelSign)
+        || (cooled && (
+          gap > WHEEL_REARM_GAP_MS
+          || (abs > 20 && abs > lastWheelAbs * 1.5 + 8)
+        ));
+      if (!fresh) { lastWheelAbs = abs; return; }
+      wheelArmed = true;
+      wheelAcc = 0;
+    } else if (gap > 300) {
+      // Residu d'acumulació d'un gest antic que no va arribar al llindar.
+      wheelAcc = 0;
+    }
+    lastWheelAbs = abs;
+    if (sign !== 0) lastWheelSign = sign;
+
+    wheelAcc += e.deltaY;
+    if (Math.abs(wheelAcc) < WHEEL_STEP_THRESHOLD) return;
+    const delta = wheelAcc > 0 ? 1 : -1;
+    wheelAcc = 0;
+    if (step(delta)) { wheelArmed = false; lastStepTime = now; }
   }, { passive: false });
 
   // Clic sobre una frase atenuada: l'activa directament (alternativa
