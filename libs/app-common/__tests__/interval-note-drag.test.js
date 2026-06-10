@@ -117,7 +117,7 @@ describe('interval-note-drag', () => {
 
       dragHandler.attach();
 
-      expect(addEventListenerSpy).toHaveBeenCalledWith('mousedown', expect.any(Function));
+      expect(addEventListenerSpy).toHaveBeenCalledWith('pointerdown', expect.any(Function));
     });
 
     test('detach removes event listeners', () => {
@@ -126,7 +126,7 @@ describe('interval-note-drag', () => {
       dragHandler.attach();
       dragHandler.detach();
 
-      expect(removeEventListenerSpy).toHaveBeenCalledWith('mousedown', expect.any(Function));
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('pointerdown', expect.any(Function));
     });
 
     test('destroy cleans up completely', () => {
@@ -159,7 +159,7 @@ describe('interval-note-drag', () => {
     test('drag start on dot initiates CREATE mode for empty cell', () => {
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
-      const mousedownEvent = new MouseEvent('mousedown', {
+      const mousedownEvent = new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 125  // Middle of cell 2
@@ -179,7 +179,7 @@ describe('interval-note-drag', () => {
 
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
-      const mousedownEvent = new MouseEvent('mousedown', {
+      const mousedownEvent = new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 125
@@ -194,7 +194,7 @@ describe('interval-note-drag', () => {
     test('drag on non-dot element does not start drag', () => {
       const cell = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"]');
 
-      const mousedownEvent = new MouseEvent('mousedown', {
+      const mousedownEvent = new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 125
@@ -208,7 +208,7 @@ describe('interval-note-drag', () => {
     test('cancelDrag stops active drag', () => {
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
-      dot.dispatchEvent(new MouseEvent('mousedown', {
+      dot.dispatchEvent(new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 125
@@ -231,14 +231,14 @@ describe('interval-note-drag', () => {
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
       // Start drag
-      dot.dispatchEvent(new MouseEvent('mousedown', {
+      dot.dispatchEvent(new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 100
       }));
 
       // End drag (same position = iT of 1)
-      document.dispatchEvent(new MouseEvent('mouseup', {
+      document.dispatchEvent(new MouseEvent('pointerup', {
         bubbles: true,
         cancelable: true
       }));
@@ -254,13 +254,13 @@ describe('interval-note-drag', () => {
     test('calls syncController.syncGridFromPairs after create', () => {
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
-      dot.dispatchEvent(new MouseEvent('mousedown', {
+      dot.dispatchEvent(new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 100
       }));
 
-      document.dispatchEvent(new MouseEvent('mouseup'));
+      document.dispatchEvent(new MouseEvent('pointerup'));
 
       expect(mockSyncController.syncGridFromPairs).toHaveBeenCalled();
     });
@@ -272,13 +272,13 @@ describe('interval-note-drag', () => {
 
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
-      dot.dispatchEvent(new MouseEvent('mousedown', {
+      dot.dispatchEvent(new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 100
       }));
 
-      document.dispatchEvent(new MouseEvent('mouseup'));
+      document.dispatchEvent(new MouseEvent('pointerup'));
 
       // Should have replaced note 7 with note 5
       expect(currentPairs.filter(p => p.pulse === 2).length).toBe(1);
@@ -298,7 +298,7 @@ describe('interval-note-drag', () => {
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
       // Start drag
-      dot.dispatchEvent(new MouseEvent('mousedown', {
+      dot.dispatchEvent(new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 100
@@ -307,7 +307,7 @@ describe('interval-note-drag', () => {
       expect(dragHandler.getDragState().mode).toBe('edit');
 
       // End drag
-      document.dispatchEvent(new MouseEvent('mouseup'));
+      document.dispatchEvent(new MouseEvent('pointerup'));
 
       // Original pair should be updated
       expect(mockGridEditor.setPairs).toHaveBeenCalled();
@@ -330,7 +330,7 @@ describe('interval-note-drag', () => {
       // Create new note at pulse 2 (no overlap with existing notes)
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
-      dot.dispatchEvent(new MouseEvent('mousedown', {
+      dot.dispatchEvent(new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 125
@@ -338,7 +338,7 @@ describe('interval-note-drag', () => {
 
       expect(dragHandler.getDragState().mode).toBe('create');
 
-      document.dispatchEvent(new MouseEvent('mouseup'));
+      document.dispatchEvent(new MouseEvent('pointerup'));
 
       // All original notes should remain
       expect(currentPairs.find(p => p.pulse === 0)).toBeDefined();
@@ -357,7 +357,7 @@ describe('interval-note-drag', () => {
       // Create new note starting at pulse 2
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
-      dot.dispatchEvent(new MouseEvent('mousedown', {
+      dot.dispatchEvent(new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 100
@@ -365,7 +365,7 @@ describe('interval-note-drag', () => {
 
       expect(dragHandler.getDragState().mode).toBe('create');
 
-      document.dispatchEvent(new MouseEvent('mouseup'));
+      document.dispatchEvent(new MouseEvent('pointerup'));
 
       // Note at pulse 0 should be cut to iT=2 (ends at pulse 2)
       const cutNote = currentPairs.find(p => p.pulse === 0);
@@ -386,7 +386,7 @@ describe('interval-note-drag', () => {
     test('calls syncController.highlightDragRange during drag', () => {
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
-      dot.dispatchEvent(new MouseEvent('mousedown', {
+      dot.dispatchEvent(new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 100
@@ -398,13 +398,13 @@ describe('interval-note-drag', () => {
     test('calls syncController.clearDragHighlight on drag end', () => {
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
-      dot.dispatchEvent(new MouseEvent('mousedown', {
+      dot.dispatchEvent(new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 100
       }));
 
-      document.dispatchEvent(new MouseEvent('mouseup'));
+      document.dispatchEvent(new MouseEvent('pointerup'));
 
       expect(mockSyncController.clearDragHighlight).toHaveBeenCalled();
     });
@@ -426,13 +426,13 @@ describe('interval-note-drag', () => {
 
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
-      dot.dispatchEvent(new MouseEvent('mousedown', {
+      dot.dispatchEvent(new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 100
       }));
 
-      document.dispatchEvent(new MouseEvent('mouseup'));
+      document.dispatchEvent(new MouseEvent('pointerup'));
 
       expect(onDragComplete).toHaveBeenCalledWith(
         expect.any(Array),
@@ -457,13 +457,13 @@ describe('interval-note-drag', () => {
 
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
-      dot.dispatchEvent(new MouseEvent('mousedown', {
+      dot.dispatchEvent(new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 100
       }));
 
-      document.dispatchEvent(new MouseEvent('mouseup'));
+      document.dispatchEvent(new MouseEvent('pointerup'));
 
       expect(playNotePreview).toHaveBeenCalledWith(5, 4, 1);
 
@@ -487,13 +487,13 @@ describe('interval-note-drag', () => {
 
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
-      dot.dispatchEvent(new MouseEvent('mousedown', {
+      dot.dispatchEvent(new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 100
       }));
 
-      document.dispatchEvent(new MouseEvent('mouseup'));
+      document.dispatchEvent(new MouseEvent('pointerup'));
 
       expect(fillGaps).toHaveBeenCalled();
       expect(mockGridEditor.setPairs).toHaveBeenCalledWith(
@@ -528,7 +528,7 @@ describe('interval-note-drag', () => {
     test('adds drag-highlight class directly to cells', () => {
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
-      dot.dispatchEvent(new MouseEvent('mousedown', {
+      dot.dispatchEvent(new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 100
@@ -541,13 +541,13 @@ describe('interval-note-drag', () => {
     test('removes drag-highlight on drag end', () => {
       const dot = matrixContainer.querySelector('[data-row-id="5r4"][data-col-index="2"] .np-dot');
 
-      dot.dispatchEvent(new MouseEvent('mousedown', {
+      dot.dispatchEvent(new MouseEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         clientX: 100
       }));
 
-      document.dispatchEvent(new MouseEvent('mouseup'));
+      document.dispatchEvent(new MouseEvent('pointerup'));
 
       const highlightedCells = matrixContainer.querySelectorAll('.drag-highlight');
       expect(highlightedCells.length).toBe(0);

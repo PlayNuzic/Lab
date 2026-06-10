@@ -4,6 +4,13 @@
  * Permite selección mediante arrastre en ambos ejes:
  * - Soundline (vertical): Selecciona notas (permite duplicados)
  * - Timeline (horizontal): Selecciona pulsos (fuerza orden ascendente)
+ *
+ * Pointer Events (U-02): un sol camí cobreix ratolí, tàctil i llapis. En
+ * tàctil el navegador captura implícitament el pointer sobre el target
+ * inicial, així que els `pointermove` arriben retargetats — per això la
+ * detecció de cel·la usa document.elementFromPoint() i no e.target.
+ * Recordeu posar `touch-action: none` a la superfície de drag al CSS del
+ * consumidor perquè el navegador no robi el gest per fer scroll.
  */
 
 /**
@@ -22,8 +29,23 @@ export function createDragHandlers(config = {}) {
 
   let isDragging = false;
   let dragType = null; // 'notes' | 'pulses'
+  let activePointerId = null;
   let selectedIndices = [];
   let lastTarget = null;
+  let documentListenersAttached = false;
+  const attachedElements = [];
+
+  /**
+   * Adjunta els listeners de document una sola vegada (attachToNotes i
+   * attachToPulses compartien aquest pas i abans es duplicaven).
+   */
+  function ensureDocumentListeners() {
+    if (documentListenersAttached) return;
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
+    document.addEventListener('pointercancel', handlePointerCancel);
+    documentListenersAttached = true;
+  }
 
   /**
    * Adjunta handlers de drag a elemento de notas (soundline)
@@ -31,9 +53,9 @@ export function createDragHandlers(config = {}) {
   function attachToNotes(noteElement) {
     if (!noteElement) return;
 
-    noteElement.addEventListener('mousedown', handleNoteMouseDown);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    noteElement.addEventListener('pointerdown', handleNotePointerDown);
+    attachedElements.push([noteElement, handleNotePointerDown]);
+    ensureDocumentListeners();
   }
 
   /**
@@ -42,16 +64,16 @@ export function createDragHandlers(config = {}) {
   function attachToPulses(pulseElement) {
     if (!pulseElement) return;
 
-    pulseElement.addEventListener('mousedown', handlePulseMouseDown);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    pulseElement.addEventListener('pointerdown', handlePulsePointerDown);
+    attachedElements.push([pulseElement, handlePulsePointerDown]);
+    ensureDocumentListeners();
   }
 
   /**
-   * Handler mousedown en notas
+   * Handler pointerdown en notas
    */
-  function handleNoteMouseDown(e) {
-    // Solo botón izquierdo
+  function handleNotePointerDown(e) {
+    // Solo botón principal (ratolí esquerre / contacte tàctil)
     if (e.button !== 0) return;
 
     const target = e.target.closest('[data-note-index]');
@@ -60,6 +82,7 @@ export function createDragHandlers(config = {}) {
     e.preventDefault();
     isDragging = true;
     dragType = 'notes';
+    activePointerId = e.pointerId ?? null;
     selectedIndices = [];
 
     const noteIndex = parseInt(target.dataset.noteIndex, 10);
@@ -70,10 +93,10 @@ export function createDragHandlers(config = {}) {
   }
 
   /**
-   * Handler mousedown en pulsos
+   * Handler pointerdown en pulsos
    */
-  function handlePulseMouseDown(e) {
-    // Solo botón izquierdo
+  function handlePulsePointerDown(e) {
+    // Solo botón principal
     if (e.button !== 0) return;
 
     const target = e.target.closest('[data-pulse-index]');
@@ -82,6 +105,7 @@ export function createDragHandlers(config = {}) {
     e.preventDefault();
     isDragging = true;
     dragType = 'pulses';
+    activePointerId = e.pointerId ?? null;
     selectedIndices = [];
 
     const pulseIndex = parseInt(target.dataset.pulseIndex, 10);
@@ -92,14 +116,20 @@ export function createDragHandlers(config = {}) {
   }
 
   /**
-   * Handler mousemove
+   * Handler pointermove — resol la cel·la sota el punter amb
+   * elementFromPoint (e.target queda retargetat per la captura implícita
+   * del tàctil i no serveix per detectar cel·les).
    */
-  function handleMouseMove(e) {
+  function handlePointerMove(e) {
     if (!isDragging) return;
+    if (activePointerId != null && e.pointerId !== activePointerId) return;
+
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    if (!under) return;
 
     let target;
     if (dragType === 'notes') {
-      target = e.target.closest('[data-note-index]');
+      target = under.closest('[data-note-index]');
       if (target && target !== lastTarget) {
         const noteIndex = parseInt(target.dataset.noteIndex, 10);
         if (!isNaN(noteIndex)) {
@@ -108,7 +138,7 @@ export function createDragHandlers(config = {}) {
         }
       }
     } else if (dragType === 'pulses') {
-      target = e.target.closest('[data-pulse-index]');
+      target = under.closest('[data-pulse-index]');
       if (target && target !== lastTarget) {
         const pulseIndex = parseInt(target.dataset.pulseIndex, 10);
         if (!isNaN(pulseIndex)) {
@@ -123,10 +153,11 @@ export function createDragHandlers(config = {}) {
   }
 
   /**
-   * Handler mouseup
+   * Handler pointerup — committeja la selecció
    */
-  function handleMouseUp(e) {
+  function handlePointerUp(e) {
     if (!isDragging) return;
+    if (activePointerId != null && e.pointerId !== activePointerId) return;
 
     if (dragType === 'notes' && selectedIndices.length > 0) {
       // Notas: permitir duplicados, preservar orden de selección
@@ -138,9 +169,23 @@ export function createDragHandlers(config = {}) {
       onPulsesSelected(uniquePulses);
     }
 
-    // Reset estado
+    resetState();
+  }
+
+  /**
+   * Handler pointercancel — el navegador ha robat el gest: netegem sense
+   * committejar la selecció parcial.
+   */
+  function handlePointerCancel(e) {
+    if (!isDragging) return;
+    if (activePointerId != null && e.pointerId !== activePointerId) return;
+    resetState();
+  }
+
+  function resetState() {
     isDragging = false;
     dragType = null;
+    activePointerId = null;
     selectedIndices = [];
     lastTarget = null;
   }
@@ -149,8 +194,16 @@ export function createDragHandlers(config = {}) {
    * Limpia listeners
    */
   function detach() {
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
+    for (const [element, handler] of attachedElements) {
+      element.removeEventListener('pointerdown', handler);
+    }
+    attachedElements.length = 0;
+    if (documentListenersAttached) {
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('pointercancel', handlePointerCancel);
+      documentListenersAttached = false;
+    }
   }
 
   return {

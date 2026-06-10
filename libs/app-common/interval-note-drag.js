@@ -97,6 +97,7 @@ export function createIntervalNoteDragHandler(config = {}) {
   let boundHandleDragStart = null;
   let boundHandleDragMove = null;
   let boundHandleDragEnd = null;
+  let boundHandleDragCancel = null;
 
   // ========== INTERNAL HELPERS ==========
 
@@ -161,6 +162,10 @@ export function createIntervalNoteDragHandler(config = {}) {
 
     dragState = {
       active: true,
+      // Pointer Events: identifiquem el gest per filtrar multi-touch; en
+      // touch la captura implícita sobre el dot manté el stream de
+      // pointermove encara que el dit surti de l'element.
+      pointerId: e.pointerId ?? null,
       startSpaceIndex: colIndex,
       currentSpaceIndex: colIndex,
       noteIndex: note,
@@ -186,6 +191,7 @@ export function createIntervalNoteDragHandler(config = {}) {
    */
   function handleDragMove(e) {
     if (!dragState.active) return;
+    if (dragState.pointerId != null && e.pointerId !== dragState.pointerId) return;
 
     const matrixContainer = getMatrixContainer();
     if (!matrixContainer) return;
@@ -214,8 +220,9 @@ export function createIntervalNoteDragHandler(config = {}) {
   /**
    * Handle drag end - finalize the duration change
    */
-  function handleDragEnd() {
+  function handleDragEnd(e) {
     if (!dragState.active) return;
+    if (e && dragState.pointerId != null && e.pointerId !== dragState.pointerId) return;
 
     const originalPair = dragState.originalPair;
     const newEndPulse = dragState.currentSpaceIndex;
@@ -441,11 +448,20 @@ export function createIntervalNoteDragHandler(config = {}) {
     boundHandleDragStart = handleDragStart.bind(this);
     boundHandleDragMove = handleDragMove.bind(this);
     boundHandleDragEnd = handleDragEnd.bind(this);
+    boundHandleDragCancel = (e) => {
+      if (!dragState.active) return;
+      if (dragState.pointerId != null && e.pointerId !== dragState.pointerId) return;
+      cancelDrag();
+    };
 
-    // Attach listeners
-    matrixContainer.addEventListener('mousedown', boundHandleDragStart);
-    document.addEventListener('mousemove', boundHandleDragMove);
-    document.addEventListener('mouseup', boundHandleDragEnd);
+    // Pointer Events: cobreixen ratolí, tàctil i llapis amb un sol camí.
+    // El drag des d'un .np-dot en tàctil funciona gràcies a la captura
+    // implícita + touch-action:none al dot (vegeu nuzic-theme.css).
+    matrixContainer.addEventListener('pointerdown', boundHandleDragStart);
+    document.addEventListener('pointermove', boundHandleDragMove);
+    document.addEventListener('pointerup', boundHandleDragEnd);
+    // El navegador pot cancel·lar el gest (p.ex. roba el pan): netegem.
+    document.addEventListener('pointercancel', boundHandleDragCancel);
 
     // Set initial cursor style
     document.documentElement.style.setProperty('--np-dot-cursor', 'grab');
@@ -458,20 +474,25 @@ export function createIntervalNoteDragHandler(config = {}) {
     const matrixContainer = getMatrixContainer();
 
     if (matrixContainer && boundHandleDragStart) {
-      matrixContainer.removeEventListener('mousedown', boundHandleDragStart);
+      matrixContainer.removeEventListener('pointerdown', boundHandleDragStart);
     }
 
     if (boundHandleDragMove) {
-      document.removeEventListener('mousemove', boundHandleDragMove);
+      document.removeEventListener('pointermove', boundHandleDragMove);
     }
 
     if (boundHandleDragEnd) {
-      document.removeEventListener('mouseup', boundHandleDragEnd);
+      document.removeEventListener('pointerup', boundHandleDragEnd);
+    }
+
+    if (boundHandleDragCancel) {
+      document.removeEventListener('pointercancel', boundHandleDragCancel);
     }
 
     boundHandleDragStart = null;
     boundHandleDragMove = null;
     boundHandleDragEnd = null;
+    boundHandleDragCancel = null;
   }
 
   /**

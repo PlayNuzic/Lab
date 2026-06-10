@@ -289,7 +289,7 @@ describe('interval-drag-handler', () => {
       dragHandler.startDrag(5, 2, mockEvent);
 
       // Simulate mouseup
-      document.dispatchEvent(new MouseEvent('mouseup'));
+      document.dispatchEvent(new MouseEvent('pointerup'));
 
       // Check that setPairs was called
       expect(mockGridEditor.setPairs).toHaveBeenCalled();
@@ -315,7 +315,7 @@ describe('interval-drag-handler', () => {
       const mockEvent = { preventDefault: jest.fn(), stopPropagation: jest.fn() };
       dragHandler.startDrag(5, 1, mockEvent);
 
-      document.dispatchEvent(new MouseEvent('mouseup'));
+      document.dispatchEvent(new MouseEvent('pointerup'));
 
       expect(mockGridEditor.setPairs).toHaveBeenCalled();
       const newPairs = mockGridEditor.setPairs.mock.calls[0][0];
@@ -336,7 +336,7 @@ describe('interval-drag-handler', () => {
 
       const mockEvent = { preventDefault: jest.fn(), stopPropagation: jest.fn() };
       dragHandler.startDrag(5, 2, mockEvent);
-      document.dispatchEvent(new MouseEvent('mouseup'));
+      document.dispatchEvent(new MouseEvent('pointerup'));
 
       expect(onNotePreview).toHaveBeenCalledWith(5, 1);
     });
@@ -352,7 +352,7 @@ describe('interval-drag-handler', () => {
 
       const mockEvent = { preventDefault: jest.fn(), stopPropagation: jest.fn() };
       dragHandler.startDrag(5, 2, mockEvent);
-      document.dispatchEvent(new MouseEvent('mouseup'));
+      document.dispatchEvent(new MouseEvent('pointerup'));
 
       expect(onDragEnd).toHaveBeenCalled();
       const [pairs, info] = onDragEnd.mock.calls[0];

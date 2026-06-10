@@ -2079,3 +2079,11 @@ body[data-visual="nuzic"] .spin:focus-visible {
   outline-offset: 2px;
 }
 
+/* Tàctil (U-02/U-03): els punts N-P són nanses de drag — sense
+   touch-action:none el navegador roba el gest per fer scroll i dispara
+   pointercancel a mig arrossegament (App15 graella musical, App19/App20
+   plano). Només els dots: el pan sobre cel·les segueix scrollant. */
+body[data-visual="nuzic"] .np-dot {
+  touch-action: none;
+}
+

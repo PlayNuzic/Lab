@@ -81,6 +81,7 @@ export function createIntervalDragHandler(config) {
   // Event handlers bound to this instance
   let boundMouseMove = null;
   let boundMouseUp = null;
+  let boundCancel = null;
 
   /**
    * Create initial drag state
@@ -88,6 +89,11 @@ export function createIntervalDragHandler(config) {
   function createInitialDragState() {
     return {
       active: false,
+      pointerId: null,
+      // Rect del contenidor cachejat a l'inici del drag: el contenidor no
+      // es mou mentre s'arrossega, i així evitem un layout read per
+      // pointermove.
+      matrixRect: null,
       startSpaceIndex: null,
       currentSpaceIndex: null,
       noteIndex: null,
@@ -103,7 +109,7 @@ export function createIntervalDragHandler(config) {
     const matrixContainer = musicalGrid?.getMatrixContainer?.();
     if (!matrixContainer) return null;
 
-    const rect = matrixContainer.getBoundingClientRect();
+    const rect = dragState.matrixRect || matrixContainer.getBoundingClientRect();
     const relativeX = mouseX - rect.left;
 
     // Calculate which space (cell) the mouse is over
@@ -146,6 +152,7 @@ export function createIntervalDragHandler(config) {
     clearDragPreview();
     removeDragVisuals();
     dragState = createInitialDragState();
+    detachListeners();
   }
 
   /**
@@ -162,11 +169,16 @@ export function createIntervalDragHandler(config) {
     );
 
     dragState.active = true;
+    dragState.pointerId = event?.pointerId ?? null;
+    dragState.matrixRect = musicalGrid?.getMatrixContainer?.()?.getBoundingClientRect() ?? null;
     dragState.startSpaceIndex = spaceIndex;
     dragState.currentSpaceIndex = spaceIndex;
     dragState.noteIndex = noteIndex;
     dragState.originalPair = existingPair || null;
     dragState.mode = existingPair ? 'edit' : 'create';
+
+    // Els listeners de document només viuen mentre dura el drag.
+    attachListeners();
 
     // Visual feedback
     applyDragVisuals();
@@ -197,6 +209,7 @@ export function createIntervalDragHandler(config) {
    */
   function handleMouseMove(event) {
     if (!dragState.active || !enabled) return;
+    if (dragState.pointerId != null && event.pointerId !== dragState.pointerId) return;
 
     const newSpaceIndex = calculateSpaceFromMouseX(event.clientX);
     if (newSpaceIndex === null || newSpaceIndex === dragState.currentSpaceIndex) return;
@@ -233,6 +246,7 @@ export function createIntervalDragHandler(config) {
    */
   function handleMouseUp(event) {
     if (!dragState.active || !enabled) return;
+    if (event && dragState.pointerId != null && event.pointerId !== dragState.pointerId) return;
 
     const startSpace = dragState.startSpaceIndex;
     const endSpace = dragState.currentSpaceIndex ?? startSpace;
@@ -317,9 +331,19 @@ export function createIntervalDragHandler(config) {
 
     boundMouseMove = handleMouseMove;
     boundMouseUp = handleMouseUp;
+    boundCancel = (e) => {
+      if (!dragState.active) return;
+      if (dragState.pointerId != null && e.pointerId !== dragState.pointerId) return;
+      // El navegador ha cancel·lat el gest: netegem sense committejar.
+      resetDragState();
+    };
 
-    document.addEventListener('mousemove', boundMouseMove);
-    document.addEventListener('mouseup', boundMouseUp);
+    // Pointer Events: ratolí, tàctil i llapis pel mateix camí. En tàctil,
+    // la captura implícita sobre el dot manté el stream; els handlers
+    // només usen clientX, així que el retargeting no afecta.
+    document.addEventListener('pointermove', boundMouseMove);
+    document.addEventListener('pointerup', boundMouseUp);
+    document.addEventListener('pointercancel', boundCancel);
   }
 
   /**
@@ -327,17 +351,21 @@ export function createIntervalDragHandler(config) {
    */
   function detachListeners() {
     if (boundMouseMove) {
-      document.removeEventListener('mousemove', boundMouseMove);
+      document.removeEventListener('pointermove', boundMouseMove);
       boundMouseMove = null;
     }
     if (boundMouseUp) {
-      document.removeEventListener('mouseup', boundMouseUp);
+      document.removeEventListener('pointerup', boundMouseUp);
       boundMouseUp = null;
+    }
+    if (boundCancel) {
+      document.removeEventListener('pointercancel', boundCancel);
+      boundCancel = null;
     }
   }
 
-  // Auto-attach listeners on creation
-  attachListeners();
+  // Els listeners s'adjunten a startDrag i es desadjunten a resetDragState:
+  // sense drag actiu no hi ha cap listener global penjat.
 
   // Public API
   return {

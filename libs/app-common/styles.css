@@ -310,6 +310,10 @@ body[data-theme='dark'] .fraction-info-bubble {
   transition: width 0.4s ease, height 0.4s ease;
   z-index: 1;
   /* keep above helper guide ring */
+  /* Tàctil: la selecció de polsos per arrossegament (pulse-seq, ja
+     pointer-native) necessita que el navegador no robi el gest per fer
+     scroll — si no, pointercancel avorta el drag a mig camí. */
+  touch-action: none;
 }
 
 .timeline::before {
@@ -652,6 +656,9 @@ body[data-theme='dark'] .fraction-info-bubble {
   cursor: pointer;
   position: relative;
   z-index: 11;
+  /* Tàctil: fader vertical (rotat) — sense touch-action el navegador
+     interpreta el gest com a scroll i el fader no es pot arrossegar. */
+  touch-action: none;
 }
 
 .mixer-channel__slider:focus {

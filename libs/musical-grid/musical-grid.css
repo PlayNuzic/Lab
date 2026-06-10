@@ -267,6 +267,10 @@
   height: 12px;
   z-index: 30;
   pointer-events: none;  /* Default: not clickable */
+  /* Tàctil: el dot és una nansa de drag — sense això el navegador roba el
+     gest per fer scroll i dispara pointercancel a mig arrossegament. Les
+     cel·les NO porten la regla: el pan sobre la graella segueix scrollant. */
+  touch-action: none;
 }
 
 .np-dot::after {

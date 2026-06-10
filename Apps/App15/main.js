@@ -589,6 +589,9 @@ function handleDotMouseDown(noteIndex, spaceIndex, event, musicalGrid) {
   const existingPair = pairsAtMoment.find(p => p.note === noteIndex && p.pulse === spaceIndex);
 
   dragState.active = true;
+  // Pointer Events: id del gest per filtrar multi-touch; la captura
+  // implícita del touch sobre el dot manté el stream fora de l'element.
+  dragState.pointerId = event.pointerId ?? null;
   dragState.startSpaceIndex = spaceIndex;
   dragState.currentSpaceIndex = spaceIndex;
   dragState.noteIndex = noteIndex;
@@ -616,6 +619,7 @@ function handleDotMouseDown(noteIndex, spaceIndex, event, musicalGrid) {
  */
 function handleMouseMove(event, musicalGrid) {
   if (!dragState.active) return;
+  if (dragState.pointerId != null && event.pointerId !== dragState.pointerId) return;
 
   const newSpaceIndex = calculateSpaceFromMouseX(event.clientX, musicalGrid);
   if (newSpaceIndex === null || newSpaceIndex === dragState.currentSpaceIndex) return;
@@ -645,6 +649,7 @@ function handleMouseMove(event, musicalGrid) {
  */
 function handleMouseUp(event, musicalGrid) {
   if (!dragState.active) return;
+  if (event && dragState.pointerId != null && event.pointerId !== dragState.pointerId) return;
 
   // Remove grabbing cursor class
   document.body.classList.remove('dragging-note');
@@ -743,6 +748,7 @@ function resetDragState() {
   // Restore cursor to grab via :root variable
   document.documentElement.style.setProperty('--np-dot-cursor', 'grab');
   dragState.active = false;
+  dragState.pointerId = null;
   dragState.startSpaceIndex = null;
   dragState.currentSpaceIndex = null;
   dragState.noteIndex = null;
@@ -1617,8 +1623,11 @@ async function initializeApp() {
   // We need to intercept mousedown BEFORE click fires
   const matrixInner = musicalGrid.getMatrixContainer?.();
   if (matrixInner) {
-    // Use event delegation for better performance
-    matrixInner.addEventListener('mousedown', (e) => {
+    // Use event delegation for better performance.
+    // Pointer Events: el mateix camí serveix ratolí, tàctil i llapis
+    // (amb touch-action:none al .np-dot perquè el navegador no robi el
+    // gest per fer scroll — vegeu nuzic-theme.css).
+    matrixInner.addEventListener('pointerdown', (e) => {
       const dot = e.target.closest('.np-dot');
       if (!dot || !dot.classList.contains('np-dot-clickable')) return;
 
@@ -1634,14 +1643,21 @@ async function initializeApp() {
       handleDotMouseDown(noteIndex, spaceIndex, e, musicalGrid);
     });
 
-    // Global mousemove handler
-    document.addEventListener('mousemove', (e) => {
+    // Global pointermove handler
+    document.addEventListener('pointermove', (e) => {
       handleMouseMove(e, musicalGrid);
     });
 
-    // Global mouseup handler
-    document.addEventListener('mouseup', (e) => {
+    // Global pointerup handler
+    document.addEventListener('pointerup', (e) => {
       handleMouseUp(e, musicalGrid);
+    });
+
+    // El navegador pot cancel·lar el gest tàctil: netegem sense committejar
+    document.addEventListener('pointercancel', (e) => {
+      if (!dragState.active) return;
+      if (dragState.pointerId != null && e.pointerId !== dragState.pointerId) return;
+      resetDragState();
     });
   }
 
