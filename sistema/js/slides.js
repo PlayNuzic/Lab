@@ -557,9 +557,9 @@ function renderApp(slide){
 // ---- Pas intro parallax (layout 'P-parallax') ----
 // Slide full-bleed sense grid, en mode seqüencial: una frase activa en
 // gran al primer pla i la resta atenuades al darrere; l'scroll (roda,
-// swipe, fletxes ↑/↓ o clic als punts) avança/retrocedeix per les
-// frases mentre les capes de fons es desplacen exageradament segons el
-// progrés (vegeu parallax.css). El text reutilitza el camp `text`
+// swipe, fletxes ↑/↓ o clic a una frase atenuada) avança/retrocedeix
+// per les frases mentre les capes de fons es desplacen exageradament
+// segons el progrés (vegeu parallax.css). El text reutilitza el camp `text`
 // estàndard (un <p> per frase) i el mateix data-field, així el mode
 // edició, el sanitizer i els overrides funcionen sense cap codi de
 // persistència addicional.
@@ -580,7 +580,6 @@ function renderParallax(slide, section, content){
     <div class="parallax-content">
       ${renderTitle(slide, section)}
       <div class="parallax-frases prose" data-field="text">${text}</div>
-      <div class="parallax-dots" role="tablist" aria-label="Frases del capítulo"></div>
     </div>
     <div class="parallax-scroll-hint" aria-hidden="true">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -598,20 +597,8 @@ function wireParallax(slideEl){
   const frases = [...slideEl.querySelectorAll('.parallax-frases > p')];
   if (!frases.length) { parallaxCtrl = null; return; }
   const layers = slideEl.querySelectorAll('.parallax-bg [data-depth]');
-  const dotsBox = slideEl.querySelector('.parallax-dots');
   const hint = slideEl.querySelector('.parallax-scroll-hint');
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // Punts de progrés (un per frase) — també serveixen de navegació.
-  const dots = frases.map((_, i) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'parallax-dot';
-    b.setAttribute('aria-label', `Frase ${i + 1} de ${frases.length}`);
-    b.addEventListener('click', () => { hideHint(); setActive(i); });
-    dotsBox.appendChild(b);
-    return b;
-  });
 
   let active = 0;
 
@@ -633,10 +620,6 @@ function wireParallax(slideEl){
       p.style.transform = `translateY(calc(-50% + ${d * 19}vh)) scale(${d === 0 ? 1 : 0.68})`;
       p.style.filter = d === 0 ? 'none' : `blur(${Math.min(abs * 1.6, 4)}px)`;
       p.style.zIndex = String(10 - abs);
-    });
-    dots.forEach((b, j) => {
-      b.classList.toggle('is-active', j === active);
-      b.setAttribute('aria-current', j === active ? 'true' : 'false');
     });
     if (!reduced) {
       const t = frases.length > 1 ? active / (frases.length - 1) : 0;

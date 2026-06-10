@@ -153,36 +153,6 @@ body[data-theme="dark"] .slide--parallax{
   color: color-mix(in srgb, var(--px-accent) 60%, var(--fg));
 }
 
-/* ---- Punts de progrés ---- */
-.parallax-dots{
-  flex: 0 0 auto;
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  padding-top: 10px;
-}
-.parallax-dot{
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  border: 0;
-  padding: 0;
-  background: color-mix(in srgb, var(--px-accent) 30%, transparent);
-  cursor: pointer;
-  transition: transform 0.25s ease, background 0.25s ease;
-}
-.parallax-dot:hover{
-  background: color-mix(in srgb, var(--px-accent) 55%, transparent);
-}
-.parallax-dot.is-active{
-  background: var(--px-accent);
-  transform: scale(1.4);
-}
-.parallax-dot:focus-visible{
-  outline: 2px solid var(--fg-soft);
-  outline-offset: 2px;
-}
-
 /* ---- Avís de scroll ---- */
 .parallax-scroll-hint{
   position: absolute;
@@ -225,7 +195,6 @@ body[data-editable="true"] .parallax-frases > p{
   font-size: var(--fs-h2);
   margin-bottom: 0.8em;
 }
-body[data-editable="true"] .parallax-dots,
 body[data-editable="true"] .parallax-scroll-hint{ display: none; }
 
 @media (prefers-reduced-motion: reduce){
