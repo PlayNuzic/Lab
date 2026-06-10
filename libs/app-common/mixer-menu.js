@@ -165,6 +165,9 @@ function createKnob({ label, min, max, value, onChange, inverted = false }) {
   // Hidden input for interaction
   const input = document.createElement('input');
   input.type = 'range';
+  // U-04: l'input és un overlay invisible — sense aria-label el lector
+  // de pantalla anuncia "slider" anònim per a cada knob d'FX.
+  input.setAttribute('aria-label', label);
   input.min = min;
   input.max = max;
   input.step = '1';
@@ -288,6 +291,7 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     slider.step = '0.01';
     slider.value = '0.75';
     slider.className = 'mixer-channel__slider';
+    slider.setAttribute('aria-label', `Volumen ${resolvedLabel}`);
     slider.dataset.channel = channelId;
     sliderWrapper.appendChild(slider);
     wrapper.appendChild(sliderWrapper);
@@ -587,74 +591,47 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     event.preventDefault();
     event.stopPropagation(); // Prevent closing the menu
 
-    // Capture event coordinates immediately
-    const clickX = event.clientX;
-    const clickY = event.clientY;
-    const pointerId = event.pointerId;
+    // U-03: congelar la posició VISUAL actual — el rect ja inclou el
+    // translate(-50%,-50%) del centrat inicial, i en re-agafar després
+    // d'un drag left/top inline ja són la posició arrossegada. Abans es
+    // recalculava el centre del viewport a cada grab i el panell hi
+    // saltava. Sense matemàtica depenent de reflow, el doble RAF sobra
+    // (els listeners s'enganxen al mateix gest, no 2 frames tard).
+    const rect = menu.getBoundingClientRect();
+    menu.style.left = rect.left + 'px';
+    menu.style.top = rect.top + 'px';
+    menu.style.transform = 'none';
 
-    // DOBLE RAF: Garantiza estabilidad completa en modo circular
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
+    dragState.isDragging = true;
+    dragState.pointerId = event.pointerId;
+    dragState.startX = event.clientX;
+    dragState.startY = event.clientY;
+    dragState.initialMenuLeft = rect.left;
+    dragState.initialMenuTop = rect.top;
+    dragState.cachedWidth = rect.width;
+    dragState.cachedHeight = rect.height;
+    dragState.grabOffsetX = event.clientX - rect.left;
+    dragState.grabOffsetY = event.clientY - rect.top;
 
-        // PASO 1: Limpiar transform para leer dimensiones reales
-        menu.style.transform = 'none';
+    if (dragState.menuX === null) {
+      dragState.menuX = rect.left;
+      dragState.menuY = rect.top;
+    }
 
-        // PASO 2: Forzar reflow
-        void menu.offsetHeight;
+    menu.classList.add('dragging');
+    title.style.cursor = 'grabbing';
 
-        // PASO 3: Leer dimensiones limpias
-        const rect = menu.getBoundingClientRect();
-        const menuWidth = rect.width;
-        const menuHeight = rect.height;
+    // Set pointer capture for better drag handling
+    try {
+      title.setPointerCapture(event.pointerId);
+    } catch (e) {
+      // Fallback to document events if pointer capture fails
+    }
 
-        // PASO 4: Calcular posición centrada MANUALMENTE
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        const centeredLeft = (viewportWidth - menuWidth) / 2;
-        const centeredTop = (viewportHeight - menuHeight) / 2;
-
-        // PASO 5: Aplicar posición centrada como inline styles
-        menu.style.left = centeredLeft + 'px';
-        menu.style.top = centeredTop + 'px';
-        // transform ya está en 'none' del paso 1
-
-        // PASO 6: Calcular grab offset relativo a la posición centrada
-        const grabOffsetX = clickX - centeredLeft;
-        const grabOffsetY = clickY - centeredTop;
-
-        // PASO 7: Setup drag state
-        dragState.isDragging = true;
-        dragState.pointerId = pointerId;
-        dragState.startX = clickX;
-        dragState.startY = clickY;
-        dragState.initialMenuLeft = centeredLeft;
-        dragState.initialMenuTop = centeredTop;
-        dragState.cachedWidth = menuWidth;
-        dragState.cachedHeight = menuHeight;
-        dragState.grabOffsetX = grabOffsetX;
-        dragState.grabOffsetY = grabOffsetY;
-
-        if (dragState.menuX === null) {
-          dragState.menuX = centeredLeft;
-          dragState.menuY = centeredTop;
-        }
-
-        menu.classList.add('dragging');
-        title.style.cursor = 'grabbing';
-
-        // Set pointer capture for better drag handling
-        try {
-          title.setPointerCapture(pointerId);
-        } catch (e) {
-          // Fallback to document events if pointer capture fails
-        }
-
-        // Add move and up listeners
-        title.addEventListener('pointermove', handlePointerMove);
-        title.addEventListener('pointerup', handlePointerUp);
-        title.addEventListener('pointercancel', handlePointerUp);
-      });
-    });
+    // Add move and up listeners
+    title.addEventListener('pointermove', handlePointerMove);
+    title.addEventListener('pointerup', handlePointerUp);
+    title.addEventListener('pointercancel', handlePointerUp);
   });
 
   triggerButtons.forEach((btn) => {
@@ -683,6 +660,19 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
         event.preventDefault();
         event.stopImmediatePropagation();
       }
+    });
+
+    // U-04: el long-press només existeix via pointerdown; l'activació de
+    // teclat (Enter/Espai) dispara click i mai pointerdown, així que no
+    // hi havia CAP camí de teclat per obrir el mixer. contextmenu es
+    // dispara amb la tecla Menú/Shift+F10 (i amb clic dret). NOMÉS obre
+    // (tancar ja ho fan Escape i el clic fora): així és idempotent amb
+    // el contextmenu de mixer-longpress.js, que algunes apps carreguen
+    // pel seu compte i s'executa abans (si toggléssim, obrir+tancar al
+    // mateix gest).
+    btn.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+      if (!menuOpen) openMenu();
     });
 
     btn.addEventListener('click', (event) => {

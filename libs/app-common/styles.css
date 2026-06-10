@@ -940,6 +940,14 @@ body[data-theme='dark'] .fraction-info-bubble {
   height: 100%;
 }
 
+/* U-04: l'input del knob és invisible (opacity 0) — el focus de teclat
+   es pinta al wrapper, si no ajustar FX amb Tab era a cegues. */
+.mixer-knob:focus-within {
+  outline: 2px solid var(--nuzic-blue, #7bb4cd);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
 .mixer-knob__input {
   position: absolute;
   top: 0;
@@ -1292,5 +1300,20 @@ body[data-theme='dark'] .nuzic-audio-perf-panel .perf-foot {
   .control-sound-toggles--three {
     transform: translate(-50%, calc(-50% - 12px));
     width: min(92vw, calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2));
+  }
+}
+/* U-13 (tàctil): mateixa expansió d'àrea de hit que els spinners Lg/V/T
+   per als half-pills del fraction-editor — visual intacte. Aquí el
+   ::after porta els símbols +/−, així que l'àrea va al ::before (que la
+   regla base deixa amb content: none). */
+@media (pointer: coarse) {
+  .fraction-field .spinner .spin {
+    position: relative;
+  }
+  .fraction-field .spinner .spin::before {
+    content: '';
+    border: 0;
+    position: absolute;
+    inset: -4px -8px;
   }
 }
