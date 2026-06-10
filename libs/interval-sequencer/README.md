@@ -157,6 +157,41 @@ renderer.clear();
 renderer.destroy();
 ```
 
+### iTfr Engine (línia de temps per subdivisions)
+
+Motor compartit d'App30/App31 (H-21): barres d'interval + halters, drag per
+subdivisions amb Pointer Events (els listeners de document només viuen durant
+el drag; `pointercancel` neteja sense commit) i highlights de playback. El
+model (`{start, it, isSilence}` en subdivisions) viu a l'app via accessors.
+
+```javascript
+import { createItfrEngine } from '../../libs/interval-sequencer/index.js';
+
+const engine = createItfrEngine({
+  timeline,                     // element contenidor
+  colors: VIBRANT_COLORS,
+  getLg: () => 6,               // amplada de la línia en polsos
+  getNumerator: () => 1,
+  getDenominator: () => d,
+  getTotalSubdivisions: () => 6 * d,
+  getSequence: () => itSequence,
+  setSequence: (next) => { itSequence = next; },
+  isSelectable: (el) => !el.classList.contains('non-selectable'), // opcional
+  onSequenceChange: () => { /* re-render de l'app */ },
+  getEditorCellsHost: () => itfrCellsEl // cel·les .itfr-value a il·luminar
+});
+
+// Després de cada renderTimeline de l'app:
+engine.bindTimeline({ pulses, cycleMarkers, cycleLabels });
+engine.updateIntervalBars();
+
+// Durant playback (l'app hi posa el guard d'isPlaying):
+engine.highlightPulse(scaledIndex);
+engine.highlightCycle({ cycleIndex, subdivisionIndex });
+engine.clearHighlights();
+engine.getItIndexAtScaledStart(scaledIndex); // → índex d'iT o -1
+```
+
 ### Interval Drag Handler
 
 ```javascript
@@ -223,11 +258,12 @@ Ejemplo:
 npm test -- --testPathPattern="interval-sequencer"
 ```
 
-**Cobertura:** 113 tests en 5 suites
+**Cobertura:** 124 tests en 6 suites
 
 ## Apps Usando Este Módulo
 
 - **App15**: Plano y Sucesión de Intervalos
+- **App30/App31**: Sucesión de iTs Fraccionados (via `itfr-engine.js`)
 
 ## Dependencias
 
@@ -242,6 +278,7 @@ libs/interval-sequencer/
 ├── interval-converter.js       # Conversión pairs ↔ intervals
 ├── interval-drag-handler.js    # Sistema de drag para iT
 ├── interval-renderer.js        # Renderizado de iT-bars
+├── itfr-engine.js              # Motor iTfr App30/App31 (drag + bars + highlights)
 ├── gap-filler.js              # Auto-inserción de silencios
 ├── README.md                   # Esta documentación
 └── __tests__/
@@ -249,5 +286,6 @@ libs/interval-sequencer/
     ├── interval-converter.test.js
     ├── interval-drag-handler.test.js
     ├── interval-renderer.test.js
-    └── interval-controller.test.js
+    ├── interval-controller.test.js
+    └── itfr-engine.test.js
 ```

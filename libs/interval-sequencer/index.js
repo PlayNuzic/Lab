@@ -44,6 +44,10 @@ export { createIntervalSequencer } from './interval-controller.js';
 export { createIntervalDragHandler, getSpaceIndexFromPair, getEndSpaceFromPair } from './interval-drag-handler.js';
 export { createIntervalRenderer, DEFAULT_INTERVAL_BAR_STYLES, injectIntervalBarStyles } from './interval-renderer.js';
 
+// Motor iTfr de línia de temps (drag per subdivisions + barres + highlights;
+// App30/App31)
+export { createItfrEngine } from './itfr-engine.js';
+
 // Conversion utilities
 export {
   pairsToIntervals,

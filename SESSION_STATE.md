@@ -11,15 +11,14 @@ El detall viu allà; aquí només l'estat. Marca `[x]` a l'informe quan completi
 ## Pendent (següents per impacte)
 
 - [x] ~~A-10 (flams setTempo), P-12 (payload primer Play), A-12 (vendoritzar piano/flauta),
-  U-22 (menú de capítols del sistema navegable amb teclat)~~ — fets 2026-06-10, detall a l'informe
-- [ ] **H-03** — App30↔App31 ~83% idèntiques (drag/playback); `interval-drag-handler` ja està
-  llest per a l'adopció (pointer events + listeners durant el drag)
+  U-22 (menú capítols amb teclat), H-21 (motor iTfr compartit App30/31)~~ — fets 2026-06-10,
+  detall a l'informe
 - [ ] Re-comentat quirúrgic pendent de l'auditoria: WHY-comments a `timeline-processor.js`
   (protocol d'alt risc: diff + aprovació) i `timeline-layout.js` (re-comentat + condicional mort)
 
 ## Funciona i NO s'ha de trencar
 
-- Suite completa verda (74 suites / 1482 tests) — `npm test` després de cada batch
+- Suite completa verda (75 suites / 1493 tests) — `npm test` després de cada batch
 - Invariants: epsilons 1e-9 del worklet; ordre init àudio (Tone → gest → start; el preload
   de Tone.js i el prefetch de samples només mouen bytes, mai creen AudioContext); BPM sense
   clamp mentre s'escriu (lib 30-240; **apps 9+ política 50-150**); `void offsetWidth` del

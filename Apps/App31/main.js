@@ -18,7 +18,7 @@ import { isIntegerPulseSelectable } from '../../libs/app-common/pulse-selectabil
 import { gcd } from '../../libs/app-common/number-utils.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
-import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
+import { createItfrEngine } from '../../libs/interval-sequencer/index.js';
 import { setupRandomMenu } from '../../libs/random/menu.js';
 
 // ========== CONSTANTS ==========
@@ -60,20 +60,12 @@ let itSequence = [];
 let pulses = [];
 let cycleMarkers = [];
 let cycleLabels = [];
-let intervalBars = []; // Rectangles iT
+// Les barres d'interval, el drag i els highlights són del motor compartit
+// (libs/interval-sequencer/itfr-engine.js, H-21) — vegeu `engine` més avall.
 
 // Controllers
 let fractionEditorController = null;
 let randomMenu = null;  // Long-press random menu controller (read())
-
-// Drag state
-let dragState = {
-  active: false,
-  startSubdiv: null,
-  currentSubdiv: null,
-  maxSubdiv: null,
-  previewBar: null
-};
 
 // ========== PREFERENCE STORAGE ==========
 const preferenceStorage = createPreferenceStorage({ prefix: 'app31', separator: '::' });
@@ -121,6 +113,30 @@ let itfrActiveInputEl = null; // current editable cell
 // Info displays (live in .inputs as pastilles, created via index.html)
 let sumDisplay = null;
 let lengthDisplay = null;
+
+// ========== MOTOR iTfr COMPARTIT ==========
+// Barres d'interval + drag (Pointer Events) + highlights de playback viuen
+// a libs/interval-sequencer/itfr-engine.js. Diferències App31 respecte
+// App30: lg = numerador dinàmic, total = d (1 cicle) i els elements
+// `non-selectable` (selectabilitat de fraccions complexes) no s'arrosseguen.
+const engine = createItfrEngine({
+  timeline,
+  colors: VIBRANT_COLORS,
+  getLg: () => currentNumerator,
+  getNumerator: () => currentNumerator,
+  getDenominator: () => currentDenominator,
+  getTotalSubdivisions: () => getTotalSubdivisions(),
+  getSequence: () => itSequence,
+  setSequence: (next) => { itSequence = next; },
+  isSelectable: (el) => !el.classList.contains('non-selectable'),
+  onSequenceChange: () => {
+    recalculateCyclePositions();
+    updateInfoDisplays();
+    renderItfrEditor();
+    engine.updateIntervalBars();
+  },
+  getEditorCellsHost: () => itfrCellsEl
+});
 
 // ========== HOVER TOOLTIPS ==========
 if (playBtn) attachHover(playBtn, { text: 'Play / Stop' });
@@ -206,13 +222,6 @@ if (typeof window !== 'undefined') {
  */
 function getTotalSubdivisions() {
   return currentDenominator;
-}
-
-/**
- * Convert subdivision index to timeline position (pulses)
- */
-function subdivToPosition(subdiv) {
-  return subdiv * currentNumerator / currentDenominator;
 }
 
 /**
@@ -310,7 +319,7 @@ function renderItfrEditor() {
         recalculateCyclePositions();
         updateInfoDisplays();
         renderItfrEditor();
-        updateIntervalBars();
+        engine.updateIntervalBars();
         return true;
       },
       onEditEntry: (entryIndex, raw) => {
@@ -377,7 +386,7 @@ function removeItAtIndex(entryIndex) {
   recalculateCyclePositions();
   updateInfoDisplays();
   renderItfrEditor();
-  updateIntervalBars();
+  engine.updateIntervalBars();
 }
 
 /** Replace the iT value at the given real-index. */
@@ -391,7 +400,7 @@ function updateItAtIndex(entryIndex, newValue) {
   recalculateCyclePositions();
   updateInfoDisplays();
   renderItfrEditor();
-  updateIntervalBars();
+  engine.updateIntervalBars();
 }
 
 /** Reflow `start` for all iTs so they are contiguous from 0. */
@@ -652,7 +661,6 @@ function renderTimeline() {
   pulses = [];
   cycleMarkers = [];
   cycleLabels = [];
-  intervalBars = [];
   timeline.innerHTML = '';
 
   const lg = currentNumerator;
@@ -715,8 +723,8 @@ function renderTimeline() {
   }
 
   layoutTimeline();
-  attachDragHandlers();
-  updateIntervalBars();
+  engine.bindTimeline({ pulses, cycleMarkers, cycleLabels });
+  engine.updateIntervalBars();
 
   requestAnimationFrame(() => {
     timeline.classList.remove('no-anim');
@@ -744,285 +752,7 @@ function layoutTimeline() {
   });
 }
 
-// ========== INTERVAL BARS ==========
-function updateIntervalBars(previewSequence = null) {
-  // Remove existing bars + halter labels (patró App13/App30)
-  intervalBars.forEach(bar => bar.remove());
-  intervalBars = [];
-  timeline.querySelectorAll('.interval-label-bar').forEach(el => el.remove());
-
-  const sequence = previewSequence || itSequence;
-  if (sequence.length === 0) return;
-
-  const lg = currentNumerator;
-  let colorIndex = 0;
-
-  sequence.forEach((item, idx) => {
-    if (item.isSilence) return; // Skip silences — leave space empty
-
-    const startPos = subdivToPosition(item.start);
-    const endPos = subdivToPosition(item.start + item.it);
-    const width = endPos - startPos;
-    const startPercent = (startPos / lg) * 100;
-    const widthPercent = (width / lg) * 100;
-
-    // Barra colorada amunt (sense label dins — el halter porta el número).
-    const bar = document.createElement('div');
-    bar.className = 'interval-bar-visual';
-    bar.dataset.index = idx;
-    bar.style.left = `${startPercent}%`;
-    bar.style.width = `${widthPercent}%`;
-
-    const color = VIBRANT_COLORS[colorIndex % VIBRANT_COLORS.length];
-    bar.style.background = color;
-    colorIndex++;
-
-    timeline.appendChild(bar);
-    intervalBars.push(bar);
-
-    // Halter groc amb el número d'iT, just sota la barra colorada (patró App13).
-    const labelBar = createIntervalLabelBar({
-      startPercent,
-      widthPercent,
-      label: item.it
-    });
-    timeline.appendChild(labelBar);
-  });
-}
-
-// ========== DRAG INTERACTION ==========
-function attachDragHandlers() {
-  // Only selectable cycle markers are draggable.
-  cycleMarkers.forEach(marker => {
-    if (marker.classList.contains('non-selectable')) return;
-    marker.addEventListener('mousedown', handleDragStart);
-    marker.addEventListener('touchstart', handleDragStart, { passive: false });
-  });
-
-  // Fractional-pulse labels (e.g. ".1", ".2") share the same drag behaviour
-  // as the vertical markers — integer pulses were already draggable, so this
-  // makes the two selection targets consistent.
-  cycleLabels.forEach(label => {
-    if (label.classList.contains('non-selectable')) return;
-    label.addEventListener('mousedown', handleDragStart);
-    label.addEventListener('touchstart', handleDragStart, { passive: false });
-    label.style.cursor = 'grab';
-  });
-
-  // Only selectable integer pulses (0 + cycle starts) are draggable.
-  pulses.forEach(pulse => {
-    if (pulse.classList.contains('non-selectable')) return;
-    const idx = parseInt(pulse.dataset.index, 10);
-    if (idx >= 0 && idx < currentNumerator) {
-      pulse.addEventListener('mousedown', handleDragStartFromPulse);
-      pulse.addEventListener('touchstart', handleDragStartFromPulse, { passive: false });
-      pulse.style.cursor = 'grab';
-    }
-  });
-
-  document.addEventListener('mousemove', handleDragMove);
-  document.addEventListener('mouseup', handleDragEnd);
-  document.addEventListener('touchmove', handleDragMove, { passive: false });
-  document.addEventListener('touchend', handleDragEnd);
-}
-
-function handleDragStartFromPulse(e) {
-  const pulse = e.currentTarget;
-  const idx = parseInt(pulse.dataset.index, 10);
-  const n = currentNumerator;
-  const d = currentDenominator;
-  // Convert pulse index to subdivision: each cycle has d subdivisions and spans n pulses
-  const globalSubdiv = Math.round(idx * d / n);
-
-  startDrag(globalSubdiv, e);
-}
-
-function handleDragStart(e) {
-  const marker = e.currentTarget;
-  const globalSubdiv = parseInt(marker.dataset.globalSubdiv, 10);
-
-  startDrag(globalSubdiv, e);
-}
-
-function startDrag(startSubdiv, e) {
-  e.preventDefault();
-
-  const d = currentDenominator;
-  const maxTotal = getTotalSubdivisions();
-
-  // Can't start beyond timeline
-  if (startSubdiv >= maxTotal) return;
-
-  // Check if position is already occupied
-  const isOccupied = itSequence.some(item => {
-    const end = item.start + item.it;
-    return startSubdiv >= item.start && startSubdiv < end;
-  });
-
-  // If occupied, we'll replace on drag end
-
-  // iTs can now cross pulse boundaries, only limited by L Pfr
-  dragState = {
-    active: true,
-    startSubdiv: startSubdiv,
-    currentSubdiv: startSubdiv,
-    maxSubdiv: maxTotal - 1,
-    previewBar: null
-  };
-
-  document.body.classList.add('dragging-it');
-
-  // Highlight start marker
-  const startMarker = cycleMarkers.find(m =>
-    parseInt(m.dataset.globalSubdiv, 10) === startSubdiv
-  ) || pulses.find(p => {
-    const idx = parseInt(p.dataset.index, 10);
-    return idx * d === startSubdiv;
-  });
-  if (startMarker) {
-    startMarker.classList.add('drag-start');
-  }
-
-  // Create preview bar
-  createPreviewBar();
-  updatePreviewBar();
-}
-
-function handleDragMove(e) {
-  if (!dragState.active) return;
-
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-
-  // Calculate position from mouse
-  const rect = timeline.getBoundingClientRect();
-  const relX = clientX - rect.left;
-  const pct = Math.max(0, Math.min(1, relX / rect.width));
-  const posInPulses = pct * currentNumerator;
-
-  // Convert to subdivision
-  const d = currentDenominator;
-  const subdiv = Math.round(posInPulses * d / currentNumerator);
-
-  // Clamp to valid range
-  const newSubdiv = Math.max(dragState.startSubdiv, Math.min(dragState.maxSubdiv, subdiv));
-
-  if (newSubdiv !== dragState.currentSubdiv) {
-    dragState.currentSubdiv = newSubdiv;
-    updatePreviewBar();
-    updateDragHighlight();
-  }
-}
-
-function handleDragEnd() {
-  if (!dragState.active) return;
-
-  const startSubdiv = dragState.startSubdiv;
-  const endSubdiv = dragState.currentSubdiv;
-  const newIt = endSubdiv - startSubdiv + 1;
-
-  // Clean up visual state
-  document.body.classList.remove('dragging-it');
-  cycleMarkers.forEach(m => m.classList.remove('drag-start', 'drag-range'));
-  pulses.forEach(p => p.classList.remove('drag-start', 'drag-range'));
-
-  if (dragState.previewBar) {
-    dragState.previewBar.remove();
-    dragState.previewBar = null;
-  }
-
-  dragState.active = false;
-
-  // Only add if it's at least 1
-  if (newIt >= 1) {
-    insertItAtPosition(startSubdiv, newIt);
-  }
-}
-
-function insertItAtPosition(startSubdiv, newIt) {
-  const newEndSubdiv = startSubdiv + newIt;
-
-  // Remove overlapping iTs
-  itSequence = itSequence.filter(item => {
-    const itemEnd = item.start + item.it;
-    // Keep if completely before or completely after
-    return itemEnd <= startSubdiv || item.start >= newEndSubdiv;
-  });
-
-  // Add new iT
-  itSequence.push({ start: startSubdiv, it: newIt, isSilence: false });
-
-  // Sort by start position
-  itSequence.sort((a, b) => a.start - b.start);
-
-  recalculateCyclePositions();
-
-  // Update everything
-  updateInfoDisplays();
-  renderItfrEditor();
-  updateIntervalBars();
-}
-
-function createPreviewBar() {
-  if (dragState.previewBar) return;
-
-  const bar = document.createElement('div');
-  bar.className = 'interval-bar-preview';
-  timeline.appendChild(bar);
-  dragState.previewBar = bar;
-}
-
-function updatePreviewBar() {
-  if (!dragState.previewBar || !dragState.active) return;
-
-  const startPos = subdivToPosition(dragState.startSubdiv);
-  const endPos = subdivToPosition(dragState.currentSubdiv + 1);
-  const width = endPos - startPos;
-
-  const lg = currentNumerator;
-  dragState.previewBar.style.left = `${(startPos / lg) * 100}%`;
-  dragState.previewBar.style.width = `${(width / lg) * 100}%`;
-}
-
-function updateDragHighlight() {
-  // Clear previous highlights
-  cycleMarkers.forEach(m => m.classList.remove('drag-range'));
-
-  if (!dragState.active) return;
-
-  const d = currentDenominator;
-
-  // Highlight markers in range
-  for (let s = dragState.startSubdiv; s <= dragState.currentSubdiv; s++) {
-    const marker = cycleMarkers.find(m =>
-      parseInt(m.dataset.globalSubdiv, 10) === s
-    );
-    if (marker) {
-      marker.classList.add('drag-range');
-    }
-  }
-}
-
 // ========== PLAYBACK ==========
-/**
- * Get the iT index that starts at a given scaled index
- * Returns -1 if no iT starts at that position
- */
-function getItIndexAtScaledStart(scaledIndex) {
-  const n = currentNumerator;
-  const d = currentDenominator;
-
-  for (let i = 0; i < itSequence.length; i++) {
-    const item = itSequence[i];
-    // Convert iT start (in subdivisions) to scaled index
-    // item.start is in subdivision units, scaledIndex is in d-based units
-    const itScaledStart = item.start * n;
-    if (itScaledStart === scaledIndex) {
-      return i;
-    }
-  }
-  return -1;
-}
-
 async function startPlayback() {
   if (itSequence.length === 0) {
     showValidationWarning(itfrEditorEl, 'Afegeix iTs per reproduir');
@@ -1076,7 +806,7 @@ async function startPlayback() {
     const d = currentDenominator;
     const n = currentNumerator;
 
-    const itIndex = getItIndexAtScaledStart(scaledIndex);
+    const itIndex = engine.getItIndexAtScaledStart(scaledIndex);
     if (itIndex >= 0) {
       const item = itSequence[itIndex];
       if (!item.isSilence) {
@@ -1117,115 +847,20 @@ async function stopPlayback() {
 }
 
 // ========== HIGHLIGHTING ==========
+// El pintat viu al motor compartit; aquests wrappers afegeixen el guard
+// d'estat de l'app (el transport pot lliurar ticks just després d'aturar).
 function clearHighlights() {
-  pulses.forEach(p => p.classList.remove('active'));
-  cycleMarkers.forEach(m => m.classList.remove('active'));
-  cycleLabels.forEach(l => l.classList.remove('active'));
-  intervalBars.forEach(b => b.classList.remove('highlight'));
-  itfrCellsEl?.querySelectorAll('.itfr-value.active').forEach(c => c.classList.remove('active'));
+  engine.clearHighlights();
 }
 
-/**
- * Highlight pulse - receives scaledIndex from audio.play()
- * Like App29: scaledIndex = pulseIndex * d for integer pulses
- * Audio scheduling moved to note provider; this handles ONLY visuals.
- */
 function highlightPulse(scaledIndex) {
   if (!isPlaying) return;
-  const d = currentDenominator;
-
-  // Convert scaled index to pulse index (only highlight integer pulses)
-  // scaledIndex = pulseIndex * d for integer pulses
-  if (scaledIndex % d !== 0) return; // Skip subdivisions (handled by highlightCycle)
-
-  const pulseIndex = scaledIndex / d;
-
-  pulses.forEach(p => p.classList.remove('active'));
-  const total = pulses.length > 1 ? pulses.length - 1 : 0;
-  if (total <= 0) return;
-
-  const normalized = Math.max(0, Math.min(pulseIndex, total));
-  const pulse = pulses[normalized];
-  if (pulse) {
-    void pulse.offsetWidth;
-    pulse.classList.add('active');
-  }
-
-  // Also highlight the iT bar that contains this pulse
-  highlightBarAtPosition(pulseIndex);
+  engine.highlightPulse(scaledIndex);
 }
 
-/**
- * Highlight cycle subdivision - receives payload from audio.play() cycle callback
- * Like App29: { cycleIndex, subdivisionIndex }
- */
 function highlightCycle(payload = {}) {
   if (!isPlaying) return;
-
-  const { cycleIndex: rawCycleIndex, subdivisionIndex: rawSubdivisionIndex } = payload;
-  const cycleIndex = Number(rawCycleIndex);
-  const subdivisionIndex = Number(rawSubdivisionIndex);
-
-  if (!Number.isFinite(cycleIndex) || !Number.isFinite(subdivisionIndex)) return;
-
-  // Clear previous highlights
-  cycleMarkers.forEach(m => m.classList.remove('active'));
-  cycleLabels.forEach(l => l.classList.remove('active'));
-
-  // Find and highlight matching marker/label
-  const marker = cycleMarkers.find(m =>
-    Number(m.dataset.cycleIndex) === cycleIndex &&
-    Number(m.dataset.subdivision) === subdivisionIndex
-  );
-  const label = cycleLabels.find(l =>
-    Number(l.dataset.cycleIndex) === cycleIndex &&
-    Number(l.dataset.subdivision) === subdivisionIndex
-  );
-
-  if (marker) {
-    void marker.offsetWidth;
-    marker.classList.add('active');
-  }
-  if (label) {
-    label.classList.add('active');
-  }
-
-  // Calculate position and highlight iT bar
-  const n = currentNumerator;
-  const position = cycleIndex * n + subdivisionIndex * n / currentDenominator;
-  highlightBarAtPosition(position);
-}
-
-/**
- * Highlight the iT bar that contains a given position (in pulses)
- */
-function highlightBarAtPosition(position) {
-  // Find which iT contains this position
-  for (let i = 0; i < itSequence.length; i++) {
-    const item = itSequence[i];
-    const startPos = subdivToPosition(item.start);
-    const endPos = subdivToPosition(item.start + item.it);
-
-    if (position >= startPos && position < endPos) {
-      // Highlight this bar
-      intervalBars.forEach(b => b.classList.remove('highlight'));
-      const bar = intervalBars[i];
-      if (bar) {
-        void bar.offsetWidth;
-        bar.classList.add('highlight');
-      }
-      // També il·luminem la cel·la corresponent de l'editor iTfr
-      // (patró App28: durant play la cel·la activa s'omple).
-      itfrCellsEl?.querySelectorAll('.itfr-value.active').forEach(c => c.classList.remove('active'));
-      const cell = itfrCellsEl?.querySelector(`.itfr-value[data-entry-index="${i}"]`);
-      if (cell) cell.classList.add('active');
-      return;
-    }
-  }
-
-  // No iT at this position - clear bar highlights
-  intervalBars.forEach(b => b.classList.remove('highlight'));
-  itfrCellsEl?.querySelectorAll('.itfr-value.active').forEach(c => c.classList.remove('active'));
+  engine.highlightCycle(payload);
 }
 
 // ========== CONTROLS ==========

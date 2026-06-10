@@ -8,7 +8,7 @@ Investigació i desenvolupament del mètode Nuzic per al ritme i el temps musica
 
 ```bash
 ./setup.sh         # Configura Git i instal·la dependències (Jest)
-npm test           # Executa 74 test suites, 1480+ tests
+npm test           # Executa 75 test suites, 1490+ tests
 npx http-server    # Serveix les apps i el Sistema localment
 ```
 
@@ -21,7 +21,7 @@ Apps/             — 35+ apps rítmiques i temporals (App1–App35)
 libs/             — 22 mòduls compartits (audio, UI, fracció, plano, scale, etc.)
 sistema/          — Sistema Interactivo: 27 slides educatius que embolcallen 25 apps
 docs/             — Documentació tècnica i specs
-tests/            — Tests d'integració + harness embed (74 suites, 1480+ tests)
+tests/            — Tests d'integració + harness embed (75 suites, 1490+ tests)
 ```
 
 ## 🎵 Apps
@@ -80,7 +80,7 @@ vendor/              — Tone.js 15.x, VexFlow 5.0.0, chromatone-theory
 
 ## 🧪 Testing
 
-**74 test suites, 1480+ tests** amb Jest 29.x. ES Modules amb Babel.
+**75 test suites, 1490+ tests** amb Jest 29.x. ES Modules amb Babel.
 
 ```bash
 npm test                                    # Tots els tests
