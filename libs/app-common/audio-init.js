@@ -118,12 +118,16 @@ export function createAudioInitializer(config = {}) {
         }
 
         return instance;
-      })();
-
-      audio = await audioInitPromise;
-      audioInitPromise = null;
+      })().catch((err) => {
+        // Un init fallit ha de ser reintentable al següent gest de l'usuari
+        audioInitPromise = null;
+        throw err;
+      });
     }
 
+    // Els callers concurrents (p.ex. Play + Tap Tempo durant la primera
+    // càrrega) comparteixen la mateixa promesa en lloc de rebre null
+    audio = await audioInitPromise;
     return audio;
   }
 
@@ -229,11 +233,15 @@ export function createMelodicAudioInitializer(config = {}) {
         config.onReady?.(instance);
 
         return instance;
-      })();
-
-      audio = await audioInitPromise;
+      })().catch((err) => {
+        // Un init fallit ha de ser reintentable al següent gest de l'usuari
+        audioInitPromise = null;
+        throw err;
+      });
     }
 
+    // Els callers concurrents comparteixen la mateixa promesa en lloc de rebre null
+    audio = await audioInitPromise;
     return audio;
   }
 

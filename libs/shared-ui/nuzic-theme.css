@@ -2068,3 +2068,14 @@ body[data-visual="nuzic"][data-theme="dark"] .param.param--large--pink .circle .
   background: var(--nuzic-pink) !important;
 }
 
+/* Focus visible per teclat: el tema suprimeix `outline` als inputs de
+   params/pills i no en deixava cap substitut — el focus de teclat era
+   invisible. :focus-visible només pinta en navegació per teclat;
+   ratolí i tàctil queden nets com fins ara. */
+body[data-visual="nuzic"] input:focus-visible,
+body[data-visual="nuzic"] button:focus-visible,
+body[data-visual="nuzic"] .spin:focus-visible {
+  outline: 2px solid var(--nuzic-blue);
+  outline-offset: 2px;
+}
+

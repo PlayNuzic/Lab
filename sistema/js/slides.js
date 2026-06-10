@@ -654,7 +654,11 @@ function wireParallax(slideEl){
   function step(delta){
     if (state.editable) return false;
     const next = active + delta;
-    if (next < 0 || next >= frases.length) return false;
+    // A la frontera, el gest que el slide ensenya ("Haz scroll") no pot
+    // fer atzucac: escapem al paso adjacent. go() ja és no-op als
+    // extrems del curs, així que allà es conserva el comportament antic.
+    if (next >= frases.length) { go(1); return true; }
+    if (next < 0) { go(-1); return true; }
     hideHint();
     setActive(next);
     return true;

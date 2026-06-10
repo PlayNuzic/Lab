@@ -20,9 +20,9 @@ Monorepo for rhythmic/temporal music apps (Nuzic method). ES2022 modules, no bui
 ## High-Risk Files (modify with extreme caution)
 These files affect timing and synchronization across ALL apps. Before modifying:
 read existing tests, run full test suite, and show the complete diff for approval.
-- `libs/sound/clock.js` — AudioWorklet timing, epsilon 1e-9 for double-trigger prevention
-- `libs/app-common/pulse-interval-calc.js` — Interval calculations used by every app
-- `libs/app-common/voice-sync.js` — Polyrhythmic voice synchronization
+- `libs/sound/timeline-processor.js` — AudioWorklet timing + polyrhythmic voice sync, epsilon 1e-9 for double-trigger prevention
+- `libs/app-common/subdivision.js` — Pulse/subdivision interval calculations (60/bpm) used across apps
+- `libs/app-common/audio-schedule.js` — Resync/look-ahead scheduling math (computeResyncDelay)
 
 ## Architecture
 ```
@@ -55,7 +55,8 @@ const audio = await initAudio();
 ```
 
 ## LEGACY Patterns (DO NOT USE)
-`initRhythmApp()`, `createStandardElementMap()`, `bindRhythmAppEvents()` — all deprecated.
+`initRhythmApp()`, `createStandardElementMap()`, `bindRhythmAppEvents()` — deprecated; their modules
+(`app-common/app-init.js`, `app-common/events.js`) were deleted 2026-06. Do not reintroduce.
 
 ## Reference Documentation (consult on demand, not loaded automatically)
 - `LAB_SYSTEM_RULES.md` — Complete technical rules for timing, audio, loop, mixer (12KB+)

@@ -1611,6 +1611,7 @@ async function startPlayback() {
 
   isPlaying = true;
   elements.playBtn?.classList.add('playing');
+  if (elements.randomBtn) elements.randomBtn.disabled = true;
 
   // La pastilla `cycle` es manté com a input pla durant tota la
   // reproducció (no swap input→dígit). El número que entra l'usuari és
@@ -1712,6 +1713,7 @@ async function startPlayback() {
 function stopPlayback() {
   isPlaying = false;
   elements.playBtn?.classList.remove('playing');
+  if (elements.randomBtn) elements.randomBtn.disabled = false;
 
   // Switch back to play icon
   const iconPlay = elements.playBtn?.querySelector('.icon-play');
@@ -1748,6 +1750,8 @@ function stopPlayback() {
 // ========== RANDOM ==========
 
 function handleRandom() {
+  if (isPlaying) return;
+
   const randCompasMax = parseInt(document.getElementById('randCompasMax')?.value) || CONFIG.MAX_COMPAS;
   const randCyclesMax = parseInt(document.getElementById('randCyclesMax')?.value) || CONFIG.MAX_CYCLES;
   const randBpmMin = parseInt(document.getElementById('randBpmMin')?.value) || CONFIG.MIN_BPM;

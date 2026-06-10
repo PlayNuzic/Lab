@@ -1611,13 +1611,9 @@ async function startPlayback(providedAudio) {
     handlePlaybackStop(audioInstance);
   };
 
-  const onPulse = (step) => {
-    // Convert step index (0-indexed) to interval number (1-indexed)
-    const intervalNumber = step + 1;
-    highlightController.highlightInterval(intervalNumber);
-  };
-
-  audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, onPulse, onFinish);
+  // onPulse: null — el highlight d'intervals el porta només visualSync (RAF);
+  // amb callback aquí cada interval es pintava DUES vegades per step
+  audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, null, onFinish);
 
   visualSync.syncVisualState();
   visualSync.start();

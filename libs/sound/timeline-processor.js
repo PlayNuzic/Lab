@@ -216,8 +216,8 @@ class TimelineProcessor extends AudioWorkletProcessor {
     }
   }
 
-  _emitPulse() {
-    this.port.postMessage({ type: 'pulse', step: this.currentStep, interval: this.secondsPerBeat });
+  _emitPulse(timeSec) {
+    this.port.postMessage({ type: 'pulse', step: this.currentStep, interval: this.secondsPerBeat, time: timeSec });
 
     if (!this.loop && this.currentStep + 1 >= this.totalBeats) {
       this.port.postMessage({ type: 'done' });
@@ -284,6 +284,11 @@ class TimelineProcessor extends AudioWorkletProcessor {
     if (!this.active) return true;
 
     const block = 128;
+    // currentTime (global de l'AudioWorkletGlobalScope) és l'inici exacte
+    // d'aquest bloc de render: temps del sample i = blockTime + i·secondsPerSample.
+    // Via globalThis perquè als tests (Node) el global no existeix: allà
+    // time=NaN i el fil principal cau al fallback (arribada del missatge).
+    const blockTime = globalThis.currentTime;
     for (let i = 0; i < block; i++) {
       if (this.rampSamplesLeft > 0) {
         this.secondsPerBeat += this.rampStep;
@@ -314,7 +319,7 @@ class TimelineProcessor extends AudioWorkletProcessor {
       }
 
       while (this.pulseCountdownBeats <= 1e-9) {
-        this._emitPulse();
+        this._emitPulse(blockTime + i * this.secondsPerSample);
         if (!this.active) return true;
         this.pulseCountdownBeats += 1;
       }

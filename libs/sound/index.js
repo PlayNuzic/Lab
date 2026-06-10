@@ -17,9 +17,7 @@ const SOUND_URLS = {
   click8: new URL('click8.wav', SAMPLE_BASE_URL).href,
   click9: new URL('click9.wav', SAMPLE_BASE_URL).href,
   click10: new URL('click10.wav', SAMPLE_BASE_URL).href,
-  click11: new URL('Click11.wav', SAMPLE_BASE_URL).href,
-  click12: new URL('Click12.wav', SAMPLE_BASE_URL).href,
-  click13: new URL('Click13.wav', SAMPLE_BASE_URL).href
+  click11: new URL('Click11.wav', SAMPLE_BASE_URL).href
 };
 
 export const soundNames = Object.keys(SOUND_URLS);
@@ -36,9 +34,7 @@ export const soundLabels = {
   click8: 'Caja',
   click9: 'Hi-Hat',
   click10: 'Ride',
-  click11: 'Ruido Rosa',
-  click12: 'Synth Voice 1',
-  click13: 'Synth Voice 2'
+  click11: 'Ruido Rosa'
 };
 
 const mixer = new AudioMixer({ masterLabel: 'Master' });
@@ -919,6 +915,10 @@ export class TimelineAudio {
     applyGain(this._bus.start, 'start');
     applyGain(this._bus.seleccionados, 'accent');
     applyGain(this._bus.cycle, 'subdivision');
+    // Sense aquesta línia el fader/mute/solo del canal 'instrument' no
+    // arriba mai al bus melòdic (piano/flauta). Per apps rítmiques sense
+    // canal registrat, `?? 0.75` coincideix amb el default del bus.
+    applyGain(this._bus.melodic, 'instrument');
   }
 
   _stopAllPlayers() {
@@ -1796,7 +1796,10 @@ export class TimelineAudio {
       this._lastStep = msg.step;
       this._pulseCounter = (this._pulseCounter ?? -1) + 1;
       this._lastAbsoluteStep = this._pulseCounter;
-      this._lastPulseTime = now;
+      // Àncora sample-accurate: temps d'àudio exacte del pols segons el
+      // worklet; l'arribada del missatge (now) només com a fallback — porta
+      // latència de MessagePort + jank del fil principal.
+      this._lastPulseTime = Number.isFinite(msg.time) ? msg.time : now;
       if (Number.isFinite(this._lastAbsoluteStep) && Number.isFinite(this._lastStep)) {
         this._zeroOffset = this._lastAbsoluteStep - this._lastStep;
       }

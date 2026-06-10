@@ -35,6 +35,17 @@ export function attachSpinnerRepeat(element, callback, options = {}) {
     interval = null;
   };
 
+  // Keyboard: Enter/Space activate the spinner (a focused <button> emits
+  // keydown→click, never mousedown, so without this the control was dead
+  // for keyboard users). Held keys repeat via the OS key auto-repeat —
+  // no timers needed here.
+  const onKey = (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    callback();
+  };
+  element.addEventListener('keydown', onKey);
+
   // Mouse events
   element.addEventListener('mousedown', start);
   element.addEventListener('mouseup', stop);
@@ -51,6 +62,7 @@ export function attachSpinnerRepeat(element, callback, options = {}) {
 
   // Return cleanup function
   return () => {
+    element.removeEventListener('keydown', onKey);
     element.removeEventListener('mousedown', start);
     element.removeEventListener('mouseup', stop);
     element.removeEventListener('mouseleave', stop);

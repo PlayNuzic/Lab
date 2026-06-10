@@ -613,7 +613,9 @@ async function playChromatic() {
 
     if (transposedNotes.includes(midiNote)) {
       const scaleIndex = transposedNotes.indexOf(midiNote);
-      const originalSemitone = currentScaleNotes[scaleIndex];
+      // i=12 és l'octava: mateixa classe de nota que la fonamental, però
+      // la cel·la correcta és el 0' de DALT (posició 12), no el 0 de baix.
+      const originalSemitone = i === 12 ? 12 : currentScaleNotes[scaleIndex];
       highlightManager.highlightNote(scaleSoundline, originalSemitone, intervalMs * 0.9, 'scale');
       highlightManager.highlightConnectionLine(originalSemitone, intervalMs * 0.9);
     }

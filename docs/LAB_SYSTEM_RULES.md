@@ -1211,9 +1211,9 @@ LED states: 'led-auto' (calculat) vs 'led-active' (manual)
 ## 14. Fitxers PROHIBITS de Modificar
 
 ```
-libs/sound/clock.js              — Timing crític del motor
-libs/app-common/pulse-interval-calc.js  — Càlculs d'intervals
-libs/app-common/voice-sync.js    — Sincronització de veus
+libs/sound/timeline-processor.js — Timing crític del motor (AudioWorklet) + sincronització de veus
+libs/app-common/subdivision.js   — Càlculs d'intervals (60/bpm)
+libs/app-common/audio-schedule.js — Matemàtica de resync/look-ahead (computeResyncDelay)
 ```
 
 ---

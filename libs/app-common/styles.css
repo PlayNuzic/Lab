@@ -658,6 +658,13 @@ body[data-theme='dark'] .fraction-info-bubble {
   outline: none;
 }
 
+/* Substitut de l'outline suprimit: sense això, ajustar el volum amb
+   teclat era a cegues. Només pinta en navegació per teclat. */
+.mixer-channel__slider:focus-visible {
+  outline: 2px solid var(--nuzic-blue, #7bb4cd);
+  outline-offset: 2px;
+}
+
 .mixer-channel__slider::-webkit-slider-runnable-track {
   height: var(--mix-track);
   background: var(--nuzic-grey, #AAA699);

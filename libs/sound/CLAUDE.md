@@ -1,7 +1,7 @@
 # Audio Engine — Context for Claude
 
 ## HIGH-RISK: Modify with extreme caution
-- `clock.js` — AudioWorklet timing. Changes here affect ALL apps.
+- `timeline-processor.js` — AudioWorklet timing + polyrhythmic voices. Changes here affect ALL apps.
 
 ## Timing Rules
 - Processing block: 128 samples

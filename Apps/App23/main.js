@@ -384,8 +384,12 @@ async function playChromatic() {
 
     // També highlight en escala i línia de connexió si la nota està a la Mayor transposada
     if (transposedNotes.includes(midiNote)) {
-      // Trobar el semitone original (posició a la soundline escala)
-      const originalSemitone = MAJOR_SCALE_INTERVALS[transposedNotes.indexOf(midiNote)];
+      // Trobar el semitone original (posició a la soundline escala).
+      // i=12 és l'octava: mateixa classe de nota que la fonamental, però
+      // la cel·la correcta és el 0' de DALT (posició 12), no el 0 de baix.
+      const originalSemitone = i === 12
+        ? 12
+        : MAJOR_SCALE_INTERVALS[transposedNotes.indexOf(midiNote)];
       highlightManager.highlightNote(scaleSoundline, originalSemitone, intervalMs * 0.9, 'scale');
       highlightManager.highlightConnectionLine(originalSemitone, intervalMs * 0.9);
     }

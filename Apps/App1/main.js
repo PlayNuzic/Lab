@@ -710,7 +710,9 @@ async function startPlayback(providedAudio) {
     audioInstance.stop();
   };
 
-  audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, (step) => highlightController.highlightPulse(step), onFinish);
+  // onPulse: null — el highlight el porta només visualSync (RAF); amb callback
+  // aquí el pols es pintava DUES vegades per step (doble esborrat + reflow)
+  audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, null, onFinish);
 
   visualSync.syncVisualState();
   visualSync.start();

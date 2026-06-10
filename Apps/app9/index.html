@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="../../libs/app-common/embed.css" />
   <link rel="icon" href="../../favicon.ico" />
+  <link rel="modulepreload" href="./main.js" />
 </head>
 <body data-theme="light" data-visual="nuzic">
   <div id="app-root"></div>
@@ -27,13 +28,14 @@
       // First time - set factory defaults
       localStorage.setItem('app9-preferences', JSON.stringify({
         baseSound: 'click1',
-        accentSound: 'click13'
+        accentSound: 'click2'
       }));
     } else {
-      // Migrate old click11 (Ruido Rosa) to click13 (Synth Voice 2)
+      // Migrate removed sounds (click11→click13 era la migració antiga;
+      // click12/click13 es van eliminar el 2026-06) cap a Click Acento
       const prefs = JSON.parse(app9Prefs);
-      if (prefs.accentSound === 'click11') {
-        prefs.accentSound = 'click13';
+      if (['click11', 'click12', 'click13'].includes(prefs.accentSound)) {
+        prefs.accentSound = 'click2';
         localStorage.setItem('app9-preferences', JSON.stringify(prefs));
       }
     }

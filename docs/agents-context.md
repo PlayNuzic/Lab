@@ -55,9 +55,9 @@ Els Skills són comandes que pots invocar directament:
 - Performance d'àudio
 
 **⚠️ CRÍTIC - Fitxers Protegits:**
-- `libs/sound/clock.js`
-- `libs/app-common/pulse-interval-calc.js`
-- `libs/app-common/voice-sync.js`
+- `libs/sound/timeline-processor.js`
+- `libs/app-common/subdivision.js`
+- `libs/app-common/audio-schedule.js`
 
 **Capacitats especials:**
 - Prevé automàticament modificacions als fitxers crítics
@@ -229,9 +229,9 @@ Els Skills són comandes que pots invocar directament:
 ### 🚫 FITXERS INTOCABLES:
 Aquests fitxers són el core del sistema i **MAI** es poden modificar:
 
-- `libs/sound/clock.js` - Sistema de timing crític
-- `libs/app-common/pulse-interval-calc.js` - Càlculs d'intervals
-- `libs/app-common/voice-sync.js` - Sincronització de veus
+- `libs/sound/timeline-processor.js` - Sistema de timing crític (AudioWorklet) + sincronització de veus
+- `libs/app-common/subdivision.js` - Càlculs d'intervals
+- `libs/app-common/audio-schedule.js` - Matemàtica de resync/look-ahead
 
 **Si cal canviar alguna cosa relacionada amb aquests fitxers:**
 ✅ Crear wrappers o extensions

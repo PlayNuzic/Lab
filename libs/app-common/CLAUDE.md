@@ -6,7 +6,6 @@ Middleware layer between UI and TimelineAudio. 43 modules. Everything reusable a
 ## Modules by Function
 
 **Initialization:**
-- `app-init.js` — App bootstrap with template + LEDs
 - `audio-init.js` — Lazy TimelineAudio creation (suppresses warnings)
 - `dom.js` — `bindAppRhythmElements(appId)` central DOM binding
 
@@ -27,7 +26,7 @@ Middleware layer between UI and TimelineAudio. 43 modules. Everything reusable a
 - `subdivision.js` — `interval = 60 / bpm`, pulse count calculations
 - `number-utils.js` — Consolidated: GCD, LCM, ranges, formatting, random int
 - `preferences.js` — Persistent storage with namespace (`prefix::key`), theme sync, factory reset
-- `led-manager.js`, `events.js`, `utils.js`, `mixer-menu.js`
+- `led-manager.js`, `utils.js`, `mixer-menu.js`
 
 **Rhythm & Notation:**
 - `rhythm.js` — Note names (Spanish), GCD reduction, permutations (max 512)
