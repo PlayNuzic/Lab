@@ -27,6 +27,7 @@ import { renderNoteBars, removeOverlappingNotes as _removeOverlapping } from '..
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 import { setupRandomMenu } from '../../libs/random/menu.js';
+import { reorderControls } from '../../libs/app-common/template.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 12;             // 12 pulsos (0-11)
@@ -1838,34 +1839,12 @@ function init() {
   // validation layer is required on the app side.
   initZigzagEditor();
 
-  // Reorder controls: re-fetch bpmParam abans de la reorganització perquè
-  // entre `createGrid()` i aquest punt el DOM pot haver canviat (rare,
-  // però defensiu).
-  const bpmParam = document.getElementById('bpmParam');
-  const controls = document.querySelector('.controls');
+  // Ordre nuzic de la fila de controls (helper compartit, H-08) +
+  // trasllat sota el grid (nuzic order: middle → grid → controls).
+  const controls = reorderControls();
   const gridContainer = document.getElementById('gridContainer');
-
-  if (controls) {
-    const playEl = controls.querySelector('.play') || document.getElementById('playBtn');
-    const randomEl = controls.querySelector('.random');
-    const resetEl = controls.querySelector('.reset');
-    const randomMenuEl = controls.querySelector('.random-menu');
-
-    while (controls.firstChild) controls.removeChild(controls.firstChild);
-
-    if (playEl) controls.appendChild(playEl);
-    if (bpmParam) controls.appendChild(bpmParam);
-    if (randomEl) controls.appendChild(randomEl);
-    if (randomMenuEl) controls.appendChild(randomMenuEl);
-    if (resetEl) controls.appendChild(resetEl);
-
-    // Move .controls to the very bottom so final DOM order is:
-    // middle → grid → zigzag editor → controls.
-    const zigzagEl = document.getElementById('zigzagEditorContainer');
-    const anchor = zigzagEl || gridContainer;
-    if (anchor?.parentNode) {
-      anchor.parentNode.insertBefore(controls, anchor.nextSibling);
-    }
+  if (controls && gridContainer?.parentNode) {
+    gridContainer.parentNode.insertBefore(controls, gridContainer.nextSibling);
   }
 
   // Idle caret flash on the zigzag editor (the primary input target).

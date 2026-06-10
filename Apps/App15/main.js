@@ -23,6 +23,7 @@ import {
   createIntervalRenderer
 } from '../../libs/interval-sequencer/index.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
+import { reorderControls } from '../../libs/app-common/template.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
@@ -1673,23 +1674,10 @@ async function initializeApp() {
     resizeObserver.observe(matrixContainer);
   }
 
-  // Reorder controls into compact row: Play → BPM → Random → Reset
-  const controls = document.querySelector('.controls');
+  // Ordre nuzic de la fila de controls (helper compartit, H-08) +
+  // trasllat dins del gridWrapper (layout propi d'App15).
+  const controls = reorderControls();
   if (controls && gridWrapper) {
-    const playBtnEl = controls.querySelector('.play') || document.getElementById('playBtn');
-    const bpmParam = document.getElementById('bpmParam');
-    const randomBtnEl = controls.querySelector('.random');
-    const resetBtnEl = controls.querySelector('.reset');
-    const randomMenu = controls.querySelector('.random-menu');
-
-    while (controls.firstChild) controls.removeChild(controls.firstChild);
-
-    if (playBtnEl) controls.appendChild(playBtnEl);
-    if (bpmParam) controls.appendChild(bpmParam);
-    if (randomBtnEl) controls.appendChild(randomBtnEl);
-    if (randomMenu) controls.appendChild(randomMenu);
-    if (resetBtnEl) controls.appendChild(resetBtnEl);
-
     gridWrapper.appendChild(controls);
   }
 

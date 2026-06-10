@@ -33,6 +33,7 @@ import { gcd } from '../../libs/app-common/number-utils.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 import { setupRandomMenu } from '../../libs/random/menu.js';
+import { reorderControls } from '../../libs/app-common/template.js';
 
 // ========== CONSTANTS ==========
 const BASE_LG = 12;              // Reference length (max pulses)
@@ -1283,31 +1284,12 @@ function init() {
   // Create grid (inserted AFTER timeline-wrapper).
   createGrid();
 
-  // Reorder controls: re-fetch bpmParam abans de la reorganització perquè
-  // entre `createGrid()` i aquest punt el DOM pot haver canviat (rare,
-  // però defensiu).
-  const bpmParam = document.getElementById('bpmParam');
-  const controls = document.querySelector('.controls');
+  // Ordre nuzic de la fila de controls (helper compartit, H-08) +
+  // trasllat sota el grid (nuzic order: middle → grid → controls).
+  const controls = reorderControls();
   const gridContainer = document.getElementById('gridContainer');
-
-  if (controls) {
-    const playEl = controls.querySelector('.play') || document.getElementById('playBtn');
-    const randomEl = controls.querySelector('.random');
-    const resetEl = controls.querySelector('.reset');
-    const randomMenuEl = controls.querySelector('.random-menu');
-
-    while (controls.firstChild) controls.removeChild(controls.firstChild);
-
-    if (playEl) controls.appendChild(playEl);
-    if (bpmParam) controls.appendChild(bpmParam);
-    if (randomEl) controls.appendChild(randomEl);
-    if (randomMenuEl) controls.appendChild(randomMenuEl);
-    if (resetEl) controls.appendChild(resetEl);
-
-    // Move .controls BELOW the grid (nuzic order: middle → grid → controls).
-    if (gridContainer?.parentNode) {
-      gridContainer.parentNode.insertBefore(controls, gridContainer.nextSibling);
-    }
+  if (controls && gridContainer?.parentNode) {
+    gridContainer.parentNode.insertBefore(controls, gridContainer.nextSibling);
   }
 
   // Idle caret flash on fraction slot (persistent across renders).

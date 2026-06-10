@@ -466,3 +466,35 @@ export function initializeGamificationHooks() {
     }
   });
 }
+
+/**
+ * Reordena la fila .controls a l'ordre nuzic: Play → BPM → Random
+ * (+ random-menu) → Reset (H-08: 13 apps duien aquest shuffle copiat,
+ * acoblat a les classes que emet renderApp() més amunt — ara el canvi
+ * d'ordre o de classes només toca aquest fitxer).
+ *
+ * @param {HTMLElement} [controls] - La fila; per defecte la .controls del document
+ * @returns {HTMLElement|null} La fila reordenada (per a trasllats posteriors de l'app)
+ */
+export function reorderControls(controls = document.querySelector('.controls')) {
+  if (!controls) return null;
+
+  const pick = (selector, fallbackId) =>
+    controls.querySelector(selector)
+    || (fallbackId ? document.getElementById(fallbackId) : null);
+
+  const ordered = [
+    pick('.play', 'playBtn'),
+    document.getElementById('bpmParam'),
+    pick('.random', 'randomBtn'),
+    controls.querySelector('.random-menu'),
+    pick('.reset', 'resetBtn')
+  ];
+
+  while (controls.firstChild) controls.removeChild(controls.firstChild);
+  ordered.forEach((el) => {
+    if (el) controls.appendChild(el);
+  });
+
+  return controls;
+}

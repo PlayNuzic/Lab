@@ -29,6 +29,7 @@ import { createIntervalNoteDragHandler } from '../../libs/app-common/interval-no
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 import { createMeasureHeader } from '../../libs/shared-ui/measure-header.js';
+import { reorderControls } from '../../libs/app-common/template.js';
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
@@ -2221,23 +2222,8 @@ function initApp() {
   if (elements.inputCycle) elements.inputCycle.value = cycles;
   if (elements.cycleDigit) elements.cycleDigit.textContent = String(cycles);
 
-  // Reorder controls: Play, BPM, Random, Reset (compact row)
-  const bpmParam = document.getElementById('bpmParam');
-  const controls = document.querySelector('.controls');
-  if (controls && bpmParam) {
-    const playBtnEl = controls.querySelector('.play') || elements.playBtn;
-    const randomBtnEl = controls.querySelector('.random');
-    const resetBtnEl = controls.querySelector('.reset');
-    const randomMenuEl = controls.querySelector('.random-menu');
-
-    while (controls.firstChild) controls.removeChild(controls.firstChild);
-
-    if (playBtnEl) controls.appendChild(playBtnEl);
-    controls.appendChild(bpmParam);
-    if (randomBtnEl) controls.appendChild(randomBtnEl);
-    if (randomMenuEl) controls.appendChild(randomMenuEl);
-    if (resetBtnEl) controls.appendChild(resetBtnEl);
-  }
+  // Ordre nuzic de la fila de controls (helper compartit, H-08)
+  reorderControls();
 
   // Save controls before initGrid clears .timeline-wrapper
   const timelineWrapper = document.querySelector('.timeline-wrapper');

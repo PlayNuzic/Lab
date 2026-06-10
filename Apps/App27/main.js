@@ -14,6 +14,7 @@ import { attachHover } from '../../libs/shared-ui/hover.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
+import { reorderControls } from '../../libs/app-common/template.js';
 
 // ========== CONSTANTS ==========
 // Lg = currentNumerator (dinàmic) - es calcula en cada renderització
@@ -456,23 +457,8 @@ function init() {
     bpmController.attach();
   }
 
-  // Reorder controls: Play, BPM, Random, Reset (nuzic compact row)
-  const bpmParam = document.getElementById('bpmParam');
-  const controls = document.querySelector('.controls');
-  if (controls) {
-    const playEl = controls.querySelector('.play') || document.getElementById('playBtn');
-    const randomEl = controls.querySelector('.random');
-    const resetEl = controls.querySelector('.reset');
-    const randomMenuEl = controls.querySelector('.random-menu');
-
-    while (controls.firstChild) controls.removeChild(controls.firstChild);
-
-    if (playEl) controls.appendChild(playEl);
-    if (bpmParam) controls.appendChild(bpmParam);
-    if (randomEl) controls.appendChild(randomEl);
-    if (randomMenuEl) controls.appendChild(randomMenuEl);
-    if (resetEl) controls.appendChild(resetEl);
-  }
+  // Ordre nuzic de la fila de controls (helper compartit, H-08)
+  reorderControls();
 
   // Initialize fraction editor
   initFractionEditorController();

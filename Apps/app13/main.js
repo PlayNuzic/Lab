@@ -6,6 +6,7 @@ import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 import { setupRandomMenu } from '../../libs/random/menu.js';
+import { reorderControls } from '../../libs/app-common/template.js';
 
 // ========== CONFIGURACIÓN ==========
 const TOTAL_PULSES = 9;  // Pulsos 0-8 (8 es endpoint visual)
@@ -917,26 +918,8 @@ function initApp() {
     bpmController.attach();
   }
 
-  // Reorder controls: Play, BPM, Random, Reset
-  const bpmParam = document.getElementById('bpmParam');
-  const controls = document.querySelector('.controls');
-  if (controls) {
-    // Remove all children, re-append in desired order
-    const playBtn = controls.querySelector('.play') || document.getElementById('playBtn');
-    const randomBtnEl = controls.querySelector('.random') || document.getElementById('randomBtn');
-    const resetBtnEl = controls.querySelector('.reset') || document.getElementById('resetBtn');
-    const randomMenu = controls.querySelector('.random-menu');
-
-    // Clear controls
-    while (controls.firstChild) controls.removeChild(controls.firstChild);
-
-    // Re-append in order: Play, BPM, Random (+ menu), Reset
-    if (playBtn) controls.appendChild(playBtn);
-    if (bpmParam) controls.appendChild(bpmParam);
-    if (randomBtnEl) controls.appendChild(randomBtnEl);
-    if (randomMenu) controls.appendChild(randomMenu);
-    if (resetBtnEl) controls.appendChild(resetBtnEl);
-  }
+  // Ordre nuzic de la fila de controls (helper compartit, H-08)
+  reorderControls();
 
   // Cablear events de so compartits (selector Pulso → metrònom)
   bindSharedSoundEvents({
