@@ -13,6 +13,7 @@ import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
+import { createCellSequenceEditor } from '../../libs/pulse-seq/index.js';
 import { isIntegerPulseSelectable } from '../../libs/app-common/pulse-selectability.js';
 import { gcd } from '../../libs/app-common/number-utils.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
@@ -117,7 +118,6 @@ let itfrRow = null;
 let itfrEditorEl = null;     // .itfr-editor root (label + cells)
 let itfrCellsEl = null;      // .itfr-cells container
 let itfrActiveInputEl = null; // current editable cell
-let itfrCommitTimer = null;
 // Info displays (live in .inputs as pastilles, created via index.html)
 let sumDisplay = null;
 let lengthDisplay = null;
@@ -269,165 +269,71 @@ function createItfrLayout() {
 // ========== CELL-BASED EDITOR RENDERING ==========
 // One cell per iT (value white, editable) + one yellow-light separator between cells.
 // A trailing white input cell accepts the next iT, followed by a final separator.
-// This matches the App28 Pfr pattern (not one cell per subdivision).
+// El DOM de l'editor viu a libs/pulse-seq/cell-editor.js (extracció H-02);
+// aquí només hi queda el MODEL: validació d'iT, itSequence i sincronització.
+
+let itfrEditor = null;
+
+function realItEntries() {
+  return itSequence.filter(item => !item.isSilence);
+}
+
 function renderItfrEditor() {
   if (!itfrCellsEl) return;
 
-  itfrCellsEl.innerHTML = '';
-  itfrActiveInputEl = null;
-
-  // Render committed iTs (skip silences — they are implicit gaps in playback).
-  const realIts = itSequence.filter(item => !item.isSilence);
-  realIts.forEach((item, idx) => {
-    itfrCellsEl.appendChild(createItfrValueCell(item.it, idx));
-    itfrCellsEl.appendChild(createItfrSeparatorCell());
-  });
-
-  // Trailing input (only if space remains).
-  const sum = realIts.reduce((a, b) => a + b.it, 0);
-  const maxTotal = getTotalSubdivisions();
-  if (sum < maxTotal) {
-    const input = createItfrInputCell();
-    itfrCellsEl.appendChild(input);
-    itfrCellsEl.appendChild(createItfrSeparatorCell());
-    itfrActiveInputEl = input;
+  if (!itfrEditor) {
+    itfrEditor = createCellSequenceEditor({
+      host: itfrCellsEl,
+      classes: { base: 'itfr-cell', value: 'itfr-value', separator: 'itfr-separator', input: 'itfr-input' },
+      input: {
+        maxLength: 2,
+        inputMode: 'numeric',
+        commitDelay: 500,
+        // Només dígits: la resta es sanititza in situ (sense tocar el timer
+        // pendent, paritat amb el comportament original).
+        classify: (raw) => /^\d+$/.test(raw) ? 'defer' : { sanitize: raw.replace(/\D/g, '') },
+        commitOnBlur: true,
+        doubleCommitGuard: true,
+        refocusAfterCommit: true,
+        refocusOnInvalid: true
+      },
+      getEntries: () => realItEntries().map(item => ({ display: String(item.it) })),
+      // Trailing input only if space remains.
+      showTrailingInput: () => realItEntries().reduce((a, b) => a + b.it, 0) < getTotalSubdivisions(),
+      onCommitInput: (raw) => {
+        if (!raw) return false;
+        const parsed = parseAndValidateIt(raw);
+        if (!parsed) return false;
+        if (parsed.warning) showValidationWarning(itfrEditorEl, parsed.warning);
+        const startSubdiv = getNextAvailableStart();
+        itSequence.push({ start: startSubdiv, it: parsed.value, isSilence: false });
+        recalculateCyclePositions();
+        updateInfoDisplays();
+        renderItfrEditor();
+        updateIntervalBars();
+        return true;
+      },
+      onEditEntry: (entryIndex, raw) => {
+        if (raw === '') {
+          // Empty → delete this iT entry.
+          removeItAtIndex(entryIndex);
+          return true;
+        }
+        const parsed = parseAndValidateIt(raw, entryIndex);
+        if (!parsed) return false;
+        if (parsed.warning) showValidationWarning(itfrEditorEl, parsed.warning);
+        updateItAtIndex(entryIndex, parsed.value);
+        return true;
+      },
+      onDeleteLast: () => {
+        const its = realItEntries();
+        if (its.length > 0) removeItAtIndex(its.length - 1);
+      }
+    });
   }
-}
 
-function createItfrSeparatorCell() {
-  const cell = document.createElement('input');
-  cell.type = 'text';
-  cell.className = 'itfr-cell itfr-separator';
-  cell.placeholder = ' ';
-  cell.readOnly = true;
-  cell.tabIndex = -1;
-  return cell;
-}
-
-/**
- * Editable value cell. Blur validates and updates itSequence by index.
- * Empty value deletes the iT. Invalid → revert + warning tooltip.
- */
-function createItfrValueCell(value, entryIndex) {
-  const cell = document.createElement('input');
-  cell.type = 'text';
-  cell.className = 'itfr-cell itfr-value';
-  cell.value = String(value);
-  cell.dataset.entryIndex = String(entryIndex);
-  cell.readOnly = false;
-  cell.style.cursor = 'text';
-
-  let originalValue = cell.value;
-
-  cell.addEventListener('focus', () => {
-    originalValue = cell.value;
-    cell.select();
-  });
-
-  cell.addEventListener('blur', () => {
-    const raw = cell.value.trim();
-    if (raw === originalValue) { cell.value = originalValue; return; }
-
-    if (raw === '') {
-      // Empty → delete this iT entry.
-      removeItAtIndex(entryIndex);
-      return;
-    }
-
-    const parsed = parseAndValidateIt(raw, entryIndex);
-    if (!parsed) {
-      cell.value = originalValue;
-      return;
-    }
-    if (parsed.warning) showValidationWarning(itfrEditorEl, parsed.warning);
-
-    updateItAtIndex(entryIndex, parsed.value);
-  });
-
-  cell.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); cell.blur(); return; }
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      cell.blur();
-      const cells = Array.from(itfrCellsEl.querySelectorAll('.itfr-value, .itfr-input'));
-      const i = cells.indexOf(cell);
-      const next = e.shiftKey ? cells[i - 1] : cells[i + 1];
-      if (next) next.focus();
-    }
-  });
-
-  return cell;
-}
-
-/**
- * Trailing white input cell. Commits on blur, Enter or after a 500ms debounce.
- */
-function createItfrInputCell() {
-  const cell = document.createElement('input');
-  cell.type = 'text';
-  cell.inputMode = 'numeric';
-  cell.maxLength = 2;
-  cell.className = 'itfr-cell itfr-input';
-  cell.readOnly = false;
-
-  // Guard against double-commit. `input` debounce + `blur` both trigger
-  // tryCommitFromInput; after a successful commit the cell is re-rendered
-  // (detached from DOM) and blur fires on the detached element — this flag
-  // prevents a second commit being processed.
-  let committed = false;
-
-  cell.addEventListener('input', () => {
-    const raw = cell.value.trim();
-    if (!raw) { clearTimeout(itfrCommitTimer); return; }
-
-    // Strip non-digits
-    if (!/^\d+$/.test(raw)) {
-      cell.value = raw.replace(/\D/g, '');
-      return;
-    }
-
-    clearTimeout(itfrCommitTimer);
-    itfrCommitTimer = setTimeout(() => {
-      if (committed) return;
-      committed = true;
-      const ok = tryCommitFromInput(cell);
-      if (!ok) committed = false;
-    }, 500);
-  });
-
-  cell.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === 'Tab') {
-      e.preventDefault();
-      clearTimeout(itfrCommitTimer);
-      if (cell.value.trim() && !committed) {
-        committed = true;
-        const ok = tryCommitFromInput(cell);
-        if (!ok) committed = false;
-      }
-      return;
-    }
-    if (e.key === 'Backspace' && !cell.value) {
-      // Delete the last committed iT.
-      e.preventDefault();
-      clearTimeout(itfrCommitTimer);
-      const realIts = itSequence.filter(it => !it.isSilence);
-      if (realIts.length > 0) {
-        removeItAtIndex(realIts.length - 1);
-      }
-    }
-  });
-
-  cell.addEventListener('blur', () => {
-    clearTimeout(itfrCommitTimer);
-    if (cell.value.trim() && !committed) {
-      committed = true;
-      const ok = tryCommitFromInput(cell);
-      if (!ok) committed = false;
-    }
-  });
-
-  setTimeout(() => cell.focus(), 30);
-  return cell;
+  itfrEditor.render();
+  itfrActiveInputEl = itfrEditor.getActiveInput();
 }
 
 /**
@@ -458,36 +364,6 @@ function parseAndValidateIt(raw, editIndex = null) {
   }
 
   return { value, warning: null };
-}
-
-/**
- * Commit the input cell's value. Returns true if committed, false if validation
- * failed (caller should reset its `committed` flag so the user can retry).
- */
-function tryCommitFromInput(cell) {
-  const raw = cell.value.trim();
-  if (!raw) return false;
-
-  const parsed = parseAndValidateIt(raw);
-  if (!parsed) {
-    // Clear the cell, keep focus — user can type a new value.
-    cell.value = '';
-    setTimeout(() => cell.focus(), 10);
-    return false;
-  }
-  if (parsed.warning) showValidationWarning(itfrEditorEl, parsed.warning);
-
-  const startSubdiv = getNextAvailableStart();
-  itSequence.push({ start: startSubdiv, it: parsed.value, isSilence: false });
-  recalculateCyclePositions();
-  updateInfoDisplays();
-  renderItfrEditor();
-  updateIntervalBars();
-
-  if (itfrActiveInputEl) {
-    setTimeout(() => itfrActiveInputEl?.focus(), 10);
-  }
-  return true;
 }
 
 /** Remove the iT at the given real-index (ignoring silences). */

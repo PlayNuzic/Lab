@@ -28,3 +28,10 @@ export { createPulseSeqStateManager } from './state.js';
 
 // Editor utilities
 export { getMidpoints, normalizeGaps, createPulseSeqEditor } from './editor.js';
+
+// Cell-based sequence editor (App12 P-row pattern; used by App28-31)
+export {
+  createCellSequenceEditor,
+  fractionTokenValue,
+  normalizeFractionToken
+} from './cell-editor.js';

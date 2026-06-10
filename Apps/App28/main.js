@@ -16,6 +16,7 @@ import { randomInt } from '../../libs/app-common/number-utils.js';
 import { setupRandomMenu } from '../../libs/random/menu.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
+import { createCellSequenceEditor, fractionTokenValue, normalizeFractionToken } from '../../libs/pulse-seq/index.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
@@ -105,7 +106,6 @@ let pfrEditorEl = null;        // .pfr-editor root
 let pfrCellsEl = null;          // .pfr-cells container (holds all cells)
 let pfrEndMarkerEl = null;      // .pfr-editor-end (final round marker, hidden by default)
 let pfrActiveInputEl = null;    // current active input cell (for commit target)
-let pfrCommitTimer = null;
 
 /**
  * Build the Pfr editor scaffold and insert it AFTER the timeline-wrapper.
@@ -440,37 +440,17 @@ function isValidPulseToken(token) {
 
 /**
  * Parse pulse token to get its numeric value for sorting
+ * (delegat a libs/pulse-seq, parametritzat amb el denominador actual)
  */
 function pulseTokenValue(token) {
-  if (typeof token !== 'string') return -1;
-  const trimmed = token.trim();
-
-  if (trimmed.includes('.')) {
-    const parts = trimmed.split('.');
-    const base = parseInt(parts[0], 10) || 0;
-    const subdiv = parseInt(parts[1], 10) || 0;
-    const d = currentDenominator || 1;
-    return base + subdiv / d;
-  }
-
-  return parseInt(trimmed, 10) || 0;
+  return fractionTokenValue(token, currentDenominator || 1);
 }
 
 /**
- * Normalise a raw token: strip leading zeros, ensure "N.M" form.
- * "01" → "1"; "1.03" → "1.3"; "3" → "3".
+ * Normalise a raw token: "01" → "1"; "1.03" → "1.3"; ".2" → "0.2".
+ * (delegat a libs/pulse-seq)
  */
-function normalizeToken(token) {
-  if (typeof token !== 'string') return '';
-  const trimmed = token.trim();
-  if (!trimmed) return '';
-  if (trimmed.includes('.')) {
-    const [base, subdiv] = trimmed.split('.');
-    return `${parseInt(base, 10) || 0}.${parseInt(subdiv, 10) || 0}`;
-  }
-  const n = parseInt(trimmed, 10);
-  return Number.isFinite(n) ? String(n) : '';
-}
+const normalizeToken = normalizeFractionToken;
 
 /**
  * Filter out invalid pulses from selection when fraction changes
@@ -488,12 +468,107 @@ function filterInvalidPulses() {
 }
 
 // ========== PFR EDITOR (cell-based, App12 P-row pattern) ==========
+// El DOM de l'editor (cel·les, timers de commit, navegació, focus) viu a
+// libs/pulse-seq/cell-editor.js (extracció H-02). Aquí només hi queda el
+// MODEL: validació de tokens, Set de seleccions i sincronització.
+
+let pfrEditor = null;
+
+function sortedPfrTokens() {
+  return Array.from(selectedPulses).sort((a, b) => pulseTokenValue(a) - pulseTokenValue(b));
+}
+
 /**
  * Initialise the Pfr editor: build the editor scaffold (label + cells area),
  * insert below the timeline, then render the initial empty state.
  */
 function initPulseSeqEditor() {
   createPfrLayout();
+
+  pfrEditor = createCellSequenceEditor({
+    host: pfrCellsEl,
+    endMarker: pfrEndMarkerEl,
+    classes: { base: 'editor-cell editor-cell--p', input: 'editor-input' },
+    input: {
+      maxLength: 4,  // Enough for "5.9" + safety.
+      commitDelay: 1000,
+      // Dígit sol → 1000ms d'espera per si l'usuari escriu ".X"; "N." o "."
+      // parcials → esperar; "N.M" o ".M" complets → commit immediat (".X" és
+      // l'abreviatura de "0.X": normalizeToken l'expandeix al commit).
+      classify: (raw) => {
+        if (/^\d+$/.test(raw)) return 'defer';
+        if (/^\d+\.$/.test(raw) || /^\.$/.test(raw)) return 'wait';
+        if (/^\d+\.\d+$/.test(raw) || /^\.\d+$/.test(raw)) return 'commit';
+        return 'clear';
+      },
+      arrowNav: true,
+      emptyEnterTab: true
+    },
+    getEntries: () => sortedPfrTokens().map(t => ({ display: t, token: t })),
+    onCommitInput: (raw) => {
+      if (!raw) return false;
+      const parsed = parseAndValidateToken(raw);
+      if (!parsed) {
+        showValidationWarning(pfrEditorEl, `"${raw}" no es válido`);
+        return false;
+      }
+      if (parsed.warning) showValidationWarning(pfrEditorEl, parsed.warning);
+      if (selectedPulses.has(parsed.token)) {
+        showValidationWarning(pfrEditorEl, `"${parsed.token}" duplicado`);
+        return false;
+      }
+      if (wouldReorderInsert(parsed.token)) {
+        showValidationWarning(pfrEditorEl, 'Reposicionando pulsos');
+      }
+      selectedPulses.add(parsed.token);
+      syncTimelineFromSelection();
+      syncAudioAndRender();
+      renderPfrEditor();
+      return true;
+    },
+    onEditEntry: (entryIndex, raw) => {
+      const originalToken = sortedPfrTokens()[entryIndex];
+      if (originalToken == null) return false;
+      if (raw === '') {
+        // Empty → delete this token.
+        selectedPulses.delete(originalToken);
+        syncTimelineFromSelection();
+        syncAudioAndRender();
+        renderPfrEditor();
+        return true;
+      }
+      const parsed = parseAndValidateToken(raw);
+      if (!parsed) {
+        showValidationWarning(pfrEditorEl, `"${raw}" no es válido`);
+        return false;
+      }
+      if (parsed.warning) showValidationWarning(pfrEditorEl, parsed.warning);
+      if (parsed.token === originalToken) return false;
+      if (selectedPulses.has(parsed.token)) {
+        showValidationWarning(pfrEditorEl, `"${parsed.token}" duplicado`);
+        return false;
+      }
+      if (wouldReorderInsert(parsed.token, originalToken)) {
+        showValidationWarning(pfrEditorEl, 'Reposicionando pulsos');
+      }
+      selectedPulses.delete(originalToken);
+      selectedPulses.add(parsed.token);
+      syncTimelineFromSelection();
+      syncAudioAndRender();
+      renderPfrEditor();
+      return true;
+    },
+    onDeleteLast: () => {
+      // Delete last committed token.
+      const tokens = sortedPfrTokens();
+      if (!tokens.length) return;
+      selectedPulses.delete(tokens[tokens.length - 1]);
+      syncTimelineFromSelection();
+      syncAudioAndRender();
+      renderPfrEditor();
+    }
+  });
+
   renderPfrEditor();
 
   // Idle caret flash on the editor container (active input is recreated on
@@ -504,214 +579,12 @@ function initPulseSeqEditor() {
 }
 
 /**
- * Render all cells from the current selectedPulses set. Per committed token:
- *   [white value cell][yellow separator]
- * Finally an active input cell + yellow separator for the next entry.
+ * Render all cells from the current selectedPulses set (via cell-editor).
  */
 function renderPfrEditor() {
-  if (!pfrCellsEl) return;
-
-  // Remove every cell except the end-marker.
-  pfrCellsEl.querySelectorAll('.editor-cell').forEach(c => c.remove());
-  pfrActiveInputEl = null;
-
-  const tokens = Array.from(selectedPulses).sort((a, b) => pulseTokenValue(a) - pulseTokenValue(b));
-
-  // Committed cells.
-  tokens.forEach((token, idx) => {
-    pfrCellsEl.insertBefore(createPfrValueCell(token, idx), pfrEndMarkerEl);
-    pfrCellsEl.insertBefore(createPfrSeparatorCell(), pfrEndMarkerEl);
-  });
-
-  // Active input for the next token.
-  const input = createPfrInputCell();
-  pfrCellsEl.insertBefore(input, pfrEndMarkerEl);
-  pfrCellsEl.insertBefore(createPfrSeparatorCell(), pfrEndMarkerEl);
-  pfrActiveInputEl = input;
-}
-
-function createPfrSeparatorCell() {
-  const cell = document.createElement('input');
-  cell.type = 'text';
-  cell.className = 'editor-cell editor-cell--p';
-  cell.placeholder = ' ';
-  cell.readOnly = true;
-  cell.tabIndex = -1;
-  return cell;
-}
-
-function createPfrValueCell(token, entryIndex) {
-  const cell = document.createElement('input');
-  cell.type = 'text';
-  cell.className = 'editor-cell editor-cell--p';
-  cell.value = token;
-  cell.dataset.token = token;
-  cell.dataset.entryIndex = String(entryIndex);
-  cell.readOnly = false;
-  cell.style.cursor = 'text';
-
-  let originalValue = cell.value;
-
-  cell.addEventListener('focus', () => {
-    originalValue = cell.value;
-    cell.select();
-  });
-
-  cell.addEventListener('blur', () => {
-    const raw = cell.value.trim();
-    if (raw === originalValue) { cell.value = originalValue; return; }
-
-    if (raw === '') {
-      // Empty → delete this token.
-      selectedPulses.delete(originalValue);
-      syncTimelineFromSelection();
-      syncAudioAndRender();
-      renderPfrEditor();
-      return;
-    }
-
-    const parsed = parseAndValidateToken(raw);
-    if (!parsed) {
-      showValidationWarning(pfrEditorEl, parsed?.warning || `"${raw}" no es válido`);
-      cell.value = originalValue;
-      return;
-    }
-    if (parsed.warning) showValidationWarning(pfrEditorEl, parsed.warning);
-
-    if (parsed.token === originalValue) { cell.value = originalValue; return; }
-
-    if (selectedPulses.has(parsed.token)) {
-      showValidationWarning(pfrEditorEl, `"${parsed.token}" duplicado`);
-      cell.value = originalValue;
-      return;
-    }
-
-    if (wouldReorderInsert(parsed.token, originalValue)) {
-      showValidationWarning(pfrEditorEl, 'Reposicionando pulsos');
-    }
-
-    selectedPulses.delete(originalValue);
-    selectedPulses.add(parsed.token);
-    syncTimelineFromSelection();
-    syncAudioAndRender();
-    renderPfrEditor();
-  });
-
-  cell.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); cell.blur(); return; }
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      cell.blur();
-      const next = e.shiftKey ? prevEditableCell(cell) : nextEditableCell(cell);
-      if (next) next.focus();
-      return;
-    }
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      const target = e.key === 'ArrowRight' ? nextEditableCell(cell) : prevEditableCell(cell);
-      if (target) { e.preventDefault(); target.focus(); target.select?.(); }
-    }
-  });
-
-  return cell;
-}
-
-function createPfrInputCell() {
-  const cell = document.createElement('input');
-  cell.type = 'text';
-  cell.maxLength = 4;  // Enough for "5.9" + safety.
-  cell.className = 'editor-cell editor-cell--p editor-input';
-  cell.readOnly = false;
-
-  cell.addEventListener('input', () => {
-    const raw = cell.value.trim();
-    if (!raw) { clearTimeout(pfrCommitTimer); return; }
-
-    // Bare digit waiting for possible ".X" subdivision — wait 1000ms to
-    // give the user time to type the dot + subdivision before auto-commit.
-    if (/^\d+$/.test(raw)) {
-      clearTimeout(pfrCommitTimer);
-      pfrCommitTimer = setTimeout(() => tryCommitFromInput(cell), 1000);
-      return;
-    }
-    // Partial "N." or lone "." — wait for subdivision digit. `.X` is the
-    // shorthand for "0.X" (base pulse zero is implicit) — normalizeToken
-    // expands it during commit.
-    if (/^\d+\.$/.test(raw) || /^\.$/.test(raw)) {
-      clearTimeout(pfrCommitTimer);
-      return;
-    }
-    // Complete "N.M" or ".M" — commit immediately.
-    if (/^\d+\.\d+$/.test(raw) || /^\.\d+$/.test(raw)) {
-      clearTimeout(pfrCommitTimer);
-      tryCommitFromInput(cell);
-      return;
-    }
-    // Anything else: clear it.
-    cell.value = '';
-    clearTimeout(pfrCommitTimer);
-  });
-
-  cell.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === 'Tab') {
-      e.preventDefault();
-      clearTimeout(pfrCommitTimer);
-      if (cell.value.trim()) {
-        tryCommitFromInput(cell);
-      } else {
-        const target = e.shiftKey ? prevEditableCell(cell) : nextEditableCell(cell);
-        if (target) { target.focus(); target.select?.(); }
-      }
-      return;
-    }
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      const target = e.key === 'ArrowRight' ? nextEditableCell(cell) : prevEditableCell(cell);
-      if (target) { e.preventDefault(); target.focus(); target.select?.(); }
-      return;
-    }
-    if (e.key === 'Backspace' && !cell.value) {
-      e.preventDefault();
-      clearTimeout(pfrCommitTimer);
-      // Delete last committed token.
-      const tokens = Array.from(selectedPulses).sort((a, b) => pulseTokenValue(a) - pulseTokenValue(b));
-      if (tokens.length) {
-        selectedPulses.delete(tokens[tokens.length - 1]);
-        syncTimelineFromSelection();
-        syncAudioAndRender();
-        renderPfrEditor();
-      }
-    }
-  });
-
-  setTimeout(() => cell.focus(), 30);
-  return cell;
-}
-
-function tryCommitFromInput(cell) {
-  const raw = cell.value.trim();
-  if (!raw) return;
-
-  const parsed = parseAndValidateToken(raw);
-  if (!parsed) {
-    showValidationWarning(pfrEditorEl, `"${raw}" no es válido`);
-    cell.value = '';
-    return;
-  }
-  if (parsed.warning) showValidationWarning(pfrEditorEl, parsed.warning);
-
-  if (selectedPulses.has(parsed.token)) {
-    showValidationWarning(pfrEditorEl, `"${parsed.token}" duplicado`);
-    cell.value = '';
-    return;
-  }
-
-  if (wouldReorderInsert(parsed.token)) {
-    showValidationWarning(pfrEditorEl, 'Reposicionando pulsos');
-  }
-
-  selectedPulses.add(parsed.token);
-  syncTimelineFromSelection();
-  syncAudioAndRender();
-  renderPfrEditor();
+  if (!pfrEditor) return;
+  pfrEditor.render();
+  pfrActiveInputEl = pfrEditor.getActiveInput();
 }
 
 /**
@@ -740,16 +613,6 @@ function wouldReorderInsert(token, excludeOriginal = null) {
     if (pulseTokenValue(existing) > newVal) return true;
   }
   return false;
-}
-
-function nextEditableCell(cell) {
-  const all = Array.from(pfrCellsEl.querySelectorAll('.editor-cell:not([readonly])'));
-  return all[all.indexOf(cell) + 1] || null;
-}
-
-function prevEditableCell(cell) {
-  const all = Array.from(pfrCellsEl.querySelectorAll('.editor-cell:not([readonly])'));
-  return all[all.indexOf(cell) - 1] || null;
 }
 
 function syncAudioAndRender() {
