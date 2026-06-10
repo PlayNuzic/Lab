@@ -16,6 +16,7 @@ import { parseIntSafe, parseFloatSafe, randomInt } from '../../libs/app-common/n
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';
+import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
 
 let audio;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
@@ -804,51 +805,6 @@ function adjustInput(input, delta) {
   handleInput();
 }
 
-function addRepeatPress(el, fn) {
-  if (!el) return;
-  let timeoutId = null;
-  let intervalId = null;
-
-  const clearTimers = () => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      timeoutId = null;
-    }
-    if (intervalId) {
-      clearInterval(intervalId);
-      intervalId = null;
-    }
-  };
-
-  const start = (event) => {
-    if (event.type === 'mousedown' && event.button !== 0) return;
-    clearTimers();
-    fn();
-    timeoutId = setTimeout(() => {
-      intervalId = setInterval(fn, 80);
-    }, 320);
-    event.preventDefault();
-  };
-
-  const stop = () => {
-    clearTimers();
-  };
-
-  el.addEventListener('mousedown', start);
-  el.addEventListener('touchstart', start, { passive: false });
-  ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach((name) => {
-    el.addEventListener(name, stop);
-  });
-  document.addEventListener('mouseup', stop);
-  document.addEventListener('touchend', stop);
-
-  el.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      fn();
-    }
-  });
-}
 
 [inputLg, inputV].forEach(el => {
   el.addEventListener('input', () => {

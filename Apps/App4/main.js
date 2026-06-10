@@ -35,6 +35,7 @@ import { createFormulaRenderer } from '../../libs/app-common/formula-renderer.js
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';
 import { makeFractionKey, FRACTION_POSITION_EPSILON } from '../../libs/app-common/pulse-selectability.js';
+import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
 import {
   TEXT_NODE_TYPE,
   fractionDefaults,
@@ -1878,23 +1879,6 @@ if (titleButton) {
   });
 }
 
-// Long‑press auto‑repeat for spinner buttons
-function addRepeatPress(el, fn){
-  if (!el) return;
-  let t=null, r=null;
-  const start = (ev) => {
-    fn();
-    t = setTimeout(() => { r = setInterval(fn, 80); }, 320);
-    ev.preventDefault();
-  };
-  const stop = () => { clearTimeout(t); clearInterval(r); t=r=null; };
-  el.addEventListener('mousedown', start);
-  el.addEventListener('touchstart', start, { passive:false });
-  ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>el.addEventListener(ev, stop));
-  // Also stop if released outside the button
-  document.addEventListener('mouseup', stop);
-  document.addEventListener('touchend', stop);
-}
 
 
 // Unified spinner behavior for number inputs (V, Lg)

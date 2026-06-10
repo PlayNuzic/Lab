@@ -10,17 +10,26 @@
  * @param {Object} [options] - Configuration options
  * @param {number} [options.initialDelay=320] - Delay (ms) before repeating starts
  * @param {number} [options.repeatInterval=80] - Interval (ms) between repeats
+ * @param {Function} [options.guard] - Called with the event before activating;
+ *   return false to block (e.g. App1/2/5 LED in auto mode shows a tip instead)
  * @returns {Function} Cleanup function to remove event listeners
  */
 export function attachSpinnerRepeat(element, callback, options = {}) {
   if (!element) return () => {};
 
-  const { initialDelay = 320, repeatInterval = 80 } = options;
+  const { initialDelay = 320, repeatInterval = 80, guard = null } = options;
 
   let timeout = null;
   let interval = null;
 
   const start = (event) => {
+    // Només el botó principal arrenca el repeat (el contextual no dispara).
+    if (event.type === 'mousedown' && event.button !== 0) return;
+    if (typeof guard === 'function' && !guard(event)) {
+      event.preventDefault();
+      return;
+    }
+    stop(); // defensiu: mai dos jocs de timers vius alhora
     callback();
     timeout = setTimeout(() => {
       interval = setInterval(callback, repeatInterval);
@@ -42,6 +51,7 @@ export function attachSpinnerRepeat(element, callback, options = {}) {
   const onKey = (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
+    if (typeof guard === 'function' && !guard(event)) return;
     callback();
   };
   element.addEventListener('keydown', onKey);

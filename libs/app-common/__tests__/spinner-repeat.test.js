@@ -171,4 +171,31 @@ describe('spinner-repeat', () => {
       expect(addRepeatPress).toBe(attachSpinnerRepeat);
     });
   });
+
+  describe('options.guard i botó secundari (H-07)', () => {
+    test('guard a false bloqueja ratolí i teclat sense iniciar timers', () => {
+      const guard = jest.fn(() => false);
+      attachSpinnerRepeat(element, callback, { guard });
+
+      element.dispatchEvent(new MouseEvent('mousedown'));
+      element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      jest.advanceTimersByTime(1000);
+
+      expect(guard).toHaveBeenCalledTimes(2);
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    test('guard a true deixa passar', () => {
+      attachSpinnerRepeat(element, callback, { guard: () => true });
+      element.dispatchEvent(new MouseEvent('mousedown'));
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    test('el botó secundari no activa el repeat', () => {
+      attachSpinnerRepeat(element, callback);
+      element.dispatchEvent(new MouseEvent('mousedown', { button: 2 }));
+      jest.advanceTimersByTime(1000);
+      expect(callback).not.toHaveBeenCalled();
+    });
+  });
 });

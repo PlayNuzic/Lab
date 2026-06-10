@@ -25,6 +25,7 @@ import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { initApp2Gamification } from './gamification-adapter.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
+import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
 // Using local header controls for App2 (no shared init)
 
 // Create custom formatters for App2
@@ -997,25 +998,6 @@ function guardManual(input){
   return true;
 }
 
-// Long‑press auto‑repeat for spinner buttons
-function addRepeatPress(el, fn, guardInput){
-  if (!el) return;
-  let t=null, r=null;
-  const start = (ev) => {
-    // When LED is off (auto), show help and do nothing
-    if (guardInput && !guardManual(guardInput)) { ev.preventDefault(); return; }
-    fn();
-    t = setTimeout(() => { r = setInterval(fn, 80); }, 320);
-    ev.preventDefault();
-  };
-  const stop = () => { clearTimeout(t); clearInterval(r); t=r=null; };
-  el.addEventListener('mousedown', start);
-  el.addEventListener('touchstart', start, { passive:false });
-  ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>el.addEventListener(ev, stop));
-  // Also stop if released outside the button
-  document.addEventListener('mouseup', stop);
-  document.addEventListener('touchend', stop);
-}
 
 
 // Unified spinner behavior for number inputs (V, Lg)
@@ -1024,10 +1006,10 @@ function stepAndDispatch(input, dir){
   if (dir > 0) input.stepUp(); else input.stepDown();
   input.dispatchEvent(new Event('input', { bubbles: true }));
 }
-addRepeatPress(inputVUp,   () => stepAndDispatch(inputV, +1),  inputV);
-addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1),  inputV);
-addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1), inputLg);
-addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1), inputLg);
+addRepeatPress(inputVUp,   () => stepAndDispatch(inputV, +1), { guard: () => guardManual(inputV) });
+addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1), { guard: () => guardManual(inputV) });
+addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1), { guard: () => guardManual(inputLg) });
+addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1), { guard: () => guardManual(inputLg) });
 
 function sanitizePulseSeq(opts = {}){
   if (!pulseSeqEl) return;

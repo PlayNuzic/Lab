@@ -19,6 +19,7 @@ import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { createCellSequenceEditor, fractionTokenValue, normalizeFractionToken } from '../../libs/pulse-seq/index.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
@@ -682,52 +683,6 @@ function applySelectionToAudio() {
   audio.setSelected({ values: audioSelection.values, resolution: 1 });
 }
 
-// ========== REPEAT PRESS HELPER ==========
-function addRepeatPress(el, fn) {
-  if (!el) return;
-  let timeoutId = null;
-  let intervalId = null;
-
-  const clearTimers = () => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      timeoutId = null;
-    }
-    if (intervalId) {
-      clearInterval(intervalId);
-      intervalId = null;
-    }
-  };
-
-  const start = (event) => {
-    if (event.type === 'mousedown' && event.button !== 0) return;
-    clearTimers();
-    fn();
-    timeoutId = setTimeout(() => {
-      intervalId = setInterval(fn, 80);
-    }, 320);
-    event.preventDefault();
-  };
-
-  const stop = () => {
-    clearTimers();
-  };
-
-  el.addEventListener('mousedown', start);
-  el.addEventListener('touchstart', start, { passive: false });
-  ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach((name) => {
-    el.addEventListener(name, stop);
-  });
-  document.addEventListener('mouseup', stop);
-  document.addEventListener('touchend', stop);
-
-  el.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      fn();
-    }
-  });
-}
 
 // ========== TIMELINE RENDERING ==========
 function renderTimeline() {

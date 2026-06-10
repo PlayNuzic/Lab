@@ -20,6 +20,7 @@ import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createItfrEngine } from '../../libs/interval-sequencer/index.js';
 import { setupRandomMenu } from '../../libs/random/menu.js';
+import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
 
 // ========== CONSTANTS ==========
 // Lg = currentNumerator (dynamic) — recomputed every render.
@@ -601,39 +602,6 @@ function filterInvalidIts() {
   });
 }
 
-// ========== REPEAT PRESS HELPER ==========
-function addRepeatPress(el, fn) {
-  if (!el) return;
-  let timeoutId = null;
-  let intervalId = null;
-
-  const clearTimers = () => {
-    if (timeoutId) clearTimeout(timeoutId);
-    if (intervalId) clearInterval(intervalId);
-    timeoutId = null;
-    intervalId = null;
-  };
-
-  const start = (event) => {
-    if (event.type === 'mousedown' && event.button !== 0) return;
-    clearTimers();
-    fn();
-    timeoutId = setTimeout(() => {
-      intervalId = setInterval(fn, 80);
-    }, 320);
-    event.preventDefault();
-  };
-
-  const stop = () => clearTimers();
-
-  el.addEventListener('mousedown', start);
-  el.addEventListener('touchstart', start, { passive: false });
-  ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(name => {
-    el.addEventListener(name, stop);
-  });
-  document.addEventListener('mouseup', stop);
-  document.addEventListener('touchend', stop);
-}
 
 // ========== INFO DISPLAYS ==========
 function updateInfoDisplays() {
