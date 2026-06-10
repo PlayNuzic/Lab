@@ -1,7 +1,7 @@
 # App-Common — Context for Claude
 
 ## Role
-Middleware layer between UI and TimelineAudio. 56 modules. Everything reusable across apps lives here.
+Middleware layer between UI and TimelineAudio. 49 modules. Everything reusable across apps lives here.
 
 ## Modules by Function
 
@@ -33,7 +33,6 @@ Middleware layer between UI and TimelineAudio. 56 modules. Everything reusable a
 - `led-manager.js`, `utils.js`, `mixer-menu.js`
 
 **Rhythm & Notation:**
-- `rhythm.js` — Note names (Spanish), GCD reduction, permutations (max 512)
 - `pulse-selectability.js` — Pulse 0 and Lg are NOT directly selectable. Epsilon: `1e-6`
 
 ## MOVED to Sub-Packages (do NOT duplicate)
