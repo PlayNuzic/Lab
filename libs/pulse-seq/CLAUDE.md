@@ -10,6 +10,8 @@ Interactive pulse sequence editor with contenteditable, drag selection, parsing,
 - `validateInteger(token)`, `validateFraction(token)` — Validation
 - `createPulseSeqStateManager()` — State management
 - `createPulseSeqEditor()`, `getMidpoints()`, `normalizeGaps()` — Editor utilities
+- `createCellSequenceEditor(config)` — Cell-based sequence editor (App12 P-row pattern; App28-31). The factory owns the DOM (cells, commit timers, keyboard nav, focus); the app owns the model via callbacks returning true/false (false → factory restores the cell)
+- `fractionTokenValue(token, d)`, `normalizeFractionToken(token)` — Fraction-token helpers shared by Pfr editors
 
 ## Key Rules
 - Accepts numeric pulses and fractions (e.g., "0 2 4 1/2")

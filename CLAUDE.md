@@ -2,7 +2,7 @@
 
 ## Identity
 Monorepo for rhythmic/temporal music apps (Nuzic method). ES2022 modules, no build step, runs directly in browser.
-~70% shared code in `libs/`, individual apps in `Apps/`. 73 test suites, 1445+ tests.
+~70% shared code in `libs/`, individual apps in `Apps/`. 74 test suites, 1480+ tests.
 
 ## Session Management (MANDATORY)
 - If `SESSION_STATE.md` exists at root → **READ IT FIRST** before any edit. It contains working features that must not break.
@@ -29,7 +29,7 @@ read existing tests, run full test suite, and show the complete diff for approva
 Apps/          → App1-App35 (individual rhythm apps)
 libs/
   sound/       → Audio engine (TimelineAudio, mixer, samples)
-  app-common/  → 43 core modules (DOM, audio-init, loop, fractions, LED, visual-sync...)
+  app-common/  → 53 core modules (DOM, audio-init, loop, fractions, LED, visual-sync...)
   pulse-seq/   → Pulse sequence editor with parser and memory
   matrix-seq/  → 2D grid editor for N-P pairs
   notation/    → VexFlow rhythm staff rendering

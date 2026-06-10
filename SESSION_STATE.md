@@ -1,35 +1,38 @@
-# SESSION_STATE — Aplicació de l'auditoria 2026-06-10
+# SESSION_STATE — Aplicació de l'auditoria 2026-06-10 (en curs)
 
-## Document mestre (seguiment de troballes)
+## Documents mestres
 
-`docs/audit-report-2026-06-10.md` — 96 troballes confirmades + 48 menors, amb checkbox i ID (A/P/U/H-nn).
-**El detall viu allà; aquí només l'estat de sessió. Marca `[x]` a l'informe quan completis una troballa.**
+- **Troballes + seguiment (checkboxes per ítem):** `docs/audit-report-2026-06-10.md`
+- **Tot el completat fins ara (QWs 12/12, ALTES 4/4, H-02, tàctil, fixos d'usuari):**
+  `docs/session-history/2026-06-10-auditoria-completa-i-aplicacio.md`
 
-## Estat actual
+El detall viu allà; aquí només l'estat. Marca `[x]` a l'informe quan completis una troballa.
 
-- [x] Auditoria completa (workflow 50 agents) + informe guardat
-- [x] **Quick wins COMPLETS (12/12)** (taula QW-1..12 de l'informe):
-  - [x] Batch 1 (2026-06-10, tests verds): QW-1 (docs clock.js→timeline-processor.js, 4 fitxers), QW-4 (guard random App20), QW-8 (promesa compartida initAudio)
-  - [x] Batch 2 (2026-06-10, tests verds): QW-2 (canal instrument→bus melòdic, index.js), QW-9 (onPulse null a App1/App2/App5)
-  - [x] QW-12 (2026-06-10, OK de l'usuari): app-init.js + events.js esborrats (git rm), refs tretes de CLAUDE.md arrel i app-common
-  - [x] Batch 3 (2026-06-10, tests verds): QW-5 (modulepreload ×37 apps), QW-10 (teclat a spinner-repeat.js + :focus-visible a nuzic-theme.css i mixer slider), QW-11 (parallax: frontera → go(±1))
-  - [x] Batch 4 (2026-06-10, tests verds): QW-6 (9 clicks estèreo→mono −1,7MB, Descartados/ esborrat −2,8MB, paso-1.jpg/paso-7.png esborrats −3,2MB, paso-11.jpg 428→114KB, DRAFT.md mogut a docs/), QW-7 (ubuntu-bold.ttf→woff2 270→15KB + preloads fonts)
-  - [x] QW-3 (2026-06-10, aprovat per l'usuari, tests verds): timestamp sample-accurate al missatge de pols (timeline-processor.js + index.js, via globalThis.currentTime amb fallback NaN→now als tests)
-- [x] ALTES (2026-06-10, tests verds): A-03 (cicle→lookahead a tick() + veus amb msg.time sample-accurate, aprovat), P-01 (loadSelection fa diff, no rebuild), P-02 (VexFlow lazy via libs/notation/lazy.js a App2/4/5; App23/24 estàtic intencionat)
-- [x] Extra usuari (2026-06-10): Click12/13 esborrats del motor+dropdown (app9 migra a click2); fix octava cromàtica App23/24 (i=12 → cel·la 12, el 0' de dalt)
-- [x] Extra usuari (2026-06-10, 2a tanda): BPM 50-150 a totes les apps 9+ (app10/11/11A/13/18 i App19/20 + inputs random); App19 random sense la nota frontera 0r3; **fix geometria scroll plano-modular** (min-height fora del matrix-container → floor al .plano-container; clientHeight/maxScroll idèntics soundline↔matriu, verificat amb Chrome headless+CDP) + scroll single-writer a App19/App20 (només s'anima la matriu, la soundline segueix via setupScrollSync)
-- [x] **H-02 (última ALTA, 2026-06-10)**: editor de cel·les extret a `libs/pulse-seq/cell-editor.js` (createCellSequenceEditor + fractionTokenValue/normalizeFractionToken; 24 tests jsdom). App28/29/30/31 recablejades (−516 línies; només hi queda model+validació). Paritat verificada amb CDP (Pfr: defer 1000/500ms, "N.M" immediat, wrap Lg→0 a App29; iTfr: sanitize, guard anti doble-commit, límit de suma). LH-20 investigada i REFUTADA (2026-06-10): la validació d'edició funciona correctament amb events reals (refusa+avisa+restaura); l'observació era un artefacte del sondeig sintètic (blur() headless sense event)
-- [x] Fix usuari (2026-06-10): cues de samples ja no es tallen — el canal "seleccionado" era l'únic amb truncadura a 1 interval (source.stop(start+intervalRef), herència del click11/Ruido Rosa); eliminada + test de regressió (cap canal rítmic passa duration). El motor ja era polifònic (BufferSource independent per tret); ara les cues ringen senceres a tots els canals
-- [x] Drag tàctil (2026-06-10, IDs reals U-21+U-12): Pointer Events amb guard de pointerId i pointercancel a interval-note-drag (App20), drag inline d'App15, matrix-seq/drag.js (elementFromPoint, fix de listeners duplicats) i interval-drag-handler (òrfena, llesta per adopció: listeners només durant el drag + rect cachejat). touch-action:none quirúrgic (.np-dot, .mixer-channel__slider, .timeline — les graelles segueixen scrollant). Tests migrats a tipus pointer (45 ✓). VERIFICAT amb touch real (CDP dispatchTouchEvent): App20 crea nota iT=3 arrossegant un dot amb el dit; App15 crea barra d'interval; zero excepcions
-- [ ] Següents per impacte: A-04 (setTempo re-agenda finestra lookahead), A-05/A-06 (payload primer play), U-03 (listbox sistema teclat), H-03 (App30↔App31 83% idèntiques)
+## Pendent (següents per impacte)
+
+- [ ] **A-04** — `setTempo` en viu re-agenda la finestra de lookahead sense cancel·lar les fonts
+  ja emeses → flams/dobles clics al canviar tempo (inclou tap tempo)
+- [ ] **A-05/A-06** — payload del primer Play (~1,1MB): preload de Tone.js (descarrega sense
+  executar, no viola l'ordre d'init) + prefetch de samples en idle + vendoritzar piano/flauta
+- [ ] **U-03** — menú de capítols del sistema: `<li>` no focalitzables → `<button>` dins els li
+- [ ] **H-03** — App30↔App31 ~83% idèntiques (drag/playback); `interval-drag-handler` ja està
+  llest per a l'adopció (pointer events + listeners durant el drag)
+- [ ] Re-comentat quirúrgic pendent de l'auditoria: WHY-comments a `timeline-processor.js`
+  (protocol d'alt risc: diff + aprovació) i `timeline-layout.js` (re-comentat + condicional mort)
 
 ## Funciona i NO s'ha de trencar
 
-- Suite completa verda (73 suites / 1456 tests, 2026-06-10) — executar `npm test` després de cada batch
-- Invariants: epsilons 1e-9 del worklet; ordre init àudio (Tone → gest → start); BPM sense clamp mentre s'escriu (sanitize 1500ms/blur); `void offsetWidth` del highlight és load-bearing (reinicia animacions CSS); polsos 0 i Lg mai seleccionables
-- Fitxers d'alt risc REALS (l'informe H-01 ja ha corregit els docs): `libs/sound/timeline-processor.js`, `libs/app-common/subdivision.js`, `libs/app-common/audio-schedule.js`
+- Suite completa verda (74 suites / 1480 tests) — `npm test` després de cada batch
+- Invariants: epsilons 1e-9 del worklet; ordre init àudio (Tone → gest → start); BPM sense
+  clamp mentre s'escriu (lib 30-240; **apps 9+ política 50-150**); `void offsetWidth` del
+  highlight és load-bearing; polsos 0 i Lg mai seleccionables; cap canal rítmic passa
+  `duration` a `_schedulePlayerStart` (polifonia — test de regressió)
+- Fitxers d'alt risc: `libs/sound/timeline-processor.js`, `libs/app-common/subdivision.js`,
+  `libs/app-common/audio-schedule.js` → diff complet + suite + aprovació
+- Verificacions de navegador: events de confiança (CDP `Input.*`), mai `.value`+`blur()` sintètics
 
 ## En reprendre
 
-1. Llegir taula Quick wins de l'informe; continuar pel primer batch sense `[x]`.
-2. Després de cada batch: `npm test` + marcar checkboxes a l'informe + actualitzar aquest fitxer.
+1. Llegir "Pendent" aquí + la taula de l'informe; agafar el primer ítem.
+2. Després de cada batch: `npm test`, marcar `[x]` a l'informe, actualitzar aquest fitxer,
+   commit amb llista explícita de fitxers (sessions paral·leles comparteixen el repo).

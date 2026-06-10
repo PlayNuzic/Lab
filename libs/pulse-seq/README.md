@@ -11,6 +11,7 @@ Sistema de seqüències de pulsos amb editor i parser.
 | `parser.js` | Parser i validació |
 | `state.js` | Gestió d'estat |
 | `editor.js` | Editor de seqüències |
+| `cell-editor.js` | Editor de cel·les (patró App12 P-row; usat per App28-31). El factory posseeix el DOM (cel·les, timers de commit, navegació, focus); el model viu a l'app via callbacks |
 
 ## Ús
 

@@ -6,6 +6,7 @@
  * - Parser utilities (parser.js)
  * - State management (state.js)
  * - Editor utilities (editor.js)
+ * - Cell-based sequence editor (cell-editor.js, App28-31)
  */
 
 // Main controllers

@@ -1,7 +1,7 @@
 # App-Common — Context for Claude
 
 ## Role
-Middleware layer between UI and TimelineAudio. 43 modules. Everything reusable across apps lives here.
+Middleware layer between UI and TimelineAudio. 53 modules. Everything reusable across apps lives here.
 
 ## Modules by Function
 
@@ -38,7 +38,7 @@ Middleware layer between UI and TimelineAudio. 43 modules. Everything reusable a
 - random → `libs/random/`
 
 ## Key Constants
-- BPM: min 30, max 240, default 100. DO NOT clamp during typing (allows multi-digit entry), auto-clamp after 1.5s or on blur.
+- BPM: lib default min 30, max 240, default 100 (les apps 9+ fixen 50-150 per política, 2026-06). DO NOT clamp during typing (allows multi-digit entry), auto-clamp after 1.5s or on blur.
 - Circular timeline: hide numbers if Lg >= 100, number offset 44px
 - Audio init order: (1) load Tone.js, (2) wait user interaction, (3) Tone.start()
 

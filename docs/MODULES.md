@@ -6,20 +6,20 @@
 
 | Mòdul | Descripció | README |
 |-------|------------|--------|
-| **app-common** | 43 mòduls core compartits entre apps | [README](libs/app-common/README.md) |
-| **matrix-seq** | Editor grid N-P pairs dinàmic | [README](libs/matrix-seq/README.md) |
-| **musical-grid** | Visualització 2D amb scroll | [README](libs/musical-grid/README.md) |
-| **interval-sequencer** | Seqüenciador d'intervals iS-iT | [README](libs/interval-sequencer/README.md) |
-| **notation** | VexFlow rendering + rhythm-staff | [README](libs/notation/README.md) |
-| **plano-modular** | Grid 2D modular | [README](libs/plano-modular/README.md) |
-| **scale-selector** | Selector d'escales | [README](libs/scale-selector/README.md) |
+| **app-common** | 53 mòduls core compartits entre apps | [README](../libs/app-common/README.md) |
+| **matrix-seq** | Editor grid N-P pairs dinàmic | [README](../libs/matrix-seq/README.md) |
+| **musical-grid** | Visualització 2D amb scroll | [README](../libs/musical-grid/README.md) |
+| **interval-sequencer** | Seqüenciador d'intervals iS-iT | [README](../libs/interval-sequencer/README.md) |
+| **notation** | VexFlow rendering + rhythm-staff | [README](../libs/notation/README.md) |
+| **plano-modular** | Grid 2D modular | [README](../libs/plano-modular/README.md) |
+| **scale-selector** | Selector d'escales | [README](../libs/scale-selector/README.md) |
 
 ## Mòduls Secundaris
 
 | Mòdul | Descripció | Fitxers principals |
 |-------|------------|-------------------|
 | **sound** | Motor d'àudio Tone.js | `index.js`, `mixer.js`, `sample-map.js` |
-| **pulse-seq** | Seqüències de pulsos | `pulse-seq.js`, `parser.js`, `state.js`, `editor.js` |
+| **pulse-seq** | Seqüències de pulsos | `pulse-seq.js`, `parser.js`, `state.js`, `editor.js`, `cell-editor.js` |
 | **random** | Sistema de randomització | `core.js`, `config.js`, `menu.js`, `fractional.js` |
 | **shared-ui** | Components UI compartits | `header.js`, `sound-dropdown.js`, `hover.js` |
 | **gamification** | Sistema de logros | `event-system.js`, `scoring-system.js`, `achievements.js` |
@@ -68,4 +68,4 @@ npm test                                    # Tots els tests
 npm test -- --testPathPattern="matrix-seq"  # Tests d'un mòdul
 ```
 
-**Cobertura actual:** 60+ suites, 1100+ tests
+**Cobertura actual:** 74 suites, 1480+ tests

@@ -7,9 +7,9 @@
 
 **NOTA:** Diversos mòduls s'han reorganitzat en sub-packages. Vegeu imports actualitzats a continuació.
 
-- **Inicialització**: `app-init.js` (bootstrap d'apps amb template + LEDs),
-  `audio-init.js` (creació lazy de `TimelineAudio` sense warnings) i
-  `dom.js` (`bindAppRhythmElements`).
+- **Inicialització**: `audio-init.js` (creació lazy de `TimelineAudio` sense
+  warnings) i `dom.js` (`bindAppRhythmElements`). (`app-init.js` i `events.js`,
+  les APIs legacy, es van eliminar el 2026-06.)
 - **Audio & control**: `audio.js` (ponts `sharedui:*`), `audio-schedule.js`
   (`computeResyncDelay`), `audio-toggles.js` (mute declaratiu), `loop-control.js`
   (controladors base/rhythm/pulse-memory), `visual-sync.js` (consolidat: simple + completo),

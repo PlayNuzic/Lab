@@ -174,8 +174,9 @@ const dragHandler = createIntervalDragHandler({
   onDragEnd: (pairs, info) => console.log('Drag ended', info)
 });
 
-// El handler se auto-adjunta a document.mousemove/mouseup
-// Para iniciar un drag manualmente:
+// Pointer Events (ratolí + tàctil + llapis): els listeners de document
+// (pointermove/pointerup/pointercancel) només viuen mentre dura el drag.
+// Para iniciar un drag (des d'un pointerdown del consumidor):
 dragHandler.startDrag(noteIndex, spaceIndex, event);
 ```
 
