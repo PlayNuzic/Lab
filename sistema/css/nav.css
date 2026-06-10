@@ -170,6 +170,21 @@
 }
 .sistema-nav__sections-menu[hidden]{ display: none; }
 
+/* Els items són <button> dins <li> (U-22: focalitzables amb teclat).
+   Reset d'estils UA del botó amb especificitat mínima (:where) perquè
+   les classes d'item de sota guanyin sempre. */
+.sistema-nav__sections-menu :where(li){ margin: 0; padding: 0; }
+:where(.sistema-nav__sections-menu) button{
+  display: block;
+  width: 100%;
+  margin: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
 /* Header de capítol — més gran, en majúscules, separador visual.
    Clicable: porta al primer pas visible del capítol. */
 .sistema-nav__sections-menu__chapter{
@@ -185,7 +200,8 @@
   border-radius: 6px;
   user-select: none;
 }
-.sistema-nav__sections-menu__chapter:first-child{
+/* El botó viu dins un <li> wrapper: el "primer capítol" és el del primer li. */
+.sistema-nav__sections-menu li:first-child .sistema-nav__sections-menu__chapter{
   margin-top: 0;
 }
 .sistema-nav__sections-menu__chapter:hover{

@@ -10,9 +10,8 @@ El detall viu allà; aquí només l'estat. Marca `[x]` a l'informe quan completi
 
 ## Pendent (següents per impacte)
 
-- [x] ~~A-10 (flams setTempo), P-12 (payload primer Play), A-12 (vendoritzar piano/flauta)~~
-  — fets 2026-06-10, detall a l'informe
-- [ ] **U-03** — menú de capítols del sistema: `<li>` no focalitzables → `<button>` dins els li
+- [x] ~~A-10 (flams setTempo), P-12 (payload primer Play), A-12 (vendoritzar piano/flauta),
+  U-22 (menú de capítols del sistema navegable amb teclat)~~ — fets 2026-06-10, detall a l'informe
 - [ ] **H-03** — App30↔App31 ~83% idèntiques (drag/playback); `interval-drag-handler` ja està
   llest per a l'adopció (pointer events + listeners durant el drag)
 - [ ] Re-comentat quirúrgic pendent de l'auditoria: WHY-comments a `timeline-processor.js`

@@ -1151,6 +1151,9 @@ PROG.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   // No capturar fletxes mentre s'està editant un camp o element contenteditable.
   if (e.target.closest('input,select,textarea,[contenteditable="true"],[contenteditable=""]')) return;
+  // Amb el menú de capítols obert, les fletxes naveguen el menú (U-22),
+  // no els pasos — sense aquest guard els pasos canviarien per darrere.
+  if (!NAV_SECTIONS_MENU.hidden) return;
   if (e.key === 'ArrowLeft')  go(-1);
   if (e.key === 'ArrowRight') go(+1);
   // En un pas intro parallax, ↑/↓ mouen les frases (com l'scroll).
@@ -1298,11 +1301,19 @@ function populateSectionsMenu() {
   const currentSectionId = getSlide(state.paso)?.section;
   sections.forEach(sec => {
     // Header del capítol (clicable: porta al primer pas visible).
+    // <button> dins el <li> (U-22): focalitzable amb Tab i activable amb
+    // Enter/Espai de manera nativa; els <li> nus eren invisibles per al
+    // teclat. Les classes viuen al botó perquè el CSS i el closest() del
+    // handler delegat segueixin funcionant igual.
     const header = document.createElement('li');
-    header.className = 'sistema-nav__sections-menu__chapter';
-    header.dataset.section = sec.id;
-    header.textContent = sec.title;
-    if (sec.id === currentSectionId) header.classList.add('is-current-chapter');
+    header.setAttribute('role', 'presentation');
+    const headerBtn = document.createElement('button');
+    headerBtn.type = 'button';
+    headerBtn.className = 'sistema-nav__sections-menu__chapter';
+    headerBtn.dataset.section = sec.id;
+    headerBtn.textContent = sec.title;
+    if (sec.id === currentSectionId) headerBtn.classList.add('is-current-chapter');
+    header.appendChild(headerBtn);
     NAV_SECTIONS_MENU.appendChild(header);
 
     // Pasos del capítol (només els visibles segons l'estat).
@@ -1312,15 +1323,19 @@ function populateSectionsMenu() {
       // Saltem els amagats que el seu flag no està actiu.
       if (!isSlideVisible(slide)) return;
       const item = document.createElement('li');
-      item.className = 'sistema-nav__sections-menu__step';
-      if (slide.hidden) item.classList.add('is-hidden-chapter');
-      item.setAttribute('role', 'option');
-      item.dataset.paso = String(p);
-      item.textContent = `${formatPaso(p)} · ${slide.title}`;
+      item.setAttribute('role', 'presentation');
+      const itemBtn = document.createElement('button');
+      itemBtn.type = 'button';
+      itemBtn.className = 'sistema-nav__sections-menu__step';
+      if (slide.hidden) itemBtn.classList.add('is-hidden-chapter');
+      itemBtn.setAttribute('role', 'option');
+      itemBtn.dataset.paso = String(p);
+      itemBtn.textContent = `${formatPaso(p)} · ${slide.title}`;
       if (p === state.paso) {
-        item.classList.add('is-current');
-        item.setAttribute('aria-selected', 'true');
+        itemBtn.classList.add('is-current');
+        itemBtn.setAttribute('aria-selected', 'true');
       }
+      item.appendChild(itemBtn);
       NAV_SECTIONS_MENU.appendChild(item);
     });
   });
@@ -1330,6 +1345,10 @@ function openSectionsMenu() {
   populateSectionsMenu();
   NAV_SECTIONS_MENU.hidden = false;
   NAV_TITLE_BTN.setAttribute('aria-expanded', 'true');
+  // El teclat entra directament al menú, aterrant al pas actual.
+  const target = NAV_SECTIONS_MENU.querySelector('.is-current')
+    || NAV_SECTIONS_MENU.querySelector('button');
+  target?.focus();
 }
 function closeSectionsMenu() {
   NAV_SECTIONS_MENU.hidden = true;
@@ -1349,6 +1368,7 @@ NAV_SECTIONS_MENU.addEventListener('click', (e) => {
     const paso = Number(step.dataset.paso);
     if (Number.isFinite(paso)) goTo(paso);
     closeSectionsMenu();
+    NAV_TITLE_BTN.focus();
     return;
   }
   // Click al header d'un capítol: anem al primer pas visible del
@@ -1361,7 +1381,24 @@ NAV_SECTIONS_MENU.addEventListener('click', (e) => {
       if (firstVisible != null) goTo(firstVisible);
     }
     closeSectionsMenu();
+    // El botó activat desapareix amb el menú: sense això el focus cau
+    // al <body> i el teclat perd el fil.
+    NAV_TITLE_BTN.focus();
   }
+});
+
+// Fletxes ↑/↓ mouen el focus pel menú (patró listbox). El handler global
+// de fletxes no interfereix: amb el menú obert fa return (vegeu més amunt).
+NAV_SECTIONS_MENU.addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  const buttons = Array.from(NAV_SECTIONS_MENU.querySelectorAll('button'));
+  if (!buttons.length) return;
+  const idx = buttons.indexOf(document.activeElement);
+  const next = e.key === 'ArrowDown'
+    ? buttons[Math.min(idx + 1, buttons.length - 1)]
+    : buttons[Math.max(idx - 1, 0)];
+  next?.focus();
+  e.preventDefault();
 });
 
 // Tancar amb clic fora. Usem `pointerdown` (no `click`) perquè un
