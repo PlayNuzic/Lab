@@ -386,7 +386,7 @@ async function init() {
   const selectColorInput = document.getElementById('selectColor');
   if (selectColorInput) {
     // Set initial color from preferences
-    const savedColor = prefs.selectColor || '#E4570C';
+    const savedColor = prefs.selectColor || '#FFBB33';
     selectColorInput.value = savedColor;
     document.documentElement.style.setProperty('--select-color', savedColor);
 
@@ -402,25 +402,11 @@ async function init() {
     });
   }
 
-  // Register factory reset
-  registerFactoryReset(() => {
-    // 1. Update localStorage with factory defaults
-    localStorage.setItem('app11a-preferences', JSON.stringify({
-      selectedInstrument: 'piano',
-      selectColor: '#FFBB33'
-    }));
-
-    // 2. Sync UI without reload
-    // Color picker
-    const selectColorInput = document.getElementById('selectColor');
-    if (selectColorInput) {
-      selectColorInput.value = '#FFBB33';
-      document.documentElement.style.setProperty('--select-color', '#FFBB33');
-    }
-
-    // 3. Reload to ensure clean state
-    window.location.reload();
-  });
+  // Register factory reset (U-10): la lib espera un objecte d'opcions —
+  // amb el callback nu, storage.clearAll() i onBeforeReload no s'executaven
+  // mai i les preferències reals ('app11a::preferences') sobrevivien al
+  // reset. clearAll + reload restauren els defaults del codi.
+  registerFactoryReset({ storage: preferenceStorage });
 
   // Initialize mixer menu
   const mixerMenu = document.getElementById('mixerMenu');

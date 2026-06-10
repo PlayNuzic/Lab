@@ -264,9 +264,13 @@ notationPanelController = createNotationPanelController({
   onOpen: () => renderNotationIfVisible({ force: true })
 });
 
+// U-11: límits documentats del BPM (lib 30-240); App2 és pre-política 9+.
+const MIN_BPM = 30;
+const MAX_BPM = 240;
+
 const randomDefaults = {
   Lg: { enabled: true, range: [2, 30] },
-  V: { enabled: true, range: [40, 320] },
+  V: { enabled: true, range: [40, 240] },
   T: { enabled: true, range: [0.1, 20] },
   Pulses: { enabled: true, count: '' }
 };
@@ -618,7 +622,8 @@ const tapTempoHandler = createTapTempoHandler({
   tapBtn,
   tapHelp,
   onBpmDetected: (bpm) => {
-    setValue(inputV, bpm);
+    // U-11: el tap pot detectar tempos fora del rang documentat (30-240)
+    setValue(inputV, Math.min(MAX_BPM, Math.max(MIN_BPM, bpm)));
     handleInput({ target: inputV });
   }
 });
@@ -639,7 +644,8 @@ function randomize() {
   }
   if (randVToggle?.checked) {
     const [lo, hi] = toRange(randVMin?.value, randVMax?.value, randomDefaults.V.range);
-    const v = randomInt(lo, hi);
+    // U-11: el rang del menú és lliure; el valor aplicat respecta 30-240
+    const v = Math.min(MAX_BPM, Math.max(MIN_BPM, randomInt(lo, hi)));
     setValue(inputV, v);
     handleInput({ target: inputV });
   }
@@ -733,6 +739,32 @@ bindUnit(inputV, unitV);
 bindUnit(inputT, unitT);
 
 [inputLg, inputV].forEach(el => el.addEventListener('input', handleInput));
+
+// U-11: V no tenia max ni sanitize (única app sense bpm-controller amb
+// transport en viu). Paritat amb la lib: teclat lliure (mai clamp mentre
+// s'escriu), però el valor mostrat es corregeix en blur o després de
+// 1500ms d'inactivitat, i el transport només rep valors dins de 30-240
+// (vegeu validV a handleInput).
+let vSanitizeTimer = null;
+function sanitizeV() {
+  if (vSanitizeTimer) {
+    clearTimeout(vSanitizeTimer);
+    vSanitizeTimer = null;
+  }
+  const v = parseNum(inputV.value);
+  if (!Number.isFinite(v) || v <= 0) return;
+  const clamped = Math.min(MAX_BPM, Math.max(MIN_BPM, v));
+  if (clamped !== v) {
+    setValue(inputV, clamped);
+    handleInput({ target: inputV });
+  }
+}
+inputV.addEventListener('input', () => {
+  if (vSanitizeTimer) clearTimeout(vSanitizeTimer);
+  vSanitizeTimer = setTimeout(sanitizeV, 1500);
+});
+inputV.addEventListener('blur', sanitizeV);
+
 handleInput();
 
 getEditEl()?.addEventListener('keydown', (e) => {
@@ -1118,7 +1150,9 @@ function handleInput(){
       audio.setSelected(selectedForAudioFromState());
     }
     const validLg = Number.isFinite(lgNow) && lgNow > 0;
-    const validV = Number.isFinite(vNow) && vNow > 0;
+    // U-11: el transport en viu només rep V dins de rang — teclejar '240'
+    // ja no empeny bpm=2 i bpm=24 pel camí (transitòries de tecleig).
+    const validV = Number.isFinite(vNow) && vNow >= MIN_BPM && vNow <= MAX_BPM;
     if (typeof audio.updateTransport === 'function' && (validLg || validV)) {
       const playbackTotal = validLg ? toPlaybackPulseCount(lgNow, loopEnabled) : null;
       audio.updateTransport({
