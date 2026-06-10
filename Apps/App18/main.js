@@ -37,7 +37,7 @@ let playbackTimeouts = [];
 const SEQUENCE_LENGTH = 6;        // Random notes per playback
 const MIN_REGISTRO = 0;
 const MAX_REGISTRO = 7;
-const MIN_BPM = 75;
+const MIN_BPM = 50;
 const MAX_BPM = 150;
 
 // Preference storage

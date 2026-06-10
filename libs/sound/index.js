@@ -1663,6 +1663,37 @@ export class TimelineAudio {
       }
     };
 
+    // A-03: els sons de cicle s'agenden al lookahead, no al missatge del
+    // worklet. Les subdivisions són deterministes (numerator/denominator/
+    // pattern), així que es poden pre-agendar amb la mateixa finestra que
+    // els polsos base; el camí reactiu arribava TARD per als beats
+    // fraccionaris (agafava el temps del pols anterior, ja al passat).
+    // La fórmula replica _recomputeCycleEvents del worklet exactament.
+    let cycleBeatsKey = null;
+    let cycleBeatsList = [];
+    const cycleEventBeats = () => {
+      const num = +(this._cycleConfig?.numerator) || 0;
+      const den = +(this._cycleConfig?.denominator) || 0;
+      const total = (Number.isFinite(this._patternBeats) && this._patternBeats > 0)
+        ? this._patternBeats
+        : this.totalRef;
+      const key = `${num}/${den}/${total}`;
+      if (key === cycleBeatsKey) return cycleBeatsList;
+      cycleBeatsKey = key;
+      cycleBeatsList = [];
+      if (num > 0 && den > 0 && total > 0) {
+        const cycles = Math.floor(total / num);
+        const subBeats = num / den;
+        for (let ci = 0; ci < cycles; ci++) {
+          for (let s = 0; s < den; s++) {
+            const beat = ci * num + s * subBeats;
+            if (beat < total) cycleBeatsList.push(beat);
+          }
+        }
+      }
+      return cycleBeatsList;
+    };
+
     const tick = () => {
       if (!this.isPlaying) return;
       const horizon = scheduleHorizon();
@@ -1759,6 +1790,22 @@ export class TimelineAudio {
           }
         }
 
+        // Sons de cicle del segment [stepIndex, stepIndex+1): pre-agendats
+        // amb el temps fraccionari exacte (interval real del segment, que
+        // ja incorpora canvis de tempo pendents via _stepTime).
+        if (!this._cycleMutedForFallback && this._buffers?.has('cycle')) {
+          const beats = cycleEventBeats();
+          if (beats.length) {
+            const nextWhen = this._stepTime(n + 1);
+            const segDur = Number.isFinite(nextWhen) ? (nextWhen - when) : intv;
+            for (const beat of beats) {
+              if (beat >= stepIndex && beat < stepIndex + 1) {
+                triggerPlayer('cycle', sampleWhen + (beat - stepIndex) * segDur);
+              }
+            }
+          }
+        }
+
         scheduledStep = n;
         n++;
       }
@@ -1825,10 +1872,8 @@ export class TimelineAudio {
         };
       }
       if (this._cycleConfig?.onCycle) this._cycleConfig.onCycle(msg.payload);
-      if (!this._cycleMutedForFallback && this._buffers?.has('cycle')) {
-        const cycleTime = this._scheduledTimes.get(this._lastStep) ?? (now + 0.001);
-        this._schedulePlayerStart('cycle', cycleTime);
-      }
+      // L'ÀUDIO del cicle s'agenda per avançat al tick() del lookahead
+      // (cycleEventBeats); aquest missatge només condueix la part visual.
     } else if (msg.type === 'voice') {
       const payload = { id: msg.id, index: msg.index };
       if (typeof this._onVoiceRef === 'function') {
@@ -1845,7 +1890,11 @@ export class TimelineAudio {
           const subdivisionIndex = ((idx % perCycle) + perCycle) % perCycle;
           const fractionalStep = numerator * cycleIndex + (numerator / perCycle) * subdivisionIndex;
           if (Math.abs(fractionalStep - Math.round(fractionalStep)) > 1e-6) {
-            const voiceTime = this._scheduledTimes.get(this._lastStep) ?? (now + 0.001);
+            // Àncora sample-accurate del worklet; el temps del pols anterior
+            // només com a fallback (per a beats fraccionaris ja era al passat)
+            const voiceTime = Number.isFinite(msg.time)
+              ? msg.time
+              : (this._scheduledTimes.get(this._lastStep) ?? (now + 0.001));
             this._schedulePlayerStart('seleccionados', voiceTime);
           }
         }

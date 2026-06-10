@@ -15,7 +15,11 @@
   - [x] Batch 3 (2026-06-10, tests verds): QW-5 (modulepreload ×37 apps), QW-10 (teclat a spinner-repeat.js + :focus-visible a nuzic-theme.css i mixer slider), QW-11 (parallax: frontera → go(±1))
   - [x] Batch 4 (2026-06-10, tests verds): QW-6 (9 clicks estèreo→mono −1,7MB, Descartados/ esborrat −2,8MB, paso-1.jpg/paso-7.png esborrats −3,2MB, paso-11.jpg 428→114KB, DRAFT.md mogut a docs/), QW-7 (ubuntu-bold.ttf→woff2 270→15KB + preloads fonts)
   - [x] QW-3 (2026-06-10, aprovat per l'usuari, tests verds): timestamp sample-accurate al missatge de pols (timeline-processor.js + index.js, via globalThis.currentTime amb fallback NaN→now als tests)
-- [ ] Després dels QW: troballes ALTA restants (A-03 scheduling reactiu cycle/voice, P-01 rebuild plano-modular, P-02 VexFlow lazy, H-02 editor duplicat 4×, U-02 drag tàctil)
+- [x] ALTES (2026-06-10, tests verds): A-03 (cicle→lookahead a tick() + veus amb msg.time sample-accurate, aprovat), P-01 (loadSelection fa diff, no rebuild), P-02 (VexFlow lazy via libs/notation/lazy.js a App2/4/5; App23/24 estàtic intencionat)
+- [x] Extra usuari (2026-06-10): Click12/13 esborrats del motor+dropdown (app9 migra a click2); fix octava cromàtica App23/24 (i=12 → cel·la 12, el 0' de dalt)
+- [x] Extra usuari (2026-06-10, 2a tanda): BPM 50-150 a totes les apps 9+ (app10/11/11A/13/18 i App19/20 + inputs random); App19 random sense la nota frontera 0r3; **fix geometria scroll plano-modular** (min-height fora del matrix-container → floor al .plano-container; clientHeight/maxScroll idèntics soundline↔matriu, verificat amb Chrome headless+CDP) + scroll single-writer a App19/App20 (només s'anima la matriu, la soundline segueix via setupScrollSync)
+- [ ] **H-02 (última ALTA)**: extreure l'editor de cel·les Pfr/iTfr duplicat 4× (App28/29/30/31, ~1.180 línies) cap a libs/pulse-seq/ — refactor gran, sessió dedicada
+- [ ] Següents per impacte: U-02/U-03 (drag tàctil Pointer Events + touch-action), A-04 (setTempo re-agenda finestra lookahead), A-05/A-06 (payload primer play), H-03 (App30↔App31 83% idèntiques)
 
 ## Funciona i NO s'ha de trencar
 

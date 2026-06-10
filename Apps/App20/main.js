@@ -56,9 +56,9 @@ const CONFIG = {
   MAX_CYCLES: 4,
   DEFAULT_CYCLES: 3,
 
-  // BPM limits
-  MIN_BPM: 30,
-  MAX_BPM: 300,
+  // BPM limits (rang estàndard apps 9+: 50-150)
+  MIN_BPM: 50,
+  MAX_BPM: 150,
   DEFAULT_BPM: 100,
 
   // Grid display
@@ -1313,8 +1313,9 @@ function updateGridEditorMaxPulse() {
  * Notes use translateY(50%) so labels straddle the cell bottom border.
  */
 function getScreenScrollTop(screen) {
+  // clientHeight de la MATRIU: és la font de veritat del scroll vertical
   const gridContainer = document.querySelector('.timeline-wrapper');
-  const container = gridContainer?.querySelector('.plano-soundline-container');
+  const container = gridContainer?.querySelector('.plano-matrix-container');
   const visibleHeight = container?.clientHeight || (21 * CELL_H);
   const bottomEdge = (screen.lastRow + 1) * CELL_H + HALF_CELL;
   return Math.max(0, bottomEdge - visibleHeight);
@@ -1353,14 +1354,23 @@ function scrollToScreen(screenIndex, animated = false) {
   const soundline = gridContainer?.querySelector('.plano-soundline-container');
   const matrix = gridContainer?.querySelector('.plano-matrix-container');
 
+  // Una sola font de veritat: només s'escriu la MATRIU; la soundline la
+  // segueix via setupScrollSync. Animar les dues alhora creava una cursa
+  // a tres bandes que podia deixar-les dessincronitzades. La igualació
+  // explícita cobreix escriptures clampades (sense scroll event).
   if (animated) {
-    [soundline, matrix].forEach(el => {
-      if (el) smoothScrollTo(el, scrollTop, 'top', SCROLL_DURATION, 'easeInOut');
-    });
+    if (matrix) {
+      smoothScrollTo(matrix, scrollTop, 'top', SCROLL_DURATION, 'easeInOut').then(() => {
+        if (soundline && soundline.scrollTop !== matrix.scrollTop) {
+          soundline.scrollTop = matrix.scrollTop;
+        }
+      });
+    }
   } else {
-    [soundline, matrix].forEach(el => {
-      if (el) el.scrollTop = scrollTop;
-    });
+    if (matrix) matrix.scrollTop = scrollTop;
+    if (soundline && matrix && soundline.scrollTop !== matrix.scrollTop) {
+      soundline.scrollTop = matrix.scrollTop;
+    }
   }
 
   if (elements.registroText) {
@@ -1374,7 +1384,9 @@ function scrollToScreen(screenIndex, animated = false) {
  */
 function buildScrollPlan(selectedArray, rows) {
   const gridContainer = document.querySelector('.timeline-wrapper');
-  const container = gridContainer?.querySelector('.plano-soundline-container');
+  // La MATRIU és la font de veritat del scroll vertical (la soundline és
+  // un mirall via setupScrollSync) — el pla es calcula des d'ella.
+  const container = gridContainer?.querySelector('.plano-matrix-container');
   const visibleHeight = container?.clientHeight || (21 * CELL_H);
   const margin = 2;
 
@@ -1422,7 +1434,7 @@ function buildScrollPlan(selectedArray, rows) {
  */
 function detectCurrentScreen() {
   const gridContainer = document.querySelector('.timeline-wrapper');
-  const container = gridContainer?.querySelector('.plano-soundline-container');
+  const container = gridContainer?.querySelector('.plano-matrix-container');
   if (!container) return currentScreen;
 
   const scrollTop = container.scrollTop;
@@ -1447,7 +1459,7 @@ function scrollToNote(note, registry, animated = false) {
   if (rowIdx === -1) return;
 
   const gridContainer = document.querySelector('.timeline-wrapper');
-  const container = gridContainer?.querySelector('.plano-soundline-container');
+  const container = gridContainer?.querySelector('.plano-matrix-container');
   if (!container) return;
 
   const noteTop = rowIdx * CELL_H;
@@ -1458,11 +1470,9 @@ function scrollToNote(note, registry, animated = false) {
   // Only scroll if note is outside visible window
   if (noteTop < scrollTop || noteBottom > scrollTop + visibleHeight) {
     const target = Math.max(0, noteTop - 2 * CELL_H);
-    const soundline = gridContainer?.querySelector('.plano-soundline-container');
+    // Un sol escriptor: la soundline segueix la matriu via setupScrollSync
     const matrix = gridContainer?.querySelector('.plano-matrix-container');
-    [soundline, matrix].forEach(el => {
-      if (el) smoothScrollTo(el, target, 'top', 400, 'easeInOut');
-    });
+    if (matrix) smoothScrollTo(matrix, target, 'top', 400, 'easeInOut');
   }
 }
 
@@ -1655,14 +1665,20 @@ async function startPlayback() {
       grid.updatePlayhead(step);
 
       // 2. Autoscroll VERTICAL: execute pre-computed scroll plan
+      // Un sol escriptor: només s'anima la MATRIU; la soundline la segueix
+      // via setupScrollSync (vegeu scrollToScreen per la justificació).
       while (scrollPlanIndex < scrollPlan.length && scrollPlan[scrollPlanIndex].step <= step) {
         const entry = scrollPlan[scrollPlanIndex];
         const gridContainer = document.querySelector('.timeline-wrapper');
-        const soundline = gridContainer?.querySelector('.plano-soundline-container');
         const matrix = gridContainer?.querySelector('.plano-matrix-container');
-        [soundline, matrix].forEach(el => {
-          if (el) smoothScrollTo(el, entry.scrollTop, 'top', entry.duration, 'easeInOut');
-        });
+        if (matrix) {
+          smoothScrollTo(matrix, entry.scrollTop, 'top', entry.duration, 'easeInOut').then(() => {
+            const soundline = gridContainer?.querySelector('.plano-soundline-container');
+            if (soundline && soundline.scrollTop !== matrix.scrollTop) {
+              soundline.scrollTop = matrix.scrollTop;
+            }
+          });
+        }
         scrollPlanIndex++;
       }
 

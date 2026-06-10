@@ -18,13 +18,11 @@ import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
 import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
-import {
-  createNotationPanelController,
-  durationValueFromDenominator,
-  buildPulseEvents,
-  resolveFractionNotation,
-  createRhythmStaff
-} from '../../libs/notation/index.js';
+// P-02: imports síncrons només dels mòduls de notació lliures de VexFlow;
+// el renderer (i VexFlow ~1,6MB) es carrega lazy al primer toggle del panell.
+import { createNotationPanelController } from '../../libs/notation/panel.js';
+import { durationValueFromDenominator, buildPulseEvents } from '../../libs/notation/utils.js';
+import { resolveFractionNotation } from '../../libs/notation/fraction-notation.js';
 import { parseTokens, validateInteger, validateFraction, nearestPulseIndex, resolvePulseSeqGap } from '../../libs/pulse-seq/index.js';
 import { createPulseSeqStateManager } from '../../libs/pulse-seq/index.js';
 import { createPulseSeqEditor } from '../../libs/pulse-seq/index.js';
@@ -32,7 +30,7 @@ import { createHighlightController } from '../../libs/app-common/highlight-contr
 import { createVisualSyncManager } from '../../libs/app-common/visual-sync.js';
 import { createFractionalTimelineRenderer } from '../../libs/app-common/timeline-renderer.js';
 import { isIntegerPulseSelectable } from '../../libs/app-common/pulse-selectability.js';
-import { createNotationRenderer } from '../../libs/notation/index.js';
+import { loadNotation } from '../../libs/notation/lazy.js';
 import { createFormulaRenderer } from '../../libs/app-common/formula-renderer.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';
@@ -347,28 +345,43 @@ if (titleHeading && titleTextNode) {
   attachHover(titleButton, { text: 'Click para ver información detallada' });
 }
 const notationToggleBtn = document.getElementById(NOTATION_TOGGLE_BTN_ID);
+
+// P-02: el renderer — i tot VexFlow (~1,6MB) — es carrega lazy la primera
+// vegada que s'obre el panell. Fins llavors renderNotationIfVisible és un
+// no-op (optional chaining), igual que abans de crear el controller.
+let notationLoadRequested = false;
+function ensureNotationRenderer() {
+  if (notationLoadRequested || !notationContentEl) return;
+  notationLoadRequested = true;
+  loadNotation().then((mod) => {
+    notationRendererController = mod.createNotationRenderer({
+      notationContentEl,
+      notationPanelController,
+      getFraction,
+      getLg: () => parseInt(inputLg.value, 10),
+      fractionStore,
+      pulseMemoryApi,
+      createFractionSelectionFromValue,
+      onPulseSelected: setPulseSelected,
+      onFractionSelected: setFractionSelected
+    });
+    renderNotationIfVisible({ force: true });
+  }).catch((err) => {
+    notationLoadRequested = false; // reintentable al següent toggle
+    console.warn('Notación no disponible:', err);
+  });
+}
+
 notationPanelController = createNotationPanelController({
   toggleButton: notationToggleBtn,
   panel: notationPanel,
   closeButton: notationCloseBtn,
   appId: 'app4',
-  onOpen: () => renderNotationIfVisible({ force: true })
+  onOpen: () => {
+    ensureNotationRenderer();
+    renderNotationIfVisible({ force: true });
+  }
 });
-
-// Notation renderer setup (after notationPanelController is available)
-if (notationContentEl) {
-  notationRendererController = createNotationRenderer({
-    notationContentEl,
-    notationPanelController,
-    getFraction,
-    getLg: () => parseInt(inputLg.value, 10),
-    fractionStore,
-    pulseMemoryApi,
-    createFractionSelectionFromValue,
-    onPulseSelected: setPulseSelected,
-    onFractionSelected: setFractionSelected
-  });
-}
 
 // Canals registrats al motor (TimelineAudio constructor);
 // setupAudioDefaults dins initAudio() els personalitza via RHYTHM_FULL.

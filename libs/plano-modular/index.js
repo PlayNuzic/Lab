@@ -341,8 +341,30 @@ export function createPlanoModular(config) {
     },
 
     loadSelection(keys) {
+      // P-01: diff en lloc de rebuild. Abans loadFromKeys()+refresh()
+      // reconstruïa TOTA la graella (innerHTML='' + rows×cols cel·les amb
+      // un listener cadascuna) a cada commit de l'editor. Ara només es
+      // toquen les cel·les que canvien; refresh() queda per als canvis
+      // estructurals (updateColumns/updateRows/setCompas), que ja pinten
+      // la selecció des del manager (updateMatrix → isSelected).
+      const before = selectionManager.exportKeys();
       selectionManager.loadFromKeys(keys);
-      refresh();
+      const after = new Set(selectionManager.exportKeys());
+      const beforeSet = new Set(before);
+      const selectionOptions = { compas: cycleConfig.compas };
+      const apply = (key, isSelected) => {
+        const parts = key.split('-');
+        const col = parseInt(parts.pop(), 10);
+        const rId = parts.join('-');
+        // updateCellSelection ja és no-op si la cel·la no existeix al DOM
+        updateCellSelection(matrixContainer, rId, col, isSelected, '', selectionOptions);
+      };
+      for (const key of before) {
+        if (!after.has(key)) apply(key, false);
+      }
+      for (const key of after) {
+        if (!beforeSet.has(key)) apply(key, true);
+      }
     },
 
     exportSelection() {

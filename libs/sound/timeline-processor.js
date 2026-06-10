@@ -340,7 +340,8 @@ class TimelineProcessor extends AudioWorkletProcessor {
             this.port.postMessage({
               type: 'voice',
               id: voice.id,
-              index: voice.subIndex++
+              index: voice.subIndex++,
+              time: blockTime + i * this.secondsPerSample
             });
             voice.countdownBeats += voice.periodBeats;
           }

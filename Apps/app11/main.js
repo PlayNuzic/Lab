@@ -18,8 +18,8 @@ const SEQUENCE_PULSES = 8; // Total pulses in playback sequence (0-7)
 const MIN_NOTES = 4;      // Minimum notes in sequence
 const MAX_NOTES = 8;      // Maximum notes in sequence
 const FIXED_BPM = 120;    // Fixed BPM (not randomized)
-const MIN_BPM = 75;       // Minimum random BPM
-const MAX_BPM = 200;      // Maximum random BPM
+const MIN_BPM = 50;       // Minimum random BPM
+const MAX_BPM = 150;      // Maximum random BPM
 const BASE_MIDI = 60;     // C4
 
 // ========== STATE ==========

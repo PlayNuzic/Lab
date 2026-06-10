@@ -13,7 +13,10 @@ import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
 import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
-import { createNotationPanelController, createRhythmStaff } from '../../libs/notation/index.js';
+// P-02: panel.js és lliure de VexFlow; la resta de la notació (createRhythmStaff
+// + VexFlow ~1,6MB) es carrega lazy via loadNotation() al primer toggle.
+import { createNotationPanelController } from '../../libs/notation/panel.js';
+import { loadNotation } from '../../libs/notation/lazy.js';
 import { createSimpleVisualSync } from '../../libs/app-common/visual-sync.js';
 import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';
@@ -139,13 +142,24 @@ function buildNotationRenderState() {
   };
 }
 
+let notationModule = null;
+
 function renderNotationIfVisible({ force = false } = {}) {
   if (!notationContentEl) return;
   if (!notationPanelController) return;
   if (!force && !notationPanelController.isOpen) return;
 
+  if (!notationModule) {
+    // Primer ús: VexFlow encara no està carregat. En resoldre, re-renderitzem
+    // amb el mateix force; loadNotation() cacheja la promesa (no es duplica).
+    loadNotation()
+      .then((mod) => { notationModule = mod; renderNotationIfVisible({ force }); })
+      .catch((err) => console.warn('Notación no disponible:', err));
+    return;
+  }
+
   if (!notationRenderer) {
-    notationRenderer = createRhythmStaff({
+    notationRenderer = notationModule.createRhythmStaff({
       container: notationContentEl,
       pulseFilter: 'whole'
     });

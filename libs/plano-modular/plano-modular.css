@@ -50,7 +50,12 @@
   grid-template-columns: auto 1fr;
   grid-template-rows: 1fr auto;
   gap: var(--plano-grid-gap);
-  min-height: 0;
+  /* Floor anticol·lapse (iframes curts en mode vertical): el bloc sencer
+     reserva espai i creix simètricament — als embeds l'iframe s'amplia
+     via app:resize, sense clip. El floor viu AQUÍ i no als contenidors
+     de scroll: ells han de fer exactament l'alçada de la fila perquè
+     soundline i matriu comparteixin geometria (vegeu .plano-matrix-container). */
+  min-height: calc(var(--plano-cell-height) * var(--plano-visible-rows, 15));
   overflow: hidden;
   background: var(--plano-bg-color);
 }
@@ -140,20 +145,17 @@
   flex: 1;
   overflow-x: auto;
   overflow-y: scroll;
-  /* `min-height` mínim útil: garantim que el plànol mostri com a mínim
-     `--plano-visible-rows` files, encara que el seu pare sigui curt. Amb
-     scroll intern, l'usuari pot navegar més enllà; sense aquest mínim, el
-     plànol col·lapsa a zero quan l'iframe és curt en mode vertical i
-     l'app queda inutilitzable. La mida cau en cascada amb els media
-     queries que rebaixen `--plano-cell-height` i `--plano-visible-rows`
-     a viewports estrets. */
-  min-height: calc(var(--plano-cell-height) * var(--plano-visible-rows));
-  /* No max-height: the parent grid (`grid-template-rows: 1fr auto`) already
-     allocates the matrix's row dynamically based on available space. The
-     previous `max-height: calc(visible-rows × cell-height)` cap was a
-     legacy constraint from a flex-only era; it didn't shrink when the
-     parent shrank (e.g., `.inputs` flex-wrapping reduces `.timeline-wrapper`
-     height) and pushed the timeline visually into matrix territory. */
+  /* CRÍTIC: alçada = fila del grid, MAI més. Matriu i soundline han de
+     tenir clientHeight (i per tant maxScrollTop) IDÈNTICS: el mirall
+     scrollTop↔scrollTop de setupScrollSync només alinea si les geometries
+     coincideixen. L'antic `min-height: cell × visible-rows` inflava la
+     matriu més enllà de la fila (sobresortia, clipada pel wrapper amb
+     overflow:hidden): maxScroll diferents → mirall clampat → soundline i
+     matriu desalineades, i les files inferiors de la matriu inabastables
+     en finestres curtes. El floor anticol·lapse per a iframes curts viu
+     ara a .plano-container (creix el bloc sencer, simètricament).
+     (Tampoc max-height: la fila 1fr ja reparteix l'espai disponible.) */
+  min-height: 0;
   scrollbar-width: thin;
 }
 

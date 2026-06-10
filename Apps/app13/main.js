@@ -13,7 +13,7 @@ const MAX_LENGTH = 8;    // Suma total de iTs (= longitud de la timeline).
                          // Aquest és l'únic límit: els iTs es poden distribuir
                          // entre 1 i 8 entries (1×8, 2×4, 8×1, …). L'editor
                          // creix dinàmicament fins que la suma arriba a 8.
-const MIN_BPM = 75;
+const MIN_BPM = 50;
 const MAX_BPM = 150;
 const DEFAULT_BPM = 90;
 
