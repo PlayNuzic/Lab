@@ -4,6 +4,7 @@
 
 import { waitForUserInteraction } from './user-interaction.js';
 import { ensureToneLoaded } from './tone-loader.js';
+import { log } from '../app-common/logger.js';
 
 // Tots els samples del motor (Salamander piano, click samples, etc.) són
 // 44.1 kHz. Si l'AudioContext corre a una altra rate (Firefox/Linux usa
@@ -62,7 +63,7 @@ export function ensurePreferredSampleRateContext() {
     if (typeof Tone.setContext === 'function') {
       Tone.setContext(next);
     }
-    console.log(`[audio] AudioContext sampleRate = ${next.sampleRate} Hz (requested ${PREFERRED_SAMPLE_RATE})`);
+    log(`[audio] AudioContext sampleRate = ${next.sampleRate} Hz (requested ${PREFERRED_SAMPLE_RATE})`);
   } catch (err) {
     // Si el navegador rebutja sampleRate (poc comú) seguim amb el default
     console.warn('Could not pin AudioContext sampleRate to 44100:', err?.message || err);

@@ -17,6 +17,7 @@ import { playCountIn } from '../../../libs/ear-training/count-in-controller.js';
 import { GameUI } from './game-ui.js';
 import { GameState } from './game-state.js';
 import { getLevel, checkLevelCompletion, getHintPositions } from './levels-config.js';
+import { log } from '../../../libs/app-common/logger.js';
 
 /**
  * Main game manager class
@@ -54,32 +55,32 @@ export class GameManager {
    * Initialize game manager
    */
   async init() {
-    console.log('🎮 GameManager.init() starting...');
+    log('🎮 GameManager.init() starting...');
 
     // Inicializar modo de captura: TECLADO por defecto
     // IMPORTANTE: Siempre resetear a true al iniciar el game manager
     // (puede cambiarse con debugGame.useMicrophone() después de inicializar)
     window.gameForceKeyboard = true;
-    console.log('⌨️ Modo de captura: TECLADO (tecla ESPACIO) - default');
+    log('⌨️ Modo de captura: TECLADO (tecla ESPACIO) - default');
 
     // Initialize UI
     this.ui.init();
-    console.log('✅ UI initialized');
+    log('✅ UI initialized');
 
     // Setup UI callbacks
     this.setupUICallbacks();
-    console.log('✅ UI callbacks setup');
+    log('✅ UI callbacks setup');
 
     // Listen for gamification toggle event
     document.addEventListener('gamification_toggled', (e) => {
-      console.log('🎮 gamification_toggled event received:', e.detail);
+      log('🎮 gamification_toggled event received:', e.detail);
       if (e.detail.enabled) {
         this.startGame();
       } else {
         this.endGame();
       }
     });
-    console.log('✅ Event listener registered for gamification_toggled');
+    log('✅ Event listener registered for gamification_toggled');
 
     // ALSO attach directly to the button as a backup
     const gamificationBtn = document.getElementById('gamificationToggleBtn');
@@ -89,28 +90,28 @@ export class GameManager {
 
       // Create bound handler
       this._boundButtonHandler = (e) => {
-        console.log('🎮 Direct button click detected');
+        log('🎮 Direct button click detected');
         const isActive = gamificationBtn.getAttribute('aria-pressed') === 'true';
-        console.log('Button state:', isActive ? 'active' : 'inactive');
+        log('Button state:', isActive ? 'active' : 'inactive');
 
         // The button's aria-pressed is updated by the gamification-adapter
         // So we need to check the NEXT state after the click
         setTimeout(() => {
           const newState = gamificationBtn.getAttribute('aria-pressed') === 'true';
-          console.log('New button state:', newState ? 'active' : 'inactive');
+          log('New button state:', newState ? 'active' : 'inactive');
 
           if (newState && !this.isGameActive) {
-            console.log('Starting game from direct button click');
+            log('Starting game from direct button click');
             this.startGame();
           } else if (!newState && this.isGameActive) {
-            console.log('Ending game from direct button click');
+            log('Ending game from direct button click');
             this.endGame();
           }
         }, 10);
       };
 
       gamificationBtn.addEventListener('click', this._boundButtonHandler);
-      console.log('✅ Direct button listener attached to gamificationToggleBtn');
+      log('✅ Direct button listener attached to gamificationToggleBtn');
     } else {
       console.warn('⚠️ gamificationToggleBtn not found in DOM');
     }
@@ -118,21 +119,21 @@ export class GameManager {
     // Get reference to pulse sequence controller from App5
     // This will be set by App5 after initialization
     this.pulseSeqController = window.pulseSeqController;
-    console.log('✅ pulseSeqController reference:', this.pulseSeqController ? 'found' : 'not found');
+    log('✅ pulseSeqController reference:', this.pulseSeqController ? 'found' : 'not found');
 
     // Get reference to synth if available
     this.synth = window.synth;
-    console.log('✅ synth reference:', this.synth ? 'found' : 'not found');
+    log('✅ synth reference:', this.synth ? 'found' : 'not found');
 
     // Setup event capture for play/stop and cycle count
     this.setupEventCapture();
-    console.log('✅ Event capture setup');
+    log('✅ Event capture setup');
 
     // Setup event listeners for real app interactions
     this.setupEventListeners();
-    console.log('✅ Event listeners setup');
+    log('✅ Event listeners setup');
 
-    console.log('✅ GameManager initialized successfully');
+    log('✅ GameManager initialized successfully');
   }
 
   /**
@@ -147,12 +148,12 @@ export class GameManager {
       editEl.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && this.currentPhase === 1 && this.isGameActive) {
           e.preventDefault();
-          console.log('📝 Enter detected in Phase 1 - auto-validating...');
+          log('📝 Enter detected in Phase 1 - auto-validating...');
           this.autoValidatePhase1();
         }
       });
 
-      console.log('✅ Enter listener attached to pulseSeq');
+      log('✅ Enter listener attached to pulseSeq');
     } else {
       console.warn('⚠️ pulseSeqController.getEditElement() not available yet');
     }
@@ -168,7 +169,7 @@ export class GameManager {
       playBtn.addEventListener('click', () => {
         if (this.isGameActive) {
           this.playStopCount++;
-          console.log('▶️ Play clicked during game. Count:', this.playStopCount);
+          log('▶️ Play clicked during game. Count:', this.playStopCount);
         }
       });
     }
@@ -179,7 +180,7 @@ export class GameManager {
       stopBtn.addEventListener('click', () => {
         if (this.isGameActive) {
           this.playStopCount++;
-          console.log('⏹️ Stop clicked during game. Count:', this.playStopCount);
+          log('⏹️ Stop clicked during game. Count:', this.playStopCount);
         }
       });
     }
@@ -190,7 +191,7 @@ export class GameManager {
       window.Tone.Transport.on('start', () => {
         if (this.isGameActive && this.currentPhase === 'phase2') {
           this.cycleReproductionCount++;
-          console.log('🔄 Cycle reproduction. Count:', this.cycleReproductionCount);
+          log('🔄 Cycle reproduction. Count:', this.cycleReproductionCount);
         }
       });
     }
@@ -203,7 +204,7 @@ export class GameManager {
     // Phase 1 callbacks
     this.ui.on('onStartPhase1', () => {
       // Focus en pulseSeq cuando el usuario hace clic en "Continuar"
-      console.log('🎯 onStartPhase1 callback - focusing pulseSeq');
+      log('🎯 onStartPhase1 callback - focusing pulseSeq');
       setTimeout(() => {
         const editEl = this.pulseSeqController?.getEditElement();
         if (editEl) {
@@ -223,7 +224,7 @@ export class GameManager {
           }
           sel.removeAllRanges();
           sel.addRange(range);
-          console.log('✅ PulseSeq focused after Continue click');
+          log('✅ PulseSeq focused after Continue click');
         }
       }, 100); // Pequeño delay para que el popup termine de ocultarse
     });
@@ -237,7 +238,7 @@ export class GameManager {
 
     // Retry/Quit callbacks
     this.ui.on('onRetry', () => {
-      console.log('🔄 Retry callback - clearing pulseSeq and refocusing');
+      log('🔄 Retry callback - clearing pulseSeq and refocusing');
       // Clear pulseSeq and refocus
       if (this.pulseSeqController) {
         this.pulseSeqController.setText('');
@@ -259,14 +260,14 @@ export class GameManager {
             }
             sel.removeAllRanges();
             sel.addRange(range);
-            console.log('✅ PulseSeq cleared and refocused for retry');
+            log('✅ PulseSeq cleared and refocused for retry');
           }
         }, 100);
       }
     });
 
     this.ui.on('onQuit', () => {
-      console.log('❌ Quit callback - ending game');
+      log('❌ Quit callback - ending game');
       this.endGame();
     });
 
@@ -274,12 +275,12 @@ export class GameManager {
     this.ui.on('onSelectLevel', (level) => this.loadLevel(level));
     this.ui.on('onContinue', () => this.continueGame());
     this.ui.on('onRetryLevel', () => {
-      console.log('🔄 Retry level - skipping to Phase 2');
+      log('🔄 Retry level - skipping to Phase 2');
       this.startPhase2();
     });
     // When UI is hidden (X button or backdrop click), end the game completely
     this.ui.on('onHide', () => {
-      console.log('🎮 UI hidden, ending game and deactivating button');
+      log('🎮 UI hidden, ending game and deactivating button');
       this.isGameActive = false;
       this.gameState.save();
       this.deactivateGameButton();
@@ -290,10 +291,10 @@ export class GameManager {
    * Start the game
    */
   startGame() {
-    console.log('🎮 startGame() called, isGameActive:', this.isGameActive);
+    log('🎮 startGame() called, isGameActive:', this.isGameActive);
 
     if (this.isGameActive) {
-      console.log('⚠️ Game already active, ignoring');
+      log('⚠️ Game already active, ignoring');
       return;
     }
 
@@ -301,18 +302,18 @@ export class GameManager {
 
     // IMPORTANTE: Siempre empezar desde nivel 1
     // El progreso se guarda (completedLevels) pero cada sesión empieza desde el principio
-    console.log('📋 Starting game - always begin at Level 1');
+    log('📋 Starting game - always begin at Level 1');
 
     // Limpiar intervalos seleccionados del timeline
     if (window.clearSelectedIntervals) {
       window.clearSelectedIntervals();
-      console.log('✅ Timeline intervals cleared');
+      log('✅ Timeline intervals cleared');
     }
 
     // Limpiar PulseSeq - no debe haber posiciones seleccionadas al iniciar
     if (this.pulseSeqController) {
       this.pulseSeqController.setText('');
-      console.log('✅ PulseSeq cleared on game start');
+      log('✅ PulseSeq cleared on game start');
     }
 
     // CORRECCIÓN: Llamar loadLevel(1) que SÍ setea Lg y BPM
@@ -327,14 +328,14 @@ export class GameManager {
     if (!this.isGameActive) return;
 
     this.isGameActive = false;
-    console.log('Ending game');
+    log('Ending game');
 
     // Clean up audio capture if active
     if (this.audioCapture) {
       // CRITICAL: Properly dispose microphone when exiting game
       if (this.audioCapture.dispose) {
         this.audioCapture.dispose();
-        console.log('🎤 Micrófono desconectado al salir del juego');
+        log('🎤 Micrófono desconectado al salir del juego');
       } else if (this.audioCapture.stop) {
         this.audioCapture.stop();
       }
@@ -359,7 +360,7 @@ export class GameManager {
     if (gamificationBtn) {
       const isActive = gamificationBtn.getAttribute('aria-pressed') === 'true';
       if (isActive) {
-        console.log('🔘 Deactivating game button');
+        log('🔘 Deactivating game button');
         gamificationBtn.setAttribute('aria-pressed', 'false');
         gamificationBtn.classList.remove('active');
 
@@ -381,7 +382,7 @@ export class GameManager {
   pauseGame() {
     if (!this.isGameActive) return;
 
-    console.log('Game paused');
+    log('Game paused');
     this.gameState.save();
   }
 
@@ -390,7 +391,7 @@ export class GameManager {
    * @param {Object} level - Level configuration
    */
   setLevelParameters(level) {
-    console.log(`📝 Setting level parameters: Lg=${level.lg}, BPM=${level.bpm}`);
+    log(`📝 Setting level parameters: Lg=${level.lg}, BPM=${level.bpm}`);
 
     // Get input elements from window (exposed by main.js)
     const inputLg = window.inputLg;
@@ -407,20 +408,20 @@ export class GameManager {
     if (level.lg !== undefined) {
       setValue(inputLg, level.lg);
       handleInput({ target: inputLg });
-      console.log(`✅ Lg set to ${level.lg}`);
+      log(`✅ Lg set to ${level.lg}`);
     }
 
     // Set BPM (velocidad)
     if (level.bpm !== undefined) {
       setValue(inputV, level.bpm);
       handleInput({ target: inputV });
-      console.log(`✅ BPM set to ${level.bpm}`);
+      log(`✅ BPM set to ${level.bpm}`);
     }
 
     // Clear pulseSeq
     if (this.pulseSeqController) {
       this.pulseSeqController.setText('');
-      console.log('✅ PulseSeq cleared');
+      log('✅ PulseSeq cleared');
     }
   }
 
@@ -429,12 +430,12 @@ export class GameManager {
    * @param {number} levelNumber - Level to load
    */
   loadLevel(levelNumber) {
-    console.log(`Loading level ${levelNumber}`);
+    log(`Loading level ${levelNumber}`);
 
     // Limpiar intervalos seleccionados del timeline
     if (window.clearSelectedIntervals) {
       window.clearSelectedIntervals();
-      console.log('✅ Timeline intervals cleared');
+      log('✅ Timeline intervals cleared');
     }
 
     this.currentLevel = getLevel(levelNumber);
@@ -458,7 +459,7 @@ export class GameManager {
    * Start Phase 1 (position selection)
    */
   async startPhase1() {
-    console.log('Starting Phase 1');
+    log('Starting Phase 1');
     this.currentPhase = 1;
     this.phase1StartTime = Date.now();
 
@@ -482,7 +483,7 @@ export class GameManager {
    * Uses real data from pulse sequence controller
    */
   async autoValidatePhase1() {
-    console.log('🔍 Auto-validating Phase 1 using real app data');
+    log('🔍 Auto-validating Phase 1 using real app data');
 
     if (!this.pulseSeqController) {
       console.error('No pulse sequence controller');
@@ -491,7 +492,7 @@ export class GameManager {
 
     // Get current text from REAL pulse sequence editable (contains ONLY numbers)
     const text = this.pulseSeqController.getText().trim();
-    console.log('📝 Current pulseSeq text:', text);
+    log('📝 Current pulseSeq text:', text);
 
     if (!text) {
       console.warn('⚠️ No positions entered');
@@ -532,7 +533,7 @@ export class GameManager {
     }
 
     const sanitized = sanitizePulseSequence(text, lg);
-    console.log('✨ Sanitized:', sanitized);
+    log('✨ Sanitized:', sanitized);
 
     if (!sanitized || sanitized.length === 0) {
       console.warn('⚠️ Invalid format');
@@ -541,7 +542,7 @@ export class GameManager {
 
     // sanitized is already an array of numbers [1, 3]
     const positions = sanitized;
-    console.log('🎯 Positions:', positions);
+    log('🎯 Positions:', positions);
 
     // CASO ESPECIAL: Nivel 4 (modo libre)
     if (this.currentLevel.libre) {
@@ -555,7 +556,7 @@ export class GameManager {
         if (inputLg && inputV) {
           this.currentLevel.lg = parseInt(inputLg.value) || 8;
           this.currentLevel.bpm = parseInt(inputV.value) || 100;
-          console.log(`📊 Free mode: usando Lg=${this.currentLevel.lg}, BPM=${this.currentLevel.bpm} de la interfaz`);
+          log(`📊 Free mode: usando Lg=${this.currentLevel.lg}, BPM=${this.currentLevel.bpm} de la interfaz`);
         }
 
         // Mostrar popup de confirmación para modo libre
@@ -570,7 +571,7 @@ export class GameManager {
 
     // NIVELES NORMALES (1, 2, 3): Validar con función del nivel
     const isCorrect = this.currentLevel.validate(positions, this.currentLevel.lg);
-    console.log('✅ Is correct?', isCorrect);
+    log('✅ Is correct?', isCorrect);
 
     if (isCorrect) {
       // Store pattern for phase 2
@@ -590,26 +591,26 @@ export class GameManager {
    * @param {boolean} skipPopup - If true, skip the success popup and play directly
    */
   showSuccessAndPlayPattern(skipPopup = false) {
-    console.log('🎉 Pattern correct');
-    console.log(`📊 Pattern: P(${this.playbackPatterns.join(' ')}) Lg=${this.currentLevel.lg} BPM=${this.currentLevel.bpm}`);
+    log('🎉 Pattern correct');
+    log(`📊 Pattern: P(${this.playbackPatterns.join(' ')}) Lg=${this.currentLevel.lg} BPM=${this.currentLevel.bpm}`);
 
     // Function to execute after confirmation (or immediately if skipPopup)
     const playPatternAndStartPhase2 = () => {
-      console.log('▶️ User confirmed - playing 1 cycle in LINEAR mode');
+      log('▶️ User confirmed - playing 1 cycle in LINEAR mode');
 
       // Force LINEAR mode (circular = false)
       const circularToggle = window.circularTimelineToggle;
       if (circularToggle && circularToggle.checked) {
         circularToggle.checked = false;
         circularToggle.dispatchEvent(new Event('change'));
-        console.log('✅ Timeline set to LINEAR mode');
+        log('✅ Timeline set to LINEAR mode');
       }
 
       // Wait 500ms, then click REAL play button
       setTimeout(() => {
         const playBtn = document.querySelector('.play');
         if (playBtn) {
-          console.log('▶️ Playing pattern (1 cycle in linear mode)');
+          log('▶️ Playing pattern (1 cycle in linear mode)');
           playBtn.click();
         } else {
           console.error('❌ Play button not found');
@@ -622,11 +623,11 @@ export class GameManager {
       const cycleMs = beatMs * this.currentLevel.lg;
       const totalMs = cycleMs + 1000;
 
-      console.log(`⏱️ Waiting ${totalMs}ms for 1 cycle`);
+      log(`⏱️ Waiting ${totalMs}ms for 1 cycle`);
 
       // After 1 cycle, start Phase 2 (which will switch to circular)
       setTimeout(() => {
-        console.log('✅ 1 cycle completed, starting Phase 2');
+        log('✅ 1 cycle completed, starting Phase 2');
         this.startPhase2();
       }, totalMs);
     };
@@ -643,7 +644,7 @@ export class GameManager {
    * Validate Phase 1 selection
    */
   async validatePhase1() {
-    console.log('Validating Phase 1');
+    log('Validating Phase 1');
 
     if (!this.pulseSeqController) {
       console.error('No pulse sequence controller');
@@ -707,7 +708,7 @@ export class GameManager {
    * @param {number[]} positions - Positions to highlight
    */
   flashHintPositions(positions) {
-    console.log('Flashing hint positions:', positions);
+    log('Flashing hint positions:', positions);
 
     // Use the overlay system to highlight positions
     if (window.pulseSeqHighlight) {
@@ -751,7 +752,7 @@ export class GameManager {
    * Skip to Phase 2
    */
   skipToPhase2() {
-    console.log('Skipping to Phase 2');
+    log('Skipping to Phase 2');
 
     // Use default or solution positions
     if (this.currentLevel.solution) {
@@ -771,7 +772,7 @@ export class GameManager {
    * Start Phase 2 (rhythm synchronization)
    */
   async startPhase2() {
-    console.log('Starting Phase 2');
+    log('Starting Phase 2');
     this.currentPhase = 2;
     this.phase2StartTime = Date.now();
 
@@ -780,7 +781,7 @@ export class GameManager {
     if (circularToggle && !circularToggle.checked) {
       circularToggle.checked = true;
       circularToggle.dispatchEvent(new Event('change'));
-      console.log('✅ Timeline set to CIRCULAR mode for Phase 2');
+      log('✅ Timeline set to CIRCULAR mode for Phase 2');
     }
 
     const config = {
@@ -801,27 +802,27 @@ export class GameManager {
    * @param {Object} config - Recording configuration
    */
   async startPhase2Recording(config) {
-    console.log('🎯 Starting Phase 2 recording with config:', config);
+    log('🎯 Starting Phase 2 recording with config:', config);
 
     try {
       // 1. Ocultar popup Fase 2
       this.ui.hidePopup();
-      console.log('✅ Popup oculto');
+      log('✅ Popup oculto');
 
       // 2. Forzar CIRCULAR mode para reproducción
       const circularToggle = window.circularTimelineToggle;
       if (circularToggle && !circularToggle.checked) {
         circularToggle.checked = true;
         circularToggle.dispatchEvent(new Event('change'));
-        console.log('✅ Timeline set to CIRCULAR mode');
+        log('✅ Timeline set to CIRCULAR mode');
       }
 
       // 3. Inicializar audio capture (sin calibrar aún)
       if (window.gameForceKeyboard) {
-        console.log('⌨️ Using keyboard capture mode');
+        log('⌨️ Using keyboard capture mode');
         this.audioCapture = createKeyboardCapture();
       } else {
-        console.log('🎤 Using microphone capture mode');
+        log('🎤 Using microphone capture mode');
         this.audioCapture = await createMicrophoneCapture();
       }
 
@@ -832,10 +833,10 @@ export class GameManager {
       const cycleDuration = config.lg * beatMs;           // duración de 1 ciclo
       const captureDuration = 2 * cycleDuration - 200;   // 2 ciclos MENOS 200ms para evitar ataque final
 
-      console.log(`⏱️ Timing: beatMs=${beatMs.toFixed(0)}ms, countIn=${countInDuration.toFixed(0)}ms, calibration=${calibrationDuration.toFixed(0)}ms, capture=${captureDuration.toFixed(0)}ms`);
+      log(`⏱️ Timing: beatMs=${beatMs.toFixed(0)}ms, countIn=${countInDuration.toFixed(0)}ms, calibration=${calibrationDuration.toFixed(0)}ms, capture=${captureDuration.toFixed(0)}ms`);
 
       // 5. Disparar count-in Y calibrar micrófono en paralelo
-      console.log('🎵 Starting count-in and calibration...');
+      log('🎵 Starting count-in and calibration...');
 
       const countInPromise = playCountIn({
         beats: config.lg,
@@ -847,36 +848,36 @@ export class GameManager {
       // Calibrar en paralelo (termina antes que el count-in)
       const calibrationPromise = (async () => {
         if (!window.gameForceKeyboard && this.audioCapture.calibrateNoiseFloor) {
-          console.log(`🎤 Calibrando micrófono durante ${calibrationDuration.toFixed(0)}ms...`);
+          log(`🎤 Calibrando micrófono durante ${calibrationDuration.toFixed(0)}ms...`);
           await this.audioCapture.calibrateNoiseFloor(calibrationDuration);
-          console.log('✅ Calibración completada');
+          log('✅ Calibración completada');
         }
       })();
 
       // Esperar a que termine el count-in
       await countInPromise;
-      console.log('✅ Count-in terminado');
+      log('✅ Count-in terminado');
 
       // 6. Activar botón LOOP para reproducir 2 veces
-      console.log('🔁 Activando loop para reproducir 2 ciclos...');
+      log('🔁 Activando loop para reproducir 2 ciclos...');
       const loopBtn = document.querySelector('.loop');
       if (loopBtn && !loopBtn.classList.contains('active')) {
         loopBtn.click();
-        console.log('✅ Loop button activated');
+        log('✅ Loop button activated');
       }
 
       // 7. Reproducir patrón en la app real (timeline circular con loop)
-      console.log('▶️ Reproduciendo patrón en app real...');
+      log('▶️ Reproduciendo patrón en app real...');
       const playBtn = document.querySelector('.play');
       if (playBtn && !playBtn.classList.contains('active')) {
         playBtn.click(); // Inicia reproducción en circular mode con loop
-        console.log('✅ Play button clicked - reproduciendo en modo circular con loop');
+        log('✅ Play button clicked - reproduciendo en modo circular con loop');
       } else {
         console.warn('⚠️ Play button not found or already active');
       }
 
       // 8. Iniciar captura del micrófono DESPUÉS del count-in
-      console.log('🎤 Iniciando captura de micrófono...');
+      log('🎤 Iniciando captura de micrófono...');
       this.audioCapture.startRecording();
 
       // Calculate expected timestamps from pattern
@@ -891,27 +892,27 @@ export class GameManager {
         ...expectedTimestamps.map(t => t + cycleDuration)
       ];
 
-      console.log('🎯 Expected timestamps:', allExpectedTimestamps);
+      log('🎯 Expected timestamps:', allExpectedTimestamps);
 
       // 9. Después de 2 ciclos: detener reproducción y captura
       setTimeout(async () => {
-        console.log('⏹️ Deteniendo reproducción y captura...');
+        log('⏹️ Deteniendo reproducción y captura...');
 
         // Detener reproducción
         if (playBtn && playBtn.classList.contains('active')) {
           playBtn.click();
-          console.log('✅ Play button clicked again - reproducción detenida');
+          log('✅ Play button clicked again - reproducción detenida');
         }
 
         // Desactivar loop
         if (loopBtn && loopBtn.classList.contains('active')) {
           loopBtn.click();
-          console.log('✅ Loop button deactivated');
+          log('✅ Loop button deactivated');
         }
 
         // Detener captura y obtener beats
         const capturedBeats = this.audioCapture.stopRecording();
-        console.log('🎵 Captured beats:', capturedBeats);
+        log('🎵 Captured beats:', capturedBeats);
 
         // Analyze rhythm
         const analysis = this.rhythmAnalyzer.compareRhythm(
@@ -920,7 +921,7 @@ export class GameManager {
           { tolerance: 300 } // 300ms tolerance (opción permisiva)
         );
 
-        console.log('📊 Rhythm analysis:', analysis);
+        log('📊 Rhythm analysis:', analysis);
 
         // Verify captured beats are at SELECTED positions (not just timing!)
         // This prevents validating OPPOSITE pulses with good timing
@@ -941,7 +942,7 @@ export class GameManager {
           const offset = capturedBeats.length > 0 && allExpectedTimestamps.length > 0
             ? capturedBeats[0] - allExpectedTimestamps[0]
             : 0;
-          console.log(`🔄 Time offset: ${offset.toFixed(2)}ms (aligning captured to expected frame)`);
+          log(`🔄 Time offset: ${offset.toFixed(2)}ms (aligning captured to expected frame)`);
 
           capturedBeats.forEach(timestamp => {
             // Normalize timestamp to same reference as expected
@@ -966,13 +967,13 @@ export class GameManager {
               positionMatches++;
             }
 
-            console.log(`🎯 Beat at ${timestamp.toFixed(0)}ms (normalized: ${normalized.toFixed(0)}ms, beat #${absoluteBeat}) → pulse ${pulsePosition} (${selectedPositions.includes(pulsePosition) ? '✅ correct' : '❌ wrong'})`);
+            log(`🎯 Beat at ${timestamp.toFixed(0)}ms (normalized: ${normalized.toFixed(0)}ms, beat #${absoluteBeat}) → pulse ${pulsePosition} (${selectedPositions.includes(pulsePosition) ? '✅ correct' : '❌ wrong'})`);
           });
 
           positionAccuracy = totalBeatsChecked > 0 ? positionMatches / totalBeatsChecked : 0;
         }
 
-        console.log(`📍 Position accuracy: ${positionMatches}/${totalBeatsChecked} = ${(positionAccuracy * 100).toFixed(1)}%`);
+        log(`📍 Position accuracy: ${positionMatches}/${totalBeatsChecked} = ${(positionAccuracy * 100).toFixed(1)}%`);
 
         // Require BOTH timing AND position accuracy
         // If position accuracy is low, it means they hit wrong pulses (even with good timing)
@@ -1029,10 +1030,10 @@ export class GameManager {
         // CRITICAL: Dispose microphone after showing results
         if (this.audioCapture && this.audioCapture.dispose) {
           this.audioCapture.dispose();
-          console.log('🎤 Micrófono desconectado después de Phase 2');
+          log('🎤 Micrófono desconectado después de Phase 2');
         }
 
-        console.log('✅ Phase 2 completado');
+        log('✅ Phase 2 completado');
 
       }, captureDuration);
 
@@ -1058,7 +1059,7 @@ export class GameManager {
    * @param {Object} config - Playback configuration
    */
   async playPatternWithCountIn(config) {
-    console.log('Playing pattern with config:', config);
+    log('Playing pattern with config:', config);
 
     // Check if count-in controller is available
     const hasCountIn = window.countInController && typeof window.countInController.play === 'function';
@@ -1103,7 +1104,7 @@ export class GameManager {
    * Skip Phase 2
    */
   skipPhase2() {
-    console.log('Skipping Phase 2');
+    log('Skipping Phase 2');
 
     // Mark as incomplete
     this.gameState.markLevelComplete(

@@ -15,12 +15,14 @@ El detall viu allà; aquí només l'estat. Marca `[x]` a l'informe quan completi
   2026-06-10, detall a l'informe
 - [x] ~~H-11 (applyTo de toggles), H-08 (reorderControls compartit ×13), H-05/H-06 (eines
   de debug opt-in amb ?dev)~~ — fets 2026-06-10
-- Següents candidates: H-12/H-13 (mòduls orfes, console.log en producció), H-19 (noms de
-  directoris), U-xx i mitjanes restants de l'informe
+- [x] ~~H-12 (9 mòduls orfes + 6 suites mortes fora), H-13 (logger compartit gated per
+  ?dev/nuzic-debug als camins calents)~~ — fets 2026-06-10
+- Següents candidates: H-19 (noms de directoris app9-13), H-23 (JSDoc d'audio.js),
+  U-xx i baixes (LA/LP/LU/LH) restants de l'informe
 
 ## Funciona i NO s'ha de trencar
 
-- Suite completa verda (77 suites / 1510 tests) — `npm test` després de cada batch
+- Suite completa verda (71 suites / 1389 tests — H-12 va treure 6 suites de codi mort) — `npm test` després de cada batch
 - Invariants: epsilons 1e-9 del worklet; ordre init àudio (Tone → gest → start; el preload
   de Tone.js i el prefetch de samples només mouen bytes, mai creen AudioContext); BPM sense
   clamp mentre s'escriu (lib 30-240; **apps 9+ política 50-150**); `void offsetWidth` del

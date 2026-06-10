@@ -8,6 +8,7 @@
  */
 
 import { ensureToneLoaded } from '../sound/tone-loader.js';
+import { log } from '../app-common/logger.js';
 /* global Tone */
 
 /**
@@ -51,9 +52,9 @@ export class MicrophoneCapture {
       if (result.state === 'denied') {
         console.warn('⚠️ Permisos de micrófono denegados');
       } else if (result.state === 'granted') {
-        console.log('✅ Permisos de micrófono concedidos');
+        log('✅ Permisos de micrófono concedidos');
       } else if (result.state === 'prompt') {
-        console.log('ℹ️  Permisos de micrófono pendientes (se solicitarán al inicializar)');
+        log('ℹ️  Permisos de micrófono pendientes (se solicitarán al inicializar)');
       }
       return result.state;
     } catch (e) {
@@ -99,8 +100,8 @@ export class MicrophoneCapture {
       await this.mic.open();
 
       this.isInitialized = true;
-      console.log('✅ Micrófono inicializado correctamente');
-      console.log(`ℹ️  Threshold actual: ${this.config.threshold} (usa valores menores como -20 o -30 si no detecta audio)`);
+      log('✅ Micrófono inicializado correctamente');
+      log(`ℹ️  Threshold actual: ${this.config.threshold} (usa valores menores como -20 o -30 si no detecta audio)`);
       return true;
 
     } catch (error) {
@@ -143,7 +144,7 @@ export class MicrophoneCapture {
     this.isRecording = true;
     this._startBeatDetection();
 
-    console.log('🎤 Iniciada grabación de audio');
+    log('🎤 Iniciada grabación de audio');
     return true;
   }
 
@@ -160,7 +161,7 @@ export class MicrophoneCapture {
     this.isRecording = false;
     this._stopBeatDetection();
 
-    console.log(`🎤 Grabación detenida. ${this.detectedBeats.length} beats detectados`);
+    log(`🎤 Grabación detenida. ${this.detectedBeats.length} beats detectados`);
     return this.detectedBeats;
   }
 
@@ -179,7 +180,7 @@ export class MicrophoneCapture {
       // DEBUG: Log de amplitudes cada ~100 muestras (~1 segundo con detectionIntervalMs=10)
       sampleCount++;
       if (sampleCount % 100 === 0) {
-        console.log(`🎤 Nivel actual: ${level.toFixed(2)} dB | Threshold: ${this.config.threshold} dB`);
+        log(`🎤 Nivel actual: ${level.toFixed(2)} dB | Threshold: ${this.config.threshold} dB`);
       }
 
       // Sistema de GATE para evitar retriggering:
@@ -195,7 +196,7 @@ export class MicrophoneCapture {
           this.detectedBeats.push(now);
           this.lastBeatTime = now;
 
-          console.log(`🔊 Beat detectado! Nivel: ${level.toFixed(2)} dB`);
+          log(`🔊 Beat detectado! Nivel: ${level.toFixed(2)} dB`);
 
           // Callback si existe
           if (this.onBeatDetected) {
@@ -254,8 +255,8 @@ export class MicrophoneCapture {
       return this.config.threshold;
     }
 
-    console.log('🎤 Calibrando ruido de fondo...');
-    console.log('   Mantén silencio durante los próximos segundos...');
+    log('🎤 Calibrando ruido de fondo...');
+    log('   Mantén silencio durante los próximos segundos...');
 
     const samples = [];
     const sampleInterval = 50; // Muestra cada 50ms
@@ -274,7 +275,7 @@ export class MicrophoneCapture {
       const elapsed = performance.now() - startTime;
       if (samples.length % 10 === 0 && samples.length > 0) { // Cada 500ms
         const progress = Math.round((elapsed / duration) * 100);
-        console.log(`   Calibrando... ${progress}%`);
+        log(`   Calibrando... ${progress}%`);
       }
     }, sampleInterval);
 
@@ -316,18 +317,18 @@ export class MicrophoneCapture {
     const MINIMUM_THRESHOLD = -22;
     const finalThreshold = Math.max(suggestedThreshold, MINIMUM_THRESHOLD);
 
-    console.log('📊 Análisis del ruido de fondo:');
-    console.log(`   Promedio: ${avgNoise.toFixed(1)} dB`);
-    console.log(`   Mínimo: ${minNoise.toFixed(1)} dB`);
-    console.log(`   Máximo: ${maxNoise.toFixed(1)} dB`);
-    console.log(`   Desv. estándar: ${stdDev.toFixed(1)} dB`);
-    console.log(`   Margen aplicado: ${margin.toFixed(1)} dB (limitado a 5-8 dB)`);
-    console.log(`   Threshold sugerido: ${suggestedThreshold.toFixed(1)} dB`);
+    log('📊 Análisis del ruido de fondo:');
+    log(`   Promedio: ${avgNoise.toFixed(1)} dB`);
+    log(`   Mínimo: ${minNoise.toFixed(1)} dB`);
+    log(`   Máximo: ${maxNoise.toFixed(1)} dB`);
+    log(`   Desv. estándar: ${stdDev.toFixed(1)} dB`);
+    log(`   Margen aplicado: ${margin.toFixed(1)} dB (limitado a 5-8 dB)`);
+    log(`   Threshold sugerido: ${suggestedThreshold.toFixed(1)} dB`);
 
     if (finalThreshold !== suggestedThreshold) {
-      console.log(`   ⚠️  Threshold ajustado a mínimo: ${MINIMUM_THRESHOLD} dB`);
+      log(`   ⚠️  Threshold ajustado a mínimo: ${MINIMUM_THRESHOLD} dB`);
     }
-    console.log(`✅ Threshold final: ${finalThreshold.toFixed(1)} dB`);
+    log(`✅ Threshold final: ${finalThreshold.toFixed(1)} dB`);
 
     // Actualizar el threshold automáticamente
     this.config.threshold = finalThreshold;
@@ -378,7 +379,7 @@ export class MicrophoneCapture {
     this.isRecording = false;
     this.detectedBeats = [];
 
-    console.log('🗑️ MicrophoneCapture limpiado');
+    log('🗑️ MicrophoneCapture limpiado');
   }
 
   /**

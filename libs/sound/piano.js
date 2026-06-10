@@ -9,6 +9,7 @@
  * The audio engine (MelodicTimelineAudio) must call ready() before loading instruments.
  */
 
+import { log } from '../app-common/logger.js';
 let sampler = null;
 let isLoaded = false;
 let loadPromise = null;
@@ -51,7 +52,7 @@ export function resetPiano() {
   isLoaded = false;
   loadPromise = null;
   preloadInitiated = false;
-  console.log('Piano sampler reset');
+  log('Piano sampler reset');
 }
 
 export async function loadPiano() {
@@ -90,7 +91,7 @@ export async function loadPiano() {
       if (melodicChannel?.context) {
         const toneCtx = Tone.getContext?.()?.rawContext || Tone.getContext?.() || Tone.context;
         if (toneCtx !== melodicChannel.context && typeof Tone.setContext === 'function') {
-          console.log('Piano: aligning Tone.js to the engine AudioContext');
+          log('Piano: aligning Tone.js to the engine AudioContext');
           Tone.setContext(melodicChannel.context);
         }
       }
@@ -150,10 +151,10 @@ export async function loadPiano() {
         }
 
         // Wait for all samples to load
-        console.log(`Piano: Calling Tone.loaded() (${baseUrl})...`);
+        log(`Piano: Calling Tone.loaded() (${baseUrl})...`);
         try {
           await Tone.loaded();
-          console.log('Piano: Tone.loaded() completed');
+          log('Piano: Tone.loaded() completed');
           loadError = null;
           break;
         } catch (loadedErr) {
@@ -170,7 +171,7 @@ export async function loadPiano() {
 
       isLoaded = true;
       setAudioLoadingFlag(false);
-      console.log('Piano loaded successfully');
+      log('Piano loaded successfully');
       return sampler;
     } catch (err) {
       // Reset state on failure to allow retry
@@ -214,7 +215,7 @@ export async function playNote(midiNumber, duration, when = 0) {
  */
 export async function playSequence(midiNumbers, intervalSec, onNote, onComplete) {
   if (!isLoaded || !sampler) {
-    console.log('Piano not loaded, loading...');
+    log('Piano not loaded, loading...');
     await loadPiano();
   }
 

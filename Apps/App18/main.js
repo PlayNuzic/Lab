@@ -11,6 +11,7 @@ import { createRegistryController } from '../../libs/sound/registry-controller.j
 import { getRandomBPM, getRandomRegistry } from '../../libs/sound/melodic-sequence.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { setupRandomMenu } from '../../libs/random/menu.js';
+import { log } from '../../libs/app-common/logger.js';
 
 // ========== STATE ==========
 let isPlaying = false;
@@ -188,7 +189,7 @@ async function handleNoteClick(noteIndex) {
   // Show highlight rectangle
   highlightNote(noteIndex, 300);
 
-  console.log(`Click: index=${noteIndex}, noteInRegistry=${noteInRegistry}, MIDI=${midi}`);
+  log(`Click: index=${noteIndex}, noteInRegistry=${noteInRegistry}, MIDI=${midi}`);
 }
 
 /**
@@ -269,7 +270,7 @@ function drawSoundline() {
     });
   }
 
-  console.log('Soundline created for registry:', registry);
+  log('Soundline created for registry:', registry);
 }
 
 // ========== LOCAL HIGHLIGHT CONTROLLER (for 14 notes) ==========
@@ -385,7 +386,7 @@ async function handlePlay() {
   if (registry === null) {
     // Flash the registro circle to indicate missing input
     flashMissingInput(inputRegistro?.closest('.circle'));
-    console.log('No registry selected');
+    log('No registry selected');
     return;
   }
 
@@ -418,9 +419,9 @@ async function handlePlay() {
   clearTimeout(autoPlayTimer);
   autoPlayTimer = null;
 
-  console.log(`BPM: ${currentBPM}`);
-  console.log(`Registry: ${registry}`);
-  console.log(`Notes: ${randomNotes.join(', ')}`);
+  log(`BPM: ${currentBPM}`);
+  log(`Registry: ${registry}`);
+  log(`Notes: ${randomNotes.join(', ')}`);
 
   // Calculate interval between notes
   const intervalSec = 60 / currentBPM;
@@ -501,7 +502,7 @@ function generateRandomSequence() {
     if (inputRegistro) {
       inputRegistro.value = newRegistry;
     }
-    console.log(`Random registry: ${newRegistry}`);
+    log(`Random registry: ${newRegistry}`);
   }
 
   // Generate SEQUENCE_LENGTH random notes within registry range (0-12).
@@ -513,7 +514,7 @@ function generateRandomSequence() {
   }
   currentBPM = getRandomBPM(bMin, bMax);
 
-  console.log(`New random: BPM=${currentBPM}, Notes=${randomNotes.join(',')}`);
+  log(`New random: BPM=${currentBPM}, Notes=${randomNotes.join(',')}`);
 }
 
 function handleRandom() {
@@ -537,7 +538,7 @@ function handleReset() {
   randomNotes = [];
   currentBPM = 0;
 
-  console.log('Reset complete');
+  log('Reset complete');
 }
 
 // ========== REGISTRY INPUT HANDLERS ==========
@@ -567,7 +568,7 @@ function scheduleAutoPlay() {
 function handleRegistroChange(e) {
   const value = inputRegistro.value.trim();
   registryController.setRegistry(value === '' ? null : value);
-  console.log('Registry changed to:', registryController.getRegistry());
+  log('Registry changed to:', registryController.getRegistry());
 
   // Auto-play després d'escriure un dígit. Inclou el cas en què ja
   // s'està reproduint (atura i recomença amb el nou registre).
@@ -580,14 +581,14 @@ function handleRegistroChange(e) {
 function handleRegistroUp() {
   registryController.increment();
   inputRegistro.value = registryController.getRegistry() ?? '';
-  console.log('Registry changed to:', registryController.getRegistry());
+  log('Registry changed to:', registryController.getRegistry());
   scheduleAutoPlay();
 }
 
 function handleRegistroDown() {
   registryController.decrement();
   inputRegistro.value = registryController.getRegistry() ?? '';
-  console.log('Registry changed to:', registryController.getRegistry());
+  log('Registry changed to:', registryController.getRegistry());
   scheduleAutoPlay();
 }
 
@@ -655,7 +656,7 @@ function setupEventHandlers() {
 
   // Instrument changes (header dispatches on window)
   window.addEventListener('sharedui:instrument', (e) => {
-    console.log('Instrument changed:', e.detail.instrument);
+    log('Instrument changed:', e.detail.instrument);
   });
 }
 
@@ -673,7 +674,7 @@ registerFactoryReset({ storage: preferenceStorage });
 
 // ========== INITIALIZATION ==========
 function initApp() {
-  console.log('Initializing App18: Modulo Sonoro - Registro');
+  log('Initializing App18: Modulo Sonoro - Registro');
 
   // Setup piano preload in background (reduces latency on first play)
   setupPianoPreload({ delay: 300 });
@@ -688,7 +689,7 @@ function initApp() {
     return;
   }
 
-  console.log('Elements found');
+  log('Elements found');
 
   // Remove .middle section (formula)
   document.querySelector('.middle')?.remove();
@@ -721,7 +722,7 @@ function initApp() {
   // Idle caret flash on registro circle
   initIdleCaretFlash({ targets: [document.getElementById('inputRegistro')?.closest('.circle')] });
 
-  console.log('App18 initialized - waiting for registry input');
+  log('App18 initialized - waiting for registry input');
 }
 
 // Execute when DOM is ready

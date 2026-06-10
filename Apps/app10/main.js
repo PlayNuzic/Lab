@@ -5,6 +5,7 @@ import { createNoteHighlightController } from '../../libs/app-common/note-highli
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 import { setupPianoPreload } from '../../libs/sound/piano.js';
+import { log } from '../../libs/app-common/logger.js';
 
 // ========== ESTADO ==========
 let isPlaying = false;
@@ -57,7 +58,7 @@ function drawSoundline() {
   // Crear soundline usando módulo compartido
   soundline = createSoundline(soundlineWrapper);
 
-  console.log('Soundline creada correctamente');
+  log('Soundline creada correctamente');
 }
 
 // ========== AUDIO ==========
@@ -73,7 +74,7 @@ async function initAudio() {
       window.__labAudio = audio;
       window.NuzicAudioEngine = audio;
     }
-    console.log('Audio engine inicializado');
+    log('Audio engine inicializado');
   }
   return audio;
 }
@@ -119,9 +120,9 @@ async function handlePlay() {
   randomNotes = generateRandomNotes();
 
   // Log de información
-  console.log(`BPM: ${currentBPM}`);
-  console.log(`Total notas: ${randomNotes.length} (random)`);
-  console.log(`Notas: ${randomNotes.join(', ')}`);
+  log(`BPM: ${currentBPM}`);
+  log(`Total notas: ${randomNotes.length} (random)`);
+  log(`Notas: ${randomNotes.join(', ')}`);
 
   // Calcular intervalo entre notas (en segundos)
   const intervalSec = 60 / currentBPM;
@@ -149,7 +150,7 @@ async function handlePlay() {
     // Programar reproducción y highlight
     const delayMs = currentTime * 1000;
     setTimeout(async () => {
-      console.log(`[RANDOM] Nota ${idx + 1}/6: ${noteIndex} (MIDI ${midi})`);
+      log(`[RANDOM] Nota ${idx + 1}/6: ${noteIndex} (MIDI ${midi})`);
       await playMelodicNote(midi, noteDurationSec * 0.9);
       noteHighlightController.highlightNote(noteIndex, noteDurationSec * 1000 * 0.9);
     }, delayMs);
@@ -166,7 +167,7 @@ async function handlePlay() {
       playBtn.classList.remove('playing');
     }
     noteHighlightController.clearHighlights();
-    console.log('Secuencia finalizada');
+    log('Secuencia finalizada');
   }, currentTime * 1000);
 }
 
@@ -180,7 +181,7 @@ async function playChromaticScale(notes, intervalMs) {
     const noteIndex = notes[i];
     const midi = soundline.getMidiForNote(noteIndex);
 
-    console.log(`[INTRO] Nota ${i}: ${noteIndex} (MIDI ${midi})`);
+    log(`[INTRO] Nota ${i}: ${noteIndex} (MIDI ${midi})`);
 
     // Play note and highlight
     await playMelodicNote(midi, (intervalMs / 1000) * 0.9);
@@ -192,7 +193,7 @@ async function playChromaticScale(notes, intervalMs) {
     }
   }
 
-  console.log('Chromatic scale completed');
+  log('Chromatic scale completed');
 }
 
 /**
@@ -200,7 +201,7 @@ async function playChromaticScale(notes, intervalMs) {
  * Plays chromatic scale (0-11) at BPM 160, then hides overlay
  */
 async function handleStartOverlay() {
-  console.log('Start overlay clicked - playing chromatic scale');
+  log('Start overlay clicked - playing chromatic scale');
 
   // Hide overlay
   startOverlay.classList.add('hidden');
@@ -218,7 +219,7 @@ async function handleStartOverlay() {
   const chromaticNotes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
   const intervalMs = (60 / CHROMATIC_BPM) * 1000;
 
-  console.log(`Playing chromatic scale at ${CHROMATIC_BPM} BPM (interval: ${intervalMs.toFixed(0)}ms)`);
+  log(`Playing chromatic scale at ${CHROMATIC_BPM} BPM (interval: ${intervalMs.toFixed(0)}ms)`);
 
   // Play scale with visual feedback
   await playChromaticScale(chromaticNotes, intervalMs);
@@ -240,7 +241,7 @@ function setupEventHandlers() {
 
   // Manejo de cambios de instrumento
   document.addEventListener('sharedui:instrument', (e) => {
-    console.log('Instrumento cambiado:', e.detail.instrument);
+    log('Instrumento cambiado:', e.detail.instrument);
     // Por ahora solo tenemos piano, en el futuro podríamos cargar otros instrumentos
   });
 }
@@ -250,7 +251,7 @@ registerFactoryReset({ storage: preferenceStorage });
 
 // ========== INICIALIZACIÓN ==========
 function initApp() {
-  console.log('Inicializando App10: Línea Sonora');
+  log('Inicializando App10: Línea Sonora');
 
   // Get timeline element from template
   const timeline = document.getElementById('timeline');
@@ -276,7 +277,7 @@ function initApp() {
   // Set soundlineWrapper reference for drawSoundline
   soundlineWrapper = soundlineContainer;
 
-  console.log('Layout creado correctamente (patrón App14)');
+  log('Layout creado correctamente (patrón App14)');
 
   // Dibujar soundline vertical
   drawSoundline();
@@ -303,7 +304,7 @@ function initApp() {
   // Precargar samples de piano para evitar latencia en el primer play
   setupPianoPreload({ delay: 300 });
 
-  console.log('App10 inicializada correctamente - esperando interacción del usuario');
+  log('App10 inicializada correctamente - esperando interacción del usuario');
 }
 
 // Ejecutar cuando el DOM esté listo

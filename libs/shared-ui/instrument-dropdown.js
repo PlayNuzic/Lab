@@ -2,6 +2,7 @@
 // Dropdown for selecting melodic instruments
 
 // Available instruments
+import { log } from '../app-common/logger.js';
 export const instrumentNames = ['piano', 'flute'];
 
 export const instrumentLabels = {
@@ -25,13 +26,13 @@ async function preloadInstrument(instrument) {
       case 'piano': {
         const { preloadPiano } = await import('../sound/piano.js');
         preloadPiano({ delay: 0 });
-        console.log('Piano preload initiated');
+        log('Piano preload initiated');
         break;
       }
       case 'flute': {
         const { preloadFlute } = await import('../sound/flute.js');
         preloadFlute({ delay: 0 });
-        console.log('Flute preload initiated');
+        log('Flute preload initiated');
         break;
       }
     }

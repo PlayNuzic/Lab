@@ -12,6 +12,7 @@
  * The audio engine (MelodicTimelineAudio) must call ready() before loading instruments.
  */
 
+import { log } from '../app-common/logger.js';
 let sampler = null;
 let isLoaded = false;
 let loadPromise = null;
@@ -34,7 +35,7 @@ export function resetFlute() {
   isLoaded = false;
   loadPromise = null;
   preloadInitiated = false;
-  console.log('Flute sampler reset');
+  log('Flute sampler reset');
 }
 
 // Base URL for tonejs-instruments samples on GitHub Pages
@@ -85,7 +86,7 @@ export async function loadFlute() {
       if (melodicChannel?.context) {
         const toneCtx = Tone.getContext?.()?.rawContext || Tone.getContext?.() || Tone.context;
         if (toneCtx !== melodicChannel.context && typeof Tone.setContext === 'function') {
-          console.log('Flute: aligning Tone.js to the engine AudioContext');
+          log('Flute: aligning Tone.js to the engine AudioContext');
           Tone.setContext(melodicChannel.context);
         }
       }
@@ -142,10 +143,10 @@ export async function loadFlute() {
         }
 
         // Wait for all samples to load
-        console.log(`Flute: Calling Tone.loaded() (${baseUrl})...`);
+        log(`Flute: Calling Tone.loaded() (${baseUrl})...`);
         try {
           await Tone.loaded();
-          console.log('Flute: Tone.loaded() completed');
+          log('Flute: Tone.loaded() completed');
           loadError = null;
           break;
         } catch (loadedErr) {
@@ -161,7 +162,7 @@ export async function loadFlute() {
       }
 
       isLoaded = true;
-      console.log('Flute loaded successfully');
+      log('Flute loaded successfully');
       return sampler;
     } catch (err) {
       // Reset state on failure to allow retry
@@ -203,7 +204,7 @@ export async function playNote(midiNumber, duration, when = 0) {
  */
 export async function playSequence(midiNumbers, intervalSec, onNote, onComplete) {
   if (!isLoaded || !sampler) {
-    console.log('Flute not loaded, loading...');
+    log('Flute not loaded, loading...');
     await loadFlute();
   }
 

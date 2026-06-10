@@ -10,6 +10,7 @@
  */
 
 // Pool configuration
+import { log } from '../app-common/logger.js';
 const DEFAULT_POOL_SIZE = 16; // Max simultaneous notes per pitch class
 const ADSR_DEFAULTS = {
   attack: 0.005,   // 5ms attack (instant, but smooth to avoid clicks)
@@ -113,7 +114,7 @@ export function createSamplerPool(config) {
       }
     }
 
-    console.log(`SamplerPool: Extracted ${bufferMap.size} buffers from keys:`, [...internalMap.keys()].slice(0, 5), '...');
+    log(`SamplerPool: Extracted ${bufferMap.size} buffers from keys:`, [...internalMap.keys()].slice(0, 5), '...');
     return bufferMap.size > 0;
   }
 

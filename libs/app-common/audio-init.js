@@ -6,6 +6,7 @@
 import { TimelineAudio, waitForUserInteraction, prefetchDefaultSamples } from '../sound/index.js';
 import { ensureToneLoaded } from '../sound/tone-loader.js';
 import { ensurePreferredSampleRateContext } from '../sound/audio-context-helper.js';
+import { log } from './logger.js';
 
 // P-12: tota app que importa aquest mòdul acabarà carregant els clicks per
 // defecte al primer Play; avançem la descàrrega a temps idle de la càrrega.
@@ -198,7 +199,7 @@ export function createMelodicAudioInitializer(config = {}) {
         if (typeof Tone !== 'undefined' && typeof Tone.start === 'function') {
           try {
             await Tone.start();
-            console.log('Tone.js AudioContext started successfully');
+            log('Tone.js AudioContext started successfully');
           } catch (err) {
             // Log but don't fail - context might already be running
             console.warn('Tone.start() warning:', err.message);

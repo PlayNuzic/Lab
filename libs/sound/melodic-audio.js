@@ -14,6 +14,7 @@ import { loadPiano, resetPiano } from './piano.js';
 import { loadFlute, resetFlute } from './flute.js';
 import { ensureToneLoaded } from './tone-loader.js';
 import { createSamplerPool, ADSR_PRESETS } from './sampler-pool.js';
+import { log } from '../app-common/logger.js';
 
 export class MelodicTimelineAudio extends TimelineAudio {
   constructor() {
@@ -42,7 +43,7 @@ export class MelodicTimelineAudio extends TimelineAudio {
       this.mixer.registerChannel(ch, { volume: 0.6 });
     }
 
-    console.log('MelodicTimelineAudio initialized with instrument channel');
+    log('MelodicTimelineAudio initialized with instrument channel');
   }
 
   /**
@@ -57,7 +58,7 @@ export class MelodicTimelineAudio extends TimelineAudio {
     // CRITICAL: Explicitly load Tone.js before using piano
     await ensureToneLoaded();
 
-    console.log(`Loading instrument: ${key}`);
+    log(`Loading instrument: ${key}`);
 
     // Verify Tone.js is available
     if (typeof window.Tone === 'undefined') {
@@ -69,7 +70,7 @@ export class MelodicTimelineAudio extends TimelineAudio {
     // This prevents InvalidAccessError when connecting Tone.js nodes to our GainNodes
     const Tone = window.Tone;
     if (this._ctx && Tone.getContext().rawContext !== this._ctx) {
-      console.log('Setting Tone.js to use TimelineAudio AudioContext');
+      log('Setting Tone.js to use TimelineAudio AudioContext');
       Tone.setContext(this._ctx);
 
       // Reset existing samplers - they were created with the old context
@@ -83,7 +84,7 @@ export class MelodicTimelineAudio extends TimelineAudio {
     if (this._instrumentSampler && this._currentInstrument !== key) {
       try {
         this._instrumentSampler.disconnect();
-        console.log(`Disconnected previous instrument: ${this._currentInstrument}`);
+        log(`Disconnected previous instrument: ${this._currentInstrument}`);
       } catch (e) {
         // Ignore disconnect errors
       }
@@ -117,12 +118,12 @@ export class MelodicTimelineAudio extends TimelineAudio {
         // Disconnect first to avoid double connections
         sampler.disconnect();
         sampler.connect(melodicChannel);
-        console.log(`${key} connected to melodic channel`);
+        log(`${key} connected to melodic channel`);
       } catch (e) {
         // If connection fails, try toDestination as fallback
         try {
           sampler.toDestination();
-          console.log(`${key} connected to destination (fallback)`);
+          log(`${key} connected to destination (fallback)`);
         } catch (e2) {
           console.warn(`Failed to connect ${key}:`, e2.message);
         }
@@ -145,12 +146,12 @@ export class MelodicTimelineAudio extends TimelineAudio {
 
         // Extract buffers from Tone.Sampler (retry once if samples not yet decoded)
         if (this._samplerPool.init()) {
-          console.log(`SamplerPool initialized for ${key} (low-latency mode enabled)`);
+          log(`SamplerPool initialized for ${key} (low-latency mode enabled)`);
         } else {
           // Tone.Sampler may still be decoding buffers — retry after a short delay
           await new Promise(r => setTimeout(r, 200));
           if (this._samplerPool && this._samplerPool.init()) {
-            console.log(`SamplerPool initialized for ${key} on retry`);
+            log(`SamplerPool initialized for ${key} on retry`);
           } else {
             console.warn(`SamplerPool failed to extract buffers, falling back to Tone.js`);
             this._samplerPool = null;
@@ -162,7 +163,7 @@ export class MelodicTimelineAudio extends TimelineAudio {
       }
     }
 
-    console.log(`Instrument ${key} loaded and set as current (sampler:`, !!sampler, ', pool:', !!this._samplerPool, ')');
+    log(`Instrument ${key} loaded and set as current (sampler:`, !!sampler, ', pool:', !!this._samplerPool, ')');
   }
 
   /**
@@ -291,7 +292,7 @@ export class MelodicTimelineAudio extends TimelineAudio {
    */
   setLowLatencyMode(enabled) {
     this._useLowLatencyMode = enabled;
-    console.log(`Low-latency mode ${enabled ? 'enabled' : 'disabled'}`);
+    log(`Low-latency mode ${enabled ? 'enabled' : 'disabled'}`);
   }
 
   /**
