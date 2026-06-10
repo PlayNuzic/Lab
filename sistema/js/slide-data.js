@@ -193,8 +193,7 @@ export const slideContent = {
 <p>Pensar en distancias que unen posiciones, es empezar a entender la música como movimiento.</p>`,
   },
   8: {
-    text: `<p>El movimiento de la música se mide en intervalos: el intervalo temporal (iT) y el intervalo sonoro (iS). El intervalo temporal mide la duración de un sonido musical; el intervalo sonoro mide la distancia entre dos notas.</p>
-<h3>El intervalo temporal iT(n) mide la distancia entre dos pulsos escogidos.</h3>
+    text: `<p><strong>El intervalo temporal iT(n) mide la distancia entre dos pulsos escogidos.</strong></p>
 <p>¿Recordáis que llamábamos paso temporal a la distancia entre dos pulsos consecutivos? Pues el intervalo temporal mide la cantidad de pasos temporales que dura un sonido. </p>
 <p>En la notación tradicional, se usan diferentes figuras de nota para definir intervalos temporales: corcheas, negras, blancas, redondas… </p>
 <p>------------------------------------</p>
