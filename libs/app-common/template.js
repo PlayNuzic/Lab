@@ -193,13 +193,6 @@ ${togglesMarkup}
     <details class="menu" id="optionsMenu">
       <summary>☰</summary>
       <div class="options-content">
-        <label for="themeSelect">Tema:
-          <select id="themeSelect">
-            <option value="system" selected>Sistema</option>
-            <option value="light">Claro</option>
-            <option value="dark">Oscuro</option>
-          </select>
-        </label>
         ${showHoverToggle ? '<label for="hoverToggle">Etiquetas de ayuda <input type="checkbox" id="hoverToggle" checked /></label>' : ''}
         ${selectColor}
         ${showCircularTimelineToggle ? '<label for="circularTimelineToggle">Línea temporal circular <input type="checkbox" id="circularTimelineToggle" /></label>' : ''}

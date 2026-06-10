@@ -29,4 +29,14 @@ export function attachHover(el, { text = '', color = '#fff', background = 'rgba(
 
   el.addEventListener('mouseenter', show);
   el.addEventListener('mouseleave', hide);
+  // U-05: paritat per a teclat (Tab mostra l'ajuda igual que el hover)...
+  el.addEventListener('focus', show);
+  el.addEventListener('blur', hide);
+  // ...i en tàctil el mouseenter emulat deixava el tip enganxat fins a
+  // tocar un altre element: auto-amagat passats 2s quan no hi ha hover real.
+  if (typeof matchMedia === 'function' && matchMedia('(hover: none)').matches) {
+    el.addEventListener('touchend', () => {
+      setTimeout(hide, 2000);
+    }, { passive: true });
+  }
 }

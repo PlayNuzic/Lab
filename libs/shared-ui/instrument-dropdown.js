@@ -223,9 +223,11 @@ export function initInstrumentDropdown(container, { storageKey, eventType, onSel
     confirmSelection();
   });
 
-  // Exit button
+  // Exit button — U-07: mateixa semàntica que el dropdown de sons:
+  // 'Salir' COMMITEJA la selecció pendent (només difereix del clic a
+  // l'ítem quan s'ha navegat amb fletxes sense Enter); Escape cancel·la.
   exitBtn.addEventListener('click', () => {
-    pending = selected; // Reset pending
+    confirmSelection();
     closePanel();
   });
 
@@ -252,13 +254,18 @@ export function initInstrumentDropdown(container, { storageKey, eventType, onSel
       confirmSelection();
     } else if (e.key === 'Escape') {
       e.preventDefault();
+      // U-07: Escape cancel·la la navegació pendent
+      pending = selected;
+      updateListHighlight();
       closePanel();
     }
   });
 
-  // Close on outside click
+  // Close on outside click — U-07: commiteja com 'Salir' (paritat amb
+  // el dropdown de sons)
   document.addEventListener('click', (e) => {
     if (!container.contains(e.target) && panel.style.display !== 'none') {
+      confirmSelection();
       closePanel();
     }
   });

@@ -423,6 +423,9 @@ function wireControls(root) {
     let hideTimeout = null;
     let muted = false;
     let scheduleHide = () => {};
+    // U-09: el handler del muteBtn (bloc separat) necessita revelar el
+    // fader en tàctil — mateix patró d'hissat que scheduleHide.
+    let revealSlider = () => {};
     
     // ICONOS ORIGINALES (movidos aquí para estar disponibles globalmente)
     const speakerOn = `<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M-1.6,148.8h121.4L302.4,0v512L119.8,363.2H-1.6V148.8z M371.1,124.6c35.9,35.9,54.2,79.5,54.9,130.9 c0,49.3-18.3,91.5-54.9,126.7l-36.9-38c25.3-25.3,38-55.2,38-89.7c0-35.2-12.7-65.8-38-91.8L371.1,124.6z M434.4,62.3 c52.8,52.8,79.2,116.5,79.2,191.1c0,74.6-26.4,138.6-79.2,192.1l-39.1-39.1c42.2-41.5,63.3-92.4,63.3-152.5 c0-60.2-21.1-111.4-63.3-153.6L434.4,62.3z"/></svg>`;
@@ -464,6 +467,7 @@ function wireControls(root) {
             volumeSlider.classList.remove('hide');
             volumeSlider.classList.add('show');
         }
+        revealSlider = showSlider;
 
         function scheduleShow() {
             clearTimeout(showTimeout);
@@ -620,7 +624,24 @@ function wireControls(root) {
     if (muteBtn) {
         updateMuteIcon(); // Inicializar el icono
 
+        // U-09: en tàctil no hi ha hover — el primer toc a l'altaveu
+        // REVELA el fader (abans mutejav a com a peatge per arribar-hi:
+        // el click cancel·lava el scheduleShow del mouseenter emulat).
+        // El segon toc, amb el fader ja visible, muteja normalment.
+        let lastPointerType = '';
+        muteBtn.addEventListener('pointerup', (e) => {
+            lastPointerType = e.pointerType || '';
+        });
+
         muteBtn.addEventListener('click', () => {
+            if (
+                lastPointerType === 'touch' &&
+                volumeSlider &&
+                !volumeSlider.classList.contains('show')
+            ) {
+                revealSlider();
+                return;
+            }
             muted = !muted;
 
             if (muted) {
@@ -869,12 +890,10 @@ export function renderHeader({ title = 'App', mount } = {}) {
         <details class="menu" id="optionsMenu">
             <summary>☰</summary>
             <div class="options-content">
-                <label for="themeSelect">Tema:</label>
-                <select id="themeSelect">
-                    <option value="system" selected>Sistema</option>
-                    <option value="light">Claro</option>
-                    <option value="dark">Oscuro</option>
-                </select>
+                <!-- U-02: selector de tema retirat — el mode fosc està
+                     desactivat (applyTheme força 'light') i l'opció era un
+                     control visiblement mort. El contracte sharedui:theme
+                     es manté intacte per si es reactiva. -->
                 <label for="hoverToggle">Etiquetas de ayuda</label>
                 <input type="checkbox" id="hoverToggle" checked>
                 <label for="selectColor">Color selección</label>

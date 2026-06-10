@@ -136,6 +136,11 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
   toggle.addEventListener('click', e => {
     e.stopPropagation();
     if (panel.style.display === 'block') {
+      // U-07: tancar pel toggle també reverteix el preview (mateixa
+      // semàntica que Escape; 'Salir' i el clic fora COMMITEGEN).
+      pending = selected;
+      updateListHighlight();
+      previewPending();
       panel.style.display = 'none';
     } else {
       openPanel();
@@ -165,10 +170,16 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
         openPanel();
       }
     } else if (k === 'Escape') {
-      // Only close our dropdown, keep the whole options menu open
+      // Only close our dropdown, keep the whole options menu open.
+      // U-07: Escape CANCEL·LA — sense això el motor es quedava sonant
+      // amb el so previsualitzat mentre l'etiqueta i localStorage
+      // mostraven l'anterior.
       if (isOpen()) {
         e.preventDefault();
         e.stopPropagation();
+        pending = selected;
+        updateListHighlight();
+        previewPending();
         panel.style.display = 'none';
       }
     }
