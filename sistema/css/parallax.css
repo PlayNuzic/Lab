@@ -22,6 +22,14 @@
   /* Omple el viewport disponible (descomptant nav i padding del stage)
      perquè el pas intro se senti com una portada de capítol. */
   min-height: calc(100vh - var(--nav-h) - 2 * var(--slide-pad-y));
+  /* U-17: dvh evita l'overshoot del 100vh amb la barra d'URL d'iOS (els
+     dots i el hint quedaven sota el fold); el 100vh de sobre és fallback. */
+  min-height: calc(100dvh - var(--nav-h) - 2 * var(--slide-pad-y));
+  /* U-17: el swipe vertical alhora feia scroll natiu de pàgina I pas de
+     frase (els touch handlers són passius). Suprimim només els gestos
+     natius de scroll/zoom — els taps i els handlers segueixen igual.
+     En mode edició (contenteditable) cal el comportament natiu. */
+  touch-action: none;
   overflow: hidden;           /* clip de les capes que es mouen */
   isolation: isolate;
   border-radius: 18px;
@@ -207,10 +215,16 @@ body[data-editable="true"] .parallax-scroll-hint{ display: none; }
 @media (max-width: 900px){
   .slide--parallax{
     min-height: calc(100vh - var(--nav-h) - 2 * var(--slide-pad-y));
+    min-height: calc(100dvh - var(--nav-h) - 2 * var(--slide-pad-y));
     padding: clamp(20px, 5vw, 36px);
   }
   .parallax-frases > p{
     font-size: clamp(20px, 5.5vw, 32px);
   }
   .parallax-layer{ opacity: 0.08; }
+}
+
+/* U-17: en mode edició el contenteditable necessita els gestos natius. */
+body[data-editable="true"] .slide--parallax {
+  touch-action: auto;
 }

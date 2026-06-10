@@ -357,7 +357,11 @@ body[data-theme="dark"] .iframe-frame:has(.iframe-placeholder){ background: #2a2
   .slide:not(.slide--no-expand) .iframe-frame {
     aspect-ratio: auto !important;
     max-height: none !important;
-    min-height: 0 !important;
+    /* U-18: fins que l'app embedada respon amb app:resize (segons en
+       xarxes mòbils), el frame no té cap font d'alçada i es veia com una
+       tira de ~150px. Floor de 320px (el mateix de grid.css); l'alçada
+       inline de app:resize guanya quan és més gran. */
+    min-height: 320px !important;
   }
 }
 

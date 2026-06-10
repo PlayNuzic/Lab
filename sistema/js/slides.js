@@ -834,11 +834,24 @@ function render(){
   applyEditableState(slideEl, slide.paso);
 
   localStorage.setItem(STORAGE_KEY, state.paso);
+
+  // U-20: mirall de la posició a l'URL (sense embrutar l'historial).
+  // Sense això, un ?paso=7 ranci guanyava al progrés guardat en recarregar
+  // i la posició actual no es podia compartir ni desar com a marcador.
+  // Preservem la resta de query params (?tweaks=1...).
+  try {
+    const q = new URLSearchParams(location.search);
+    q.set('paso', state.paso);
+    history.replaceState(null, '', `${location.pathname}?${q}`);
+  } catch {}
 }
 
 // Apply/clear contenteditable on the editable fields of the current slide and
 // hook blur handlers that persist edits into state.overrides + localStorage.
 function applyEditableState(slideEl, paso){
+  // U-17: marcador a nivell de body perquè el CSS pugui restaurar els
+  // gestos natius (touch-action) als parallax quan s'edita contenteditable.
+  document.body.dataset.editable = state.editable ? 'true' : 'false';
   const fields = slideEl.querySelectorAll('[data-field]');
   fields.forEach(el => {
     if (state.editable) {
@@ -1186,7 +1199,12 @@ const narrowMQ = window.matchMedia(NARROW_VIEWPORT_QUERY);
 const onNarrowChange = (e) => {
   if (state.narrowViewport === e.matches) return;
   state.narrowViewport = e.matches;
-  render();
+  // U-19: només els pasos amb requiresLandscape (avís de rotació) usen
+  // aquest estat al render. Per a la resta, re-renderitzar destruïa
+  // l'iframe i el progrés de l'alumne a cada rotació del mòbil
+  // (vertical↔horitzontal sempre creua els 599px). El breakpoint de
+  // 900px ja es gestiona sense re-render (CSS + broadcastSystemMode).
+  if (getSlide(state.paso)?.requiresLandscape) render();
 };
 if (narrowMQ.addEventListener) narrowMQ.addEventListener('change', onNarrowChange);
 else narrowMQ.addListener(onNarrowChange);
