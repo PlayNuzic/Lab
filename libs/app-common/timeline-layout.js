@@ -1,3 +1,38 @@
+/**
+ * Disposició DOM de la línia de temps (App2/3/4/5): posiciona polsos, barres
+ * d'inici/final, marcadors i etiquetes de cicle en mode LINEAL (percentatges
+ * sobre l'amplada) o CIRCULAR (trigonometria sobre el radi), i manté els
+ * números de pols.
+ *
+ * No confondre amb el veí timeline-renderer.js (createFractionalTimelineRenderer):
+ * aquell CREA el DOM de les timelines fraccionàries; aquest només POSICIONA
+ * elements que l'app ja ha creat i li passa via getters — malgrat el nom de
+ * la funció exportada, aquí no es "renderitza" res més que els números.
+ *
+ * @param {Object} config
+ * @param {HTMLElement} config.timeline - Element arrel (obligatori)
+ * @param {HTMLElement} [config.timelineWrapper] - Rep la classe 'circular'
+ *   (fallback: closest('.timeline-wrapper') o el pare)
+ * @param {Function} [config.getLg] - Lg actual (fallback: pulses.length - 1)
+ * @param {Function} [config.getPulses] - Elements de pols a posicionar
+ * @param {Function} [config.getBars] - Barres extremes (idx 0 → pas 0; la resta → pas Lg)
+ * @param {Function} [config.getCycleMarkers] - Marcadors de subdivisió (via dataset.position)
+ * @param {Function} [config.getCycleLabels] - Etiquetes de subdivisió
+ * @param {Function} [config.getPulseNumberLabels] - Llista de números viva a l'app
+ * @param {Function} [config.setPulseNumberLabels] - L'app recorda els números re-creats
+ * @param {Function} [config.computeNumberFontRem] - Mida de font dels números segons Lg
+ * @param {number} [config.pulseNumberHideThreshold=Infinity] - Lg a partir de la qual no es pinten números
+ * @param {number} [config.numberCircleOffset=0] - Quant cap endins del radi van els números (circular)
+ * @param {Function|boolean} [config.isCircularEnabled=false] - Lineal o circular, decidit a cada layout
+ * @param {Function} [config.scheduleIndicatorReveal] - Re-mostra l'indicador "t" passat el retard (ms)
+ * @param {number} [config.tIndicatorTransitionDelay=0] - Retard extra en canviar lineal↔circular
+ * @param {Function} [config.requestAnimationFrame] - Injectable per a tests
+ * @param {Function} [config.createPulseNumber] - Fàbrica custom de números de pols
+ * @param {number} [config.circularLabelOffset=36] - Px fora del radi per a les etiquetes de cicle
+ * @param {Object} [config.callbacks] - onBefore/onAfterCircularLayout,
+ *   onBefore/onAfterLinearLayout, onAfterLayout (reben el context de layout)
+ * @returns {{updatePulseNumbers: Function, layoutTimeline: Function}}
+ */
 export function createTimelineRenderer(config = {}) {
   const {
     timeline,
@@ -87,11 +122,9 @@ export function createTimelineRenderer(config = {}) {
     if (!label.textContent) {
       label.textContent = String(index);
     }
-    if (label.parentNode !== timeline) {
-      timeline.appendChild(label);
-    } else {
-      timeline.appendChild(label);
-    }
+    // appendChild mou el node al final encara que ja pengi del timeline:
+    // l'ordre DOM dels números queda estable sense cap condicional.
+    timeline.appendChild(label);
     return label;
   };
 
@@ -127,6 +160,8 @@ export function createTimelineRenderer(config = {}) {
       }
     };
 
+    // 0 i Lg primer: si l'app limita o estila els extrems (endpoint),
+    // sempre existeixen abans que els intermedis.
     appendNumber(0);
     appendNumber(lg);
     for (let i = 1; i < lg; i += 1) {
@@ -235,6 +270,8 @@ export function createTimelineRenderer(config = {}) {
         }
       }
 
+      // El layout circular es fa dins un rAF: el rect del timeline acabat
+      // de fer 'circular' encara no és definitiu en el mateix frame.
       raf(() => {
         const rect = timeline.getBoundingClientRect();
         const width = rect.width || 0;
@@ -243,6 +280,8 @@ export function createTimelineRenderer(config = {}) {
         const cy = height / 2;
         const radius = Math.min(width, height) / 2 - 1;
 
+        // +PI/2: el pols 0 comença a BAIX del cercle (les 6 en punt) i gira
+        // en sentit horari, convenció visual de totes les apps circulars.
         const angleForIndex = (index) => {
           if (!Number.isFinite(lg) || lg === 0) return Math.PI / 2;
           return (index / lg) * 2 * Math.PI + Math.PI / 2;

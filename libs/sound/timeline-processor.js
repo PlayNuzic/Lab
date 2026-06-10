@@ -283,6 +283,8 @@ class TimelineProcessor extends AudioWorkletProcessor {
     if (output) output.forEach(ch => ch.fill(0)); // silencio
     if (!this.active) return true;
 
+    // Quantum de render de l'AudioWorklet: fixat a 128 samples per l'spec
+    // de Web Audio — no és configurable ni pot canviar entre blocs.
     const block = 128;
     // currentTime (global de l'AudioWorkletGlobalScope) és l'inici exacte
     // d'aquest bloc de render: temps del sample i = blockTime + i·secondsPerSample.
@@ -318,13 +320,22 @@ class TimelineProcessor extends AudioWorkletProcessor {
         }
       }
 
+      // L'epsilon 1e-9 absorbeix l'error d'acumulació en coma flotant quan
+      // el comptador cau EXACTAMENT a 0: sense ell, un residu de ±1e-16 fa
+      // que el pols es dispari un sample tard o dues vegades (doble clic).
       while (this.pulseCountdownBeats <= 1e-9) {
         this._emitPulse(blockTime + i * this.secondsPerSample);
         if (!this.active) return true;
+        // Acumular (+=), MAI reiniciar (=1): conserva el residu fraccionari
+        // del comptador, així l'error no s'acumula i els polsos no deriven
+        // per molt llarga que sigui la reproducció.
         this.pulseCountdownBeats += 1;
       }
 
       if (this.cycleEvents.length) {
+        // Mateix epsilon que els polsos: un beat fraccionari (p.ex. 4/3)
+        // mai cau exacte en coma flotant; sense el -1e-9 l'event sortiria
+        // un sample tard respecte al pols coincident.
         while (this.nextCycleIndex < this.cycleEvents.length &&
                this.measurePhaseBeats >= this.cycleEvents[this.nextCycleIndex].beat - 1e-9) {
           const payload = this.cycleEvents[this.nextCycleIndex];
@@ -336,6 +347,8 @@ class TimelineProcessor extends AudioWorkletProcessor {
       if (this.voices.size) {
         for (const voice of this.voices.values()) {
           voice.countdownBeats -= beatsPerSample;
+          // Epsilon i acumulació (+= period, mai = period): mateixes raons
+          // que el comptador de polsos — anti doble-tret i anti deriva.
           if (voice.countdownBeats <= 1e-9) {
             this.port.postMessage({
               type: 'voice',

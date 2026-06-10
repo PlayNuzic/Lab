@@ -18,7 +18,7 @@ Middleware layer between UI and TimelineAudio. 53 modules. Everything reusable a
 
 **UI:**
 - `fraction-editor.js` — CRUD component with validation, modes: inline/block
-- `timeline-layout.js` — Subdivision layout calculations
+- `timeline-layout.js` — DOM positioning of pulses/bars/markers, linear & circular modes (App2-5). NOT subdivision math; do not confuse with `timeline-renderer.js` (fractional timeline DOM creation, App4)
 - `template.js` — Shared slots, supports `useIntervalMode` flag
 - `tap-tempo-handler.js` — Tap tempo with visual feedback, requires 3 taps minimum
 

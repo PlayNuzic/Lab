@@ -11,10 +11,10 @@ El detall viu allà; aquí només l'estat. Marca `[x]` a l'informe quan completi
 ## Pendent (següents per impacte)
 
 - [x] ~~A-10 (flams setTempo), P-12 (payload primer Play), A-12 (vendoritzar piano/flauta),
-  U-22 (menú capítols amb teclat), H-21 (motor iTfr compartit App30/31)~~ — fets 2026-06-10,
-  detall a l'informe
-- [ ] Re-comentat quirúrgic pendent de l'auditoria: WHY-comments a `timeline-processor.js`
-  (protocol d'alt risc: diff + aprovació) i `timeline-layout.js` (re-comentat + condicional mort)
+  U-22 (menú capítols amb teclat), H-21 (motor iTfr compartit App30/31), H-09/H-18
+  (re-comentat quirúrgic), tempo en calent App27-31 (bug d'usuari)~~ — fets 2026-06-10
+- Següents candidates: troballes mitjanes restants de l'informe (H-07 addRepeatPress ×11,
+  H-14 shell d'àudio duplicat, A-04 scheduler throttlejable, U-xx teclat/spinners...)
 
 ## Funciona i NO s'ha de trencar
 
