@@ -9,7 +9,7 @@
 //   <link rel="stylesheet" href="../../libs/app-common/embed.css" />
 //
 // Activate from the Sistema:
-//   <iframe src="Apps/app9/index.html?embed=true"></iframe>
+//   <iframe src="Apps/App9/index.html?embed=true"></iframe>
 if (new URLSearchParams(location.search).has('embed')) {
   document.documentElement.setAttribute('data-embed', 'true');
 

@@ -85,7 +85,7 @@ export function initEmbedMode() {
 ### 2.2 Activacio des del Sistema Interactivo
 
 ```html
-<iframe src="Apps/app9/index.html?embed=true"></iframe>
+<iframe src="Apps/App9/index.html?embed=true"></iframe>
 ```
 
 Sense `?embed=true`, l'app funciona exactament igual que ara. Res no es trenca.

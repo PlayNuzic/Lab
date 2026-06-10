@@ -29,7 +29,7 @@ tests/            — Tests d'integració + harness embed (71 suites, 1380+ test
 35+ apps al directori `Apps/`, organitzades per categoria didàctica al Sistema Interactivo. Cada app té el seu README amb detalls. Algunes destacades:
 
 - **App1–App4** — Bases temporals (timeline, pulse-seq editor, fraction editor, multi-fraction)
-- **app9 / app10 / App17** — Línies temporal/sonora i timeline circular
+- **App9 / App10 / App17** — Línies temporal/sonora i timeline circular
 - **app11 / App11A / App12** — Plano musical (graella 2D temps × notes)
 - **App19 / App20** — Plano modular amb registres i sucessions N-iT
 - **App21–App25B** — Apps d'escales musicals

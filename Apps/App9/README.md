@@ -213,7 +213,7 @@ npm test  # 280 tests passing
 ## Estructura de Archivos
 
 ```
-Apps/app9/
+Apps/App9/
 ├── index.html      - HTML principal con template
 ├── main.js         - Lógica del metrónomo (352 líneas)
 ├── styles.css      - Estilos de la línea temporal (196 líneas)

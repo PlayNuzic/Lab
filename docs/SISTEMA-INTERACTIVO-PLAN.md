@@ -372,7 +372,7 @@ export const slides = [
     layout: 'span-left',
     vars: {},
     content: {
-      main: { type: 'iframe', src: 'Apps/app9/index.html?embed=true' },
+      main: { type: 'iframe', src: 'Apps/App9/index.html?embed=true' },
       side: { type: 'text', html: '...' },
       tips: { type: 'tips', html: '...' }
     }

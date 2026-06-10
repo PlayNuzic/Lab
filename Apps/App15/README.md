@@ -287,7 +287,7 @@ async function handleCellClick(noteIndex, pulseIndex, cellElement) {
 
 ### Verificación Manual
 
-1. Abrir `http://localhost:8080/Apps/app11/`
+1. Abrir `http://localhost:8080/Apps/App11/`
 2. Verificar que:
    - Soundline vertical visible a la izquierda (números 0-11)
    - Timeline horizontal visible abajo (números 0-8)
@@ -309,7 +309,7 @@ npm test  # 280 tests passing
 ## Estructura de Archivos
 
 ```
-Apps/app11/
+Apps/App11/
 ├── index.html      - HTML principal con renderApp config
 ├── main.js         - Lógica de grid, celdas, audio (263 líneas)
 ├── styles.css      - Estilos 2D grid, celdas, highlights (333 líneas)

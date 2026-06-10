@@ -17,7 +17,10 @@ El detall viu allà; aquí només l'estat. Marca `[x]` a l'informe quan completi
   de debug opt-in amb ?dev)~~ — fets 2026-06-10
 - [x] ~~H-12 (9 mòduls orfes + 6 suites mortes fora), H-13 (logger compartit gated per
   ?dev/nuzic-debug als camins calents)~~ — fets 2026-06-10
-- Següents candidates: H-19 (noms de directoris app9-13), U-xx i baixes (LA/LP/LU/LH) restants de l'informe
+- [x] ~~H-19 (app9/10/11/13 → App9/10/11/13; identificadors interns intactes), H-23 (JSDoc
+  del scheduling-bridge)~~ — fets 2026-06-10
+- Resta de l'informe: U-xx mitjanes d'UX i les ~90 baixes (LA/LP/LU/LH, no verificades
+  adversàriament — re-verificar abans d'aplicar)
 
 ## Funciona i NO s'ha de trencar
 

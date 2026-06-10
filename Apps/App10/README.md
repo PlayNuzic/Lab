@@ -116,7 +116,7 @@ playSequence(
 ## Estructura de Archivos
 
 ```
-Apps/app10/
+Apps/App10/
 ├── index.html      - HTML principal con template
 ├── main.js         - Lógica de la línea sonora
 ├── styles.css      - Estilos de soundline y highlights

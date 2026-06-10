@@ -103,7 +103,7 @@ App10 is a musical education application featuring a vertical soundline with pia
 ## File Structure
 
 ```
-Apps/app10/
+Apps/App10/
 ├── index.html           # Entry point with template configuration
 ├── main.js              # Application logic (185 lines)
 ├── styles.css           # Vertical layout styles (279 lines)
@@ -124,7 +124,7 @@ Related shared modules:
 **Root Cause**: Clearing `#timelineWrapper.innerHTML` removed `.controls` div
 
 **Solution**: Target `#timeline` (child element) instead of `#timelineWrapper` (parent)
-- Modified `Apps/app10/main.js` line 158
+- Modified `Apps/App10/main.js` line 158
 - Added `.timeline` flex container styles in `styles.css`
 
 ### 2. Tone.js Loading Pattern

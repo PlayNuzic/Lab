@@ -1215,7 +1215,7 @@ const systemVerticalMQ = window.matchMedia(SYSTEM_VERTICAL_MQ);
 // `embed.css` no allibera html/body/main i tot manté la seva geometria
 // fixa amb scroll intern propi.
 const NO_EXPAND_APPS = new Set([
-  'App11A', 'app10', 'app11', 'App12', 'App14', 'App15', 'App18', 'App19',
+  'App11A', 'App10', 'App11', 'App12', 'App14', 'App15', 'App18', 'App19',
   'App20', 'App34', 'App35', 'App21', 'App22', 'App25', 'App25B',
 ]);
 function pasoExpandsOnVertical(paso) {
