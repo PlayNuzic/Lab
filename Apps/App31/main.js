@@ -4,11 +4,8 @@
 // Bi-direccionalitat: timeline ↔ editor iT cel·lular
 // Àudio melòdic amb selector d'instrument
 
-import { getMixer } from '../../libs/sound/index.js';
-import { createMelodicAudioInitializer, setupAudioDefaults, CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
-import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
-import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
-import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
+import { CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
+import { createFractionAppShell } from '../../libs/app-common/fraction-app-shell.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
@@ -68,33 +65,6 @@ let cycleLabels = [];
 let fractionEditorController = null;
 let randomMenu = null;  // Long-press random menu controller (read())
 
-// ========== PREFERENCE STORAGE ==========
-const preferenceStorage = createPreferenceStorage({ prefix: 'app31', separator: '::' });
-const { load: loadOpt } = preferenceStorage;
-
-registerFactoryReset({
-  storage: preferenceStorage,
-  onBeforeReload: () => {}
-});
-
-// ========== SOUND EVENTS ==========
-// The shared audio engine routes baseSound/cycleSound → audio.setBase/setCycle.
-// No manual metronome playback needed — playOptions.cycle handles it.
-bindSharedSoundEvents({
-  getAudio: () => audio,
-  mapping: {
-    baseSound: 'setBase',
-    cycleSound: 'setCycle'
-  }
-});
-
-// Listen for instrument changes - sync with audio engine
-window.addEventListener('sharedui:instrument', async (e) => {
-  if (e.detail?.instrument && audio && audio.setInstrument) {
-    await audio.setInstrument(e.detail.instrument);
-  }
-});
-
 // ========== DOM ELEMENTS ==========
 const timeline = document.getElementById('timeline');
 const timelineWrapper = document.getElementById('timelineWrapper');
@@ -144,77 +114,41 @@ if (playBtn) attachHover(playBtn, { text: 'Play / Stop' });
 if (randomBtn) attachHover(randomBtn, { text: 'Aleatorizar fracción y iTs' });
 if (resetBtn) attachHover(resetBtn, { text: 'Reset App' });
 
-// ========== MIXER SETUP ==========
-// Canals registrats al motor; setupAudioDefaults dins initAudio() els
-// personalitza via CHANNEL_TIERS.MELODIC_FULL.
-const globalMixer = getMixer();
-
-// ========== THEME & MUTE PERSISTENCE ==========
-const muteButton = document.getElementById('muteBtn');
-setupThemeSync({ storage: preferenceStorage, selectEl: themeSelect });
-setupMutePersistence({
-  storage: preferenceStorage,
-  getAudioInstance: () => audio,
-  muteButton
-});
-
-// ========== MIXER MENU ==========
-const mixerTriggers = [playBtn].filter(Boolean);
-
-initMixerMenu({
-  menu: mixerMenu,
-  triggers: mixerTriggers,
-  channels: [
-    { id: 'start', label: 'P0', allowSolo: true },
-    { id: 'pulse', label: 'Pulso', allowSolo: true },
-    { id: 'subdivision', label: 'Subdivisión', allowSolo: true },
-    { id: 'instrument', label: 'Instrumento', allowSolo: true },
-    { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
-  ]
-});
-
-// ========== AUDIO INITIALIZATION ==========
-const _baseInitAudio = createMelodicAudioInitializer({
-  defaultInstrument: 'piano'
-});
-
-async function initAudio() {
-  if (!audio) {
-    audio = await _baseInitAudio();
-    if (audio) {
-      setupAudioDefaults(audio, { channels: CHANNEL_TIERS.MELODIC_FULL });
+// ========== SHELL DE L'APP (H-14) ==========
+// Preferències + factory reset, events de so compartits (incl. sincronització
+// d'instrument), menú del mixer, tema/mute i initAudio melòdic — tot a
+// libs/app-common/fraction-app-shell.js.
+const shell = createFractionAppShell({
+  prefix: 'app31',
+  getAudio: () => audio,
+  setAudio: (instance) => { audio = instance; },
+  audio: {
+    type: 'melodic',
+    channelTier: CHANNEL_TIERS.MELODIC_FULL,
+    getSoundSelects: () => ({ baseSoundSelect, cycleSoundSelect }),
+    soundEventMapping: {
+      baseSound: 'setBase',
+      cycleSound: 'setCycle'
     }
-
-    // Apply saved mute state
-    const savedMute = loadOpt('mute');
-    if (savedMute === '1' && typeof audio.setMute === 'function') {
-      audio.setMute(true);
-    }
-
-    // Configure sounds from dropdowns (like createRhythmAudioInitializer does)
-    // This ensures the metronome and cycle sounds are properly initialized
-    if (baseSoundSelect?.dataset?.value) {
-      await audio.setBase(baseSoundSelect.dataset.value);
-    }
-    if (cycleSoundSelect?.dataset?.value) {
-      await audio.setCycle(cycleSoundSelect.dataset.value);
-    }
-
-    if (typeof window !== 'undefined') {
-      window.__labAudio = audio;
-      window.NuzicAudioEngine = audio;
-    }
+  },
+  mixer: {
+    menu: mixerMenu,
+    triggers: [playBtn],
+    channels: [
+      { id: 'start', label: 'P0', allowSolo: true },
+      { id: 'pulse', label: 'Pulso', allowSolo: true },
+      { id: 'subdivision', label: 'Subdivisión', allowSolo: true },
+      { id: 'instrument', label: 'Instrumento', allowSolo: true },
+      { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
+    ]
+  },
+  theme: {
+    selectEl: themeSelect,
+    muteButton: document.getElementById('muteBtn')
   }
-  return audio;
-}
+});
 
-if (typeof window !== 'undefined') {
-  window.__labInitAudio = initAudio;
-  // Initialize audio on first interaction to ensure NuzicAudioEngine is ready
-  // before instrument-dropdown tries to preload instruments
-  document.addEventListener('click', () => initAudio(), { once: true });
-  document.addEventListener('touchstart', () => initAudio(), { once: true });
-}
+const { initAudio } = shell;
 
 // ========== UTILITY FUNCTIONS ==========
 /**

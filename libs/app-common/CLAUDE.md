@@ -1,12 +1,13 @@
 # App-Common — Context for Claude
 
 ## Role
-Middleware layer between UI and TimelineAudio. 53 modules. Everything reusable across apps lives here.
+Middleware layer between UI and TimelineAudio. 54 modules. Everything reusable across apps lives here.
 
 ## Modules by Function
 
 **Initialization:**
 - `audio-init.js` — Lazy TimelineAudio creation (suppresses warnings)
+- `fraction-app-shell.js` — `createFractionAppShell` (App26-31): preferències + factory reset + sound events + toggles + mixer menu + theme/mute + initAudio (rhythm/melodic) en una crida declarativa
 - `dom.js` — `bindAppRhythmElements(appId)` central DOM binding
 
 **Audio & Control:**

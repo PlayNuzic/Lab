@@ -6,7 +6,7 @@
 
 | Mòdul | Descripció | README |
 |-------|------------|--------|
-| **app-common** | 53 mòduls core compartits entre apps | [README](../libs/app-common/README.md) |
+| **app-common** | 54 mòduls core compartits entre apps | [README](../libs/app-common/README.md) |
 | **matrix-seq** | Editor grid N-P pairs dinàmic | [README](../libs/matrix-seq/README.md) |
 | **musical-grid** | Visualització 2D amb scroll | [README](../libs/musical-grid/README.md) |
 | **interval-sequencer** | Seqüenciador d'intervals iS-iT | [README](../libs/interval-sequencer/README.md) |
@@ -68,4 +68,4 @@ npm test                                    # Tots els tests
 npm test -- --testPathPattern="matrix-seq"  # Tests d'un mòdul
 ```
 
-**Cobertura actual:** 75 suites, 1490+ tests
+**Cobertura actual:** 76 suites, 1500+ tests

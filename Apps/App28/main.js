@@ -4,12 +4,9 @@
 // Bi-direccionalitat: timeline <-> pulseSeq
 // Playback one-shot (sense loop)
 
-import { getMixer, subscribeMixer, setChannelMute } from '../../libs/sound/index.js';
-import { createRhythmAudioInitializer, setupAudioDefaults, CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
-import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
-import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
-import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
-import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
+import { getMixer, setChannelMute } from '../../libs/sound/index.js';
+import { CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
+import { createFractionAppShell } from '../../libs/app-common/fraction-app-shell.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { randomInt } from '../../libs/app-common/number-utils.js';
@@ -47,43 +44,13 @@ let cycleLabels = [];
 
 // Controllers
 let fractionEditorController = null;
-let pulseToggleController = null;
-let selectedToggleController = null;
-let cycleToggleController = null;
+// Els toggles d'àudio viuen al shell (shell.getToggle/setToggle).
 let randomMenu = null;  // Long-press random menu controller (read())
 
 // Storage keys
 const PULSE_AUDIO_KEY = 'pulseAudio';
 const SELECTED_AUDIO_KEY = 'selectedAudio';
 const CYCLE_AUDIO_KEY = 'cycleAudio';
-
-// ========== PREFERENCE STORAGE ==========
-const preferenceStorage = createPreferenceStorage({ prefix: 'app28', separator: '::' });
-const { load: loadOpt, save: saveOpt, clear: clearOpt } = preferenceStorage;
-
-registerFactoryReset({
-  storage: preferenceStorage,
-  onBeforeReload: () => {
-    setPulseAudio(true, { persist: false });
-    setSelectedAudio(true, { persist: false });
-    setCycleAudio(true, { persist: false });
-  }
-});
-
-// ========== SCHEDULING BRIDGE ==========
-const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
-window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
-
-// ========== SOUND EVENTS ==========
-bindSharedSoundEvents({
-  getAudio: () => audio,
-  mapping: {
-    baseSound: 'setBase',
-    accentSound: 'setAccent',
-    startSound: 'setStart',
-    cycleSound: 'setCycle'
-  }
-});
 
 // ========== DOM ELEMENTS ==========
 const timeline = document.getElementById('timeline');
@@ -150,13 +117,6 @@ function createPfrLayout() {
   }
 }
 
-// ========== MIXER SETUP ==========
-const globalMixer = getMixer();
-if (globalMixer) {
-  // Canals registrats al motor (TimelineAudio constructor);
-  // setupAudioDefaults dins initAudio() els personalitza via RHYTHM_FULL.
-}
-
 // ========== HOVER TOOLTIPS ==========
 if (playBtn) attachHover(playBtn, { text: 'Play / Stop' });
 if (randomBtn) attachHover(randomBtn, { text: 'Aleatorizar fraccion y pulsos' });
@@ -165,148 +125,51 @@ if (pulseToggleBtn) attachHover(pulseToggleBtn, { text: 'Activar o silenciar el 
 if (selectedToggleBtn) attachHover(selectedToggleBtn, { text: 'Activar o silenciar la seleccion' });
 if (cycleToggleBtn) attachHover(cycleToggleBtn, { text: 'Activar o silenciar el ciclo' });
 
-// ========== AUDIO TOGGLES ==========
-const audioToggleManager = initAudioToggles({
-  toggles: [
-    {
-      id: 'pulse',
-      button: pulseToggleBtn,
-      storageKey: PULSE_AUDIO_KEY,
-      mixerChannel: 'pulse',
-      defaultEnabled: true,
-      onChange: (enabled) => {
-        if (audio && typeof audio.setPulseEnabled === 'function') {
-          audio.setPulseEnabled(enabled);
-        }
-      }
-    },
-    {
-      id: 'accent',
-      button: selectedToggleBtn,
-      storageKey: SELECTED_AUDIO_KEY,
-      mixerChannel: 'accent',
-      defaultEnabled: true
-    },
-    {
-      id: 'cycle',
-      button: cycleToggleBtn,
-      storageKey: CYCLE_AUDIO_KEY,
-      mixerChannel: 'subdivision',
-      defaultEnabled: true,
-      onChange: (enabled) => {
-        if (audio && typeof audio.setCycleEnabled === 'function') {
-          audio.setCycleEnabled(enabled);
-        }
-      }
+// ========== SHELL DE L'APP (H-14) ==========
+// Preferències + factory reset, events de so compartits, toggles d'àudio,
+// menú del mixer, tema/mute i initAudio — tot a libs/app-common/fraction-app-shell.js.
+const shell = createFractionAppShell({
+  prefix: 'app28',
+  getAudio: () => audio,
+  setAudio: (instance) => { audio = instance; },
+  audio: {
+    type: 'rhythm',
+    channelTier: CHANNEL_TIERS.RHYTHM_FULL,
+    getSoundSelects: () => ({
+      baseSoundSelect,
+      accentSoundSelect,
+      startSoundSelect,
+      cycleSoundSelect
+    }),
+    soundEventMapping: {
+      baseSound: 'setBase',
+      accentSound: 'setAccent',
+      startSound: 'setStart',
+      cycleSound: 'setCycle'
     }
-  ],
-  storage: {
-    load: loadOpt,
-    save: saveOpt
   },
-  mixer: globalMixer,
-  subscribeMixer,
-  onMixerSnapshot: ({ channels, setFromMixer, getState }) => {
-    if (!channels) return;
-    const channelPairs = [
-      ['pulse', 'pulse'],
-      ['accent', 'accent'],
-      ['cycle', 'subdivision']
-    ];
-    channelPairs.forEach(([toggleId, channelId]) => {
-      const channelState = channels.get(channelId);
-      if (!channelState) return;
-      const shouldEnable = !channelState.muted;
-      if (getState(toggleId) === shouldEnable) return;
-      setFromMixer(toggleId, shouldEnable);
-    });
+  toggles: [
+    { id: 'pulse', button: pulseToggleBtn, storageKey: PULSE_AUDIO_KEY, mixerChannel: 'pulse', engineSetter: 'setPulseEnabled' },
+    { id: 'accent', button: selectedToggleBtn, storageKey: SELECTED_AUDIO_KEY, mixerChannel: 'accent' },
+    { id: 'cycle', button: cycleToggleBtn, storageKey: CYCLE_AUDIO_KEY, mixerChannel: 'subdivision', engineSetter: 'setCycleEnabled' }
+  ],
+  mixer: {
+    menu: mixerMenu,
+    triggers: [playBtn],
+    channels: [
+      { id: 'pulse', label: 'Pulso', allowSolo: true },
+      { id: 'accent', label: 'Seleccion', allowSolo: true },
+      { id: 'subdivision', label: 'Subdivision', allowSolo: true },
+      { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
+    ]
+  },
+  theme: {
+    selectEl: themeSelect,
+    muteButton: document.getElementById('muteBtn')
   }
 });
 
-pulseToggleController = audioToggleManager.get('pulse') ?? null;
-selectedToggleController = audioToggleManager.get('accent') ?? null;
-cycleToggleController = audioToggleManager.get('cycle') ?? null;
-
-function setPulseAudio(value, options) {
-  pulseToggleController?.set(value, options);
-}
-
-function setSelectedAudio(value, options) {
-  selectedToggleController?.set(value, options);
-}
-
-function setCycleAudio(value, options) {
-  cycleToggleController?.set(value, options);
-}
-
-// ========== MIXER MENU ==========
-const mixerTriggers = [playBtn].filter(Boolean);
-
-initMixerMenu({
-  menu: mixerMenu,
-  triggers: mixerTriggers,
-  channels: [
-    { id: 'pulse', label: 'Pulso', allowSolo: true },
-    { id: 'accent', label: 'Seleccion', allowSolo: true },
-    { id: 'subdivision', label: 'Subdivision', allowSolo: true },
-    { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
-  ]
-});
-
-// ========== THEME & MUTE PERSISTENCE ==========
-const muteButton = document.getElementById('muteBtn');
-setupThemeSync({ storage: preferenceStorage, selectEl: themeSelect });
-setupMutePersistence({
-  storage: preferenceStorage,
-  getAudioInstance: () => audio,
-  muteButton
-});
-
-// ========== AUDIO INITIALIZATION ==========
-const _baseInitAudio = createRhythmAudioInitializer({
-  getSoundSelects: () => ({
-    baseSoundSelect,
-    accentSoundSelect,
-    startSoundSelect,
-    cycleSoundSelect
-  }),
-  schedulingBridge,
-  channels: [],
-  defaultInstrument: 'piano'
-});
-
-async function initAudio() {
-  if (!audio) {
-    audio = await _baseInitAudio();
-    if (audio) {
-      setupAudioDefaults(audio, { channels: CHANNEL_TIERS.RHYTHM_FULL });
-    }
-
-    // Apply audio toggles
-    if (typeof audio.setPulseEnabled === 'function') {
-      const pulseEnabled = pulseToggleController?.isEnabled() ?? true;
-      audio.setPulseEnabled(pulseEnabled);
-    }
-    if (typeof audio.setCycleEnabled === 'function') {
-      const cycleEnabled = cycleToggleController?.isEnabled() ?? true;
-      audio.setCycleEnabled(cycleEnabled);
-    }
-
-    // Apply saved mute state
-    const savedMute = loadOpt('mute');
-    if (savedMute === '1' && typeof audio.setMute === 'function') {
-      audio.setMute(true);
-    }
-
-    // Expose audio instance for sound dropdown preview
-    if (typeof window !== 'undefined') window.__labAudio = audio;
-  }
-  return audio;
-}
-
-if (typeof window !== 'undefined') {
-  window.__labInitAudio = initAudio;
-}
+const { load: loadOpt, save: saveOpt, clear: clearOpt, initAudio } = shell;
 
 // ========== FRACTION EDITOR ==========
 function initFractionEditorController() {

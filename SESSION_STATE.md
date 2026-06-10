@@ -10,15 +10,15 @@ El detall viu allà; aquí només l'estat. Marca `[x]` a l'informe quan completi
 
 ## Pendent (següents per impacte)
 
-- [x] ~~A-10 (flams setTempo), P-12 (payload primer Play), A-12 (vendoritzar piano/flauta),
-  U-22 (menú capítols amb teclat), H-21 (motor iTfr compartit App30/31), H-09/H-18
-  (re-comentat quirúrgic), tempo en calent App27-31 (bug d'usuari)~~ — fets 2026-06-10
-- Següents candidates: troballes mitjanes restants de l'informe (H-07 addRepeatPress ×11,
-  H-14 shell d'àudio duplicat, A-04 scheduler throttlejable, U-xx teclat/spinners...)
+- [x] ~~A-10, P-12, A-12, U-22, H-21, H-09/H-18, tempo en calent App27-31, A-04 (scheduler
+  via MessagePort), H-07 (addRepeatPress ×11 → lib), H-14 (createFractionAppShell App26-31)~~
+  — fets 2026-06-10, detall a l'informe
+- Següents candidates: H-05/H-06 (debug tools en producció), H-11 (toggles pre-init),
+  H-15/H-16/H-17 (timeline/highlight/CSS de fraccions), U-xx restants de l'informe
 
 ## Funciona i NO s'ha de trencar
 
-- Suite completa verda (75 suites / 1493 tests) — `npm test` després de cada batch
+- Suite completa verda (76 suites / 1502 tests) — `npm test` després de cada batch
 - Invariants: epsilons 1e-9 del worklet; ordre init àudio (Tone → gest → start; el preload
   de Tone.js i el prefetch de samples només mouen bytes, mai creen AudioContext); BPM sense
   clamp mentre s'escriu (lib 30-240; **apps 9+ política 50-150**); `void offsetWidth` del
