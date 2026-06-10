@@ -77,9 +77,15 @@ export function createInfoTooltip(options = {}) {
       tip.textContent = content;
     }
 
-    // Position tooltip below anchor with configurable offset
+    // Position tooltip below anchor with configurable offset.
+    // U-06: getBoundingClientRect ja és en coordenades de viewport — per a
+    // position:fixed (el cas per defecte: .fraction-info-bubble/.hover-tip)
+    // sumar scrollY desplaçava el tooltip avall en pàgines amb scroll
+    // (apps verticals dins del sistema). Només cal per a variants amb
+    // position:absolute (.validation-warning).
     const rect = anchor.getBoundingClientRect();
-    const y = rect.bottom + window.scrollY + verticalOffset;
+    const isFixed = getComputedStyle(tip).position === 'fixed';
+    const y = rect.bottom + (isFixed ? 0 : window.scrollY) + verticalOffset;
 
     // Center horizontally - need to wait for render to get tooltip width
     tip.style.top = y + 'px';

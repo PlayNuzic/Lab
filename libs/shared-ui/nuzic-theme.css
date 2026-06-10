@@ -2087,3 +2087,12 @@ body[data-visual="nuzic"] .np-dot {
   touch-action: none;
 }
 
+
+/* U-14 (tàctil): el clamp() de .pl-secondary queda sota 16px a totes les
+   amplades — iOS faria zoom en enfocar. Bump només en focus (vegeu
+   index.css). Cal !important per guanyar la regla base. */
+@media (pointer: coarse) {
+  body[data-visual="nuzic"] .pl-secondary input:focus {
+    font-size: 1rem !important;
+  }
+}

@@ -1928,3 +1928,30 @@ body.notation-open {
   position: static;
   margin-left: 8px;
 }
+
+/* ========== TÀCTIL (U-13, U-14) ==========
+   Només per a punters coarse — l'aspecte amb ratolí no canvia gens. */
+@media (pointer: coarse) {
+  /* U-13: els botons ▲▼ dels spinners fan 12-16px — gairebé impossibles
+     d'encertar amb el dit. El triangle visual és un ::before; ampliem
+     NOMÉS l'àrea de hit amb un ::after transparent (els pseudo-elements
+     compten per al hit-testing del seu element), sense moure cap layout.
+     L'expansió vertical es queda a -5px perquè els botons + i − són
+     adjacents i no es poden solapar més sense tocs ambigus. */
+  .param .circle .spinner .spin {
+    position: relative;
+  }
+  .param .circle .spinner .spin::after {
+    content: '';
+    position: absolute;
+    inset: -5px -12px;
+  }
+
+  /* U-14: iOS Safari fa zoom de pàgina quan l'input enfocat té
+     font-size < 16px. La mida petita es conserva en repòs (el layout
+     clamp() no es toca); el bump només s'aplica en el moment del focus,
+     que és quan iOS decideix si fa zoom. */
+  .param .circle input:focus {
+    font-size: 1rem;
+  }
+}
