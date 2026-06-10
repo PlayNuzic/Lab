@@ -29,7 +29,7 @@ read existing tests, run full test suite, and show the complete diff for approva
 Apps/          → App1-App35 (individual rhythm apps)
 libs/
   sound/       → Audio engine (TimelineAudio, mixer, samples)
-  app-common/  → 49 core modules (DOM, audio-init, loop, fractions, LED, visual-sync...)
+  app-common/  → 50 core modules (DOM, audio-init, loop, fractions, LED, visual-sync...)
   pulse-seq/   → Pulse sequence editor with parser and memory
   matrix-seq/  → 2D grid editor for N-P pairs
   notation/    → VexFlow rhythm staff rendering

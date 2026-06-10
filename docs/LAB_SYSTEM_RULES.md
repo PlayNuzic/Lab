@@ -550,17 +550,6 @@ defaultRegistry = 4;      // Registre per defecte
 notesPerRegistry = 12;    // Octava cromàtica
 ```
 
-### 2.19 Registry Autoscroll
-
-```javascript
-// registry-playback-autoscroll.js
-minRegistry = 2;     // Registre mínim visible
-maxRegistry = 5;     // Registre màxim visible
-visibleRows = 15;    // Notes visibles al grid
-zeroPosition = 7;    // Posició on nota 0 apareix (centre)
-smoothScroll = true; // Transicions suaus
-```
-
 ---
 
 ## 3. Interfície Compartida (Shared UI)

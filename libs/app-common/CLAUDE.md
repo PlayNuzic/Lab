@@ -1,7 +1,7 @@
 # App-Common — Context for Claude
 
 ## Role
-Middleware layer between UI and TimelineAudio. 49 modules. Everything reusable across apps lives here.
+Middleware layer between UI and TimelineAudio. 50 modules. Everything reusable across apps lives here.
 
 ## Modules by Function
 
@@ -30,6 +30,7 @@ Middleware layer between UI and TimelineAudio. 49 modules. Everything reusable a
 - `subdivision.js` — `interval = 60 / bpm`, pulse count calculations
 - `number-utils.js` — Consolidated: GCD, LCM, ranges, formatting, random int
 - `preferences.js` — Persistent storage with namespace (`prefix::key`), theme sync, factory reset
+- `logger.js` — `log` gated per `?dev` o localStorage `nuzic-debug` (H-13); console.warn/error mai hi passen
 - `led-manager.js`, `utils.js`, `mixer-menu.js`
 
 **Rhythm & Notation:**

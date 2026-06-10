@@ -31,6 +31,8 @@
 
 ## Scheduling Sync (sample-instrument alignment)
 - Samples scheduled proactively in `tick()` with future `when` time
+- A-04: el handler del missatge 'pulse' invoca `tick()` directament via `_tickFn` (MessagePort no es throttleja) — primer pols immediat i agenda viva en pestanyes en segon pla; el setInterval és backup
+- A-10: el rebobinat de `setTempo` cancel·la les fonts del lookahead (`_futureSources` per pas absolut) abans de re-agendar — sense flams; el SamplerPool cancel·la veus no començades via `cancelScheduledVoices()`
 - `_sampleOffsetSec` (0-20ms): delays samples to compensate for instrument callback latency
 - `onSchedule(step, when)` callback: fires from `tick()` alongside samples for proactive instrument scheduling
 - `registerNoteProvider(id, fn)`: declarative API — provider returns `[{midi, duration, velocity}]`, engine handles timing

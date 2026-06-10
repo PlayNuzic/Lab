@@ -1,45 +1,33 @@
-# SESSION_STATE — Aplicació de l'auditoria 2026-06-10 (en curs)
+# SESSION_STATE — Auditoria 2026-06-10: aplicació COMPLETADA (ALTES + MITJANES)
 
-## Documents mestres
+Cap feina activa en curs. Tot el treball de l'auditoria està arxivat:
 
-- **Troballes + seguiment (checkboxes per ítem):** `docs/audit-report-2026-06-10.md`
-- **Tot el completat fins ara (QWs 12/12, ALTES 4/4, H-02, tàctil, fixos d'usuari):**
-  `docs/session-history/2026-06-10-auditoria-completa-i-aplicacio.md`
+- **Informe amb checkboxes per troballa:** `docs/audit-report-2026-06-10.md`
+  — estat: 67 tancades + 3 refutades / 144
+- **Arxius de sessió:** `docs/session-history/2026-06-10-auditoria-completa-i-aplicacio.md`
+  i `docs/session-history/2026-06-11-auditoria-mitjanes-completades.md`
 
-El detall viu allà; aquí només l'estat. Marca `[x]` a l'informe quan completis una troballa.
+## Únic pendent
 
-## Pendent (següents per impacte)
+Les **~90 troballes BAIXES** (seccions LA/LP/LU/LH de l'informe). NO estan verificades
+adversàriament: **re-verificar cadascuna contra el codi actual abans d'aplicar-la** (el
+codi ha canviat molt des de l'auditoria — diverses ja poden estar resoltes o obsoletes).
 
-- [x] ~~A-10, P-12, A-12, U-22, H-21, H-09/H-18, tempo en calent App27-31, A-04, H-07,
-  H-14, H-15/H-16/H-17 (timeline/highlights/CSS de fraccions compartits)~~ — fets
-  2026-06-10, detall a l'informe
-- [x] ~~H-11 (applyTo de toggles), H-08 (reorderControls compartit ×13), H-05/H-06 (eines
-  de debug opt-in amb ?dev)~~ — fets 2026-06-10
-- [x] ~~H-12 (9 mòduls orfes + 6 suites mortes fora), H-13 (logger compartit gated per
-  ?dev/nuzic-debug als camins calents)~~ — fets 2026-06-10
-- [x] ~~H-19 (app9/10/11/13 → App9/10/11/13; identificadors interns intactes), H-23 (JSDoc
-  del scheduling-bridge)~~ — fets 2026-06-10
-- [x] ~~Les 15 U-xx mitjanes restants (U-02..U-20: header, dropdowns, mixer, tooltip,
-  tàctil/mòbil, sistema)~~ — fetes 2026-06-11
-- Resta de l'informe: NOMÉS les ~90 baixes (LA/LP/LU/LH), no verificades adversàriament —
-  re-verificar cadascuna abans d'aplicar-la
+## Invariants nous d'aquesta aplicació (no trencar)
 
-## Funciona i NO s'ha de trencar
-
-- Suite completa verda (71 suites / 1389 tests — H-12 va treure 6 suites de codi mort) — `npm test` després de cada batch
-- Invariants: epsilons 1e-9 del worklet; ordre init àudio (Tone → gest → start; el preload
-  de Tone.js i el prefetch de samples només mouen bytes, mai creen AudioContext); BPM sense
-  clamp mentre s'escriu (lib 30-240; **apps 9+ política 50-150**); `void offsetWidth` del
-  highlight és load-bearing; polsos 0 i Lg mai seleccionables; cap canal rítmic passa
-  `duration` a `_schedulePlayerStart` (polifonia — test de regressió); el rebobinat de
-  setTempo cancel·la les fonts del lookahead (`_futureSources` — test de regressió);
-  piano/flauta carreguen de `samples/instruments/` local amb fallback CDN
+- Epsilons 1e-9 del worklet; ordre init àudio (Tone → gest → start); `void offsetWidth`
+  dels highlights és load-bearing; polsos 0 i Lg mai seleccionables
+- Cap canal rítmic passa `duration` a `_schedulePlayerStart` (polifonia — test de regressió)
+- El rebobinat de `setTempo` cancel·la `_futureSources` (anti-flam — test de regressió)
+- El preload de Tone.js i el prefetch de samples només mouen bytes (mai AudioContext)
+- BPM: apps 9+ política 50-150; App2 30-240 amb sanitize en idle/blur; mai clamp mentre s'escriu
+- Apps de fraccions (26-31): shell/timeline/highlights/CSS via factories compartides —
+  els canvis es fan a libs/app-common/fraction-*.js i libs/interval-sequencer/itfr-engine.js
+- Identificadors interns (body.app13, prefixos d'storage) NO segueixen el nom del
+  directori — renombrar-los esborraria preferències guardades
+- Eines de dev i logs: opt-in amb `?dev` o localStorage `nuzic-debug='1'`
 - Fitxers d'alt risc: `libs/sound/timeline-processor.js`, `libs/app-common/subdivision.js`,
   `libs/app-common/audio-schedule.js` → diff complet + suite + aprovació
-- Verificacions de navegador: events de confiança (CDP `Input.*`), mai `.value`+`blur()` sintètics
-
-## En reprendre
-
-1. Llegir "Pendent" aquí + la taula de l'informe; agafar el primer ítem.
-2. Després de cada batch: `npm test`, marcar `[x]` a l'informe, actualitzar aquest fitxer,
-   commit amb llista explícita de fitxers (sessions paral·leles comparteixen el repo).
+- Verificacions de navegador: events de confiança (CDP `Input.*`) amb cache desactivada
+  i perfil de Chrome net; mai `.value`+`blur()` sintètics
+- Suite: 71 suites / 1389 tests — `npm test` després de cada batch
