@@ -1774,7 +1774,13 @@ export class TimelineAudio {
           }
 
           if (isSelected && this._buffers.has('seleccionados')) {
-            triggerPlayer('seleccionados', sampleWhen, this.intervalRef);
+            // Sense duration: cap canal rítmic talla el seu sample. Cada
+            // tret és un BufferSource independent (polifonia real), així
+            // que la cua de l'accent ringa sencera encara que el següent
+            // pols/subdivisió comenci abans que acabi. (La truncadura a
+            // 1 interval venia de l'època del click11/Ruido Rosa i feia
+            // que l'accent "es tallés" amb el pols següent.)
+            triggerPlayer('seleccionados', sampleWhen);
             triggered = true;
           }
         }

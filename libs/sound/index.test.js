@@ -198,6 +198,13 @@ describe('TimelineAudio (new engine)', () => {
       expect(pulsoCalls.length).toBe(2);
       expect(pulso0Calls.length).toBe(1);
       expect(accentCalls.length).toBe(1);
+
+      // Polifonia: cap canal rítmic passa duration — les cues dels samples
+      // no es tallen quan comença el següent tret (regressió del fix
+      // "seleccionado es talla amb pulso/subdivisión").
+      for (const call of [...pulsoCalls, ...pulso0Calls, ...accentCalls]) {
+        expect(call[2] ?? null).toBeNull();
+      }
     } finally {
       if (audio) audio.stop();
       if (scheduleSpy) scheduleSpy.mockRestore();
