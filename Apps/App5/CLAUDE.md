@@ -21,7 +21,7 @@ Levels: (1) Odd positions, (2) Even positions, (3) Dynamic/random, (4) Free mode
 Tolerance: 300ms, pass threshold: 40%, success: 60%.
 
 **Capture modes:** Keyboard (recommended, default) | Microphone (experimental, -22dB threshold).
-Debug: `window.debugGame` — See `GAME_DEBUG.md` for full API.
+Debug: `window.debugGame` (només amb `?dev=1` a la URL, H-06) — See `GAME_DEBUG.md` for full API.
 
 ## New Modules Created
 - `libs/temporal-intervals/` — `it-calculator.js`, `it-renderer.js`, `it-styles.css`

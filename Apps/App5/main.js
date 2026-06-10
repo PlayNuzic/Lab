@@ -1865,9 +1865,13 @@ async function initializeGameSystem() {
 // Initialize game system
 initializeGameSystem();
 
-// Load debug helpers in development
-import('./debug-game.js').then(() => {
-  console.log('🛠️ Game debug helpers loaded. Use window.debugGame for testing.');
-}).catch(err => {
-  console.warn('Debug helpers not loaded:', err);
-});
+// Debug helpers NOMÉS amb ?dev a la URL (H-06): abans es descarregaven i
+// executaven sempre (288 línies de tooling de consola en producció).
+// El workflow documentat a GAME_DEBUG.md es manté via ?dev=1.
+if (new URLSearchParams(location.search).has('dev')) {
+  import('./debug-game.js').then(() => {
+    console.log('🛠️ Game debug helpers loaded. Use window.debugGame for testing.');
+  }).catch(err => {
+    console.warn('Debug helpers not loaded:', err);
+  });
+}

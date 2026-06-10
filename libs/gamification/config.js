@@ -151,12 +151,19 @@ export const THRESHOLDS = {
 };
 
 /**
- * Configuración de desarrollo
+ * Configuración de desarrollo.
+ * H-05: les eines de dev són OPT-IN amb `?dev` a la URL — abans
+ * enableDevTools/logEvents anaven sempre a true i cada càrrega de
+ * producció d'App2-5 importava tot ear-training (2.100 línies) i
+ * exposava globals de test (__GAMIFICATION, __EAR_TRAINING).
  */
+const DEV_MODE = typeof location !== 'undefined'
+  && new URLSearchParams(location.search).has('dev');
+
 export const DEV_CONFIG = {
-  // Herramientas de desarrollo
-  enableDevTools: true,
-  logEvents: true,
+  // Herramientas de desarrollo (opt-in amb ?dev)
+  enableDevTools: DEV_MODE,
+  logEvents: DEV_MODE,
   showDebugPanel: false,
 
   // Simulación y testing

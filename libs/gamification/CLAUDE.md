@@ -15,7 +15,7 @@ Modular achievement system with event tracking, scoring, and persistent storage.
 - Events mapped per app in `APP_EVENT_MAPPINGS`
 - Achievement checks are throttled (5s delay)
 - localStorage keeps last 100 attempts
-- Dev tools exposed only when `enableDevTools` is true in config
+- Dev tools are OPT-IN: `?dev` a la URL activa enableDevTools/logEvents (window.__GAMIFICATION, __EAR_TRAINING; H-05) — per defecte res no s'exposa en producció
 
 ## App5 Integration
 App5 has a complete game system with 4 progressive levels, keyboard/microphone capture modes, and rhythm analysis. See `Apps/App5/AGENTS.md` for full game documentation.
