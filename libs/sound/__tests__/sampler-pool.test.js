@@ -308,6 +308,37 @@ describe('sampler-pool', () => {
     });
   });
 
+  describe('cancelScheduledVoices', () => {
+    it('stops voices scheduled in the future but leaves started voices alone (A-10)', () => {
+      const sampler = createMockSampler({
+        'C4': new MockAudioBuffer()
+      });
+
+      const pool = createSamplerPool({
+        sampler,
+        context,
+        destination
+      });
+
+      pool.init();
+
+      context.currentTime = 1;
+      const playingVoice = pool.playNote(60, 1, 0.5); // when al passat → sona ja
+      const futureVoice = pool.playNote(60, 1, 1.4);  // agendada al lookahead
+      const futureVoice2 = pool.playNote(62, 1, 1.8);
+
+      pool.cancelScheduledVoices();
+
+      expect(futureVoice.source._stopTime).toBe(1);
+      expect(futureVoice.active).toBe(false);
+      expect(futureVoice2.source._stopTime).toBe(1);
+      expect(futureVoice2.active).toBe(false);
+      // La veu que ja sona conserva el seu stop d'envolupant original
+      expect(playingVoice.active).toBe(true);
+      expect(playingVoice.source._stopTime).toBeGreaterThan(1);
+    });
+  });
+
   describe('ADSR envelope', () => {
     it('should apply ADSR envelope to gain node', () => {
       const sampler = createMockSampler({

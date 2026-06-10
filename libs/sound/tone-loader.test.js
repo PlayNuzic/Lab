@@ -38,6 +38,12 @@ describe('tone-loader', () => {
     });
 
     ({ ensureToneLoaded } = await import('./tone-loader.js'));
+
+    // La importació injecta el <link rel="preload"> de Tone.js (P-12);
+    // netegem els comptadors perquè el test mesuri només la injecció
+    // del <script> disparada pel gest.
+    document.createElement.mockClear();
+    document.head.appendChild.mockClear();
   });
 
   afterEach(() => {

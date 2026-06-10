@@ -290,6 +290,26 @@ async function fetchSampleArrayBuffer(url) {
   return data.slice ? data.slice(0) : data;
 }
 
+// P-12: escalfa la cache de xarxa amb els samples per defecte durant temps
+// idle. Només mou bytes (fetch memoitzat a arrayBufferCache) — cap
+// AudioContext ni descodificació abans del gest de l'usuari, així que
+// l'ordre d'init es manté. La descodificació segueix passant a _initPlayers
+// després del gest, però llavors els bytes ja són locals.
+export function prefetchDefaultSamples() {
+  if (typeof window === 'undefined') return;
+  const defaultKeys = ['click7', 'click8', 'click9', 'click10'];
+  const warm = () => {
+    for (const key of defaultKeys) {
+      fetchSampleArrayBuffer(SOUND_URLS[key]).catch(() => {});
+    }
+  };
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(warm, { timeout: 3000 });
+  } else {
+    setTimeout(warm, 1500);
+  }
+}
+
 function decodeAudioBuffer(ctx, arrayBuffer) {
   if (!ctx || !arrayBuffer) return Promise.reject(new Error('AudioContext or buffer missing'));
   return new Promise((resolve, reject) => {
@@ -494,6 +514,9 @@ export class TimelineAudio {
 
     this._buffers = new Map();
     this._activeSources = new Set();
+    // absStep → Set<BufferSource>: fonts agendades al lookahead, indexades
+    // pel pas absolut perquè el rebobinat de setTempo pugui cancel·lar-les.
+    this._futureSources = new Map();
 
     this._tapTimes = [];
     this._tapWindowMs = 2000;
@@ -922,11 +945,30 @@ export class TimelineAudio {
   }
 
   _stopAllPlayers() {
+    if (this._futureSources) this._futureSources.clear();
     if (!this._activeSources) return;
     for (const source of Array.from(this._activeSources)) {
       try { source.stop(0); } catch {}
       try { source.disconnect(); } catch {}
       this._activeSources.delete(source);
+    }
+  }
+
+  // A-10: quan setTempo rebobina el scheduler per re-temporitzar la finestra
+  // de lookahead, les fonts ja emeses per als passos invalidats seguirien
+  // sonant a més de les còpies noves (flam/doble clic a cada canvi de tempo
+  // en viu). Encara no han començat (viuen més enllà de l'àncora), així que
+  // stop(0) les silencia abans que arrenquin.
+  _cancelSourcesAfterStep(afterStep) {
+    if (!this._futureSources?.size) return;
+    for (const [step, sources] of Array.from(this._futureSources)) {
+      if (step <= afterStep) continue;
+      for (const source of sources) {
+        try { source.stop(0); } catch {}
+        try { source.disconnect(); } catch {}
+        this._activeSources.delete(source);
+      }
+      this._futureSources.delete(step);
     }
   }
 
@@ -1001,7 +1043,7 @@ export class TimelineAudio {
     return this._bus.pulso;
   }
 
-  _schedulePlayerStart(key, when, duration = null) {
+  _schedulePlayerStart(key, when, duration = null, absStep = null) {
     if (!this._ctx || !this._buffers) return;
     const entry = this._buffers.get(key);
     if (!entry?.buffer) return;
@@ -1009,8 +1051,16 @@ export class TimelineAudio {
       const ctx = this._ctx;
       const source = ctx.createBufferSource();
       source.buffer = entry.buffer;
+      const bucket = Number.isFinite(absStep) ? absStep : null;
       source.onended = () => {
         this._activeSources.delete(source);
+        if (bucket != null) {
+          const sources = this._futureSources.get(bucket);
+          if (sources) {
+            sources.delete(source);
+            if (!sources.size) this._futureSources.delete(bucket);
+          }
+        }
         try { source.disconnect(); } catch {}
       };
       const destination = this._resolveBusForSampleKey(key) || this._bus.master;
@@ -1022,6 +1072,14 @@ export class TimelineAudio {
         source.stop(startTime + duration);
       }
       this._activeSources.add(source);
+      if (bucket != null) {
+        let sources = this._futureSources.get(bucket);
+        if (!sources) {
+          sources = new Set();
+          this._futureSources.set(bucket, sources);
+        }
+        sources.add(source);
+      }
     } catch {}
   }
 
@@ -1626,9 +1684,12 @@ export class TimelineAudio {
       o.stop(when + dur + 0.01);
     };
 
+    // Pas absolut que tick() està agendant ara mateix; triggerPlayer el
+    // propaga perquè el rebobinat de setTempo pugui cancel·lar per pas.
+    let schedulingStep = null;
     const triggerPlayer = (key, when, duration = null) => {
       if (!this._buffers?.has(key)) return;
-      this._schedulePlayerStart(key, when, duration);
+      this._schedulePlayerStart(key, when, duration, schedulingStep);
     };
 
     this._stepTime = (absoluteStep) => {
@@ -1656,11 +1717,17 @@ export class TimelineAudio {
 
     let scheduledStep = this._lastAbsoluteStep ?? -1;
     this._setScheduledStep = (value) => {
-      if (Number.isFinite(value)) {
-        scheduledStep = value;
-      } else {
-        scheduledStep = this._lastAbsoluteStep ?? -1;
+      const target = Number.isFinite(value) ? value : (this._lastAbsoluteStep ?? -1);
+      if (target < scheduledStep) {
+        // A-10: el rebobinat farà que tick() re-agendi els passos > target
+        // amb el nou interval; sense cancel·lar primer les fonts antigues
+        // sonarien dues còpies de cada pas del lookahead.
+        this._cancelSourcesAfterStep(target);
+        if (this._noteProviders?.size > 0 || typeof this._onScheduleRef === 'function') {
+          this._cancelScheduledNotes?.();
+        }
       }
+      scheduledStep = target;
     };
 
     // A-03: els sons de cicle s'agenden al lookahead, no al missatge del
@@ -1716,6 +1783,7 @@ export class TimelineAudio {
         if (when == null || when > horizon) break;
 
         const stepIndex = this._resolveStepIndex(n);
+        schedulingStep = n;
 
         // Store scheduled time for this step (used by onPulse callback for sample-accurate timing)
         this._scheduledTimes.set(stepIndex, when);
@@ -1815,6 +1883,7 @@ export class TimelineAudio {
         scheduledStep = n;
         n++;
       }
+      schedulingStep = null;
     };
 
     this._schedulerId = setInterval(tick, Math.round(this._schedulerEverySec * 1000));

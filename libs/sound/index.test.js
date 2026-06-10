@@ -213,6 +213,65 @@ describe('TimelineAudio (new engine)', () => {
     }
   });
 
+  test('setTempo while playing cancels lookahead sources before re-scheduling (A-10)', async () => {
+    const scheduledTicks = [];
+    const originalSetInterval = global.setInterval;
+    const originalClearInterval = global.clearInterval;
+    global.setInterval = jest.fn((fn) => {
+      scheduledTicks.push(fn);
+      return 123;
+    });
+    global.clearInterval = jest.fn();
+
+    let audio;
+    try {
+      audio = new TimelineAudio();
+      audio._initPlayers = jest.fn().mockResolvedValue();
+      await audio.ready();
+
+      audio._buffers = new Map([['pulso', { buffer: {} }]]);
+      audio._lookAheadSec = 2;
+
+      await audio.play(12, 0.5, new Set(), true);
+
+      audio._lastAbsoluteStep = 0;
+      audio._lastPulseTime = audio._ctx.currentTime;
+      audio._zeroOffset = 0;
+
+      const tick = scheduledTicks[0];
+      tick();
+
+      // Lookahead de 2s a 0.5s/pols → passos 0..4 agendats
+      const firstBatch = audioCtxMock.createBufferSource.mock.results.map((r) => r.value);
+      expect(firstBatch.length).toBe(5);
+      expect(firstBatch.every((s) => s.stop.mock.calls.length === 0)).toBe(true);
+
+      // Canvi de tempo en viu (align nextPulse): rebobina el scheduler.
+      // Les fonts dels passos > àncora (1..4) s'han de cancel·lar; la del
+      // pas 0 (l'àncora, ja sonant) es manté.
+      audio.setTempo(240);
+
+      const stopped = firstBatch.filter((s) => s.stop.mock.calls.length > 0);
+      expect(stopped.length).toBe(4);
+      expect(firstBatch[0].stop.mock.calls.length).toBe(0);
+
+      // El tick següent re-agenda els passos invalidats amb el nou interval:
+      // exactament UNA font viva per pas (cap flam/doble clic).
+      tick();
+      for (const [, sources] of audio._futureSources) {
+        expect(sources.size).toBe(1);
+      }
+
+      // stop() neteja el registre de fonts futures
+      audio.stop();
+      expect(audio._futureSources.size).toBe(0);
+    } finally {
+      if (audio && audio.isPlaying) audio.stop();
+      global.setInterval = originalSetInterval;
+      global.clearInterval = originalClearInterval;
+    }
+  });
+
   test('voice handler receives events', async () => {
     const audio = new TimelineAudio();
     await audio.ready();
@@ -448,6 +507,9 @@ describe('onSchedule callback (Tier 2)', () => {
     const fn = jest.fn();
     try { await audio.play(4, 0.5, [], false, null, null, { onSchedule: fn }); } catch {}
     expect(audio._onScheduleRef).toBe(fn);
+    // Sense stop(), el setInterval real del scheduler queda viu i Jest
+    // no surt mai en runs in-band d'aquest fitxer sol.
+    audio.stop();
   });
 
   test('stop() clears onScheduleRef', async () => {

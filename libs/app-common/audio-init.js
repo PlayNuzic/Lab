@@ -3,9 +3,13 @@
  * Based on App4's successful approach that avoids AudioContext warnings
  */
 
-import { TimelineAudio, waitForUserInteraction } from '../sound/index.js';
+import { TimelineAudio, waitForUserInteraction, prefetchDefaultSamples } from '../sound/index.js';
 import { ensureToneLoaded } from '../sound/tone-loader.js';
 import { ensurePreferredSampleRateContext } from '../sound/audio-context-helper.js';
+
+// P-12: tota app que importa aquest mòdul acabarà carregant els clicks per
+// defecte al primer Play; avançem la descàrrega a temps idle de la càrrega.
+prefetchDefaultSamples();
 
 // Gamification hooks - optional integration
 let gamificationHooks = null;

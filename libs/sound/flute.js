@@ -106,40 +106,58 @@ export async function loadFlute() {
         urls[note] = `${note}.mp3`;
       });
 
-      // Create the sampler — now guaranteed to live in the engine's context
-      try {
-        sampler = new Tone.Sampler({
-          urls,
-          attack: 0.1,    // Soft attack to smooth the start
-          release: 0.8,   // Longer release for smoother decay
-          baseUrl: BASE_URL
-        });
-      } catch (samplerErr) {
-        console.error('Flute: Tone.Sampler constructor failed:', samplerErr.name, samplerErr.message);
-        throw samplerErr;
-      }
+      // A-12: samples vendoritzats en local primer; el CDN queda com a
+      // fallback per a desplegaments parcials (mateixa estratègia que piano.js).
+      const sampleBases = [
+        new URL('./samples/instruments/flute/', import.meta.url).href,
+        BASE_URL
+      ];
 
-      // Connect to the melodic channel (same context) or fall back to the
-      // destination. Connect failure is non-fatal so the flute still plays.
-      try {
-        if (melodicChannel) {
-          sampler.connect(melodicChannel);
-        } else {
-          sampler.toDestination();
+      let loadError = null;
+      for (const baseUrl of sampleBases) {
+        // Create the sampler — now guaranteed to live in the engine's context
+        try {
+          sampler = new Tone.Sampler({
+            urls,
+            attack: 0.1,    // Soft attack to smooth the start
+            release: 0.8,   // Longer release for smoother decay
+            baseUrl
+          });
+        } catch (samplerErr) {
+          console.error('Flute: Tone.Sampler constructor failed:', samplerErr.name, samplerErr.message);
+          throw samplerErr;
         }
-      } catch (connectErr) {
-        console.warn('Flute: connect failed, using destination:', connectErr.message);
-        try { sampler.toDestination(); } catch {}
-      }
 
-      // Wait for all samples to load
-      console.log('Flute: Calling Tone.loaded()...');
-      try {
-        await Tone.loaded();
-        console.log('Flute: Tone.loaded() completed');
-      } catch (loadedErr) {
-        console.error('Flute: Tone.loaded() failed:', loadedErr.name, loadedErr.message);
-        throw loadedErr;
+        // Connect to the melodic channel (same context) or fall back to the
+        // destination. Connect failure is non-fatal so the flute still plays.
+        try {
+          if (melodicChannel) {
+            sampler.connect(melodicChannel);
+          } else {
+            sampler.toDestination();
+          }
+        } catch (connectErr) {
+          console.warn('Flute: connect failed, using destination:', connectErr.message);
+          try { sampler.toDestination(); } catch {}
+        }
+
+        // Wait for all samples to load
+        console.log(`Flute: Calling Tone.loaded() (${baseUrl})...`);
+        try {
+          await Tone.loaded();
+          console.log('Flute: Tone.loaded() completed');
+          loadError = null;
+          break;
+        } catch (loadedErr) {
+          console.warn(`Flute: load failed from ${baseUrl}:`, loadedErr.name, loadedErr.message);
+          loadError = loadedErr;
+          try { sampler.dispose?.(); } catch {}
+          sampler = null;
+        }
+      }
+      if (loadError) {
+        console.error('Flute: Tone.loaded() failed on all sources:', loadError.name, loadError.message);
+        throw loadError;
       }
 
       isLoaded = true;

@@ -41,6 +41,10 @@
 ## Sample Mapping
 - pulso → click9 (Hi-Hat), pulso0 → click7 (Bombo), seleccionados → click8 (Caja)
 - start → click7, cycle → click10 (Ride)
+- Piano/flauta: mp3 vendoritzats a `samples/instruments/{salamander,flute}/` (local primer,
+  CDN com a fallback si Tone.loaded() falla)
+- Preload/prefetch (P-12): Tone.js via `<link rel="preload">` + `prefetchDefaultSamples()`
+  en idle — només mouen bytes, MAI creen AudioContext ni descodifiquen abans del gest
 
 ## ADSR Defaults
 - attack: 0.005, decay: 0.1, sustain: 0.8, release: 0.3

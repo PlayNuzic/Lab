@@ -364,6 +364,25 @@ export function createSamplerPool(config) {
   }
 
   /**
+   * Cancel voices scheduled in the future that have not started yet.
+   * A-10: quan el transport rebobina el lookahead (setTempo en viu), les
+   * notes dels providers ja agendades es re-emetran amb els temps nous;
+   * sense cancel·lar les antigues sonarien duplicades. Només toca veus
+   * amb startTime > now — les que ja sonen (previews, notes llargues)
+   * queden intactes.
+   */
+  function cancelScheduledVoices() {
+    const now = context.currentTime;
+    for (const voice of Array.from(activeVoices)) {
+      if (!voice.active || voice.startTime <= now + 1e-6) continue;
+      try { voice.source.stop(now); } catch {
+        // Voice may have already stopped
+      }
+      voice.active = false;
+    }
+  }
+
+  /**
    * Release a specific voice (like releasing a key)
    */
   function releaseVoice(voice) {
@@ -417,6 +436,7 @@ export function createSamplerPool(config) {
     isReady,
     playNote,
     stopAll,
+    cancelScheduledVoices,
     releaseVoice,
     getStats,
 

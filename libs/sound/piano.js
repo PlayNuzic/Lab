@@ -117,39 +117,55 @@ export async function loadPiano() {
         urls[`A${octave}`] = `A${octave}.mp3`;
       }
 
-      // Create the sampler — now guaranteed to live in the engine's context
-      try {
-        sampler = new Tone.Sampler({
-          urls,
-          release: 0.8,
-          baseUrl: 'https://tonejs.github.io/audio/salamander/'
-        });
-      } catch (samplerErr) {
-        console.error('Piano: Tone.Sampler constructor failed:', samplerErr.name, samplerErr.message);
-        throw samplerErr;
-      }
+      // A-12: samples vendoritzats en local (mateix origen, sense build) —
+      // funcionen offline/en aules amb firewall i no es re-descarreguen del
+      // CDN a cada sessió. El CDN queda com a fallback per a desplegaments
+      // parcials on samples/instruments/ no existeixi.
+      const sampleBases = [
+        new URL('./samples/instruments/salamander/', import.meta.url).href,
+        'https://tonejs.github.io/audio/salamander/'
+      ];
 
-      // Connect to the melodic channel (same context) or fall back to the
-      // destination. Connect failure is non-fatal so the piano still plays.
-      try {
-        if (melodicChannel) {
-          sampler.connect(melodicChannel);
-        } else {
-          sampler.toDestination();
+      let loadError = null;
+      for (const baseUrl of sampleBases) {
+        // Create the sampler — now guaranteed to live in the engine's context
+        try {
+          sampler = new Tone.Sampler({ urls, release: 0.8, baseUrl });
+        } catch (samplerErr) {
+          console.error('Piano: Tone.Sampler constructor failed:', samplerErr.name, samplerErr.message);
+          throw samplerErr;
         }
-      } catch (connectErr) {
-        console.warn('Piano: connect failed, using destination:', connectErr.message);
-        try { sampler.toDestination(); } catch {}
-      }
 
-      // Wait for all samples to load
-      console.log('Piano: Calling Tone.loaded()...');
-      try {
-        await Tone.loaded();
-        console.log('Piano: Tone.loaded() completed');
-      } catch (loadedErr) {
-        console.error('Piano: Tone.loaded() failed:', loadedErr.name, loadedErr.message);
-        throw loadedErr;
+        // Connect to the melodic channel (same context) or fall back to the
+        // destination. Connect failure is non-fatal so the piano still plays.
+        try {
+          if (melodicChannel) {
+            sampler.connect(melodicChannel);
+          } else {
+            sampler.toDestination();
+          }
+        } catch (connectErr) {
+          console.warn('Piano: connect failed, using destination:', connectErr.message);
+          try { sampler.toDestination(); } catch {}
+        }
+
+        // Wait for all samples to load
+        console.log(`Piano: Calling Tone.loaded() (${baseUrl})...`);
+        try {
+          await Tone.loaded();
+          console.log('Piano: Tone.loaded() completed');
+          loadError = null;
+          break;
+        } catch (loadedErr) {
+          console.warn(`Piano: load failed from ${baseUrl}:`, loadedErr.name, loadedErr.message);
+          loadError = loadedErr;
+          try { sampler.dispose?.(); } catch {}
+          sampler = null;
+        }
+      }
+      if (loadError) {
+        console.error('Piano: Tone.loaded() failed on all sources:', loadError.name, loadError.message);
+        throw loadError;
       }
 
       isLoaded = true;

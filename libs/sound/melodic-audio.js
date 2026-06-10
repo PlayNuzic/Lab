@@ -209,6 +209,16 @@ export class MelodicTimelineAudio extends TimelineAudio {
   }
 
   /**
+   * Engine-internal: el rebobinat de setTempo (A-10) re-agendarà les notes
+   * del lookahead amb temps nous; cancel·lem les còpies antigues que encara
+   * no han començat. Només cobreix el SamplerPool — el fallback Tone.Sampler
+   * no exposa cancel·lació per nota (allà el duplicat queda, cas residual).
+   */
+  _cancelScheduledNotes() {
+    this._samplerPool?.cancelScheduledVoices?.();
+  }
+
+  /**
    * Play multiple notes simultaneously (chord)
    * @param {number[]} midiNotes - Array of MIDI note numbers
    * @param {number} duration - Note duration in seconds

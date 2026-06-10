@@ -158,6 +158,7 @@ describe('loop resize keeps circular selection', () => {
       TimelineAudio: timelineCtor,
       ensureAudio: ensureAudioMock,
       waitForUserInteraction: jest.fn(() => Promise.resolve()),
+      prefetchDefaultSamples: jest.fn(),
       subscribeMixer: jest.fn(() => () => {}),
       setChannelVolume: jest.fn(),
       setChannelMute: jest.fn(),

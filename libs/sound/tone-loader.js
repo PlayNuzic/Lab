@@ -9,6 +9,21 @@ let toneLoadPromise = null;
 let toneLoaded = false;
 let scriptInjected = false;
 
+// P-12: descarrega Tone.js (~340KB) en paral·lel a la càrrega de la pàgina
+// SENSE executar-lo — rel=preload només mou bytes, no crea cap AudioContext,
+// així que l'ordre d'init (Tone → gest d'usuari → start) queda intacte. Al
+// primer Play la injecció del <script> es resol des de la cache de preload.
+if (typeof document !== 'undefined' && document.head) {
+  const preloadHref = new URL('../vendor/Tone.js', import.meta.url).href;
+  if (!document.querySelector(`link[rel="preload"][href="${preloadHref}"]`)) {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'script';
+    link.href = preloadHref;
+    document.head.appendChild(link);
+  }
+}
+
 /**
  * Ensures Tone.js is loaded before using it
  * Waits for first user interaction (click, keydown, touchstart) before loading the script
