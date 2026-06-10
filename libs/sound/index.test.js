@@ -272,6 +272,45 @@ describe('TimelineAudio (new engine)', () => {
     }
   });
 
+  test('pulse message fills the lookahead immediately without waiting for setInterval (A-04)', async () => {
+    const scheduledTicks = [];
+    const originalSetInterval = global.setInterval;
+    const originalClearInterval = global.clearInterval;
+    // El setInterval mai es dispara en aquest test: si s'agenda res, ha
+    // vingut del camí del MessagePort (_tickFn), no del backup.
+    global.setInterval = jest.fn((fn) => {
+      scheduledTicks.push(fn);
+      return 123;
+    });
+    global.clearInterval = jest.fn();
+
+    let audio;
+    try {
+      audio = new TimelineAudio();
+      audio._initPlayers = jest.fn().mockResolvedValue();
+      await audio.ready();
+
+      audio._buffers = new Map([['pulso', { buffer: {} }]]);
+      audio._lookAheadSec = 2;
+
+      await audio.play(12, 0.5, new Set(), true);
+      expect(audioCtxMock.createBufferSource.mock.calls.length).toBe(0);
+
+      // Arriba el primer missatge de pols del worklet (àncora del pas 0)
+      audio._handleClockMessage({ type: 'pulse', step: 0, time: 0.001, interval: 0.5 });
+
+      // El lookahead s'ha omplert al moment: passos 0..3 agendats (el pas 4
+      // cau a 2.001s, just fora de l'horitzó de 2s)
+      expect(audioCtxMock.createBufferSource.mock.calls.length).toBe(4);
+      // I el temps exacte del pas 0 ja era disponible per a onPulse
+      expect(audio._scheduledTimes.get(0)).toBeCloseTo(0.001);
+    } finally {
+      if (audio) audio.stop();
+      global.setInterval = originalSetInterval;
+      global.clearInterval = originalClearInterval;
+    }
+  });
+
   test('voice handler receives events', async () => {
     const audio = new TimelineAudio();
     await audio.ready();

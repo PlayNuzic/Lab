@@ -525,6 +525,7 @@ export class TimelineAudio {
 
     this._pendingTempo = null;
     this._setScheduledStep = null;
+    this._tickFn = null;
 
     this._defaultAssignments = {
       pulso: 'click9',
@@ -611,6 +612,7 @@ export class TimelineAudio {
     this._patternBeats = null;
     this._pendingTempo = null;
     this._setScheduledStep = null;
+    this._tickFn = null;
   }
 
   async _ensureContext() {
@@ -1494,6 +1496,7 @@ export class TimelineAudio {
     this.resetTapTempo();
     this._pendingTempo = null;
     this._setScheduledStep = null;
+    this._tickFn = null;
 
     // Trigger gamification hook for stop
     if (wasPlaying && this._gamificationHooks?.onPlayStop) {
@@ -1886,6 +1889,9 @@ export class TimelineAudio {
       schedulingStep = null;
     };
 
+    // A-04: el handler del missatge 'pulse' invoca tick() directament via
+    // _tickFn (MessagePort no throttlejable); el setInterval és el backup.
+    this._tickFn = tick;
     this._schedulerId = setInterval(tick, Math.round(this._schedulerEverySec * 1000));
   }
 
@@ -1929,6 +1935,14 @@ export class TimelineAudio {
         this.intervalRef = msg.interval;
       }
       this._evaluatePendingTempo();
+      // A-04: omplir el lookahead AQUÍ, no esperar el proper setInterval.
+      // El MessagePort no es throttleja mai: (1) el primer pols sona al
+      // moment (abans esperava fins a _schedulerEverySec després del
+      // missatge), i (2) en pestanyes en segon pla (setInterval clavat a
+      // ≥1s) l'agenda no es mor de gana. El setInterval queda com a xarxa
+      // de seguretat. Abans del callback onPulse perquè _scheduledTimes
+      // ja tingui el temps exacte d'aquest pas.
+      this._tickFn?.();
       if (typeof this._onPulseRef === 'function') {
         // Pass the scheduled time (when) as second parameter for sample-accurate timing
         // Falls back to current time if not available (backwards compatible)
