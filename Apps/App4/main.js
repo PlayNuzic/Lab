@@ -1616,14 +1616,9 @@ async function initAudio() {
     if (typeof audio.setVoiceHandler === 'function') {
       audio.setVoiceHandler(handleVoiceEvent);
     }
-    if (typeof audio.setPulseEnabled === 'function') {
-      const pulseEnabled = pulseToggleController?.isEnabled() ?? true;
-      audio.setPulseEnabled(pulseEnabled);
-    }
-    if (typeof audio.setCycleEnabled === 'function') {
-      const cycleEnabled = cycleToggleController?.isEnabled() ?? true;
-      audio.setCycleEnabled(cycleEnabled);
-    }
+    // Replicar l'estat dels toggles fets abans que el motor existís (H-11):
+    // re-dispara els onChange, que ara sí troben `audio`.
+    audioToggleManager.applyTo();
     if (typeof audio.setLoop === 'function') {
       audio.setLoop(loopEnabled);
     }

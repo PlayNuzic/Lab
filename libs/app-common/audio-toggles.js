@@ -167,9 +167,40 @@ export function initAudioToggles({
     });
   }
 
+  /**
+   * Re-aplica l'estat actual de tots els toggles (H-11). Mirall del patró
+   * pending+applyTo del scheduling-bridge: els canvis fets ABANS que
+   * l'àudio existeixi es queden a `state`, i l'app els replica un cop
+   * creat el motor cridant applyTo() al seu initAudio — sense codi de
+   * reconciliació propi (pendingMute, re-apply manual...).
+   *
+   * Re-empeny el mute del mixer i re-dispara onChange amb
+   * { persist: false, source: 'applyTo' } per a cada toggle.
+   */
+  function applyTo() {
+    configById.forEach((entry, id) => {
+      const enabled = state.get(id) ?? (entry.defaultEnabled !== false);
+      if (
+        entry.mixerChannel &&
+        mixer &&
+        typeof mixer.setChannelMute === 'function'
+      ) {
+        try {
+          mixer.setChannelMute(entry.mixerChannel, !enabled);
+        } catch {}
+      }
+      if (typeof entry.onChange === 'function') {
+        try {
+          entry.onChange(enabled, { persist: false, source: 'applyTo' });
+        } catch {}
+      }
+    });
+  }
+
   return {
     get: (id) => controllers.get(id),
-    controllers
+    controllers,
+    applyTo
   };
 }
 

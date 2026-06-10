@@ -45,4 +45,35 @@ describe('audio toggles setState', () => {
     expect(setChannelMute).toHaveBeenCalledTimes(1);
     expect(setChannelMute).toHaveBeenCalledWith('master', false);
   });
+
+  it('applyTo replica l\'estat actual (mixer + onChange) per a la init tardana (H-11)', () => {
+    const setChannelMute = jest.fn();
+    const onChange = jest.fn();
+
+    const manager = initAudioToggles({
+      toggles: [
+        {
+          id: 'pulse',
+          button: createFakeButton(),
+          mixerChannel: 'pulse',
+          defaultEnabled: true,
+          onChange
+        }
+      ],
+      mixer: { setChannelMute }
+    });
+
+    // Canvi fet ABANS que el motor existeixi (l'onChange de l'app el
+    // deixaria caure perquè audio === null)
+    manager.get('pulse').set(false, { persist: false });
+
+    setChannelMute.mockClear();
+    onChange.mockClear();
+
+    // El motor ja existeix: replicar estat
+    manager.applyTo();
+
+    expect(setChannelMute).toHaveBeenCalledWith('pulse', true); // mute (enabled=false)
+    expect(onChange).toHaveBeenCalledWith(false, { persist: false, source: 'applyTo' });
+  });
 });

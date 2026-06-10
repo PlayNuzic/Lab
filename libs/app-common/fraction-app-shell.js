@@ -202,11 +202,12 @@ export function createFractionAppShell(config = {}) {
       setupAudioDefaults(instance, { channels: channelTier });
     }
 
-    // Re-aplicar l'estat dels toggles al motor acabat de crear
-    toggles.forEach(({ id, engineSetter }) => {
-      if (!engineSetter || typeof instance[engineSetter] !== 'function') return;
-      instance[engineSetter](getToggle(id)?.isEnabled() ?? true);
-    });
+    // L'app ha de veure la instància ABANS de re-aplicar els toggles:
+    // els seus onChange resolen el motor via getAudio().
+    setAudio(instance);
+
+    // Re-aplicar l'estat dels toggles fets abans que el motor existís (H-11)
+    toggleManager?.applyTo();
 
     // Mute desat
     if (load('mute') === '1' && typeof instance.setMute === 'function') {
@@ -229,7 +230,6 @@ export function createFractionAppShell(config = {}) {
       if (exposeEngineGlobal) window.NuzicAudioEngine = instance;
     }
 
-    setAudio(instance);
     return instance;
   }
 
