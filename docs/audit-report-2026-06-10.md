@@ -874,10 +874,9 @@ Revisar el codi citat abans d'aplicar — no han passat el filtre de refutació.
   - **Problema:** Two audit targets came back clean and are recorded here so they are not re-audited: (1) diffing the 37 hrefs in Apps/index.html against the 37 directories in Apps/ produces an exact match — no dead links, no unlisted apps, and the casing of each link matches disk; (2) SESSION_STATE.md does not exist at repo root, complying with the CLAUDE.md archival rule (docs/session-history/ exists and is populated, latest entries from 2026-05). No action needed on either; the only residual risk is the mixed-case naming reported separately.
   - **Fix proposat:** No action required. If the app-directory case normalization (separate finding) is done, re-run the same diff (linked names vs `ls Apps`) once to confirm the index stays 1:1.
 
-### Troballa nova (detectada durant H-02, 2026-06-10)
+### Troballa nova (detectada durant H-02, 2026-06-10) — REFUTADA
 
-- [ ] **LH-20** — App31: editar una cel·la iT a un valor que excedeix l'espai disponible s'accepta (p.ex. amb fracció 2/3 i max=3, editar 2→4 dona 4+1=5). Verificat amb A/B que és PREEXISTENT (l'original fa el mateix); el commit del trailing input sí que valida correctament. Revisar el flux d'edició (parseAndValidateIt amb editIndex) en viu.
-  - **Fitxer:** `Apps/App31/main.js` (i probablement App30 amb valors que ho permetin)
+- ~~**LH-20** — App31: editar una cel·la iT a un valor que excedeix l'espai s'accepta~~ **NO ÉS BUG**: amb events de confiança reals (CDP Input.*, clic+teclat) la validació refusa 2→4 amb l'avís "iT 4 excede L iTfr (2 disponibles)" i restaura la cel·la; les edicions vàlides s'accepten. L'observació original era un artefacte del sondeig sintètic (escriptura directa de .value + blur() programàtic que no dispara en headless → ni validació ni restauració, només display estancat). Verificat 2026-06-10 amb instrumentació temporal de parseAndValidateIt.
 
 ## 6. Refutades — NO fer
 
