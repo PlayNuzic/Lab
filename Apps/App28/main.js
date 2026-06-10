@@ -8,7 +8,8 @@ import { getMixer, setChannelMute } from '../../libs/sound/index.js';
 import { CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
 import { createFractionAppShell } from '../../libs/app-common/fraction-app-shell.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
-import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
+import { createFractionTimeline } from '../../libs/app-common/fraction-timeline.js';
+import { createFractionHighlighter } from '../../libs/app-common/fraction-highlight.js';
 import { randomInt } from '../../libs/app-common/number-utils.js';
 import { setupRandomMenu } from '../../libs/random/menu.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
@@ -547,83 +548,59 @@ function applySelectionToAudio() {
 }
 
 
-// ========== TIMELINE RENDERING ==========
+// ========== TIMELINE I HIGHLIGHTS (factories compartides, H-15/H-16) ==========
+const tl = createFractionTimeline({
+  timeline,
+  getLg: () => FIXED_LG,
+  getNumerator: () => FIXED_NUMERATOR,
+  getDenominator: () => currentDenominator,
+  onAfterRender: (els) => {
+    pulses = els.pulses;
+    cycleMarkers = els.cycleMarkers;
+    cycleLabels = els.cycleLabels;
+    attachSelectionHandlers();
+    syncTimelineFromSelection();
+  }
+});
+
 function renderTimeline() {
-  if (!timeline) return;
-
-  timeline.classList.add('no-anim');
-
-  pulses = [];
-  cycleMarkers = [];
-  cycleLabels = [];
-  timeline.innerHTML = '';
-
-  const lg = FIXED_LG;
-  const numerator = FIXED_NUMERATOR;
-  const denominator = currentDenominator;
-
-  // Pulse numbers — nuzic-theme renders ticks via ::before/::after and hides
-  // legacy .pulse dots. The numbers themselves are the clickable targets.
-  // L'últim pols es dibuixa com a `·` amb dobles guions (classe cycle-end)
-  // i no sona ni és seleccionable.
-  for (let i = 0; i <= lg; i++) {
-    const num = document.createElement('div');
-    num.className = 'pulse-number';
-    num.dataset.index = i;
-    if (i === lg) {
-      num.classList.add('cycle-end');
-      num.textContent = '·';
-    } else {
-      num.textContent = i;
-    }
-    timeline.appendChild(num);
-    pulses.push(num);
-  }
-
-  // Single "1/N" subdivision label anchored to the left of the subdivision row.
-  const subdivisionLabel = document.createElement('div');
-  subdivisionLabel.className = 'subdivision-label';
-  subdivisionLabel.textContent = `${numerator}/${denominator}`;
-  timeline.appendChild(subdivisionLabel);
-
-  // Subdivision ticks + ".N" labels for fractional positions. Integers are
-  // skipped — already marked by pulse-number::before (nuzic-theme).
-  const grid = gridFromOrigin({ lg, numerator, denominator });
-  if (grid.cycles > 0 && grid.subdivisions.length) {
-    grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
-      if (subdivisionIndex === 0) return;
-
-      const base = cycleIndex * numerator;
-
-      const marker = document.createElement('div');
-      marker.className = 'cycle-marker';
-      marker.dataset.cycleIndex = String(cycleIndex);
-      marker.dataset.subdivision = String(subdivisionIndex);
-      marker.dataset.position = String(position);
-      marker.dataset.base = String(base);
-      timeline.appendChild(marker);
-      cycleMarkers.push(marker);
-
-      const label = document.createElement('div');
-      label.className = 'cycle-label';
-      label.dataset.cycleIndex = String(cycleIndex);
-      label.dataset.subdivision = String(subdivisionIndex);
-      label.dataset.position = String(position);
-      label.dataset.base = String(base);
-      label.textContent = `.${subdivisionIndex}`;
-      timeline.appendChild(label);
-      cycleLabels.push(label);
-    });
-  }
-
-  attachSelectionHandlers();
-  layoutTimeline();
-  syncTimelineFromSelection();
-
-  requestAnimationFrame(() => {
-    timeline.classList.remove('no-anim');
-  });
+  tl.render();
 }
+
+const highlighter = createFractionHighlighter({
+  getPulses: () => pulses,
+  getCycleMarkers: () => cycleMarkers,
+  getCycleLabels: () => cycleLabels,
+  onClear: () => {
+    pfrCellsEl?.querySelectorAll('.editor-cell.active').forEach(c => c.classList.remove('active'));
+  },
+  onPulseHighlight: (pulseIndex) => highlightPulseSeqToken(String(pulseIndex)),
+  onCycleHighlight: ({ subdivisionIndex, base }) => {
+    // subdivisionIndex=0 coincideix amb un pols sencer (token enter), ja
+    // gestionat per highlightPulse — un token "X.0" esborraria la cel·la
+    // que highlightPulse acaba d'encendre.
+    if (subdivisionIndex === 0 || base == null) return;
+    highlightPulseSeqToken(`${base}.${subdivisionIndex}`);
+  }
+});
+
+function clearHighlights() {
+  highlighter.clear();
+}
+
+function highlightPulse(scaledIndex) {
+  if (!isPlaying) return;
+  const d = currentDenominator;
+  // scaledIndex = polsIndex × d per als enters; subdivisions → highlightCycle
+  if (scaledIndex % d !== 0) return;
+  highlighter.highlightPulseIndex(scaledIndex / d);
+}
+
+function highlightCycle(payload = {}) {
+  if (!isPlaying) return;
+  highlighter.highlightCycle(payload);
+}
+
 
 /**
  * Attach click handlers to pulses and cycle markers for selection
@@ -709,35 +686,8 @@ function toggleSubdivisionSelection(token, base, subdivision) {
   }
 }
 
-function layoutTimeline() {
-  const lg = FIXED_LG;
-
-  // Vertical positioning is handled by nuzic-theme (.pulse-number) and
-  // App28 styles.css (.cycle-marker, .cycle-label). Only horizontal
-  // percentage is dynamic per render.
-  pulses.forEach((num) => {
-    const idx = parseInt(num.dataset.index, 10);
-    num.style.left = (idx / lg) * 100 + '%';
-  });
-
-  cycleMarkers.forEach((marker) => {
-    const pos = parseFloat(marker.dataset.position);
-    marker.style.left = (pos / lg) * 100 + '%';
-  });
-
-  cycleLabels.forEach((label) => {
-    const pos = parseFloat(label.dataset.position);
-    label.style.left = (pos / lg) * 100 + '%';
-  });
-}
 
 // ========== HIGHLIGHTING ==========
-function clearHighlights() {
-  pulses.forEach(p => p.classList.remove('active'));
-  cycleMarkers.forEach(m => m.classList.remove('active'));
-  cycleLabels.forEach(l => l.classList.remove('active'));
-  pfrCellsEl?.querySelectorAll('.editor-cell.active').forEach(c => c.classList.remove('active'));
-}
 
 /**
  * Highlight the Pfr cell matching `token` during playback.
@@ -759,70 +709,7 @@ function highlightPulseSeqToken(token) {
   }
 }
 
-function highlightPulse(scaledIndex) {
-  if (!isPlaying) return;
-  const d = currentDenominator;
 
-  // Convert scaled index to pulse index (only highlight integer pulses)
-  // scaledIndex = pulseIndex * d for integer pulses
-  if (scaledIndex % d !== 0) return; // Skip subdivisions (handled by highlightCycle)
-
-  const pulseIndex = scaledIndex / d;
-
-  // Clear previous active states
-  pulses.forEach(p => p.classList.remove('active'));
-
-  const pulse = pulses.find(p => parseInt(p.dataset.index, 10) === pulseIndex);
-  if (pulse) {
-    void pulse.offsetWidth;
-    pulse.classList.add('active');
-  }
-
-  // Highlight and scroll pulseSeq token
-  highlightPulseSeqToken(String(pulseIndex));
-}
-
-function highlightCycle(payload = {}) {
-  if (!isPlaying) return;
-
-  const { cycleIndex: rawCycleIndex, subdivisionIndex: rawSubdivisionIndex } = payload;
-  const cycleIndex = Number(rawCycleIndex);
-  const subdivisionIndex = Number(rawSubdivisionIndex);
-
-  if (!Number.isFinite(cycleIndex) || !Number.isFinite(subdivisionIndex)) return;
-
-  // Clear previous highlights
-  cycleMarkers.forEach(m => m.classList.remove('active'));
-  cycleLabels.forEach(l => l.classList.remove('active'));
-
-  // Find and highlight matching marker/label
-  const marker = cycleMarkers.find(m =>
-    Number(m.dataset.cycleIndex) === cycleIndex &&
-    Number(m.dataset.subdivision) === subdivisionIndex
-  );
-  const label = cycleLabels.find(l =>
-    Number(l.dataset.cycleIndex) === cycleIndex &&
-    Number(l.dataset.subdivision) === subdivisionIndex
-  );
-
-  if (marker) {
-    void marker.offsetWidth;
-    marker.classList.add('active');
-  }
-  if (label) {
-    label.classList.add('active');
-  }
-
-  // Highlight and scroll pulseSeq subdivision token.
-  // subdivisionIndex=0 coincideix amb un pols sencer, ja gestionat per
-  // `highlightPulse` (token enter "X"). Si entréssim aquí amb token
-  // "X.0", el `highlightPulseSeqToken` post-fix netejaria la cel·la
-  // entera que `highlightPulse` acaba d'encendre — saltem-ho.
-  if (subdivisionIndex === 0) return;
-  const base = cycleIndex * FIXED_NUMERATOR;
-  const token = `${base}.${subdivisionIndex}`;
-  highlightPulseSeqToken(token);
-}
 
 // ========== AUDIO TRANSPORT CONFIG ==========
 /**

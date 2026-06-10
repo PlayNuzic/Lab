@@ -16,14 +16,7 @@
   display: none !important;
 }
 
-/* Variables compartides per fraction-editor, endcaps i subdivision-label.
-   Definides al body perquè les vegin tant `.middle` (fracció) com
-   `.timeline-wrapper` (endcaps + label) — són siblings, no relacionats
-   per descendència. */
-body.app27 {
-  --app27-endcap-w: clamp(1.875rem, 5.25vw, 5rem);
-  --app27-endcap-h: clamp(3.8rem, 4vw, 4.75rem);
-}
+/* --fe-endcap-w/h viuen a libs/app-common/fraction-editor-nuzic.css (H-17). */
 
 /* ========== .middle: bloc de la fracció dalt-esquerra ==========
    Per defecte `.middle` (a libs/app-common/styles.css) és `display: flex;
@@ -37,7 +30,7 @@ body.app27 {
 .middle {
   width: auto;
   max-width: 75rem;
-  margin: 0 var(--app27-endcap-w) 5px var(--app27-endcap-w);
+  margin: 0 var(--fe-endcap-w) 5px var(--fe-endcap-w);
   justify-content: flex-start;
 }
 
@@ -66,13 +59,13 @@ body.app27 {
    i la seva vora esquerra està 1.25rem a la dreta de `.middle`. */
 .fraction-editor {
   position: relative;
-  left: calc(0px - var(--app27-endcap-w));
+  left: calc(0px - var(--fe-endcap-w));
   display: flex;
   flex-direction: column;
   align-items: stretch;       /* .top/.bottom omplen tota l'amplada interior */
   justify-content: center;
   gap: 0.2rem;
-  width: var(--app27-endcap-w);
+  width: var(--fe-endcap-w);
   box-sizing: border-box;
   padding: 0.5rem 0;          /* només vertical: l'amplada ja és fixa */
   border: 3px solid var(--nuzic-yellow, #FFBB33);
@@ -159,78 +152,7 @@ body.app27 {
   padding-right: 0;
 }
 
-/* Spinner pill OUTSIDE la caixa (mateix per a numerador i denominador).
-   Cada spinner viu dins el seu propi `.fraction-field` (.top o .bottom),
-   ambdós full-width. La barra de la fracció és un pseudo-element del
-   `.top` (no border-bottom), per tant els fields conserven width: 100%
-   i els dos spinners s'alineen verticalment a la mateixa x. */
-.fraction-field .spinner {
-  position: absolute;
-  left: calc(100% + 0.45rem);
-  right: auto;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-  gap: 4px;
-  width: 1.3rem;
-  height: 2.8rem;
-  background: transparent;    /* gap visible entre les dues mitges-pastilles */
-  overflow: visible;
-  transition: opacity 0.2s ease;
-}
-
-.fraction-field .spinner .spin {
-  flex: 1 1 50%;
-  width: 100%;
-  height: auto;
-  border: none;
-  background: var(--nuzic-yellow, #FFBB33);
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-family: 'Ubuntu', sans-serif;
-  font-weight: 700;
-  font-size: 0.8rem;
-  line-height: 1;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
-}
-
-/* Mitja-pastilla: rodons als extrems exteriors, rectes a la cara
-   interior (on miren l'altre botó). */
-.fraction-field .spinner .spin.up {
-  border-radius: 999px 999px 0 0;
-}
-
-.fraction-field .spinner .spin.down {
-  border-radius: 0 0 999px 999px;
-}
-
-.fraction-field .spinner .spin::before {
-  content: none;
-  border: 0;
-}
-
-.fraction-field .spinner .spin.up::after  { content: '+'; }
-.fraction-field .spinner .spin.down::after { content: '−'; }
-
-.fraction-field .spinner .spin:hover {
-  background: #e6a82e;
-}
-
-.fraction-field .spinner .spin:active {
-  background: #d9991a;
-}
-
-.fraction-field--empty .spinner {
-  opacity: 0;
-  pointer-events: none;
-}
+/* Spinner half-pill compartit: libs/app-common/fraction-editor-nuzic.css (H-17). */
 
 .fraction-field-placeholder {
   position: absolute;
@@ -257,7 +179,7 @@ body.app27 {
    endpoint/ghost states + subdivision row + endcaps + yellow strip. */
 
 .timeline-wrapper {
-  /* Mateix patró que `.middle`: margins iguals a `--app27-endcap-w` a
+  /* Mateix patró que `.middle`: margins iguals a `--fe-endcap-w` a
      cada costat per garantir que l'endcap dret (projectat `1.25rem + W`
      passat de `.timeline.right`) acabi exactament al `parent.right` edge,
      i l'endcap esquerre simètricament. Sense això, a l'iframe del
@@ -266,7 +188,7 @@ body.app27 {
      Mateix patró que App26/App13 (commit 5ac4a0f). */
   width: auto !important;
   max-width: 75rem;
-  margin: 0.5rem var(--app27-endcap-w) 0.75rem var(--app27-endcap-w);
+  margin: 0.5rem var(--fe-endcap-w) 0.75rem var(--fe-endcap-w);
   position: relative;
 }
 
@@ -280,61 +202,7 @@ body.app27 {
   font-weight: 700;
 }
 
-/* ========== ENDCAPS: quadrats grocs (groc intens) als extrems ==========
-   Pseudo-elements del propi `.timeline`. Flush amb el `box-shadow` crema
-   del nuzic-theme. Cal cancel·lar `inset: 0` heretat de
-   `libs/app-common/styles.css:328` (cercle invisible del mode circular). */
-body[data-visual="nuzic"].app27
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline::before,
-body[data-visual="nuzic"].app27
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline::after {
-  content: '';
-  display: block;
-  position: absolute;
-  inset: auto;
-  opacity: 1;
-  border: 0;
-  top: 0%;
-  width: var(--app27-endcap-w);
-  height: var(--app27-endcap-h);
-  background: var(--nuzic-yellow, #FFBB33);
-  border-radius: 4px;
-  z-index: 0;
-  pointer-events: none;
-}
-
-body[data-visual="nuzic"].app27
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline::before {
-  left: 0;
-  transform: translateX(calc(-100% - 1.25rem));
-}
-
-body[data-visual="nuzic"].app27
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline::after {
-  right: 0;
-  transform: translateX(calc(100% + 1.25rem));
-}
-
-/* ========== FRANJA GROC INTENS sobre la línia dels ::after ticks ========== */
-body[data-visual="nuzic"].app27
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline {
-  background:
-    linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 42px,
-      var(--nuzic-yellow) 42px,
-      var(--nuzic-yellow) 56px,
-      transparent 56px,
-      transparent 100%
-    ),
-    var(--nuzic-yellow-light);
-}
+/* Endcaps + franja compartits: libs/app-common/fraction-editor-nuzic.css (H-17). */
 
 /* ========== SUBDIVISION ROW (sota la banda) ========== */
 
@@ -393,8 +261,8 @@ body[data-visual="nuzic"].app27
   left: 0;
   top: 0;
   transform:
-    translateX(calc(-0.5 * var(--app27-endcap-w) - 1.25rem - 50%))
-    translateY(calc(var(--app27-endcap-h) - 100% - 0.25rem));
+    translateX(calc(-0.5 * var(--fe-endcap-w) - 1.25rem - 50%))
+    translateY(calc(var(--fe-endcap-h) - 100% - 0.25rem));
   font-size: clamp(0.95rem, 1.6vw, 1.15rem);
   font-weight: 700;
   color: var(--nuzic-dark, #43433B);

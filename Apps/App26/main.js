@@ -7,7 +7,8 @@ import { getMixer, setChannelMute } from '../../libs/sound/index.js';
 import { CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
 import { createFractionAppShell } from '../../libs/app-common/fraction-app-shell.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
-import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
+import { createFractionTimeline } from '../../libs/app-common/fraction-timeline.js';
+import { createFractionHighlighter } from '../../libs/app-common/fraction-highlight.js';
 import { randomInt } from '../../libs/app-common/number-utils.js';
 import { setupRandomMenu } from '../../libs/random/menu.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
@@ -32,9 +33,7 @@ let isPlaying = false;
 let currentDenominator = DEFAULT_DENOMINATOR;
 
 // DOM elements
-let pulses = [];       // .pulse-number elements (nuzic-theme hides legacy .pulse dots)
-let cycleMarkers = [];
-let cycleLabels = [];
+// Els elements de la línia de temps viuen a la factoria `tl` (H-15).
 
 // Controllers
 let fractionEditorController = null;
@@ -211,163 +210,43 @@ function setDenominator(d) {
 }
 
 
-// ========== TIMELINE RENDERING ==========
+// ========== TIMELINE I HIGHLIGHTS (factories compartides, H-15/H-16) ==========
+const tl = createFractionTimeline({
+  timeline,
+  getLg: () => FIXED_LG,
+  getNumerator: () => FIXED_NUMERATOR,
+  getDenominator: () => currentDenominator
+});
+
 function renderTimeline() {
-  if (!timeline) return;
-
-  // Disable transitions during render
-  timeline.classList.add('no-anim');
-
-  // Clear previous elements
-  pulses = [];
-  cycleMarkers = [];
-  cycleLabels = [];
-  timeline.innerHTML = '';
-
-  const lg = FIXED_LG;
-  const numerator = FIXED_NUMERATOR;
-  const denominator = currentDenominator;
-
-  // Pulse numbers (nuzic-theme renders the ticks via ::before/::after).
-  // No separate .pulse dots — nuzic-theme hides them anyway.
-  // L'últim pols es dibuixa com a `·` amb dobles guions (classe cycle-end)
-  // i no sona a la seqüència.
-  for (let i = 0; i <= lg; i++) {
-    const num = document.createElement('div');
-    num.className = 'pulse-number';
-    num.dataset.index = i;
-    if (i === lg) {
-      num.classList.add('cycle-end');
-      num.textContent = '·';
-    } else {
-      num.textContent = i;
-    }
-    timeline.appendChild(num);
-    pulses.push(num);
-  }
-
-  // Subdivision label "1/N" anchored to the left of the subdivision row.
-  const subdivisionLabel = document.createElement('div');
-  subdivisionLabel.className = 'subdivision-label';
-  subdivisionLabel.textContent = `${numerator}/${denominator}`;
-  timeline.appendChild(subdivisionLabel);
-
-  // Calculate cycle markers using gridFromOrigin
-  const grid = gridFromOrigin({ lg, numerator, denominator });
-
-  if (grid.cycles > 0 && grid.subdivisions.length) {
-    grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
-      // Integer positions (subdivisionIndex === 0) already get a pulse-number
-      // tick from nuzic-theme — skip to avoid double marks.
-      if (subdivisionIndex === 0) return;
-
-      const marker = document.createElement('div');
-      marker.className = 'cycle-marker';
-      marker.dataset.cycleIndex = String(cycleIndex);
-      marker.dataset.subdivision = String(subdivisionIndex);
-      marker.dataset.position = String(position);
-      timeline.appendChild(marker);
-      cycleMarkers.push(marker);
-
-      // Small ".N" label under the tick (fractional index within the cycle).
-      const label = document.createElement('div');
-      label.className = 'cycle-label';
-      label.dataset.cycleIndex = String(cycleIndex);
-      label.dataset.subdivision = String(subdivisionIndex);
-      label.dataset.position = String(position);
-      label.textContent = `.${subdivisionIndex}`;
-      timeline.appendChild(label);
-      cycleLabels.push(label);
-    });
-  }
-
-  // Layout elements
-  layoutTimeline();
-
-  // Re-enable transitions
-  requestAnimationFrame(() => {
-    timeline.classList.remove('no-anim');
-  });
+  tl.render();
 }
 
-function layoutTimeline() {
-  const lg = FIXED_LG;
+const highlighter = createFractionHighlighter({
+  getPulses: tl.getPulses,
+  getCycleMarkers: tl.getCycleMarkers,
+  getCycleLabels: tl.getCycleLabels
+});
 
-  // nuzic-theme positions pulse-numbers centered (top: 50%, transform). No JS
-  // vertical positioning needed — just set horizontal percentage.
-  pulses.forEach((num) => {
-    const idx = parseInt(num.dataset.index, 10);
-    num.style.left = (idx / lg) * 100 + '%';
-  });
-
-  // Subdivision ticks and labels: vertical positioning is static and handled
-  // by CSS (.timeline .cycle-marker / .cycle-label). Only horizontal
-  // placement is dynamic (fractional position along the timeline).
-  cycleMarkers.forEach((marker) => {
-    const pos = parseFloat(marker.dataset.position);
-    marker.style.left = (pos / lg) * 100 + '%';
-  });
-
-  cycleLabels.forEach((label) => {
-    const pos = parseFloat(label.dataset.position);
-    label.style.left = (pos / lg) * 100 + '%';
-  });
-}
-
-// ========== HIGHLIGHTING ==========
 function clearHighlights() {
-  pulses.forEach(p => p.classList.remove('active'));
-  cycleMarkers.forEach(m => m.classList.remove('active'));
-  cycleLabels.forEach(l => l.classList.remove('active'));
+  highlighter.clear();
 }
 
 function highlightPulse(index) {
   if (!isPlaying) return;
-
-  pulses.forEach(p => p.classList.remove('active'));
-  const total = pulses.length > 1 ? pulses.length - 1 : 0;
-  if (total <= 0) return;
-
-  const raw = Number.isFinite(index) ? index : 0;
-  const normalized = Math.max(0, Math.min(raw, total));
-  const pulse = pulses[normalized];
-  if (pulse) {
-    void pulse.offsetWidth;
-    pulse.classList.add('active');
-  }
+  highlighter.highlightPulseIndex(Number.isFinite(index) ? index : 0);
 }
 
 function highlightCycle(payload = {}) {
   if (!isPlaying) return;
-
-  const { cycleIndex: rawCycleIndex, subdivisionIndex: rawSubdivisionIndex } = payload;
-  const cycleIndex = Number(rawCycleIndex);
-  const subdivisionIndex = Number(rawSubdivisionIndex);
-
-  if (!Number.isFinite(cycleIndex) || !Number.isFinite(subdivisionIndex)) return;
-
-  // Clear previous highlights
-  cycleMarkers.forEach(m => m.classList.remove('active'));
-  cycleLabels.forEach(l => l.classList.remove('active'));
-
-  // Find and highlight matching marker/label
-  const marker = cycleMarkers.find(m =>
-    Number(m.dataset.cycleIndex) === cycleIndex &&
-    Number(m.dataset.subdivision) === subdivisionIndex
-  );
-  const label = cycleLabels.find(l =>
-    Number(l.dataset.cycleIndex) === cycleIndex &&
-    Number(l.dataset.subdivision) === subdivisionIndex
-  );
-
-  if (marker) {
-    void marker.offsetWidth;
-    marker.classList.add('active');
-  }
-  if (label) {
-    label.classList.add('active');
-  }
+  highlighter.highlightCycle(payload);
 }
+
+
+
+// ========== HIGHLIGHTING ==========
+
+
 
 // ========== AUDIO CYCLE CONFIG ==========
 function applyCycleConfig() {

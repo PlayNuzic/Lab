@@ -12,13 +12,7 @@
   display: none !important;
 }
 
-/* Variables compartides per fraction-editor, endcaps, subdivision-label,
-   iTfr editor i info pills — al body perquè `.middle`,
-   `.timeline-wrapper` i `.itfr-row` les vegin (siblings). */
-body.app30 {
-  --app30-endcap-w: clamp(1.875rem, 5.25vw, 5rem);
-  --app30-endcap-h: clamp(3.8rem, 4vw, 4.75rem);
-}
+/* --fe-endcap-w/h viuen a libs/app-common/fraction-editor-nuzic.css (H-17). */
 
 /* ========== .middle: fracció a l'esquerra + info pills a la dreta ==========
    Mateixos margins que App28 perquè la fracció (a `left: -W` del .middle)
@@ -29,12 +23,12 @@ body[data-visual="nuzic"] .middle.app30-middle {
   position: relative;
   width: auto;
   /* `max-width` eliminat — l'app s'estén a tot l'amplada. */
-  margin: 0 var(--app30-endcap-w) 5px var(--app30-endcap-w);
+  margin: 0 var(--fe-endcap-w) 5px var(--fe-endcap-w);
   box-sizing: border-box;
   padding: 0;
   /* Alçada mínima = 2 caixes quadrades de W + gap entre elles, perquè
      el grup d'infos absolute hi càpiga sense desbordar. */
-  min-height: calc(var(--app30-endcap-w) * 2 + 0.4rem);
+  min-height: calc(var(--fe-endcap-w) * 2 + 0.4rem);
 }
 
 /* La fracció flueix natural a l'esquerra (left: -W al .fraction-editor
@@ -57,7 +51,7 @@ body[data-visual="nuzic"] .middle.app30-middle {
   /* Projectat fora del .middle a la dreta perquè les caixes d'info
      quedin alineades verticalment amb l'endcap dret de la timeline
      (`.timeline::after`, també a `wrapper.right + W = parent.right`). */
-  right: calc(0px - var(--app30-endcap-w));
+  right: calc(0px - var(--fe-endcap-w));
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -105,8 +99,8 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
   justify-content: center !important;
   /* Caixes QUADRADES, amplada = endcap-w (alineades verticalment
      amb l'endcap dret de la timeline). */
-  width: var(--app30-endcap-w) !important;
-  height: var(--app30-endcap-w) !important;
+  width: var(--fe-endcap-w) !important;
+  height: var(--fe-endcap-w) !important;
   min-width: 0 !important;
   padding: 0 !important;
   border-radius: 4px !important;
@@ -164,13 +158,13 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
   /* En .middle coords: -W. El .timeline té `margin: 20px auto` (1.25rem)
      dins el wrapper, però el wrapper té el mateix margin que .middle,
      així que en coords del .middle l'endcap esquerre està a -W. */
-  left: calc(0px - var(--app30-endcap-w));
+  left: calc(0px - var(--fe-endcap-w));
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
   gap: 0.2rem;
-  width: var(--app30-endcap-w);
+  width: var(--fe-endcap-w);
   box-sizing: border-box;
   padding: 0.5rem 0;
   border: 3px solid var(--nuzic-yellow, #FFBB33);
@@ -231,72 +225,7 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
   padding-right: 0;
 }
 
-/* Spinner pill FORA la caixa, half-pill shape. */
-.fraction-field .spinner {
-  position: absolute;
-  left: calc(100% + 0.45rem);
-  right: auto;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-  gap: 4px;
-  width: 1.3rem;
-  height: 2.8rem;
-  background: transparent;
-  overflow: visible;
-  transition: opacity 0.2s ease;
-}
-
-.fraction-field .spinner .spin {
-  flex: 1 1 50%;
-  width: 100%;
-  height: auto;
-  border: none;
-  background: var(--nuzic-yellow, #FFBB33);
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-family: 'Ubuntu', sans-serif;
-  font-weight: 700;
-  font-size: 0.8rem;
-  line-height: 1;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
-}
-
-.fraction-field .spinner .spin.up {
-  border-radius: 999px 999px 0 0;
-}
-
-.fraction-field .spinner .spin.down {
-  border-radius: 0 0 999px 999px;
-}
-
-.fraction-field .spinner .spin::before {
-  content: none;
-  border: 0;
-}
-
-.fraction-field .spinner .spin.up::after  { content: '+'; }
-.fraction-field .spinner .spin.down::after { content: '−'; }
-
-.fraction-field .spinner .spin:hover {
-  background: #e6a82e;
-}
-
-.fraction-field .spinner .spin:active {
-  background: #d9991a;
-}
-
-.fraction-field--empty .spinner {
-  opacity: 0;
-  pointer-events: none;
-}
+/* Spinner half-pill compartit: libs/app-common/fraction-editor-nuzic.css (H-17). */
 
 .fraction-field-placeholder {
   display: none !important;
@@ -310,7 +239,7 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
   /* `max-width` eliminat — l'app s'estén a tot l'amplada. */
   /* margin-left: 0 perquè el label "iT" quedi a la mateixa x que l'endcap
      esquerre (parent.left). margin-right: W manté simetria. */
-  margin: 0.25rem var(--app30-endcap-w) 0 0;
+  margin: 0.25rem var(--fe-endcap-w) 0 0;
   box-sizing: border-box;
 }
 
@@ -318,7 +247,7 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
   position: relative;
   display: grid;
   /* Col 1 = W (= mateixa amplada de l'endcap esquerre). Col 2 = cells. */
-  grid-template-columns: var(--app30-endcap-w) 1fr;
+  grid-template-columns: var(--fe-endcap-w) 1fr;
 }
 
 .itfr-editor .itfr-label {
@@ -400,14 +329,14 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
 }
 
 /* ========== TIMELINE ==========
-   Margins responsius amb `--app30-endcap-w` (Step 7s). */
+   Margins responsius amb `--fe-endcap-w` (Step 7s). */
 .timeline-wrapper {
   width: auto !important;
   /* `max-width` eliminat — l'app s'estén a tot l'amplada. */
   /* margin-top ampliat perquè les barres iT (top: -3.3rem) + halter
      groc (top: -1.9rem) sobre la timeline NO trepitgin el .middle.
      ~5.5rem permet veure les barres + halter sense col·lisió. */
-  margin: 5.5rem var(--app30-endcap-w) 0.75rem var(--app30-endcap-w);
+  margin: 5.5rem var(--fe-endcap-w) 0.75rem var(--fe-endcap-w);
   position: relative;
 }
 
@@ -429,58 +358,7 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
   font-weight: 700;
 }
 
-/* ========== ENDCAPS: quadrats grocs als extrems (Step 7s.2) ========== */
-body[data-visual="nuzic"].app30
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline::before,
-body[data-visual="nuzic"].app30
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline::after {
-  content: '';
-  display: block;
-  position: absolute;
-  inset: auto;
-  opacity: 1;
-  border: 0;
-  top: 0%;
-  width: var(--app30-endcap-w);
-  height: var(--app30-endcap-h);
-  background: var(--nuzic-yellow, #FFBB33);
-  border-radius: 4px;
-  z-index: 0;
-  pointer-events: none;
-}
-
-body[data-visual="nuzic"].app30
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline::before {
-  left: 0;
-  transform: translateX(calc(-100% - 1.25rem));
-}
-
-body[data-visual="nuzic"].app30
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline::after {
-  right: 0;
-  transform: translateX(calc(100% + 1.25rem));
-}
-
-/* Franja groc intens sobre la línia dels ::after ticks. */
-body[data-visual="nuzic"].app30
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline {
-  background:
-    linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 42px,
-      var(--nuzic-yellow) 42px,
-      var(--nuzic-yellow) 56px,
-      transparent 56px,
-      transparent 100%
-    ),
-    var(--nuzic-yellow-light);
-}
+/* Endcaps + franja compartits: libs/app-common/fraction-editor-nuzic.css (H-17). */
 
 /* ========== SUBDIVISION ROW (sota la banda) ========== */
 .timeline .cycle-marker {
@@ -542,8 +420,8 @@ body[data-visual="nuzic"].app30
   left: 0;
   top: 0;
   transform:
-    translateX(calc(-0.5 * var(--app30-endcap-w) - 1.25rem - 50%))
-    translateY(calc(var(--app30-endcap-h) - 100% - 0.25rem));
+    translateX(calc(-0.5 * var(--fe-endcap-w) - 1.25rem - 50%))
+    translateY(calc(var(--fe-endcap-h) - 100% - 0.25rem));
   font-size: clamp(0.95rem, 1.6vw, 1.15rem);
   font-weight: 700;
   color: var(--nuzic-dark, #43433B);

@@ -14,22 +14,16 @@
   display: none !important;
 }
 
-/* Variables compartides per fraction-editor, endcaps, subdivision-label,
-   editor Pfr label width — al body perquè les vegin `.middle`,
-   `.timeline-wrapper` i `.pfr-row` (siblings). */
-body.app28 {
-  --app28-endcap-w: clamp(1.875rem, 5.25vw, 5rem);
-  --app28-endcap-h: clamp(3.8rem, 4vw, 4.75rem);
-}
+/* --fe-endcap-w/h viuen a libs/app-common/fraction-editor-nuzic.css (H-17). */
 
 /* ========== .middle: bloc de la fracció dalt-esquerra (App26 pattern) ==========
-   Margins iguals a `--app28-endcap-w` a cada costat perquè la fracció
+   Margins iguals a `--fe-endcap-w` a cada costat perquè la fracció
    (a `left: -W` del `.middle`) i l'endcap dret (a `translateX(100% + 1.25rem)`
    del `.timeline`) no s'escapin del viewport (iframe del sistema). */
 .middle {
   width: auto;
   /* `max-width` eliminat — l'app s'estén a tot l'amplada del viewport. */
-  margin: 0 var(--app28-endcap-w) 5px var(--app28-endcap-w);
+  margin: 0 var(--fe-endcap-w) 5px var(--fe-endcap-w);
   justify-content: flex-start;
 }
 
@@ -48,13 +42,13 @@ body.app28 {
 /* Rectangle vertical alineat amb `::before` endcap esquerre. */
 .fraction-editor {
   position: relative;
-  left: calc(0px - var(--app28-endcap-w));
+  left: calc(0px - var(--fe-endcap-w));
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
   gap: 0.2rem;
-  width: var(--app28-endcap-w);
+  width: var(--fe-endcap-w);
   box-sizing: border-box;
   padding: 0.5rem 0;
   border: 3px solid var(--nuzic-yellow, #FFBB33);
@@ -118,74 +112,7 @@ body.app28 {
   padding-right: 0;
 }
 
-/* Spinner pill OUTSIDE la caixa, a la dreta. Half-pill shape (rodons
-   als extrems exteriors, rectes a la cara interior). `setSimpleMode()`
-   amaga el spinner del numerador via inline `display: none`. */
-.fraction-field .spinner {
-  position: absolute;
-  left: calc(100% + 0.45rem);
-  right: auto;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-  gap: 4px;
-  width: 1.3rem;
-  height: 2.8rem;
-  background: transparent;
-  overflow: visible;
-  transition: opacity 0.2s ease;
-}
-
-.fraction-field .spinner .spin {
-  flex: 1 1 50%;
-  width: 100%;
-  height: auto;
-  border: none;
-  background: var(--nuzic-yellow, #FFBB33);
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-family: 'Ubuntu', sans-serif;
-  font-weight: 700;
-  font-size: 0.8rem;
-  line-height: 1;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
-}
-
-.fraction-field .spinner .spin.up {
-  border-radius: 999px 999px 0 0;
-}
-
-.fraction-field .spinner .spin.down {
-  border-radius: 0 0 999px 999px;
-}
-
-.fraction-field .spinner .spin::before {
-  content: none;
-  border: 0;
-}
-
-.fraction-field .spinner .spin.up::after  { content: '+'; }
-.fraction-field .spinner .spin.down::after { content: '−'; }
-
-.fraction-field .spinner .spin:hover {
-  background: #e6a82e;
-}
-
-.fraction-field .spinner .spin:active {
-  background: #d9991a;
-}
-
-.fraction-field--empty .spinner {
-  opacity: 0;
-  pointer-events: none;
-}
+/* Spinner half-pill compartit: libs/app-common/fraction-editor-nuzic.css (H-17). */
 
 .fraction-field-placeholder {
   display: none !important;
@@ -203,17 +130,17 @@ body.app28 {
   width: auto;
   /* `max-width` eliminat perquè el editor s'estengui a tota l'amplada
      del viewport (consistent amb el patró d'App34/App35 plano-2D). */
-  margin: 0.25rem var(--app28-endcap-w) 0 0;
+  margin: 0.25rem var(--fe-endcap-w) 0 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Editor grid: label esquerra (width = --app28-endcap-w per coincidir
+/* Editor grid: label esquerra (width = --fe-endcap-w per coincidir
    amb el endcap groc esquerre) + cells. */
 .pfr-editor {
   position: relative;
   display: grid;
-  grid-template-columns: var(--app28-endcap-w) 1fr;
+  grid-template-columns: var(--fe-endcap-w) 1fr;
 }
 
 /* Yellow "Pfr" label on the left — proporcions del .it-label d'App13. */
@@ -302,13 +229,13 @@ body.app28 {
 }
 
 /* ========== TIMELINE ==========
-   Margins responsives amb `--app28-endcap-w` perquè els endcaps grocs
+   Margins responsives amb `--fe-endcap-w` perquè els endcaps grocs
    no surtin del viewport. Width: auto !important override del width: 100%
    heretat de app-common. */
 .timeline-wrapper {
   width: auto !important;
   /* `max-width` eliminat — la timeline s'estén a tot l'amplada del viewport. */
-  margin: 0.5rem var(--app28-endcap-w) 0.75rem var(--app28-endcap-w);
+  margin: 0.5rem var(--fe-endcap-w) 0.75rem var(--fe-endcap-w);
   position: relative;
 }
 
@@ -330,65 +257,7 @@ body.app28 {
   cursor: pointer;
 }
 
-/* ========== ENDCAPS: quadrats grocs (groc intens) als extrems ==========
-   Patró Step 7s.2 (App26). Flush amb el `box-shadow` crema del
-   nuzic-theme via `translateX(±100% ∓ 1.25rem)`. Cal cancel·lar
-   `inset: 0 / opacity: 0 / border: 2px` heretats de
-   `libs/app-common/styles.css:328`. */
-body[data-visual="nuzic"].app28
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline::before,
-body[data-visual="nuzic"].app28
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline::after {
-  content: '';
-  display: block;
-  position: absolute;
-  inset: auto;
-  opacity: 1;
-  border: 0;
-  top: 0%;
-  width: var(--app28-endcap-w);
-  height: var(--app28-endcap-h);
-  background: var(--nuzic-yellow, #FFBB33);
-  border-radius: 4px;
-  z-index: 0;
-  pointer-events: none;
-}
-
-body[data-visual="nuzic"].app28
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline::before {
-  left: 0;
-  transform: translateX(calc(-100% - 1.25rem));
-}
-
-body[data-visual="nuzic"].app28
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline::after {
-  right: 0;
-  transform: translateX(calc(100% + 1.25rem));
-}
-
-/* ========== FRANJA GROC INTENS sobre la línia dels ::after ticks ==========
-   Override el background `--nuzic-yellow-light` sòlid del nuzic-theme:
-   linear-gradient amb franja `--nuzic-yellow` a y=42-56px de 60px de
-   timeline (zona dels ::after ticks dels pulse-numbers). */
-body[data-visual="nuzic"].app28
-  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
-  .timeline {
-  background:
-    linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 42px,
-      var(--nuzic-yellow) 42px,
-      var(--nuzic-yellow) 56px,
-      transparent 56px,
-      transparent 100%
-    ),
-    var(--nuzic-yellow-light);
-}
+/* Endcaps + franja compartits: libs/app-common/fraction-editor-nuzic.css (H-17). */
 
 /* ========== SUBDIVISION ROW (sota la banda) ========== */
 .timeline .cycle-marker {
@@ -462,8 +331,8 @@ body[data-visual="nuzic"].app28
   left: 0;
   top: 0;
   transform:
-    translateX(calc(-0.5 * var(--app28-endcap-w) - 1.25rem - 50%))
-    translateY(calc(var(--app28-endcap-h) - 100% - 0.25rem));
+    translateX(calc(-0.5 * var(--fe-endcap-w) - 1.25rem - 50%))
+    translateY(calc(var(--fe-endcap-h) - 100% - 0.25rem));
   font-size: clamp(0.95rem, 1.6vw, 1.15rem);
   font-weight: 700;
   color: var(--nuzic-dark, #43433B);

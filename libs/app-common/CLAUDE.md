@@ -1,13 +1,16 @@
 # App-Common — Context for Claude
 
 ## Role
-Middleware layer between UI and TimelineAudio. 54 modules. Everything reusable across apps lives here.
+Middleware layer between UI and TimelineAudio. 56 modules. Everything reusable across apps lives here.
 
 ## Modules by Function
 
 **Initialization:**
 - `audio-init.js` — Lazy TimelineAudio creation (suppresses warnings)
 - `fraction-app-shell.js` — `createFractionAppShell` (App26-31): preferències + factory reset + sound events + toggles + mixer menu + theme/mute + initAudio (rhythm/melodic) en una crida declarativa
+- `fraction-timeline.js` — `createFractionTimeline` (App26-31): esquelet de la línia de temps de fraccions (polsos + etiqueta n/d + ticks de subdivisió + layout %); deltes per app via decoradors
+- `fraction-highlight.js` — `createFractionHighlighter` (App26-29): highlights de playback (pols enter + parella marcador/etiqueta) amb el reflow forçat load-bearing
+- `fraction-editor-nuzic.css` — crom nuzic compartit del fraction-editor (spinner half-pill, endcaps, franja) amb vars `--fe-*`; les apps l'enllacen abans del seu styles.css
 - `dom.js` — `bindAppRhythmElements(appId)` central DOM binding
 
 **Audio & Control:**

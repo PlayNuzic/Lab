@@ -7,7 +7,7 @@
 import { CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
 import { createFractionAppShell } from '../../libs/app-common/fraction-app-shell.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
-import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
+import { createFractionTimeline } from '../../libs/app-common/fraction-timeline.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { createCellSequenceEditor } from '../../libs/pulse-seq/index.js';
@@ -54,10 +54,8 @@ let currentDenominator = DEFAULT_DENOMINATOR;
 // start = subdivisió d'inici (global), it = durada en unitats de subdivisió
 let itSequence = [];
 
-// DOM elements
-let pulses = [];
-let cycleMarkers = [];
-let cycleLabels = [];
+// Els elements de la línia de temps viuen a la factoria `tl` (H-15)
+// i es passen al motor iTfr a onAfterRender.
 // Les barres d'interval, el drag i els highlights són del motor compartit
 // (libs/interval-sequencer/itfr-engine.js, H-21) — vegeu `engine` més avall.
 
@@ -553,106 +551,37 @@ function updateInfoDisplays() {
   }
 }
 
-// ========== TIMELINE RENDERING ==========
+// ========== TIMELINE (factoria compartida, H-15) ==========
+// App31: els enters que no són inici de cicle (ni extrems) es marquen
+// .non-selectable — el drag i el clic els ignoren (fraccions complexes).
+const tl = createFractionTimeline({
+  timeline,
+  getLg: () => currentNumerator,
+  getNumerator: () => currentNumerator,
+  getDenominator: () => currentDenominator,
+  decoratePulse: (el, { index, lg }) => {
+    if (index === 0) el.classList.add('startpoint');
+    else if (index === lg) el.classList.add('endpoint');
+    else if (!isIntegerPulseSelectable(index, currentNumerator, currentDenominator, lg)) {
+      el.classList.add('non-selectable');
+    }
+  },
+  decorateSubdivision: (el, { base, lg }) => {
+    const selectable = base === 0
+      || isIntegerPulseSelectable(base, currentNumerator, currentDenominator, lg);
+    if (!selectable) el.classList.add('non-selectable');
+  },
+  onAfterRender: ({ pulses, cycleMarkers, cycleLabels }) => {
+    engine.bindTimeline({ pulses, cycleMarkers, cycleLabels });
+    engine.updateIntervalBars();
+  }
+});
+
 function renderTimeline() {
-  if (!timeline) return;
-
-  timeline.classList.add('no-anim');
-
-  // Clear previous
-  pulses = [];
-  cycleMarkers = [];
-  cycleLabels = [];
-  timeline.innerHTML = '';
-
-  const lg = currentNumerator;
-  const n = currentNumerator;
-  const d = currentDenominator;
-
-  // Pulse numbers (nuzic-theme renders ticks via ::before/::after).
-  // App31-specific: integer pulses that are NOT at a cycle start (not a multiple
-  // of numerator, not endpoint) are marked non-selectable — drag and click ignore.
-  for (let i = 0; i <= lg; i++) {
-    const num = document.createElement('div');
-    num.className = 'pulse-number';
-    if (i === 0) num.classList.add('startpoint');
-    else if (i === lg) num.classList.add('endpoint');
-    else if (!isIntegerPulseSelectable(i, n, d, lg)) num.classList.add('non-selectable');
-    num.dataset.index = i;
-    num.textContent = i;
-    timeline.appendChild(num);
-    pulses.push(num);
-  }
-
-  // Single "N/D" subdivision label anchored to the left of the subdivision row.
-  const subdivisionLabel = document.createElement('div');
-  subdivisionLabel.className = 'subdivision-label';
-  subdivisionLabel.textContent = `${n}/${d}`;
-  timeline.appendChild(subdivisionLabel);
-
-  // Create cycle markers + labels below the timeline (subdivision row).
-  const grid = gridFromOrigin({ lg, numerator: n, denominator: d });
-
-  if (grid.cycles > 0 && grid.subdivisions.length) {
-    grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
-      if (subdivisionIndex === 0) return; // Skip integers
-
-      const globalSubdiv = cycleIndex * d + subdivisionIndex;
-      const base = cycleIndex * n;
-      const isSelectable = base === 0 || isIntegerPulseSelectable(base, n, d, lg);
-
-      const marker = document.createElement('div');
-      marker.className = 'cycle-marker';
-      if (!isSelectable) marker.classList.add('non-selectable');
-      marker.dataset.cycleIndex = String(cycleIndex);
-      marker.dataset.subdivision = String(subdivisionIndex);
-      marker.dataset.globalSubdiv = String(globalSubdiv);
-      marker.dataset.position = String(position);
-      timeline.appendChild(marker);
-      cycleMarkers.push(marker);
-
-      const label = document.createElement('div');
-      label.className = 'cycle-label';
-      if (!isSelectable) label.classList.add('non-selectable');
-      label.dataset.cycleIndex = String(cycleIndex);
-      label.dataset.subdivision = String(subdivisionIndex);
-      label.dataset.globalSubdiv = String(globalSubdiv);
-      label.dataset.position = String(position);
-      label.textContent = `.${subdivisionIndex}`;
-      timeline.appendChild(label);
-      cycleLabels.push(label);
-    });
-  }
-
-  layoutTimeline();
-  engine.bindTimeline({ pulses, cycleMarkers, cycleLabels });
-  engine.updateIntervalBars();
-
-  requestAnimationFrame(() => {
-    timeline.classList.remove('no-anim');
-  });
+  tl.render();
 }
 
-function layoutTimeline() {
-  const lg = currentNumerator;
 
-  // Vertical positioning handled by nuzic-theme + App30 styles.css.
-  // Only horizontal percentage is dynamic per render.
-  pulses.forEach((num) => {
-    const idx = parseInt(num.dataset.index, 10);
-    num.style.left = (idx / lg) * 100 + '%';
-  });
-
-  cycleMarkers.forEach((marker) => {
-    const pos = parseFloat(marker.dataset.position);
-    marker.style.left = (pos / lg) * 100 + '%';
-  });
-
-  cycleLabels.forEach((label) => {
-    const pos = parseFloat(label.dataset.position);
-    label.style.left = (pos / lg) * 100 + '%';
-  });
-}
 
 // ========== PLAYBACK ==========
 async function startPlayback() {

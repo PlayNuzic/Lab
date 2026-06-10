@@ -1,0 +1,149 @@
+/* Crom compartit del fraction-editor en tema nuzic (H-17).
+   Les sis apps de fraccions (App26-31) duien aquests blocs copiats amb
+   l'única diferència del prefix --appNN-* de les variables; aquí viuen un
+   sol cop amb variables neutres --fe-* (els valors eren idèntics a totes).
+
+   Conté NOMÉS els blocs verificats byte-idèntics entre apps:
+   - spinner half-pill del fraction-editor
+   - endcaps grocs als extrems de la línia de temps
+   - franja groc intens sobre la línia dels ::after ticks
+   La caixa de l'editor i la fila de subdivisions divergeixen per família
+   i queden a cada app. Enllaceu aquest fitxer ABANS de styles.css perquè
+   l'app pugui sobreescriure. */
+
+:root {
+  --fe-endcap-w: clamp(1.875rem, 5.25vw, 5rem);
+  --fe-endcap-h: clamp(3.8rem, 4vw, 4.75rem);
+}
+
+/* ========== SPINNER half-pill del fraction-editor ==========
+   Pill FORA la caixa, a la dreta; rodons als extrems exteriors, rectes a
+   la cara interior. `setSimpleMode()` amaga el spinner del numerador via
+   inline `display: none`. Les regles de `.fraction-field-placeholder`
+   (visible a App26/27, ocult a App28-31) queden a cada app. */
+.fraction-field .spinner {
+  position: absolute;
+  left: calc(100% + 0.45rem);
+  right: auto;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 4px;
+  width: 1.3rem;
+  height: 2.8rem;
+  background: transparent;
+  overflow: visible;
+  transition: opacity 0.2s ease;
+}
+
+.fraction-field .spinner .spin {
+  flex: 1 1 50%;
+  width: 100%;
+  height: auto;
+  border: none;
+  background: var(--nuzic-yellow, #FFBB33);
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.fraction-field .spinner .spin.up {
+  border-radius: 999px 999px 0 0;
+}
+
+.fraction-field .spinner .spin.down {
+  border-radius: 0 0 999px 999px;
+}
+
+.fraction-field .spinner .spin::before {
+  content: none;
+  border: 0;
+}
+
+.fraction-field .spinner .spin.up::after  { content: '+'; }
+.fraction-field .spinner .spin.down::after { content: '−'; }
+
+.fraction-field .spinner .spin:hover {
+  background: #e6a82e;
+}
+
+.fraction-field .spinner .spin:active {
+  background: #d9991a;
+}
+
+.fraction-field--empty .spinner {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ========== ENDCAPS: quadrats grocs (groc intens) als extrems ==========
+   Patró Step 7s.2 (App26). Flush amb el `box-shadow` crema del
+   nuzic-theme via `translateX(±100% ∓ 1.25rem)`. Cal cancel·lar
+   `inset: 0 / opacity: 0 / border: 2px` heretats de
+   `libs/app-common/styles.css`. El selector és genèric: l'abast el dóna
+   qui enllaça aquest fitxer (només les apps de fraccions). */
+body[data-visual="nuzic"]
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::before,
+body[data-visual="nuzic"]
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::after {
+  content: '';
+  display: block;
+  position: absolute;
+  inset: auto;
+  opacity: 1;
+  border: 0;
+  top: 0%;
+  width: var(--fe-endcap-w);
+  height: var(--fe-endcap-h);
+  background: var(--nuzic-yellow, #FFBB33);
+  border-radius: 4px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+body[data-visual="nuzic"]
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::before {
+  left: 0;
+  transform: translateX(calc(-100% - 1.25rem));
+}
+
+body[data-visual="nuzic"]
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::after {
+  right: 0;
+  transform: translateX(calc(100% + 1.25rem));
+}
+
+/* ========== FRANJA GROC INTENS sobre la línia dels ::after ticks ==========
+   Override del background `--nuzic-yellow-light` sòlid del nuzic-theme:
+   linear-gradient amb franja `--nuzic-yellow` a y=42-56px de 60px de
+   timeline (zona dels ::after ticks dels pulse-numbers). */
+body[data-visual="nuzic"]
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline {
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 42px,
+      var(--nuzic-yellow) 42px,
+      var(--nuzic-yellow) 56px,
+      transparent 56px,
+      transparent 100%
+    ),
+    var(--nuzic-yellow-light);
+}
