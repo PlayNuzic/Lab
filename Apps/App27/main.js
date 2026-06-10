@@ -721,7 +721,12 @@ function init() {
       min: MIN_BPM,
       max: MAX_BPM,
       defaultValue: DEFAULT_BPM,
-      onChange: (bpm) => { if (isPlaying && audio) audio.setTempo(bpm); }
+      onChange: (bpm) => {
+        // Transport escalat: play() usa interval (60/bpm)/d, així que el
+        // tempo efectiu és bpm × d — setTempo(bpm) sense escalar el feia
+        // d vegades més lent en calent.
+        if (isPlaying && audio) audio.setTempo(bpm * currentDenominator);
+      }
     });
     bpmController.attach();
   }

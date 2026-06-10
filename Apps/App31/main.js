@@ -993,7 +993,12 @@ function init() {
       min: MIN_BPM,
       max: MAX_BPM,
       defaultValue: DEFAULT_BPM,
-      onChange: (bpm) => { if (isPlaying && audio) audio.setTempo(bpm); }
+      onChange: () => {
+        // Transport escalat (bpm efectiu = bpm × d): re-aplicar la config
+        // escalada com App32-35 — setTempo(bpm) directe el feia d vegades
+        // més lent en calent.
+        if (isPlaying) applyTransportConfig();
+      }
     });
     bpmController.attach();
   }
