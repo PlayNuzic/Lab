@@ -88,3 +88,28 @@ lliure i el seu device fake amagaven el problema):
 Commit: b43e138. Lliçó de probes: headless ≠ Chrome real per a àudio
 (autoplay policy, device rate); i navegar la pestanya ABANS d'activar
 Network.setCacheDisabled serveix mòduls vells del perfil.
+
+## Postdata 2 (mateixa nit, després de les regressions): poliment d'UX
+
+- **404 d'ubuntu-bold.ttf**: dues còpies INLINE del @font-face (índex arrel i
+  índex d'Apps) no passaven per tokens.css i apuntaven al .ttf que P-10 va
+  retirar — corregides al woff2; zero referències .ttf restants al repo.
+- **Menú de rendiment → només dev** (c8fb3ab): en producció el preset
+  balanced + el bridge per dispositiu ja ho gestionen; la fila de Sample
+  Rate s'ELIMINA del tot (configurePerformance({requestedSampleRate})
+  re-creava el context i trencava l'invariant 44100 — el patró del bug
+  "context has been closed"). El panell ara mostra valors REALS del motor.
+- **Menú hamburguesa SENCER → només dev** (38c97b9): sons al mixer
+  (sincronitzats per storage keys), resets in-place per app, la resta són
+  ajustos de demo (circular, fraccions complexes, color, etiquetes —
+  decisió de producte: també a dev). Es renderitza sempre i NOMÉS s'oculta:
+  11+ apps llegeixen els seus elements i els selects de so alimenten
+  l'àudio per dataset.value. Gate a initHeader (coll d'ampolla dels DOS
+  camins de render: template.js renderApp i renderHeader).
+- **Forats visibles a App30/31** (12e3c58): crear un iT al mig del timeline
+  deixava la barra bé però l'editor el pintava com a primer — el model
+  tenia isSilence i ningú no creava silencis. Ara: normalizeSilences al
+  motor (forats materialitzats, fusionats, mai al final), caselles buides
+  editables (cell-editor entry.silence), buidar un iT del mig deixa el
+  forat (no compacta), validació geomètrica (occupiedEnd/nextRealStart).
+  App32-35 ja ho feien (isRest); App28 és selecció — només la parella 30/31.

@@ -6,7 +6,7 @@
 
 | Mòdul | Descripció | README |
 |-------|------------|--------|
-| **app-common** | 49 mòduls core compartits entre apps | [README](../libs/app-common/README.md) |
+| **app-common** | 50 mòduls core compartits entre apps | [README](../libs/app-common/README.md) |
 | **matrix-seq** | Editor grid N-P pairs dinàmic | [README](../libs/matrix-seq/README.md) |
 | **musical-grid** | Visualització 2D amb scroll | [README](../libs/musical-grid/README.md) |
 | **interval-sequencer** | Seqüenciador d'intervals iS-iT | [README](../libs/interval-sequencer/README.md) |

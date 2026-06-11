@@ -1,7 +1,7 @@
 # App-Common — Context for Claude
 
 ## Role
-Middleware layer between UI and TimelineAudio. 49 modules. Everything reusable across apps lives here.
+Middleware layer between UI and TimelineAudio. 50 modules. Everything reusable across apps lives here.
 
 ## Modules by Function
 
@@ -25,6 +25,8 @@ Middleware layer between UI and TimelineAudio. 49 modules. Everything reusable a
 - `timeline-layout.js` — DOM positioning of pulses/bars/markers, linear & circular modes (App2-5). NOT subdivision math; do not confuse with `timeline-renderer.js` (fractional timeline DOM creation, App4)
 - `template.js` — Shared slots, supports `useIntervalMode` flag
 - `tap-tempo-handler.js` — Tap tempo with visual feedback, requires 3 taps minimum
+- `play-loading.js` — `withPlayButtonLoading(btn, task)` (U-27): estat de càrrega del Play amb llindar anti-parpelleig de 120ms; restaura sempre, també en error
+- `transport-live-update.js` — `createLiveTransportPush({apply, isLive})` (A-13): push d'edicions en viu al transport amb debounce trailing de 250ms — cap transitòria de tecleig (bpm=2, totalPulses=1) arriba al worklet
 
 **Utilities:**
 - `subdivision.js` — `interval = 60 / bpm`, pulse count calculations

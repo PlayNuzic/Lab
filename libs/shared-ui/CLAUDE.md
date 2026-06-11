@@ -8,7 +8,7 @@ Unified header, sound controls, dropdowns, tooltips shared across all apps.
 - `initSoundDropdown()` — Sound selector with P1 toggle
 - `initP1ToggleUI()` — Pulse 1 toggle
 - Hover/tooltip helpers
-- `performance-audio-menu.js` — Look-ahead, update interval, and sample offset controls
+- `performance-audio-menu.js` — Schedule horizon + sample offset (eina de diagnòstic, NOMÉS dev; la fila de Sample Rate es va eliminar — trencava l'invariant del context 44100 pinnat)
 
 ## Event System
 Emits events that apps must handle:

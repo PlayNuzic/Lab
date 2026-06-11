@@ -25,7 +25,14 @@ troballa, és a `docs/audit-report-2026-06-10.md`, i el resum de cada sessió a:
 - Push en viu al transport NOMÉS via createLiveTransportPush (250ms);
   loop-control amb getter d'audio; circular-timeline.render memoitzat.
 - libs/notation → entry/vexflow-nuzic.js; Ubuntu local a shared-ui/fonts.
-- Suite: 73 suites / 1390 tests — `npm test` després de cada batch; commits
+- UI d'alumne minimalista: el menú hamburguesa SENCER i el menú de
+  rendiment són només-dev (?dev / nuzic-debug); el ☰ es renderitza sempre
+  (les apps llegeixen els seus elements) però ocult — mai esborrar-ne el DOM.
+- App30/31: els forats del model iTfr es materialitzen com a silencis
+  (engine.normalizeSilences — mai silencis al final ni adjacents); l'editor
+  els mostra com a caselles buides editables; tota mutació del model passa
+  per applySequenceMutation.
+- Suite: 73 suites / 1391 tests — `npm test` després de cada batch; commits
   amb llista explícita de fitxers (sessions paral·leles comparteixen el repo).
 - Verificació CDP: events de confiança, cache desactivada, perfil net, i
   viewport gran (Emulation.setDeviceMetricsOverride) — un clic sota el fold
