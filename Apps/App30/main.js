@@ -772,6 +772,7 @@ if (playBtn) {
 
 if (randomBtn) {
   randomMenu = setupRandomMenu({
+    storage: { load: shell.load, save: shell.save }, // LU-03: la config del menú sobreviu recàrregues
     spec: {
       denomMax: { label: 'Denominador máximo', min: 2, max: MAX_DENOMINATOR, default: MAX_DENOMINATOR },
     },

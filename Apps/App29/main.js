@@ -6,6 +6,7 @@
 // Playback en loop
 
 import { CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
+import { withPlayButtonLoading } from '../../libs/app-common/play-loading.js';
 import { createFractionAppShell } from '../../libs/app-common/fraction-app-shell.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { createFractionTimeline } from '../../libs/app-common/fraction-timeline.js';
@@ -912,7 +913,8 @@ async function startPlayback() {
   const scaledTotal = lg * d; // Total steps (without endpoint, loop mode)
   const scaledInterval = (60 / bpm) / d; // Each step = 1/d of a beat
 
-  const audioInstance = await initAudio();
+  // U-27: estat de càrrega compartit al primer Play (Tone.js + samples)
+  const audioInstance = await withPlayButtonLoading(playBtn, () => initAudio());
 
   // Amb lg = numerador, sempre hi ha exactament 1 cicle
   const hasCycle = n > 0 && d > 0;
@@ -1068,12 +1070,21 @@ function randomize() {
   }
 }
 
-function handleReset() {
-  // Clear storage
+async function handleReset() {
+  // LU-02: reset in-place (patró App32/App34) — abans location.reload():
+  // flaix en blanc, AudioContext fora i tall sec si estava sonant. El
+  // setFraction NO silenciós passa per handleFractionChange, com una
+  // edició normal.
+  if (isPlaying) await stopPlayback();
   clearOpt('d');
   clearOpt('n');
-  sessionStorage.setItem('volumeResetFlag', 'true');
-  window.location.reload();
+  fractionEditorController?.setFraction(
+    { numerator: DEFAULT_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
+    { cause: 'reset', persist: true }
+  );
+  selectedPulses.clear();
+  renderTimeline();
+  syncPulseSeqFromSelection();
 }
 
 // ========== EVENT LISTENERS ==========
@@ -1088,6 +1099,7 @@ playBtn?.addEventListener('click', async () => {
 
 // Long-press random menu (shortpress = randomize, longpress = open settings).
 randomMenu = setupRandomMenu({
+  storage: { load: loadOpt, save: saveOpt }, // LU-03: la config del menú sobreviu recàrregues
   spec: {
     numMax:   { label: 'Numerador máximo',   min: MIN_NUMERATOR, max: MAX_NUMERATOR,   default: MAX_NUMERATOR },
     denomMax: { label: 'Denominador máximo', min: 2,             max: MAX_DENOMINATOR, default: MAX_DENOMINATOR },
@@ -1095,6 +1107,11 @@ randomMenu = setupRandomMenu({
   onRandomize: randomize,
 });
 resetBtn?.addEventListener('click', handleReset);
+
+// U-27 (patró App32/App34): escalfa l'àudio al primer gest perquè el
+// primer Play no pagui Tone.js + samples sencers.
+document.addEventListener('click', () => { initAudio(); }, { once: true });
+document.addEventListener('touchstart', () => { initAudio(); }, { once: true });
 
 // ========== INITIALIZATION ==========
 function init() {

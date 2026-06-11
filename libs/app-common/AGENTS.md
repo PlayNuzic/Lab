@@ -17,7 +17,7 @@
 - **UI avançada**: `fraction-editor.js`, `timeline-layout.js`,
   `template.js` (slots compartits), `tap-tempo-handler.js` (tap tempo amb feedback visual).
 - **Utilitats**: `subdivision.js`, `number-utils.js` (consolidat: number + range + formatting),
-  `utils.js`, `mixer-menu.js` + `mixer-longpress.js`, `led-manager.js`, `events.js`.
+  `utils.js`, `mixer-menu.js` (long-press + clic dret/tecla Menú + events `nuzic:mixer:*`; el llegat `mixer-longpress.js` es va retirar el 2026-06-11, U-26), `led-manager.js`.
 
 ### ⭐ MÒDULS MOGUTS A SUB-PACKAGES (Fase 2):
 

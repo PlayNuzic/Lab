@@ -74,7 +74,7 @@ export function createRandomMenu(spec) {
     return out;
   }
 
-  return { html, read };
+  return { html, read, ids };
 }
 
 /**
@@ -108,12 +108,12 @@ export function createRandomMenu(spec) {
  *   // handleRandom():
  *   const { denomMax } = random.read();
  */
-export function setupRandomMenu({ spec, onRandomize, buttonId = 'randomBtn', menuId = 'randomMenu', longPress = 500 }) {
+export function setupRandomMenu({ spec, onRandomize, storage = null, buttonId = 'randomBtn', menuId = 'randomMenu', longPress = 500 }) {
   const button = document.getElementById(buttonId);
   const menu   = document.getElementById(menuId);
   if (!button || !menu) return null;
 
-  const { html, read } = createRandomMenu(spec);
+  const { html, read, ids } = createRandomMenu(spec);
 
   // Inject after the existing heading (if any) so the gear/title stays.
   const heading = menu.querySelector('.random-menu-title');
@@ -121,6 +121,32 @@ export function setupRandomMenu({ spec, onRandomize, buttonId = 'randomBtn', men
     heading.insertAdjacentHTML('afterend', html);
   } else {
     menu.insertAdjacentHTML('beforeend', html);
+  }
+
+  // LU-03: persistència opcional — App2 recordava la config del menú
+  // random entre recàrregues i les apps declaratives (26-35) no. Si
+  // l'app passa el seu preferenceStorage ({load, save}), cada input
+  // s'inicialitza del valor desat i es persisteix al 'change'.
+  if (storage && isPlainObject(spec)) {
+    for (const [key, opts] of Object.entries(spec)) {
+      const el = document.getElementById(ids[key]);
+      if (!el) continue;
+      const storageKey = `rand_${key}`;
+      const saved = storage.load?.(storageKey);
+      if (saved != null && saved !== '') {
+        if ((opts.type || 'number') === 'checkbox') {
+          el.checked = saved === '1' || saved === 'true';
+        } else {
+          el.value = saved;
+        }
+      }
+      el.addEventListener('change', () => {
+        const value = (opts.type || 'number') === 'checkbox'
+          ? (el.checked ? '1' : '0')
+          : el.value;
+        storage.save?.(storageKey, value);
+      });
+    }
   }
 
   initRandomMenu(button, menu, onRandomize, longPress);

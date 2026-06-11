@@ -249,8 +249,10 @@ function calculateCellWidth() {
 }
 
 // ========== MIDDLE LAYOUT (info pastilles + fraction) ==========
-// Three-column grid in `.middle`: [info pastilles | fraction centered | empty
-// spacer mirroring pastilles width so the fraction stays visually centered].
+// LU-04: la fracció va ANCORADA A L'ESQUERRA de `.middle` i el grup de
+// pastilles d'info a la dreta en absolut (Patró App30 — vegeu styles.css
+// `.middle`). Els comentaris antics deien "fraction centered": era l'estat
+// previ a la migració, el CSS actual no centra res.
 function buildMiddleLayout() {
   const middle = document.querySelector('.middle');
   if (!middle) return null;
@@ -288,13 +290,6 @@ function buildMiddleLayout() {
   fractionSlot = document.createElement('div');
   fractionSlot.className = 'itfr-fraction-slot';
   middle.appendChild(fractionSlot);
-
-  // Invisible spacer column mirrors pastilles group width so fraction renders
-  // visually centered despite pastilles on the left.
-  const spacer = document.createElement('div');
-  spacer.className = 'itfr-spacer';
-  spacer.setAttribute('aria-hidden', 'true');
-  middle.appendChild(spacer);
 
   // Resolve info displays
   sumDisplay = document.getElementById('sumItDisplay');
@@ -1831,6 +1826,7 @@ if (playBtn) {
 
 if (randomBtn) {
   randomMenu = setupRandomMenu({
+    storage: { load: loadOpt, save: saveOpt }, // LU-03: la config del menú sobreviu recàrregues
     spec: {
       numMax:   { label: 'Numerador máximo',   min: MIN_NUMERATOR,   max: MAX_NUMERATOR,   default: MAX_NUMERATOR },
       denomMax: { label: 'Denominador máximo', min: MIN_DENOMINATOR, max: MAX_DENOMINATOR, default: MAX_DENOMINATOR },

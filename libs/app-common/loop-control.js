@@ -37,6 +37,9 @@ export function createLoopController({
       // Update UI
       if (loopBtn) {
         loopBtn.classList.toggle('active', newState);
+        // LU-05: l'estat només es comunicava per classe CSS — invisible
+        // per a lectors de pantalla (mateix patró que audio-toggles.js).
+        loopBtn.setAttribute?.('aria-pressed', newState ? 'true' : 'false');
       }
 
       // CRITICAL: Synchronize with audio engine when playing
@@ -66,6 +69,7 @@ export function createLoopController({
 
       if (loopBtn) {
         loopBtn.classList.toggle('active', state);
+        loopBtn.setAttribute?.('aria-pressed', state ? 'true' : 'false');
       }
 
       if (syncAudio && audio && typeof audio.setLoop === 'function') {

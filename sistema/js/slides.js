@@ -856,6 +856,12 @@ function render(){
     q.set('paso', state.paso);
     history.replaceState(null, '', `${location.pathname}?${q}`);
   } catch {}
+
+  // LU-09: senyal per a observadors (panell tweaks) — la navegació interna
+  // (fletxes, botons, segments) crida aquest render() local i MAI el
+  // wrapper de window.__sistemaRender, així que els selects 'Ir a paso' i
+  // 'Densidad' quedaven rancis fins que editaves des del mateix panell.
+  document.dispatchEvent(new CustomEvent('sistema:render'));
 }
 
 // Apply/clear contenteditable on the editable fields of the current slide and

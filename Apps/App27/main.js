@@ -405,12 +405,13 @@ function randomize() {
   }
 }
 
-function handleReset() {
-  // Clear storage
+async function handleReset() {
+  // LU-02: reset in-place (patró App32/App34) — abans location.reload():
+  // flaix en blanc, AudioContext fora i tall sec si estava sonant.
+  if (isPlaying) await stopPlayback();
   clearOpt('d');
   clearOpt('n');
-  sessionStorage.setItem('volumeResetFlag', 'true');
-  window.location.reload();
+  setFraction(DEFAULT_NUMERATOR, DEFAULT_DENOMINATOR);
 }
 
 // ========== EVENT LISTENERS ==========
@@ -425,6 +426,7 @@ playBtn?.addEventListener('click', async () => {
 
 // Long-press random menu (shortpress = randomize, longpress = open settings).
 randomMenu = setupRandomMenu({
+  storage: { load: loadOpt, save: saveOpt }, // LU-03: la config del menú sobreviu recàrregues
   spec: {
     numMax:   { label: 'Numerador máximo',   min: MIN_NUMERATOR, max: MAX_NUMERATOR,   default: MAX_NUMERATOR },
     denomMax: { label: 'Denominador máximo', min: 2,             max: MAX_DENOMINATOR, default: MAX_DENOMINATOR },

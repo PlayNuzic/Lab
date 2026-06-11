@@ -5,6 +5,7 @@
 
 import { getMixer, setChannelMute } from '../../libs/sound/index.js';
 import { CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
+import { withPlayButtonLoading } from '../../libs/app-common/play-loading.js';
 import { createFractionAppShell } from '../../libs/app-common/fraction-app-shell.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { createFractionTimeline } from '../../libs/app-common/fraction-timeline.js';
@@ -278,7 +279,8 @@ async function startPlayback() {
   // that single step so pulse Lg stays silent (it's the `·` endpoint).
   const playbackTotal = lg + 1;
 
-  const audioInstance = await initAudio();
+  // U-27: estat de càrrega compartit al primer Play (Tone.js + samples)
+  const audioInstance = await withPlayButtonLoading(playBtn, () => initAudio());
 
   const hasCycle = currentDenominator > 0 && Math.floor(lg / FIXED_NUMERATOR) > 0;
 
@@ -380,12 +382,14 @@ function randomize() {
   }
 }
 
-function handleReset() {
-  // Clear storage
+async function handleReset() {
+  // LU-02: reset in-place (patró App32/App34) — abans location.reload():
+  // flaix en blanc, AudioContext fora (el següent Play tornava a pagar
+  // la càrrega de Tone.js i el gest) i tall sec si estava sonant.
+  if (isPlaying) await stopPlayback();
   clearOpt('d');
   clearOpt('n');
-  sessionStorage.setItem('volumeResetFlag', 'true');
-  window.location.reload();
+  setDenominator(DEFAULT_DENOMINATOR);
 }
 
 // ========== EVENT LISTENERS ==========
@@ -400,6 +404,7 @@ playBtn?.addEventListener('click', async () => {
 
 // Long-press random menu (shortpress = randomize, longpress = open settings).
 randomMenu = setupRandomMenu({
+  storage: { load: loadOpt, save: saveOpt }, // LU-03: la config del menú sobreviu recàrregues
   spec: {
     denomMax: { label: 'Denominador máximo', min: 2, max: MAX_DENOMINATOR, default: MAX_DENOMINATOR },
   },
@@ -407,6 +412,11 @@ randomMenu = setupRandomMenu({
 });
 
 resetBtn?.addEventListener('click', handleReset);
+
+// U-27 (patró App32/App34): escalfa l'àudio al primer gest perquè el
+// primer Play no pagui Tone.js + samples sencers.
+document.addEventListener('click', () => { initAudio(); }, { once: true });
+document.addEventListener('touchstart', () => { initAudio(); }, { once: true });
 
 // ========== INITIALIZATION ==========
 function init() {

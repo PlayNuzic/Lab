@@ -9,6 +9,7 @@ import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createMatrixHighlightController } from '../../libs/app-common/matrix-highlight-controller.js';
+import { withPlayButtonLoading } from '../../libs/app-common/play-loading.js';
 import { clearElement } from '../../libs/app-common/dom-utils.js';
 import { intervalsToPairs } from '../../libs/matrix-seq/index.js';
 import { createMelodicAudioInitializer, setupAudioDefaults, CHANNEL_TIERS, createMixerPersistence } from '../../libs/app-common/audio-init.js';
@@ -116,25 +117,12 @@ async function handlePlay() {
     return;
   }
 
-  // Show loading indicator if piano not yet loaded
   const playIcon = playBtn?.querySelector('.icon-play');
   const stopIcon = playBtn?.querySelector('.icon-stop');
-  let wasLoading = false;
 
-  if (!isPianoLoaded() && playBtn) {
-    wasLoading = true;
-    playBtn.disabled = true;
-    if (playIcon) playIcon.style.opacity = '0.5';
-  }
-
-  // Ensure audio is initialized
-  await initAudio();
-
-  // Restore button state after loading
-  if (wasLoading && playBtn) {
-    playBtn.disabled = false;
-    if (playIcon) playIcon.style.opacity = '1';
-  }
+  // U-27: estat de càrrega compartit — apareix només si l'init triga
+  // (>120ms) i es restaura sempre, també en error.
+  await withPlayButtonLoading(playBtn, () => initAudio());
 
   if (!window.Tone) {
     console.error('Tone.js not available');

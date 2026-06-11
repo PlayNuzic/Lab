@@ -5,6 +5,7 @@
 
 import { createMusicalGrid } from '../../libs/musical-grid/index.js';
 import { initMixerMenu, updateMixerChannelLabel } from '../../libs/app-common/mixer-menu.js';
+import { withPlayButtonLoading } from '../../libs/app-common/play-loading.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
@@ -242,24 +243,10 @@ async function handlePlay() {
 
   const playIcon = playBtn?.querySelector('.icon-play');
   const stopIcon = playBtn?.querySelector('.icon-stop');
-  let wasLoading = false;
 
-  // Check if current instrument is loaded
-  const currentInstrument = localStorage.getItem('app25:selectedInstrument') || 'piano';
-  const isInstrumentLoaded = currentInstrument === 'flute' ? isFluteLoaded() : isPianoLoaded();
-
-  if (!isInstrumentLoaded && playBtn) {
-    wasLoading = true;
-    playBtn.disabled = true;
-    if (playIcon) playIcon.style.opacity = '0.5';
-  }
-
-  await initAudio();
-
-  if (wasLoading && playBtn) {
-    playBtn.disabled = false;
-    if (playIcon) playIcon.style.opacity = '1';
-  }
+  // U-27: estat de càrrega compartit — apareix només si l'init triga
+  // (>120ms) i es restaura sempre, també en error.
+  await withPlayButtonLoading(playBtn, () => initAudio());
 
   if (!window.Tone) {
     console.error('Tone.js not available');

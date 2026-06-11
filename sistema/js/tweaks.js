@@ -135,7 +135,7 @@ window.parent.postMessage({ type: '__edit_mode_available' }, '*');
 const S = window.__sistemaState;
 selPaso.value = S.paso;
 selTheme.value = document.body.dataset.theme || 'light';
-selDensity.value = window.__sistemaGetDensity?.() ?? 'compact';
+selDensity.value = window.__sistemaGetDensity?.() ?? 'cozy';
 cbIframe.checked = S.showIframe;
 
 selPaso.addEventListener('change', ()=>{
@@ -223,10 +223,12 @@ btnResetPaso.addEventListener('click', ()=>{
   window.__sistemaRender();
 });
 
-// Keep selects synced when nav changes paso (paso + density per slide)
-const origRender = window.__sistemaRender;
-window.__sistemaRender = function(){
-  origRender();
+// LU-09: sync dels selects amb CADA render — l'antic wrapper de
+// window.__sistemaRender només es disparava per a canvis fets des del
+// propi panell; la navegació interna (fletxes/botons) crida el render()
+// local de slides.js, que ara emet 'sistema:render'. El fallback de
+// densitat és 'cozy' (DEFAULT_DENSITY real), no 'compact'.
+document.addEventListener('sistema:render', () => {
   selPaso.value = S.paso;
-  selDensity.value = window.__sistemaGetDensity?.() ?? 'compact';
-};
+  selDensity.value = window.__sistemaGetDensity?.() ?? 'cozy';
+});

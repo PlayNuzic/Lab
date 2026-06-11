@@ -456,6 +456,12 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   cursor: pointer;
 }
 
+/* LU-01: feedback de hover — la llista de 10+ sons no donava cap pista
+   de què estàs a punt de clicar. El verd ple queda per a .selected. */
+.custom-dropdown .dropdown-panel li:hover {
+  background: color-mix(in srgb, var(--selection-color) 35%, transparent);
+}
+
 .custom-dropdown .dropdown-panel li.selected {
   background: var(--selection-color);
 }
@@ -1953,5 +1959,46 @@ body.notation-open {
      que és quan iOS decideix si fa zoom. */
   .param .circle input:focus {
     font-size: 1rem;
+  }
+}
+
+/* U-23: estat de càrrega dels dropdowns d'instrument/so — la classe la
+   posa preloadInstrument (instrument-dropdown.js) mentre baixen samples. */
+.dropdown-toggle.is-loading {
+  opacity: 0.6;
+  cursor: progress;
+}
+.dropdown-toggle.is-loading::after {
+  content: '';
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-left: 0.4em;
+  vertical-align: middle;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: nuzic-loading-spin 0.8s linear infinite;
+}
+@keyframes nuzic-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* U-25: respecte per prefers-reduced-motion a les apps (el sistema i
+   plano-scroll ja ho fan). NOMÉS animacions decoratives — els highlights
+   de playback són feedback funcional i simple-highlight-controller depèn
+   del restart d'animació CSS, així que NO es desactiven en bloc. */
+@media (prefers-reduced-motion: reduce) {
+  .flash-warning,
+  .flip-out,
+  .flip-in,
+  .idle-caret-flash,
+  .pulse.remainder,
+  .recording-dot,
+  .dropdown-toggle.is-loading::after {
+    animation: none !important;
+  }
+  * {
+    scroll-behavior: auto !important;
   }
 }

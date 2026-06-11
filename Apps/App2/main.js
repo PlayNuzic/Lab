@@ -1,4 +1,5 @@
 import { createRhythmAudioInitializer, setupAudioDefaults, CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
+import { withPlayButtonLoading } from '../../libs/app-common/play-loading.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu, mergeRandomConfig, applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/random/index.js';
@@ -1566,18 +1567,47 @@ function syncTimelineScroll(){
   timelineWrapper.scrollLeft = maxTl * ratio;
 }
 
+// U-24: tooltip transitori vora el Play — el mateix patró hover-tip que
+// l'avís de "número mayor que Lg", perquè un Play que falla no sigui un
+// botó mort sense cap explicació.
+function showPlayWarning(message) {
+  try {
+    const tip = document.createElement('div');
+    tip.className = 'hover-tip auto-tip-below';
+    tip.textContent = message;
+    document.body.appendChild(tip);
+    const rect = playBtn.getBoundingClientRect();
+    tip.style.left = rect.left + 'px';
+    tip.style.top = (rect.bottom + 8) + 'px';
+    tip.style.fontSize = '0.95rem';
+    tip.classList.add('show');
+    setTimeout(() => { tip.classList.remove('show'); try { document.body.removeChild(tip); } catch {} }, 3000);
+  } catch {}
+}
+
 playBtn.addEventListener('click', async () => {
   try {
-    const audioInstance = await initAudio();
-    if (!audioInstance) return;
+    // U-27: estat de càrrega si l'init triga (primer Play en fred)
+    const audioInstance = await withPlayButtonLoading(playBtn, () => initAudio());
+    if (!audioInstance) {
+      showPlayWarning('No se pudo iniciar el audio');
+      return;
+    }
 
     if (isPlaying) {
       handlePlaybackStop(audioInstance);
       return;
     }
 
-    await startPlayback(audioInstance);
-  } catch {}
+    const started = await startPlayback(audioInstance);
+    if (started === false) {
+      showPlayWarning('Revisa Lg y V: hacen falta valores válidos para reproducir');
+    }
+  } catch (error) {
+    // U-24: abans catch{} buit — el Play quedava mut per sempre sense pista.
+    console.error('Play failed:', error);
+    showPlayWarning('No se pudo iniciar el audio');
+  }
 });
 
 function getPulseSeqRect(index) {

@@ -15,7 +15,24 @@ export const instrumentLabels = {
  * Called automatically when user selects an instrument from dropdown
  * @param {string} instrument - Instrument key to preload
  */
-async function preloadInstrument(instrument) {
+async function preloadInstrument(instrument, toggle = null) {
+  // U-23: feedback visible mentre baixen els samples — abans l'única pista
+  // era un log de consola, i prémer Play just després de canviar
+  // d'instrument sonava tard o mut sense cap indicació. La classe
+  // .is-loading (CSS compartit) i aria-busy es treuen SEMPRE (complete i
+  // error) perquè el botó no quedi atenuat per sempre.
+  const setLoading = (on) => {
+    if (!toggle) return;
+    toggle.classList.toggle('is-loading', on);
+    if (on) toggle.setAttribute('aria-busy', 'true');
+    else toggle.removeAttribute('aria-busy');
+  };
+  const callbacks = {
+    delay: 0,
+    onStart: () => setLoading(true),
+    onComplete: () => setLoading(false),
+    onError: () => setLoading(false)
+  };
   try {
     // Ensure Tone.js is loaded first
     const { ensureToneLoaded } = await import('../sound/tone-loader.js');
@@ -25,18 +42,19 @@ async function preloadInstrument(instrument) {
     switch (instrument) {
       case 'piano': {
         const { preloadPiano } = await import('../sound/piano.js');
-        preloadPiano({ delay: 0 });
+        preloadPiano(callbacks);
         log('Piano preload initiated');
         break;
       }
       case 'flute': {
         const { preloadFlute } = await import('../sound/flute.js');
-        preloadFlute({ delay: 0 });
+        preloadFlute(callbacks);
         log('Flute preload initiated');
         break;
       }
     }
   } catch (err) {
+    setLoading(false);
     console.warn(`Failed to preload ${instrument}:`, err);
   }
 }
@@ -144,7 +162,7 @@ export function initInstrumentDropdown(container, { storageKey, eventType, onSel
 
     // Only preload if audio engine is ready
     if (window.NuzicAudioEngine) {
-      preloadInstrument(selected);
+      preloadInstrument(selected, toggle);
     }
   };
   document.addEventListener('click', preloadOnFirstInteraction, { capture: true, once: true });
@@ -188,7 +206,7 @@ export function initInstrumentDropdown(container, { storageKey, eventType, onSel
     updateLabel();
 
     // Preload instrument samples in background to reduce latency
-    preloadInstrument(selected);
+    preloadInstrument(selected, toggle);
 
     // Dispatch event
     if (eventType) {

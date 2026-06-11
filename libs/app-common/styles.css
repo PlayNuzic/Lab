@@ -809,6 +809,11 @@ body[data-theme='dark'] .fraction-info-bubble {
   white-space: nowrap;
 }
 
+/* LU-01: hover també al dropdown de so del mixer */
+.mixer-channel__sound .dropdown-panel li:hover {
+  background: color-mix(in srgb, var(--selection-color) 35%, transparent);
+}
+
 .mixer-channel__sound .dropdown-panel li.selected {
   background: var(--selection-color, var(--nuzic-yellow, #FFBB33));
   color: var(--nuzic-white, #fff);

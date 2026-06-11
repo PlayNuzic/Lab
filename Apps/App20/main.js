@@ -2,6 +2,7 @@
 // Grid 2D (plano-modular) + nuzic N-iT zigzag editor
 
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
+import { withPlayButtonLoading } from '../../libs/app-common/play-loading.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { createCycleCounter } from '../../libs/app-common/cycle-counter.js';
@@ -1570,28 +1571,12 @@ async function togglePlayback() {
  * Start playback
  */
 async function startPlayback() {
-  // Check if current instrument is loaded (per-app key to match header writes)
-  const currentInstrument = localStorage.getItem('app20:selectedInstrument') || 'piano';
-  const isInstrumentLoaded = currentInstrument === 'flute' ? isFluteLoaded() : isPianoLoaded();
-
-  // Show loading indicator if instrument not yet loaded
   const iconPlay = elements.playBtn?.querySelector('.icon-play');
   const iconStop = elements.playBtn?.querySelector('.icon-stop');
-  let wasLoading = false;
 
-  if (!isInstrumentLoaded && elements.playBtn) {
-    wasLoading = true;
-    elements.playBtn.disabled = true;
-    if (iconPlay) iconPlay.style.opacity = '0.5';
-  }
-
-  const audioInstance = await initAudio();
-
-  // Restore button state after loading
-  if (wasLoading && elements.playBtn) {
-    elements.playBtn.disabled = false;
-    if (iconPlay) iconPlay.style.opacity = '1';
-  }
+  // U-27: estat de càrrega compartit — apareix només si l'init triga
+  // (>120ms) i es restaura sempre, també en error.
+  const audioInstance = await withPlayButtonLoading(elements.playBtn, () => initAudio());
 
   if (!audioInstance) return;
 

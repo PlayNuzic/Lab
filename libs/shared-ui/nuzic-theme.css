@@ -40,6 +40,11 @@ body[data-visual="nuzic"] {
   --nuzic-white: white;
   --nuzic-light: #eee8d8;
   --nuzic-grey: #AAA699;
+  /* LU-06: variant fosca per a CONTORNS de controls sobre fons clar —
+     #AAA699 sobre blanc dona ~2.4:1, sota el mínim 3:1 de WCAG 1.4.11.
+     #8a8678 arriba a ~3.6:1. --nuzic-grey queda per a usos decoratius
+     i per al tema fosc (allà sí que passa). */
+  --nuzic-grey-strong: #8a8678;
   --nuzic-dark: #43433b;
   --nuzic-red: #e76f68;
   --nuzic-red-light: #f5c6c2;
@@ -1005,8 +1010,8 @@ body[data-visual="nuzic"] .play.active {
 
 /* Loop: mantenir coherència amb play */
 body[data-visual="nuzic"] .loop {
-  border-color: var(--nuzic-grey);
-  color: var(--nuzic-grey);
+  border-color: var(--nuzic-grey-strong); /* LU-06: 3:1 sobre fons clar */
+  color: var(--nuzic-grey-strong);
 }
 
 body[data-visual="nuzic"] .loop.active {
@@ -2074,6 +2079,7 @@ body[data-visual="nuzic"][data-theme="dark"] .param.param--large--pink .circle .
    ratolí i tàctil queden nets com fins ara. */
 body[data-visual="nuzic"] input:focus-visible,
 body[data-visual="nuzic"] button:focus-visible,
+body[data-visual="nuzic"] select:focus-visible,
 body[data-visual="nuzic"] .spin:focus-visible {
   outline: 2px solid var(--nuzic-blue);
   outline-offset: 2px;

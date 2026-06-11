@@ -34,7 +34,7 @@ App4 explora la generación de secuencias de pulsos fraccionarios sobre la timel
 | --- | --- |
 | `../../libs/app-common/audio.js` | `createSchedulingBridge` y `bindSharedSoundEvents` (scheduling global + eventos de sonido). |
 | `../../libs/app-common/random-menu.js` | Animación y persistencia del menú aleatorio. |
-| `../../libs/app-common/mixer-menu.js` y `../../libs/app-common/mixer-longpress.js` | Entrada al mixer global desde la UI y gesto de _long press_. |
+| `../../libs/app-common/mixer-menu.js` | Entrada al mixer global: long-press al Play, clic dret/tecla Menú (U-04) i events `nuzic:mixer:*`. |
 | `../../libs/app-common/subdivision.js` | Conversión entre Lg/V/T y grid para pintar la timeline. |
 | `../../libs/sound/index.js` | Motor `TimelineAudio`, mixer global y utilidades `ensureAudio`, `setBase`, `setAccent`, `setStart`. |
 | `../../libs/shared-ui/performance-audio-menu.js` | Menú flotante que expone _lookAhead_ y _updateInterval_ efectivos. |

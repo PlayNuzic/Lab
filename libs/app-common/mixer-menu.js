@@ -665,11 +665,11 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     // U-04: el long-press només existeix via pointerdown; l'activació de
     // teclat (Enter/Espai) dispara click i mai pointerdown, així que no
     // hi havia CAP camí de teclat per obrir el mixer. contextmenu es
-    // dispara amb la tecla Menú/Shift+F10 (i amb clic dret). NOMÉS obre
-    // (tancar ja ho fan Escape i el clic fora): així és idempotent amb
-    // el contextmenu de mixer-longpress.js, que algunes apps carreguen
-    // pel seu compte i s'executa abans (si toggléssim, obrir+tancar al
-    // mateix gest).
+    // dispara amb la tecla Menú/Shift+F10 (i amb clic dret). NOMÉS obre:
+    // tancar ja ho fan Escape i el clic fora, i obrir-només és idempotent
+    // amb qualsevol altre handler de contextmenu (U-26: el llegat
+    // mixer-longpress.js, que doblava aquest gest amb un altre timing,
+    // es va retirar el 2026-06-11).
     btn.addEventListener('contextmenu', (event) => {
       event.preventDefault();
       if (!menuOpen) openMenu();
