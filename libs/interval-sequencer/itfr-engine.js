@@ -65,7 +65,7 @@ export function createItfrEngine(config) {
   // ========== BARRES D'INTERVAL ==========
 
   function updateIntervalBars(previewSequence = null) {
-    intervalBars.forEach(bar => bar.remove());
+    intervalBars.forEach(bar => bar?.remove()); // null = placeholder de silenci
     intervalBars = [];
     hlLastIdx = -1;
     hlLastCell = null;
@@ -78,7 +78,13 @@ export function createItfrEngine(config) {
     let colorIndex = 0;
 
     sequence.forEach((item, idx) => {
-      if (item.isSilence) return; // Els silencis deixen l'espai buit
+      if (item.isSilence) {
+        // Els silencis deixen l'espai buit al timeline, però mantenim la
+        // posició a l'array perquè intervalBars[i] segueixi alineat amb
+        // l'índex de seqüència que usa el highlight de playback.
+        intervalBars.push(null);
+        return;
+      }
 
       const startPos = subdivToPosition(item.start);
       const endPos = subdivToPosition(item.start + item.it);
@@ -112,8 +118,10 @@ export function createItfrEngine(config) {
   function insertItAtPosition(startSubdiv, newIt) {
     const newEndSubdiv = startSubdiv + newIt;
 
-    // Elimina els iTs que solapen amb el nou
+    // Elimina els iTs REALS que solapen amb el nou (els silencis es
+    // reconstrueixen sencers a normalizeSilences).
     const sequence = getSequence().filter(item => {
+      if (item.isSilence) return false;
       const itemEnd = item.start + item.it;
       return itemEnd <= startSubdiv || item.start >= newEndSubdiv;
     });
@@ -122,7 +130,32 @@ export function createItfrEngine(config) {
     sequence.sort((a, b) => a.start - b.start);
 
     setSequence(sequence);
+    normalizeSilences();
     onSequenceChange();
+  }
+
+  /**
+   * Materialitza els forats com a entrades de silenci: un iT creat al mig
+   * del timeline (clic/drag en un marcador que no és el primer) ha de
+   * DEIXAR caselles buides al davant a l'editor, no semblar el primer.
+   * Reconstrueix els silencis des dels iTs reals: un silenci per forat
+   * entre 0 i el final de l'últim iT real (mai silencis al final ni
+   * adjacents — es fusionen sols perquè es regeneren de zero).
+   */
+  function normalizeSilences() {
+    const real = getSequence()
+      .filter(item => !item.isSilence)
+      .sort((a, b) => a.start - b.start);
+    const next = [];
+    let pos = 0;
+    for (const item of real) {
+      if (item.start > pos) {
+        next.push({ start: pos, it: item.start - pos, isSilence: true });
+      }
+      next.push(item);
+      pos = item.start + item.it;
+    }
+    setSequence(next);
   }
 
   /**
@@ -315,7 +348,7 @@ export function createItfrEngine(config) {
     pulses.forEach(p => p.classList.remove('active'));
     cycleMarkers.forEach(m => m.classList.remove('active'));
     cycleLabels.forEach(l => l.classList.remove('active'));
-    intervalBars.forEach(b => b.classList.remove('highlight'));
+    intervalBars.forEach(b => b?.classList.remove('highlight'));
     const cellsHost = getEditorCellsHost();
     cellsHost?.querySelectorAll('.itfr-value.active').forEach(c => c.classList.remove('active'));
     hlLastIdx = -1;
@@ -419,6 +452,7 @@ export function createItfrEngine(config) {
     bindTimeline,
     updateIntervalBars,
     insertItAtPosition,
+    normalizeSilences,
     getItIndexAtScaledStart,
     clearHighlights,
     highlightPulse,

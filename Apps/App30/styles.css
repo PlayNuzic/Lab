@@ -307,6 +307,14 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
   cursor: text;
 }
 
+/* Caselles de silenci (forats del model): presents però buides — un iT
+   creat al mig del timeline deixa les del davant buides. S'hi pot
+   escriure un número per omplir el forat. */
+.itfr-editor .itfr-cell.itfr-value.itfr-silence {
+  background: transparent;
+  border-style: dashed;
+}
+
 .itfr-editor .itfr-cell.itfr-value:focus {
   box-shadow: inset 0 0 0 2px var(--nuzic-yellow, #FFBB33);
 }

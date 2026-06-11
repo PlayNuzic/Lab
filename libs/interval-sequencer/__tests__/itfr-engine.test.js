@@ -70,7 +70,7 @@ function buildHarness({ lg = 6, n = 1, d = 2, isSelectable, sequence = [], prepa
 
   return {
     engine, timeline, cellsHost, pulses, cycleMarkers, cycleLabels,
-    onSequenceChange, getModel: () => model
+    onSequenceChange, getModel: () => model, setModel: (next) => { model = next; }
   };
 }
 
@@ -126,10 +126,31 @@ describe('createItfrEngine — model', () => {
 
     const model = getModel();
     expect(model).toEqual([
+      { start: 0, it: 1, isSilence: true },  // forat materialitzat (caselles buides)
       { start: 1, it: 3, isSilence: false },
       { start: 4, it: 2, isSilence: false }
     ]);
     expect(onSequenceChange).toHaveBeenCalledTimes(1);
+  });
+
+  test('normalizeSilences omple forats, fusiona i retalla els del final', () => {
+    const { engine, getModel, setModel } = buildHarness();
+    setModel([
+      { start: 2, it: 1, isSilence: false },
+      { start: 5, it: 1, isSilence: false },
+      // brossa de silencis mal posats: es regeneren de zero
+      { start: 0, it: 1, isSilence: true },
+      { start: 1, it: 1, isSilence: true },
+      { start: 7, it: 3, isSilence: true }
+    ]);
+    engine.normalizeSilences();
+    expect(getModel()).toEqual([
+      { start: 0, it: 2, isSilence: true },   // forat inicial fusionat
+      { start: 2, it: 1, isSilence: false },
+      { start: 3, it: 2, isSilence: true },   // forat del mig
+      { start: 5, it: 1, isSilence: false }
+      // cap silenci al final: es retalla
+    ]);
   });
 
   test('getItIndexAtScaledStart mapeja start×n → índex', () => {
@@ -162,7 +183,10 @@ describe('createItfrEngine — drag', () => {
 
     expect(engine.isDragging()).toBe(false);
     expect(document.body.classList.contains('dragging-it')).toBe(false);
-    expect(getModel()).toEqual([{ start: 1, it: 5, isSilence: false }]);
+    expect(getModel()).toEqual([
+      { start: 0, it: 1, isSilence: true },
+      { start: 1, it: 5, isSilence: false }
+    ]);
   });
 
   test('pointercancel neteja sense fer commit', () => {
@@ -185,11 +209,12 @@ describe('createItfrEngine — drag', () => {
 
     cycleMarkers[0].dispatchEvent(pointer('pointerdown'));
     document.dispatchEvent(pointer('pointerup'));
-    expect(getModel().length).toBe(1);
+    const after = getModel().length; // silenci inicial + iT
 
     // Un segon pointerup orfe no torna a inserir res
     document.dispatchEvent(pointer('pointerup'));
-    expect(getModel().length).toBe(1);
+    expect(getModel().length).toBe(after);
+    expect(getModel().filter(it => !it.isSilence).length).toBe(1);
   });
 
   test('isSelectable exclou elements del drag (App31 non-selectable)', () => {
@@ -210,7 +235,7 @@ describe('createItfrEngine — drag', () => {
     cycleMarkers[1].dispatchEvent(pointer('pointerdown'));
     expect(engine.isDragging()).toBe(true);
     document.dispatchEvent(pointer('pointerup'));
-    expect(getModel().length).toBe(1);
+    expect(getModel().filter(it => !it.isSilence).length).toBe(1);
   });
 
   test('drag des d\'un pols enter converteix índex a subdivisió', () => {
@@ -219,7 +244,10 @@ describe('createItfrEngine — drag', () => {
     pulses[2].dispatchEvent(pointer('pointerdown'));
     expect(engine.isDragging()).toBe(true);
     document.dispatchEvent(pointer('pointerup'));
-    expect(getModel()).toEqual([{ start: 4, it: 1, isSilence: false }]);
+    expect(getModel()).toEqual([
+      { start: 0, it: 4, isSilence: true },
+      { start: 4, it: 1, isSilence: false }
+    ]);
   });
 });
 

@@ -67,7 +67,8 @@ export function createCellSequenceEditor({
     base: classes.base ?? 'editor-cell',
     value: classes.value ?? '',
     separator: classes.separator ?? '',
-    input: classes.input ?? ''
+    input: classes.input ?? '',
+    silence: classes.silence ?? 'is-silence'
   };
   const cfg = {
     maxLength: inputCfg.maxLength ?? 4,
@@ -119,6 +120,9 @@ export function createCellSequenceEditor({
     cell.className = `${cls.base} ${cls.value}`.trim();
     cell.value = entry.display;
     if (entry.token != null) cell.dataset.token = entry.token;
+    // Entrada de silenci (forat al model): cel·la buida amb classe pròpia
+    // perquè l'app l'estili; editable — escriure-hi un número omple el forat.
+    if (entry.silence) cell.classList.add(cls.silence || 'is-silence');
     cell.dataset.entryIndex = String(entryIndex);
     cell.readOnly = false;
     cell.style.cursor = 'text';

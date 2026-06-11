@@ -159,14 +159,6 @@ function getItSum() {
   return itSequence.reduce((sum, item) => sum + item.it, 0);
 }
 
-/**
- * Get next available start position
- */
-function getNextAvailableStart() {
-  if (itSequence.length === 0) return 0;
-  const last = itSequence[itSequence.length - 1];
-  return last.start + last.it;
-}
 
 // ========== iTfr LAYOUT CREATION ==========
 // Builds the cell-based iTfr editor BELOW the timeline (nuzic order:
@@ -220,7 +212,7 @@ function renderItfrEditor() {
   if (!itfrEditor) {
     itfrEditor = createCellSequenceEditor({
       host: itfrCellsEl,
-      classes: { base: 'itfr-cell', value: 'itfr-value', separator: 'itfr-separator', input: 'itfr-input' },
+      classes: { base: 'itfr-cell', value: 'itfr-value', separator: 'itfr-separator', input: 'itfr-input', silence: 'itfr-silence' },
       input: {
         maxLength: 2,
         inputMode: 'numeric',
@@ -233,37 +225,59 @@ function renderItfrEditor() {
         refocusAfterCommit: true,
         refocusOnInvalid: true
       },
-      getEntries: () => realItEntries().map(item => ({ display: String(item.it) })),
+      // Els silencis (forats del model) es mostren com a caselles BUIDES:
+      // un iT creat al mig del timeline deixa les del davant buides en
+      // lloc de semblar el primer. L'index d'entrada == index d'itSequence.
+      getEntries: () => itSequence.map(item => (
+        item.isSilence ? { display: '', silence: true } : { display: String(item.it) }
+      )),
       // Trailing input only if space remains.
-      showTrailingInput: () => realItEntries().reduce((a, b) => a + b.it, 0) < getTotalSubdivisions(),
+      showTrailingInput: () => occupiedEnd() < getTotalSubdivisions(),
       onCommitInput: (raw) => {
         if (!raw) return false;
-        const parsed = parseAndValidateIt(raw);
-        if (!parsed) return false;
-        if (parsed.warning) showValidationWarning(itfrEditorEl, parsed.warning);
-        const startSubdiv = getNextAvailableStart();
-        itSequence.push({ start: startSubdiv, it: parsed.value, isSilence: false });
-        recalculateCyclePositions();
-        updateInfoDisplays();
-        renderItfrEditor();
-        engine.updateIntervalBars();
+        const value = parseItValue(raw);
+        if (value == null) return false;
+        const available = getTotalSubdivisions() - occupiedEnd();
+        if (value > available) {
+          showValidationWarning(itfrEditorEl, `iT ${value} excede L iTfr (${available} disponibles)`);
+          return false;
+        }
+        itSequence.push({ start: occupiedEnd(), it: value, isSilence: false });
+        applySequenceMutation();
         return true;
       },
       onEditEntry: (entryIndex, raw) => {
+        const target = itSequence[entryIndex];
+        if (!target) return false;
         if (raw === '') {
-          // Empty → delete this iT entry.
-          removeItAtIndex(entryIndex);
+          if (target.isSilence) return true; // buida → buida
+          // Buidar un iT del mig DEIXA la casella buida (silenci): les
+          // posicions dels altres iTs no es mouen. Si era l'últim, la
+          // normalització retalla el silenci final i la fila s'escurça.
+          target.isSilence = true;
+          applySequenceMutation();
           return true;
         }
-        const parsed = parseAndValidateIt(raw, entryIndex);
-        if (!parsed) return false;
-        if (parsed.warning) showValidationWarning(itfrEditorEl, parsed.warning);
-        updateItAtIndex(entryIndex, parsed.value);
+        const value = parseItValue(raw);
+        if (value == null) return false;
+        // Espai disponible: del start d'aquesta entrada fins al següent iT
+        // REAL (els silencis intermedis són absorbibles) o el final.
+        const limit = nextRealStartAfter(entryIndex) ?? getTotalSubdivisions();
+        const available = limit - target.start;
+        if (value > available) {
+          showValidationWarning(itfrEditorEl, `iT ${value} excede el espacio (${available} disponibles)`);
+          return false;
+        }
+        target.it = value;
+        target.isSilence = false;
+        applySequenceMutation();
         return true;
       },
       onDeleteLast: () => {
-        const its = realItEntries();
-        if (its.length > 0) removeItAtIndex(its.length - 1);
+        const real = realItEntries();
+        if (!real.length) return;
+        itSequence = itSequence.filter(it => it !== real[real.length - 1]);
+        applySequenceMutation();
       }
     });
   }
@@ -273,10 +287,12 @@ function renderItfrEditor() {
 }
 
 /**
- * Parse and validate an iT value. Returns { value, warning? } or null on format error.
- * Accounts for any existing iT being replaced at editIndex.
+ * Parse + validació de FORMAT d'un iT (enter >= 1). El control d'ESPAI el
+ * fa cada camí amb la seva pròpia geometria: l'input final mira l'espai
+ * que queda al final del compàs; editar una casella mira fins al següent
+ * iT real (forats absorbibles).
  */
-function parseAndValidateIt(raw, editIndex = null) {
+function parseItValue(raw) {
   const value = parseInt(raw, 10);
   if (!Number.isFinite(value)) {
     showValidationWarning(itfrEditorEl, `"${raw}" no es válido`);
@@ -286,59 +302,40 @@ function parseAndValidateIt(raw, editIndex = null) {
     showValidationWarning(itfrEditorEl, 'iT debe ser ≥ 1');
     return null;
   }
-
-  const maxTotal = getTotalSubdivisions();
-  const realIts = itSequence.filter(it => !it.isSilence);
-  const sumExcluding = realIts.reduce((acc, it, i) => {
-    return (i === editIndex) ? acc : acc + it.it;
-  }, 0);
-  const available = maxTotal - sumExcluding;
-
-  if (value > available) {
-    showValidationWarning(itfrEditorEl, `iT ${value} excede L iTfr (${available} disponibles)`);
-    return null;
-  }
-
-  return { value, warning: null };
+  return value;
 }
 
-/** Remove the iT at the given real-index (ignoring silences). */
-function removeItAtIndex(entryIndex) {
-  const realIts = itSequence.filter(it => !it.isSilence);
-  if (entryIndex < 0 || entryIndex >= realIts.length) return;
+/**
+ * Final de l'espai ocupat (silencis inclosos). Amb el model normalitzat
+ * (engine.normalizeSilences) l'última entrada és sempre un iT real.
+ */
+function occupiedEnd() {
+  if (itSequence.length === 0) return 0;
+  const last = itSequence[itSequence.length - 1];
+  return last.start + last.it;
+}
 
-  const target = realIts[entryIndex];
-  itSequence = itSequence.filter(it => it !== target);
-  reflowItSequenceStarts();
+/** Start del següent iT REAL després d'una entrada (null si no n'hi ha). */
+function nextRealStartAfter(entryIndex) {
+  for (let i = entryIndex + 1; i < itSequence.length; i++) {
+    if (!itSequence[i].isSilence) return itSequence[i].start;
+  }
+  return null;
+}
+
+/**
+ * Tota mutació del model acaba aquí: re-deriva els silencis (forats
+ * materialitzats, fusionats, mai al final) i refresca cicle/displays/
+ * editor/barres d'una tacada.
+ */
+function applySequenceMutation() {
+  engine.normalizeSilences();
   recalculateCyclePositions();
   updateInfoDisplays();
   renderItfrEditor();
   engine.updateIntervalBars();
 }
 
-/** Replace the iT value at the given real-index. */
-function updateItAtIndex(entryIndex, newValue) {
-  const realIts = itSequence.filter(it => !it.isSilence);
-  if (entryIndex < 0 || entryIndex >= realIts.length) return;
-
-  const target = realIts[entryIndex];
-  target.it = newValue;
-  reflowItSequenceStarts();
-  recalculateCyclePositions();
-  updateInfoDisplays();
-  renderItfrEditor();
-  engine.updateIntervalBars();
-}
-
-/** Reflow `start` for all iTs so they are contiguous from 0. */
-function reflowItSequenceStarts() {
-  let pos = 0;
-  for (const item of itSequence) {
-    if (item.isSilence) continue;
-    item.start = pos;
-    pos += item.it;
-  }
-}
 
 // ========== FRACTION EDITOR ==========
 // Block mode in `.middle` above the timeline (App26-28 pattern).
@@ -519,6 +516,7 @@ function filterInvalidIts() {
     const end = item.start + item.it;
     return item.start >= 0 && end <= maxSubdiv;
   });
+  engine.normalizeSilences(); // re-deriva forats després del retall
 }
 
 
