@@ -18,7 +18,6 @@ import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.j
 import { initCircularTimelineToggle, initColorSelector, bindUnitsVisibility } from '../../libs/app-common/ui-helpers.js';
 import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
 // Using local header controls for App1 (no shared init)
-// TODO[audit]: incorporar helpers de subdivision comuns quan hi hagi cobertura de tests
 
 let audio;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });

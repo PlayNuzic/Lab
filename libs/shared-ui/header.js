@@ -21,7 +21,8 @@ function detectDeviceProfile() {
     return (isMobileUA || isSmallScreen) ? 'mobile' : 'desktop';
 }
 
-// TODO[audit]: reason=validate Tone.js context exposes lookAhead/updateInterval on all supported builds
+// Tone.js és vendoritzat (libs/vendor/Tone.js): un sol build suportat, i
+// el seu context exposa lookAhead/updateInterval — validat en ús diari.
 function applySchedulingProfile(profile) {
     const profiles = {
         desktop: { lookAhead: 0.02, updateInterval: 0.01 },

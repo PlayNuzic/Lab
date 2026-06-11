@@ -7,7 +7,7 @@ import {
   getVolume,
   setVolume,
   setMute
-} from './index.js';
+} from '../index.js';
 
 describe('TimelineAudio (new engine)', () => {
   let audioCtxMock;
@@ -369,7 +369,7 @@ describe('TimelineAudio (new engine)', () => {
       global.AudioWorkletProcessor = FakeProcessorBase;
       global.registerProcessor = jest.fn((_, ctor) => { ProcessorCtor = ctor; });
 
-      await import('./timeline-processor.js');
+      await import('../timeline-processor.js');
       expect(typeof ProcessorCtor).toBe('function');
 
       const processor = new ProcessorCtor();

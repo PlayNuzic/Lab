@@ -1,3 +1,8 @@
 .DS_Store
 node_modules
 .claude/
+
+# LH-03: backups per sufix mai més al repo (git history ja arxiva)
+*.bak
+*.bak[0-9]
+*.backup-*

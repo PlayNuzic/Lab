@@ -1,4 +1,4 @@
-import { randomize, DEFAULT_RANGES } from './index.js';
+import { randomize, DEFAULT_RANGES } from '../index.js';
 
 describe('randomize', () => {
   test('returns values within default ranges', () => {

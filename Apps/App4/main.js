@@ -527,7 +527,7 @@ function initFractionEditorController() {
 // No actualitza la memòria a cada tecleig: es confirma amb Enter o blur
 // pulseSeqEl?.addEventListener('input', handlePulseSeqInput);
 
-// nearestPulseIndex ahora se importa desde pulse-seq-parser.js
+// nearestPulseIndex ahora se importa desde libs/pulse-seq/parser.js
 
 // isIntegerPulseSelectable ahora se importa desde libs/app-common/pulse-selectability.js
 // La nueva versión incluye soporte para pulsos sobrantes (remainder) cuando Lg % numerator !== 0

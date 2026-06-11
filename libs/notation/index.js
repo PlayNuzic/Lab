@@ -153,31 +153,6 @@ export function drawInterval(container, note1, note2, mode='iS', keySig, options
   }
 }
 
-// NOTE: drawKeySignature commented out - not used by current apps and requires getKeySignature
-// export function drawKeySignature(container, scaleId, root){
-//   container.innerHTML='';
-//   const renderer = new Renderer(container, Renderer.Backends.SVG);
-//   renderer.resize(240, 360);
-//   const ctx = renderer.getContext();
-//   const accList = getKeySignature(String(scaleId), root);
-//
-//   const treble = new Stave(20, 40, 200);
-//   treble.addClef('treble');
-//   applyKeySignature(treble, accList, 'treble', root);
-//   const bass = new Stave(20, 200, 200);
-//   bass.addClef('bass');
-//   applyKeySignature(bass, accList, 'bass', root);
-//   treble.setContext(ctx).draw();
-//   bass.setContext(ctx).draw();
-//
-//   const brace = new StaveConnector(treble, bass);
-//   brace.setType(StaveConnector.type.BRACE);
-//   brace.setContext(ctx).draw();
-//   const line = new StaveConnector(treble, bass);
-//   line.setType(StaveConnector.type.SINGLE_LEFT);
-//   line.setContext(ctx).draw();
-// }
-
 export * from './helpers.js';
 export { drawPentagram, drawIntervalEllipse } from './pentagram.js';
 export { fontsReady };

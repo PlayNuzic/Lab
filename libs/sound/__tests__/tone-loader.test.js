@@ -37,7 +37,7 @@ describe('tone-loader', () => {
       value: { isActive: false }
     });
 
-    ({ ensureToneLoaded } = await import('./tone-loader.js'));
+    ({ ensureToneLoaded } = await import('../tone-loader.js'));
 
     // La importació injecta el <link rel="preload"> de Tone.js (P-12);
     // netegem els comptadors perquè el test mesuri només la injecció

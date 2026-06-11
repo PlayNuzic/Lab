@@ -4,8 +4,9 @@
  * Shared controller for highlighting pulses in 2D musical grids
  * Integrates with musical-grid and grid-editor modules
  *
- * Used by: App12 (Plano-Sucesión)
- * Future use: Any app with musical-grid + grid-editor combination
+ * Used by: App12/App15/App25/App25B (grids 2D amb musical-grid)
+ * LH-05: germans deliberadament separats — highlight-controller.js (App4)
+ * i simple-highlight-controller.js (App1/2/9). NO consolidar.
  */
 
 /**
@@ -132,40 +133,3 @@ export function createMatrixHighlightController(config) {
   };
 }
 
-/**
- * Helper function to highlight a note on the soundline temporarily
- *
- * @param {Object} musicalGrid - Musical grid instance
- * @param {number} noteIndex - Note index to highlight (0-11 typically)
- * @param {number} durationMs - Duration of highlight in milliseconds
- */
-export function highlightNoteOnSoundline(musicalGrid, noteIndex, durationMs) {
-  if (!musicalGrid) return;
-
-  const noteElement = musicalGrid.getNoteElement?.(noteIndex);
-  if (!noteElement) return;
-
-  const soundlineEl = musicalGrid.containers?.soundline;
-  if (!soundlineEl) return;
-
-  const rect = document.createElement('div');
-  rect.className = 'soundline-highlight';
-
-  const bounds = noteElement.getBoundingClientRect();
-  const soundlineBounds = soundlineEl.getBoundingClientRect();
-
-  rect.style.position = 'absolute';
-  rect.style.top = `${bounds.top - soundlineBounds.top}px`;
-  rect.style.left = '0';
-  rect.style.width = '100%';
-  rect.style.height = `${bounds.height}px`;
-  rect.style.backgroundColor = 'rgba(255, 255, 0, 0.3)';
-  rect.style.pointerEvents = 'none';
-  rect.style.zIndex = '10';
-
-  soundlineEl.appendChild(rect);
-
-  setTimeout(() => {
-    rect.remove();
-  }, durationMs);
-}

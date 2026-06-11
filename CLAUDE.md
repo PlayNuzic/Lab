@@ -16,6 +16,7 @@ Monorepo for rhythmic/temporal music apps (Nuzic method). ES2022 modules, no bui
 3. Write tests for new components.
 4. Run `npm test` after changes. All tests must pass.
 5. Never break existing functionality.
+6. Comments (LH-12): write NEW/edited comments in `libs/` in català; do NOT mass-rewrite existing English/Spanish ones — normalize a line only when already touching it. Apps may keep their local language.
 
 ## High-Risk Files (modify with extreme caution)
 These files affect timing and synchronization across ALL apps. Before modifying:

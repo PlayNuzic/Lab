@@ -10,7 +10,7 @@ import {
   CHANNEL_TIERS,
   setupAudioDefaults,
   createMixerPersistence
-} from './audio-init.js';
+} from '../audio-init.js';
 
 describe('Audio Initialization Components', () => {
 

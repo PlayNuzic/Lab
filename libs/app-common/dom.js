@@ -4,7 +4,6 @@
  */
 
 export const $ = id => document.getElementById(id);
-export const $$ = (selector, parent = document) => parent.querySelectorAll(selector);
 
 /**
  * Bind multiple DOM elements at once with optional LED management
@@ -237,7 +236,7 @@ const APP_SPECIFIC_ELEMENTS = {
  * @param {string} appId - App identifier ('app1', 'app2', 'app3', 'app4')
  * @returns {Object} Element map with app-specific elements
  */
-export function createAppElementMap(appId) {
+function createAppElementMap(appId) {
   const appElements = APP_SPECIFIC_ELEMENTS[appId] || {};
   return {
     ...BASE_RHYTHM_ELEMENTS,

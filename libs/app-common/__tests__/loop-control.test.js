@@ -6,7 +6,7 @@ import {
   createLoopController,
   createRhythmLoopController,
   createPulseMemoryLoopController
-} from './loop-control.js';
+} from '../loop-control.js';
 
 describe('Loop Control Components', () => {
   let mockAudio;

@@ -183,31 +183,6 @@ export function createInfoTooltip(options = {}) {
 }
 
 /**
- * Creates a validation warning tooltip controller
- * Pre-configured for input validation errors with auto-remove behavior
- *
- * @param {Object} [options]
- * @param {number} [options.autoRemoveDelay=2500] - Auto-remove after ms
- * @param {number} [options.verticalOffset=5] - Vertical offset from anchor
- * @returns {Object} Tooltip controller API
- */
-export function createValidationTooltip(options = {}) {
-  const {
-    autoRemoveDelay = 2500,
-    verticalOffset = 5
-  } = options;
-
-  return createInfoTooltip({
-    className: 'hover-tip validation-warning',
-    autoHideOnScroll: false,
-    autoHideOnResize: false,
-    verticalOffset,
-    useInnerHTML: true,
-    autoRemoveDelay
-  });
-}
-
-/**
  * Shows a temporary validation warning below an element
  * Convenience function for one-off validation messages
  *

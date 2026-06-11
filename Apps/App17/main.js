@@ -41,7 +41,10 @@ let isPlaying = false;
 let pulsosCompas = null;      // Starts as null (empty input)
 let cycles = DEFAULT_CYCLES;  // Número de repeticiones del módulo
 let currentCycle = 1;
-let pulses = [];              // DOM pulse elements
+// LH-01: `numberEls` és l'estat viu (els números del cercle); l'antic
+// array `pulses` no es repoblava MAI (sempre []) i highlightPulse era un
+// no-op permanent al callback de cada pols.
+let numberEls = [];           // DOM .pulse-number elements (per índex)
 let currentStep = -1;
 let p0Enabled = true;         // P0 toggle state (not persisted between sessions)
 let cycleHighlightTimeout = null;  // For auto-dimming cycle circle
@@ -122,9 +125,6 @@ if (typeof window !== 'undefined') {
 }
 
 // ============================================
-// MIXER STATE PERSISTENCE: ara via createMixerPersistence (audio-init.js)
-
-// ============================================
 // TIMELINE CONTROLLER
 // ============================================
 
@@ -143,7 +143,7 @@ function renderTimeline() {
 
   // Wipe prior pulse dots / numbers / bars.
   timeline.innerHTML = '';
-  pulses = [];
+  numberEls = [];
 
   if (pulsosCompas === null) return;
 
@@ -172,7 +172,7 @@ function renderPulseNumbers() {
 
   const n = pulsosCompas;
   // Create elements first so they are in DOM before measuring.
-  const numberEls = [];
+  numberEls = [];
   for (let i = 0; i < n; i++) {
     const el = document.createElement('div');
     el.className = 'pulse-number';
@@ -373,35 +373,17 @@ function flashMissingInput(element) {
 // HIGHLIGHTING
 // ============================================
 
-function highlightPulse(pulseIndex) {
-  // Clear previous highlights
-  pulses.forEach(p => p.classList.remove('active', 'active-zero'));
-
-  // Add highlight to current pulse (using modular index for circular timeline)
-  if (pulses[pulseIndex]) {
-    if (pulseIndex === 0) {
-      pulses[pulseIndex].classList.add('active-zero');
-    } else {
-      pulses[pulseIndex].classList.add('active');
-    }
-  }
-}
+let lastNumberEl = null;
 
 function highlightNumber(pulseIndex) {
-  // Clear previous highlights
-  document.querySelectorAll('.pulse-number').forEach(n => {
-    n.classList.remove('active', 'active-zero');
-  });
-
-  // Add highlight to current number
-  const numberEl = document.querySelector(`.pulse-number[data-index="${pulseIndex}"]`);
+  // LH-01: referència directa per índex — abans dos querySelector(All) de
+  // document per pols sobre uns elements que renderPulseNumbers ja tenia.
+  if (lastNumberEl) lastNumberEl.classList.remove('active', 'active-zero');
+  const numberEl = numberEls[pulseIndex] || null;
   if (numberEl) {
-    if (pulseIndex === 0) {
-      numberEl.classList.add('active-zero');
-    } else {
-      numberEl.classList.add('active');
-    }
+    numberEl.classList.add(pulseIndex === 0 ? 'active-zero' : 'active');
   }
+  lastNumberEl = numberEl;
 }
 
 function highlightCycleCircle(_step) {
@@ -420,10 +402,8 @@ function highlightCycleCircle(_step) {
 }
 
 function clearHighlights() {
-  pulses.forEach(p => p.classList.remove('active', 'active-zero'));
-  document.querySelectorAll('.pulse-number').forEach(n => {
-    n.classList.remove('active', 'active-zero');
-  });
+  numberEls.forEach(n => n.classList.remove('active', 'active-zero'));
+  lastNumberEl = null;
   // Clear cycle circle highlight
   const cycleCircle = document.querySelector('.pl-secondary.cycle-circle');
   cycleCircle?.classList.remove('active', 'active-zero');
@@ -494,7 +474,6 @@ async function handlePlay() {
       // Get pulse position within current cycle (for circular timeline highlight)
       const pulseInCycle = step % pulsosCompas;
 
-      highlightPulse(pulseInCycle);
       highlightNumber(pulseInCycle);
       highlightCycleCircle(step);
       updateCycleDigitColor(step);

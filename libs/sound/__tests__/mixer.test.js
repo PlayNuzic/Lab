@@ -1,4 +1,4 @@
-import { AudioMixer } from './mixer.js';
+import { AudioMixer } from '../mixer.js';
 
 describe('AudioMixer solo behaviour', () => {
   function createMixerWithChannels() {

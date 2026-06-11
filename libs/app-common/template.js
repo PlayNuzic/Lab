@@ -1,11 +1,11 @@
 export const FRACTION_INLINE_SLOT_ID = 'fractionInlineSlot';
-export const PULSE_TOGGLE_BTN_ID = 'pulseToggleBtn';
-export const SELECTED_TOGGLE_BTN_ID = 'selectedToggleBtn';
-export const CYCLE_TOGGLE_BTN_ID = 'cycleToggleBtn';
+const PULSE_TOGGLE_BTN_ID = 'pulseToggleBtn';
+const SELECTED_TOGGLE_BTN_ID = 'selectedToggleBtn';
+const CYCLE_TOGGLE_BTN_ID = 'cycleToggleBtn';
 export const NOTATION_TOGGLE_BTN_ID = 'notationToggleBtn';
-export const NOTATION_PANEL_ID = 'notationPanel';
-export const NOTATION_CLOSE_BTN_ID = 'notationCloseBtn';
-export const NOTATION_CONTENT_ID = 'notationContent';
+const NOTATION_PANEL_ID = 'notationPanel';
+const NOTATION_CLOSE_BTN_ID = 'notationCloseBtn';
+const NOTATION_CONTENT_ID = 'notationContent';
 
 // Gamification event dispatcher
 let gamificationDispatcher = null;

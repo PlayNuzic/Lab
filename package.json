@@ -1,14 +1,11 @@
 {
   "name": "lab",
   "private": true,
-  "workspaces": [
-    "Apps/*",
-    "packages/*"
-  ],
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "serve": "http-server"
   },
   "keywords": [],
   "author": "",

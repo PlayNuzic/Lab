@@ -3,7 +3,7 @@ import { describe, expect, test, beforeAll } from '@jest/globals';
 let utils;
 
 beforeAll(async () => {
-  utils = await import('./index.js');
+  utils = await import('../index.js');
 });
 
 describe('utils', () => {

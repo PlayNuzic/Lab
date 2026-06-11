@@ -1,4 +1,4 @@
-// libs/app-common/pulse-seq.js
+// libs/pulse-seq/pulse-seq.js
 // Unified pulse sequence controller with support for both standard and interval modes
 // - Standard mode: "Pulsos ( 0 ... ) Lg" (with pulse 0)
 // - Intervals mode: "P ( ... ) Lg" (without pulse 0, for App5)

@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import { describe, test, expect, beforeAll } from '@jest/globals';
-import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
+import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from '../utils.js';
 
 describe('Common utils', () => {
   beforeAll(() => {

@@ -4,6 +4,10 @@
  * Simplified pulse highlighting controller for timeline apps
  * Handles basic pulse highlighting with loop support
  *
+ * LH-05: usat per App1/App2/App9 (polsos enters). Germans deliberadament
+ * separats: highlight-controller.js (App4, fraccions+cicles) i
+ * matrix-highlight-controller.js (App12/15/25/25B, grids 2D). NO consolidar.
+ *
  * @module libs/app-common/simple-highlight-controller
  */
 

@@ -1,4 +1,9 @@
 /**
+// LH-05: trio de controllers DELIBERADAMENT separats — aquest (fraccions +
+// cicles + scroll del pulseSeq; únic consumidor App4), el simple-
+// (App1/App2/App9, polsos enters) i el matrix- (App12/15/25/25B, grids 2D).
+// NO consolidar: els àmbits divergeixen i el reflow forçat load-bearing
+// viu aquí i al simple-.
  * highlight-controller.js
  *
  * Sistema de highlighting para timeline y pulseSeq.

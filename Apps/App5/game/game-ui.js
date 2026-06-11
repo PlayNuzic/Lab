@@ -3,7 +3,6 @@
  * Handles popup cards, bubble hints, and UI interactions
  */
 
-// import { Character } from './character.js'; // DESACTIVADO: Personaje a implementar después
 import { getLevel, getLevelHint, getHintPositions } from './levels-config.js';
 import { GameState } from './game-state.js';
 
@@ -15,14 +14,14 @@ export class GameUI {
   constructor() {
     this.container = null;
     this.popup = null;
-    // this.character = new Character(); // DESACTIVADO: Personaje a implementar después
     this.bubble = null;
     this.isVisible = false;
     this.callbacks = {};
     this.gameState = new GameState();
-    // this.helpTimer = null; // DESACTIVADO: Sin timers de ayuda por ahora
-    // this.helpTimeout = 5000; // 5 seconds for help
-    // this.countdownInterval = null;
+    // Help-timer: feature dorment (cap caller actiu de startHelpTimer);
+    // les inits es mantenen perquè el codi sigui coherent si es reactiva.
+    this.helpTimeout = 5000;
+    this.countdownInterval = null;
   }
 
   /**
@@ -65,12 +64,6 @@ export class GameUI {
     // Close button handler
     header.querySelector('.game-close-btn').addEventListener('click', () => this.hide());
 
-    // Character area - DESACTIVADO
-    // const characterArea = document.createElement('div');
-    // characterArea.className = 'game-character-area';
-    // const characterElement = this.character.createElement('neutral');
-    // characterArea.appendChild(characterElement);
-    // this.popup.appendChild(characterArea);
 
     // Message area with bubble
     const messageArea = document.createElement('div');
@@ -361,8 +354,6 @@ export class GameUI {
     this.bubble.textContent = message;
     this.bubble.classList.add('game-bubble-show');
 
-    // Update character mood - DESACTIVADO
-    // this.character.setMood(mood);
 
     // Auto-hide after delay
     setTimeout(() => {
@@ -428,7 +419,6 @@ export class GameUI {
 
     // Show hint message
     this.showMessage(hint, 'happy');
-    // this.character.animate('bounce'); // DESACTIVADO
 
     // Flash hint positions
     if (positions.length > 0 && this.callbacks.onShowHint) {
@@ -446,7 +436,6 @@ export class GameUI {
    * Validate Phase 1 selection
    */
   validatePhase1() {
-    // this.clearHelpTimer(); // DESACTIVADO
     if (this.callbacks.onValidatePhase1) {
       this.callbacks.onValidatePhase1();
     }
@@ -456,7 +445,6 @@ export class GameUI {
    * Skip Phase 1
    */
   skipPhase1() {
-    // this.clearHelpTimer(); // DESACTIVADO
     if (this.callbacks.onSkipPhase1) {
       this.callbacks.onSkipPhase1();
     }
@@ -476,9 +464,6 @@ export class GameUI {
     // Disable buttons during recording
     const buttons = this.popup.querySelectorAll('.game-btn');
     buttons.forEach(btn => btn.disabled = true);
-
-    // Character mood - DESACTIVADO
-    // this.character.setMood('focused');
 
     if (this.callbacks.onStartPhase2) {
       this.callbacks.onStartPhase2(config);
@@ -704,8 +689,6 @@ export class GameUI {
    * Reset UI to initial state
    */
   reset() {
-    // this.clearHelpTimer(); // DESACTIVADO: Sin timers
-    // this.character.reset(); // DESACTIVADO
     this.showMessage('¡Listo para jugar!', 'neutral');
     // this.updateProgress(); // Ya desactivado antes
   }

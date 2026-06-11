@@ -1,5 +1,5 @@
 /**
- * pulse-seq-editor.js
+ * libs/pulse-seq/editor.js (abans pulse-seq-editor.js, pre-Fase 2)
  *
  * Editor de secuencia de pulsos con navegación personalizada por gaps (dobles espacios).
  * Maneja contenteditable con eventos de teclado especiales para movimiento entre tokens.
