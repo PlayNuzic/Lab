@@ -38,7 +38,7 @@
 - `registerNoteProvider(id, fn)`: declarative API — provider returns `[{midi, duration, velocity}]`, engine handles timing
 - `onPulse` is for visual feedback only — never schedule audio in onPulse
 - Configurable via `setSampleOffset()`, `setScheduling({sampleOffset})`, or `configurePerformance({sampleOffsetMs})`
-- UI control in performance-audio-menu.js "Sample Offset (ms)" slider
+- UI control in performance-audio-menu.js "Sample Offset (ms)" slider — NOMÉS en mode dev (?dev / nuzic-debug); en producció ho gestionen el preset balanced + el scheduling bridge. La fila de Sample Rate es va eliminar (re-creava el context i trencava l'invariant 44100 pinnat).
 
 ## Sample Mapping
 - pulso → click9 (Hi-Hat), pulso0 → click7 (Bombo), seleccionados → click8 (Caja)

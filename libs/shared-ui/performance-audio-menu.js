@@ -1,38 +1,49 @@
 // libs/shared-ui/performance-audio-menu.js
+//
+// Eina de DIAGNÒSTIC d'scheduling (horitzó + offset de samples). NOMÉS en
+// mode dev (?dev o localStorage nuzic-debug=1, com la resta d'eines del
+// repo): en producció el sistema ja es gestiona sol — preset 'balanced' per
+// defecte al motor i perfil per dispositiu via el scheduling bridge del
+// header — i un alumne movent l'horitzó només empitjoraria la latència que
+// el bridge ha afinat (i el canvi ni es persisteix).
+//
+// La fila de "Sample Rate" que hi havia aquí es va ELIMINAR (2026-06-11):
+// configurePerformance({requestedSampleRate}) re-creava l'AudioContext a la
+// freqüència demanada, trencant l'invariant del context únic a 44100 pinnat
+// abans de crear cap node (regla de Tone; els samples del repo són 44.1k) —
+// el mateix patró de contexts divergents del bug "context has been closed".
+import { devLogsEnabled } from '../app-common/logger.js';
+
 (function () {
+  if (!devLogsEnabled) return;
+
   const DETAILS_CLASS = 'nuzic-audio-perf';
   const PANEL_CLASS = 'nuzic-audio-perf-panel';
   const AUDIO = () => (window.NuzicAudioEngine || null);
-  const DEFAULT_SAMPLE_RATE = 48000;
-  const DEFAULT_HORIZON_MS = 120;
+  // Invariant del repo: el context es pinna a 44100 (vegeu tone-loader.js).
+  const PINNED_SAMPLE_RATE = 44100;
+  const DEFAULT_HORIZON_MS = 30; // preset 'balanced' del motor (LA-01)
   const PANEL_SURFACE_CLASS = 'menu-surface';
   const SCHEDULE_FRAME_PRESETS = [1024, 1536, 2048, 3072, 4096, 6144, 8192, 12288];
   const sliderOptions = new WeakMap();
 
+  // Freqüència REAL del motor (sincronitzada quan existeix); fins llavors,
+  // la pinnada — només s'usa per quantitzar les opcions de l'slider.
+  let engineSampleRate = PINNED_SAMPLE_RATE;
+
   function extractElements(container) {
-    const sr = container.querySelector('#nza-sr');
-    const apply = container.querySelector('#nza-apply-sr');
     const hz = container.querySelector('#nza-hz');
     const hzOut = container.querySelector('#nza-hz-out');
     const intMs = container.querySelector('#nza-int');
     const offset = container.querySelector('#nza-offset');
     const offsetOut = container.querySelector('#nza-offset-out');
-    return { sr, apply, hz, hzOut, intMs, offset, offsetOut };
+    return { hz, hzOut, intMs, offset, offsetOut };
   }
 
   function createPanel() {
     const panel = document.createElement('div');
     panel.className = `${PANEL_CLASS} ${PANEL_SURFACE_CLASS}`;
     panel.innerHTML = `
-      <div class="perf-row">
-        <label for="nza-sr">Sample Rate (Hz)</label>
-        <select id="nza-sr">
-          <option value="48000">48 kHz</option>
-          <option value="44100">44.1 kHz</option>
-          <option value="22050">22.05 kHz</option>
-        </select>
-        <button id="nza-apply-sr" type="button">Aplicar</button>
-      </div>
       <div class="perf-row">
         <label for="nza-hz">Schedule Horizon (ms)</label>
         <input id="nza-hz" type="range" min="0" max="0" step="1" value="0" />
@@ -44,24 +55,16 @@
       </div>
       <div class="perf-row">
         <label for="nza-offset">Sample Offset (ms)</label>
-        <input id="nza-offset" type="range" min="0" max="20" step="0.5" value="5" />
-        <output id="nza-offset-out" for="nza-offset">5.0 ms</output>
+        <input id="nza-offset" type="range" min="0" max="20" step="0.5" value="6" />
+        <output id="nza-offset-out" for="nza-offset">6.0 ms</output>
       </div>
-      <div class="perf-foot">Los cambios de Sample Rate solo aplican si el motor aún no inició.</div>
+      <div class="perf-foot">Eina de diagnòstic (mode dev). Els valors reals s'apliquen quan el motor existeix.</div>
     `;
     return panel;
   }
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
-  }
-
-  function formatSampleRate(value) {
-    const numeric = Number(value);
-    if (!Number.isFinite(numeric) || numeric <= 0) return String(value);
-    const khz = numeric / 1000;
-    const precision = Number.isInteger(khz) ? 0 : (khz < 10 ? 2 : 1);
-    return `${khz.toFixed(precision)} kHz`;
   }
 
   function formatMs(value) {
@@ -75,26 +78,13 @@
     return formatted === '--' ? formatted : `${formatted} ms`;
   }
 
-  function ensureSampleRateOption(select, sampleRate) {
-    if (!select) return;
-    const sr = Number(sampleRate);
-    if (!Number.isFinite(sr) || sr <= 0) return;
-    const existing = Array.from(select.options).find((opt) => Number(opt.value) === sr);
-    if (!existing) {
-      const opt = document.createElement('option');
-      opt.value = String(sr);
-      opt.textContent = formatSampleRate(sr);
-      select.appendChild(opt);
-    }
-  }
-
   function buildScheduleOptions(sampleRate) {
     const sr = Number(sampleRate);
     if (!Number.isFinite(sr) || sr <= 0) return [];
     const values = [];
     for (const frames of SCHEDULE_FRAME_PRESETS) {
       const ms = (frames / sr) * 1000;
-      if (ms < 40 || ms > 240) continue;
+      if (ms < 20 || ms > 240) continue;
       const rounded = Math.round(ms * 10) / 10;
       if (!values.some((existing) => Math.abs(existing - rounded) < 0.05)) {
         values.push(rounded);
@@ -169,7 +159,7 @@
 
   function computeSchedulerIntervalMs(scheduleHorizonMs, sampleRate) {
     const horizon = Number(scheduleHorizonMs);
-    const sr = Number(sampleRate) || DEFAULT_SAMPLE_RATE;
+    const sr = Number(sampleRate) || PINNED_SAMPLE_RATE;
     if (!Number.isFinite(horizon) || horizon <= 0 || !Number.isFinite(sr) || sr <= 0) {
       return null;
     }
@@ -182,45 +172,42 @@
   }
 
   function refreshScheduleControls(elements, preferredHorizon) {
-    const { sr, hz, hzOut, intMs } = elements;
+    const { hz, hzOut, intMs } = elements;
     if (!hz) return;
-    const srValue = Number(sr?.value) || DEFAULT_SAMPLE_RATE;
-    const options = updateSliderOptions(hz, srValue);
+    const options = updateSliderOptions(hz, engineSampleRate);
     const base = Number.isFinite(preferredHorizon)
       ? preferredHorizon
       : (getStoredSliderValue(hz) ?? DEFAULT_HORIZON_MS);
     const actual = setSliderToValue(hz, base);
     if (hzOut) hzOut.textContent = formatMsLabel(actual);
     if (intMs) {
-      const computed = computeSchedulerIntervalMs(actual, srValue);
+      const computed = computeSchedulerIntervalMs(actual, engineSampleRate);
       intMs.textContent = formatMsLabel(computed);
     }
-    return { options, actual, srValue };
+    return { options, actual };
   }
 
   function applyPerformanceInfo(elements, info) {
-    const { sr, offset, offsetOut } = elements;
     if (!info) {
       refreshScheduleControls(elements);
       return;
     }
-    const sampleRate = Number(info.actualSampleRate || info.requestedSampleRate);
-    if (sr && Number.isFinite(sampleRate)) {
-      ensureSampleRateOption(sr, sampleRate);
-      sr.value = String(sampleRate);
+    const sampleRate = Number(info.actualSampleRate);
+    if (Number.isFinite(sampleRate) && sampleRate > 0) {
+      engineSampleRate = sampleRate;
     }
     const horizon = Number(info.scheduleHorizonMs);
     refreshScheduleControls(elements, Number.isFinite(horizon) ? horizon : undefined);
     const offsetVal = Number(info.sampleOffsetMs);
-    if (offset && Number.isFinite(offsetVal)) {
-      offset.value = String(offsetVal);
-      if (offsetOut) offsetOut.textContent = formatMsLabel(offsetVal);
+    if (elements.offset && Number.isFinite(offsetVal)) {
+      elements.offset.value = String(offsetVal);
+      if (elements.offsetOut) elements.offsetOut.textContent = formatMsLabel(offsetVal);
     }
   }
 
   function syncFromEngine(elements) {
-    const { sr, hz, hzOut, intMs } = elements;
-    if (!sr || !hz || !hzOut || !intMs) return;
+    const { hz, hzOut, intMs } = elements;
+    if (!hz || !hzOut || !intMs) return;
     const engine = AUDIO();
     if (!engine) return;
 
@@ -229,25 +216,18 @@
     }).catch(() => {});
   }
 
-  function wireInteractions(panel) {
+  function wireInteractions(panel, details) {
     const elements = extractElements(panel);
-    const { sr, apply, hz, hzOut, intMs } = elements;
+    const { hz, hzOut, intMs } = elements;
 
     refreshScheduleControls(elements);
-
-    if (sr) {
-      sr.addEventListener('change', () => {
-        refreshScheduleControls(elements);
-      });
-    }
 
     if (hz && hzOut) {
       hz.addEventListener('input', async () => {
         const selection = getSliderSelection(hz);
         if (hzOut) hzOut.textContent = formatMsLabel(selection.value);
         if (intMs) {
-          const srValue = Number(sr?.value) || DEFAULT_SAMPLE_RATE;
-          const computed = computeSchedulerIntervalMs(selection.value, srValue);
+          const computed = computeSchedulerIntervalMs(selection.value, engineSampleRate);
           intMs.textContent = formatMsLabel(computed);
         }
         const engine = AUDIO();
@@ -275,17 +255,12 @@
       });
     }
 
-    if (apply && sr) {
-      apply.addEventListener('click', async () => {
-        const engine = AUDIO();
-        if (!engine) return;
-        try {
-          const info = await engine.configurePerformance({ requestedSampleRate: +sr.value });
-          applyPerformanceInfo(elements, info || null);
-          console.log('[AudioPerf] SR ->', info?.actualSampleRate);
-        } catch (err) {
-          console.warn('[AudioPerf] sample-rate update failed', err);
-        }
+    // Re-sincronitza amb el motor cada cop que s'obre el panell: si el motor
+    // ha nascut després de la instal·lació, els valors mostrats deixen de
+    // ser els placeholders i passen a ser els reals.
+    if (details) {
+      details.addEventListener('toggle', () => {
+        if (details.open) syncFromEngine(elements);
       });
     }
 
@@ -306,7 +281,7 @@
     details.className = DETAILS_CLASS;
 
     const summary = document.createElement('summary');
-    summary.textContent = 'Rendimiento audio';
+    summary.textContent = 'Rendimiento audio (dev)';
     details.appendChild(summary);
 
     const panel = createPanel();
@@ -326,7 +301,7 @@
       }
     });
 
-    wireInteractions(panel);
+    wireInteractions(panel, details);
   }
 
   if (document.readyState === 'loading') {
