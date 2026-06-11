@@ -4,7 +4,7 @@
 Unified header, sound controls, dropdowns, tooltips shared across all apps.
 
 ## Main Exports
-- `initHeader({ title, audioControls, onMuteToggle })` — Top-bar header
+- `initHeader({ title, audioControls, onMuteToggle })` — Top-bar header. El menú hamburguesa (☰) és NOMÉS dev (?dev / nuzic-debug): es renderitza sempre (les apps llegeixen els seus elements; els selects de so alimenten l'àudio) però queda ocult per a l'alumne — sons al mixer, resets in-place, la resta són ajustos de demo
 - `initSoundDropdown()` — Sound selector with P1 toggle
 - `initP1ToggleUI()` — Pulse 1 toggle
 - Hover/tooltip helpers

@@ -9,6 +9,7 @@ import { setVolume, getVolume } from '../sound/index.js';
 import { ensureToneLoaded } from '../sound/tone-loader.js';
 import { initSoundDropdown, initP1ToggleUI } from './sound-dropdown.js';
 import { initInstrumentDropdown } from './instrument-dropdown.js';
+import { devLogsEnabled } from '../app-common/logger.js';
 
 // --- Scheduling helpers (look-ahead y updateInterval) ---
 
@@ -725,6 +726,18 @@ export function initHeader() {
     const header = document.querySelector('header.top-bar');
     const menu = document.querySelector('header.top-bar details.menu');
     if (header && menu) {
+        // El menú hamburguesa és una eina de professor/dev (?dev o
+        // localStorage nuzic-debug=1): sons al mixer (mateixos storage
+        // keys, sincronitzats), resets in-place a cada app, i la resta
+        // són ajustos de demostració (circular, fraccions complexes,
+        // color, etiquetes). Es manté al DOM — 11+ apps en llegeixen els
+        // elements i els selects de so són la font de dataset.value per
+        // a l'àudio — però ocult per a l'alumne. initHeader és el punt
+        // únic per on passen TOTS DOS camins de render (template.js
+        // renderApp i renderHeader). NO esborrar el DOM: només visibilitat.
+        if (!devLogsEnabled) {
+            menu.style.display = 'none';
+        }
         wireMenu(menu);
         wireControls(header);
         relocateSoundWrapperForNuzic(header);
@@ -935,6 +948,16 @@ export function renderHeader({ title = 'App', mount } = {}) {
     `;
     container.prepend(header);
     const menu = header.querySelector('details.menu');
+    // El menú hamburguesa és ara una eina de professor/dev (?dev o
+    // localStorage nuzic-debug=1): sons al mixer (mateixos storage keys,
+    // sincronitzats), resets in-place a cada app, i la resta són ajustos
+    // de demostració (circular, fraccions complexes, color, etiquetes).
+    // Es RENDERITZA sempre — 11+ apps en llegeixen els elements (els
+    // selects de so són la font de dataset.value per a l'àudio) — però
+    // queda ocult per a l'alumne. NO esborrar el DOM: només visibilitat.
+    if (!devLogsEnabled) {
+        menu.style.display = 'none';
+    }
     wireMenu(menu);
     wireControls(header);
     return { header, menu };
