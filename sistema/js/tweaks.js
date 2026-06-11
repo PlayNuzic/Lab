@@ -50,6 +50,11 @@ COLLAPSE_BTN.addEventListener('click', (e) => {
   let startX = 0, startY = 0;
   let originX = 0, originY = 0;
 
+  // LP-06: mides capturades al pointerdown — no canvien a mig drag, i
+  // llegir el rect a cada pointermove just després d'escriure left/top
+  // forçava un reflow síncron per moviment.
+  let panelW = 0, panelH = 0;
+
   HEAD.addEventListener('pointerdown', (e) => {
     // Ignore drags that start on the collapse button.
     if (e.target.closest('.tweaks__collapse')) return;
@@ -58,6 +63,8 @@ COLLAPSE_BTN.addEventListener('click', (e) => {
     const rect = PANEL.getBoundingClientRect();
     originX = rect.left;
     originY = rect.top;
+    panelW = rect.width;
+    panelH = rect.height;
     startX = e.clientX;
     startY = e.clientY;
     PANEL.style.left = `${originX}px`;
@@ -71,9 +78,8 @@ COLLAPSE_BTN.addEventListener('click', (e) => {
     const nx = originX + (e.clientX - startX);
     const ny = originY + (e.clientY - startY);
     // Clamp to viewport
-    const pr = PANEL.getBoundingClientRect();
-    const maxX = window.innerWidth - pr.width;
-    const maxY = window.innerHeight - pr.height;
+    const maxX = window.innerWidth - panelW;
+    const maxY = window.innerHeight - panelH;
     const cx = Math.max(0, Math.min(maxX, nx));
     const cy = Math.max(0, Math.min(maxY, ny));
     PANEL.style.left = `${cx}px`;
@@ -153,7 +159,10 @@ cbEdit.addEventListener('change', ()=>{
   document.body.dataset.editable = cbEdit.checked ? 'true' : 'false';
   editActions.hidden = !cbEdit.checked;
   if (editActions2) editActions2.hidden = !cbEdit.checked;
-  window.__sistemaRender();
+  // P-26: contenteditable s'aplica al DOM viu — render() complet recreava
+  // l'iframe de l'app embedada només per canviar un atribut.
+  if (window.__sistemaApplyEdit) window.__sistemaApplyEdit();
+  else window.__sistemaRender();
 });
 
 // Marques de ressaltat: apliquen un fons rosa/groc a la selecció de

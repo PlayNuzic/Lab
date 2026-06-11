@@ -1,6 +1,7 @@
-// libs/app-common/grid-layout.js
-// Self-contained 2D musical grid system
-// Simple, robust architecture for future apps (App12+)
+// libs/musical-grid/musical-grid.js
+// Self-contained 2D musical grid system (App12/15/25/25B)
+// (P-28: el seu avantpassat libs/app-common/grid-layout.js — fork mort amb
+// reflow per cel·la — es va esborrar el 2026-06-11; aquesta és la implementació viva)
 
 /**
  * Creates a complete 2D musical grid with soundline, timeline, and interactive cells
@@ -89,6 +90,9 @@ export function createMusicalGrid(config) {
   // Internal state
   const containers = {};
   const cells = [];
+  // LP-03: índex O(1) per a getCellElement — abans cells.find() lineal,
+  // cridat per parella a cada edició i per pols durant el playback.
+  const cellIndex = new Map();
   const noteElements = [];
   const pulseElements = [];
   let isRendered = false;
@@ -534,6 +538,7 @@ export function createMusicalGrid(config) {
    * Create and position all cells in the matrix
    */
   function createCells() {
+    cellIndex.clear();
     const container = containers.matrix;
 
     // Create inner expandible container for scroll support
@@ -624,6 +629,7 @@ export function createMusicalGrid(config) {
           pulseIndex: hIndex,
           bounds
         });
+        cellIndex.set(`${noteIndex}|${hIndex}`, cell);
       }
     }
   }
@@ -921,6 +927,7 @@ export function createMusicalGrid(config) {
 
     // Clear arrays
     cells.length = 0;
+    cellIndex.clear();
     noteElements.length = 0;
     pulseElements.length = 0;
 
@@ -931,8 +938,7 @@ export function createMusicalGrid(config) {
    * Get cell element at grid position
    */
   function getCellElement(noteIndex, pulseIndex) {
-    const cell = cells.find(c => c.noteIndex === noteIndex && c.pulseIndex === pulseIndex);
-    return cell ? cell.element : null;
+    return cellIndex.get(`${noteIndex}|${pulseIndex}`) || null;
   }
 
   /**

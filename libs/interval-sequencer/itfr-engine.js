@@ -44,6 +44,9 @@ export function createItfrEngine(config) {
   let cycleMarkers = [];
   let cycleLabels = [];
   let intervalBars = [];
+  // P-29: estat del highlight de barres (índex actiu + cel·la encesa)
+  let hlLastIdx = -1;
+  let hlLastCell = null;
 
   const dragState = {
     active: false,
@@ -64,6 +67,8 @@ export function createItfrEngine(config) {
   function updateIntervalBars(previewSequence = null) {
     intervalBars.forEach(bar => bar.remove());
     intervalBars = [];
+    hlLastIdx = -1;
+    hlLastCell = null;
     timeline.querySelectorAll('.interval-label-bar').forEach(el => el.remove());
 
     const sequence = previewSequence || getSequence();
@@ -313,6 +318,8 @@ export function createItfrEngine(config) {
     intervalBars.forEach(b => b.classList.remove('highlight'));
     const cellsHost = getEditorCellsHost();
     cellsHost?.querySelectorAll('.itfr-value.active').forEach(c => c.classList.remove('active'));
+    hlLastIdx = -1;
+    hlLastCell = null;
   }
 
   /**
@@ -367,33 +374,45 @@ export function createItfrEngine(config) {
     highlightBarAtPosition(position);
   }
 
-  /** Il·lumina la barra d'iT (i la cel·la de l'editor) que conté `position` (en polsos). */
+  /** Il·lumina la barra d'iT (i la cel·la de l'editor) que conté `position` (en polsos).
+   *  P-29: early-return quan l'índex actiu no canvia — el tick de subdivisió
+   *  passa a ser matemàtica pura; quan canvia es toquen ≤1 barra i ≤1 cel·la
+   *  per referència en lloc d'escombrar barres i editor sencers. */
   function highlightBarAtPosition(position) {
     const sequence = getSequence();
-    const cellsHost = getEditorCellsHost();
 
+    let activeIdx = -1;
     for (let i = 0; i < sequence.length; i++) {
       const item = sequence[i];
       const startPos = subdivToPosition(item.start);
       const endPos = subdivToPosition(item.start + item.it);
-
       if (position >= startPos && position < endPos) {
-        intervalBars.forEach(b => b.classList.remove('highlight'));
-        const bar = intervalBars[i];
-        if (bar) {
-          void bar.offsetWidth;
-          bar.classList.add('highlight');
-        }
-        // Durant play, la cel·la activa de l'editor iTfr s'omple (patró App28).
-        cellsHost?.querySelectorAll('.itfr-value.active').forEach(c => c.classList.remove('active'));
-        const cell = cellsHost?.querySelector(`.itfr-value[data-entry-index="${i}"]`);
-        if (cell) cell.classList.add('active');
-        return;
+        activeIdx = i;
+        break;
       }
     }
 
-    intervalBars.forEach(b => b.classList.remove('highlight'));
-    cellsHost?.querySelectorAll('.itfr-value.active').forEach(c => c.classList.remove('active'));
+    if (activeIdx === hlLastIdx) return;
+
+    if (hlLastIdx >= 0) intervalBars[hlLastIdx]?.classList.remove('highlight');
+    hlLastCell?.classList.remove('active');
+    hlLastCell = null;
+
+    if (activeIdx >= 0) {
+      const bar = intervalBars[activeIdx];
+      if (bar) {
+        void bar.offsetWidth;
+        bar.classList.add('highlight');
+      }
+      // Durant play, la cel·la activa de l'editor iTfr s'omple (patró App28).
+      const cellsHost = getEditorCellsHost();
+      const cell = cellsHost?.querySelector(`.itfr-value[data-entry-index="${activeIdx}"]`);
+      if (cell) {
+        cell.classList.add('active');
+        hlLastCell = cell;
+      }
+    }
+    hlLastIdx = activeIdx;
   }
 
   return {

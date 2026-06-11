@@ -24,6 +24,11 @@ export function createNoteHighlightController(config = {}) {
 
   // Track active highlight elements
   const activeHighlights = new Map();
+  // LP-02: un timeout per nota, cancel·lat abans de re-agendar — si la
+  // mateixa nota es retrigava més ràpid que la durada, el timer VELL
+  // esborrava la classe del highlight NOU (parpelleig) i cada retrigger
+  // filtrava un timer penjat. Mateix patró que highlight-interval.js.
+  const removeTimers = new Map();
 
   /**
    * Highlight a note on the soundline
@@ -67,9 +72,11 @@ export function createNoteHighlightController(config = {}) {
 
     // Auto-remove highlight after duration
     const actualDuration = duration || highlightDuration;
-    setTimeout(() => {
+    clearTimeout(removeTimers.get(noteIndex));
+    removeTimers.set(noteIndex, setTimeout(() => {
+      removeTimers.delete(noteIndex);
       rect.classList.remove(highlightClass);
-    }, actualDuration);
+    }, actualDuration));
   }
 
   /**
@@ -81,6 +88,8 @@ export function createNoteHighlightController(config = {}) {
       rect.remove();
     });
     activeHighlights.clear();
+    removeTimers.forEach(timer => clearTimeout(timer));
+    removeTimers.clear();
   }
 
   /**
@@ -88,6 +97,8 @@ export function createNoteHighlightController(config = {}) {
    * @param {number} noteIndex - Note index (0-11)
    */
   function removeHighlight(noteIndex) {
+    clearTimeout(removeTimers.get(noteIndex));
+    removeTimers.delete(noteIndex);
     const rect = activeHighlights.get(noteIndex);
     if (rect) {
       rect.classList.remove(highlightClass);

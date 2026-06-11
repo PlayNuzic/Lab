@@ -40,6 +40,28 @@ export function createPlayhead(container) {
  *   the playhead with cell.offsetLeft (e.g. App32+) should pass 0 to
  *   `createPlayheadController`.
  */
+// LP-04: cache cel·la-per-columna en mode DOM — l'attribute-selector
+// escanejava TOTES les cel·les (milers als grids de registre) a cada pas
+// de playback. La cel·la cachejada es revalida amb isConnected: quan
+// updateMatrix reconstrueix el grid, les velles queden desconnectades i
+// es re-consulta una sola vegada per columna.
+const cellCacheByMatrix = new WeakMap();
+
+function getColumnCell(matrix, colIndex) {
+  let cache = cellCacheByMatrix.get(matrix);
+  if (!cache) {
+    cache = new Map();
+    cellCacheByMatrix.set(matrix, cache);
+  }
+  let cell = cache.get(colIndex);
+  if (!cell || !cell.isConnected) {
+    cell = matrix.querySelector(`.plano-cell[data-col-index="${colIndex}"]`);
+    if (cell) cache.set(colIndex, cell);
+    else cache.delete(colIndex);
+  }
+  return cell;
+}
+
 export function updatePlayhead(playhead, colIndex, cellWidth, offset = 0, domOffset = 7) {
   if (!playhead) return;
 
@@ -47,7 +69,7 @@ export function updatePlayhead(playhead, colIndex, cellWidth, offset = 0, domOff
   if (!cellWidth) {
     const matrix = playhead.closest('.plano-matrix') || playhead.parentElement;
     if (matrix) {
-      const cell = matrix.querySelector(`.plano-cell[data-col-index="${colIndex}"]`);
+      const cell = getColumnCell(matrix, colIndex);
       if (cell) {
         playhead.style.left = `${cell.offsetLeft + offset + domOffset}px`;
         playhead.classList.remove('plano-playhead--hidden');

@@ -415,6 +415,9 @@ let tIndicatorRevealHandle = null;
 // Create interval highlight controller (highlights intervals, not pulses)
 const highlightController = createIntervalHighlightController({
   getIntervalBlocks: () => Array.from(document.querySelectorAll('.interval-block')),
+  // P-25: amb root, el controller resol el bloc amb UN querySelector
+  // d'atribut en lloc d'escanejar tots els blocs a cada pols.
+  getRoot: () => timeline,
   getLoopEnabled: () => loopEnabled,
   flashDuration: 200
 });

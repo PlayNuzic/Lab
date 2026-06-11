@@ -14,6 +14,9 @@
  * Create an interval highlight controller
  * @param {Object} config - Configuration options
  * @param {Function} config.getIntervalBlocks - Function that returns array of .interval-block elements
+ * @param {Function} [config.getRoot] - Contenidor dels blocs (P-25): permet
+ *   resoldre el bloc amb UN querySelector d'atribut en lloc de materialitzar
+ *   i escanejar tots els blocs a cada pols
  * @param {Function} config.getLoopEnabled - Function that returns current loop state
  * @param {number} config.flashDuration - Duration of highlight in ms (default: 200)
  * @returns {Object} Controller with highlightInterval and clearHighlights methods
@@ -21,6 +24,7 @@
 export function createIntervalHighlightController(config = {}) {
   const {
     getIntervalBlocks = () => [],
+    getRoot = null,
     getLoopEnabled = () => false,
     flashDuration = 200
   } = config;
@@ -37,12 +41,19 @@ export function createIntervalHighlightController(config = {}) {
       return; // Invalid interval number
     }
 
-    // Find the interval block element
-    const blocks = getIntervalBlocks();
-    const block = Array.from(blocks).find(el => {
-      const dataNum = el.dataset?.intervalNumber;
-      return dataNum && parseInt(dataNum, 10) === intervalNumber;
-    });
+    // Find the interval block element — selector directe si tenim root
+    // (P-25); el camí del find lineal queda per a consumidors sense root.
+    const root = typeof getRoot === 'function' ? getRoot() : null;
+    let block = null;
+    if (root) {
+      block = root.querySelector(`.interval-block[data-interval-number="${intervalNumber}"]`);
+    } else {
+      const blocks = getIntervalBlocks();
+      block = Array.from(blocks).find(el => {
+        const dataNum = el.dataset?.intervalNumber;
+        return dataNum && parseInt(dataNum, 10) === intervalNumber;
+      });
+    }
 
     if (!block) {
       return; // Interval block not found

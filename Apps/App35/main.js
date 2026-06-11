@@ -1667,12 +1667,19 @@ function highlightCycle(payload = {}) {
  * to `/d` (App34 formula); for n>1 the `n` factor is essential — otherwise
  * the note-bar highlight appears to advance n-times faster than audio.
  */
+// P-29: refs cachejades + últim índex actiu — abans cada tick de
+// subdivisió (lg·d ticks; ~20/s amb d=8 a 150 BPM) re-consultava totes
+// les barres (querySelectorAll) i l'editor sencer (document-wide ×2).
+// Ara el tick és matemàtica pura + early-return si l'índex no canvia, i
+// quan canvia es toquen ≤2 barres i ≤4 cel·les per referència. Les refs
+// es revaliden per length/isConnected (re-render ⇒ refs noves).
+let hlBars = null;       // Array de .note-bar alineat amb `notes`
+let hlCellsByIdx = null; // Map entryIndex -> [cel·les N + iT]
+let hlLastIdx = -1;
+
 function highlightBarAtPosition(position) {
   const n = currentNumerator;
   const d = currentDenominator;
-  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
-  const bars = matrix?.querySelectorAll('.note-bar');
-  if (!bars) return;
 
   let activeIdx = -1;
   for (let i = 0; i < notes.length; i++) {
@@ -1685,17 +1692,36 @@ function highlightBarAtPosition(position) {
     }
   }
 
-  bars.forEach((b, i) => b.classList.toggle('highlight', i === activeIdx));
+  if (!hlBars || hlBars.length !== notes.length || (hlBars[0] && !hlBars[0].isConnected)) {
+    const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
+    if (!matrix) return;
+    hlBars = Array.from(matrix.querySelectorAll('.note-bar'));
+    hlCellsByIdx = new Map();
+    document.querySelectorAll('.nit-editor-cell[data-entry-index]').forEach(c => {
+      const idx = Number(c.dataset.entryIndex);
+      if (!hlCellsByIdx.has(idx)) hlCellsByIdx.set(idx, []);
+      hlCellsByIdx.get(idx).push(c);
+    });
+    hlLastIdx = -1;
+    // Neteja residus d'un render anterior (classes que hagin sobreviscut)
+    hlBars.forEach(b => b.classList.remove('highlight'));
+    hlCellsByIdx.forEach(cells => cells.forEach(c => c.classList.remove('active')));
+  }
 
+  if (activeIdx === hlLastIdx) return;
+
+  if (hlLastIdx >= 0) {
+    hlBars[hlLastIdx]?.classList.remove('highlight');
+    hlCellsByIdx?.get(hlLastIdx)?.forEach(c => c.classList.remove('active'));
+  }
   // Editor zigzag (N + iT): mateix patró que App34 — il·luminem ambdues
   // cel·les amb el mateix `data-entry-index` que la nota activa. Color
   // per fila ve del CSS (rosa intens per N, groc per iT).
-  document.querySelectorAll('.nit-editor-cell.active').forEach(c => c.classList.remove('active'));
   if (activeIdx >= 0) {
-    document.querySelectorAll(
-      `.nit-editor-cell[data-entry-index="${activeIdx}"]`
-    ).forEach(c => c.classList.add('active'));
+    hlBars[activeIdx]?.classList.add('highlight');
+    hlCellsByIdx?.get(activeIdx)?.forEach(c => c.classList.add('active'));
   }
+  hlLastIdx = activeIdx;
 }
 
 // ========== CONTROLS ==========

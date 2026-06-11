@@ -347,10 +347,22 @@ function getPasoDensity(paso = state.paso){
 function setPasoDensity(value){
   state.densityByPaso[state.paso] = value;
   try { localStorage.setItem(DENSITY_KEY, JSON.stringify(state.densityByPaso)); } catch {}
-  render();
+  // P-26: la densitat és només un hook CSS (dataset.density) — mutem la
+  // slide viva en lloc de render() complet, que recreava l'<iframe> i
+  // recarregava l'app embedada (Tone.js, samples...) perdent-ne l'estat.
+  const liveSlide = STAGE.querySelector('.slide');
+  if (liveSlide) liveSlide.dataset.density = value;
+  else render();
 }
 window.__sistemaGetDensity = () => getPasoDensity();
 window.__sistemaSetDensity = setPasoDensity;
+// P-26: el toggle d'edició només necessita re-aplicar contenteditable
+// sobre el DOM viu — exposem el hook perquè tweaks.js no hagi de fer
+// render() (que destruïa l'iframe i el progrés de l'alumne).
+window.__sistemaApplyEdit = () => {
+  const liveSlide = STAGE.querySelector('.slide');
+  if (liveSlide) applyEditableState(liveSlide, state.paso);
+};
 
 // Llista dinàmica de pasos visibles segons l'estat del easter egg.
 // Quan el capítol amagat no està actiu, els pasos *.5 marcats amb

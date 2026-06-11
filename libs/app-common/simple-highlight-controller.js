@@ -30,6 +30,17 @@ export function createSimpleHighlightController({
   getLoopEnabled,
   highlightClass = 'active'
 }) {
+  // LP-01: com a màxim 2 elements porten la classe alhora (actual +
+  // l'últim quan hi ha loop) — netegem només aquests en lloc d'escombrar
+  // els Lg+1 nodes a cada pas del hot path.
+  let lastHighlighted = [];
+
+  function clearLast() {
+    for (const el of lastHighlighted) {
+      el?.classList?.remove(highlightClass);
+    }
+    lastHighlighted = [];
+  }
 
   /**
    * Highlight a pulse at the given index
@@ -42,10 +53,7 @@ export function createSimpleHighlightController({
     const pulses = getPulses();
     const loopEnabled = getLoopEnabled();
 
-    // Clear previous highlights
-    if (pulses && pulses.length > 0) {
-      pulses.forEach(p => p?.classList?.remove(highlightClass));
-    }
+    clearLast();
 
     if (!pulses || pulses.length === 0) return;
 
@@ -57,6 +65,7 @@ export function createSimpleHighlightController({
       // Force reflow to restart animation even if same pulse
       void current.offsetWidth;
       current.classList.add(highlightClass);
+      lastHighlighted.push(current);
     }
 
     // If loop enabled and at first pulse, also highlight last pulse
@@ -64,18 +73,22 @@ export function createSimpleHighlightController({
       const last = pulses[pulses.length - 1];
       if (last) {
         last.classList.add(highlightClass);
+        lastHighlighted.push(last);
       }
     }
   }
 
   /**
    * Clear all pulse highlights
+   * (escombrada completa expressament: és el camí de reset, no el hot path,
+   * i ha de netejar classes que puguin venir d'un render anterior)
    */
   function clearHighlights() {
     const pulses = getPulses();
     if (pulses && pulses.length > 0) {
       pulses.forEach(p => p?.classList?.remove(highlightClass));
     }
+    lastHighlighted = [];
   }
 
   return {

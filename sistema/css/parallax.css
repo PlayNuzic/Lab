@@ -142,11 +142,14 @@ body[data-theme="dark"] .slide--parallax{
   text-wrap: balance;
   transform: translateY(-50%);
   transform-origin: left center;
-  will-change: transform, opacity, filter;
+  /* LP-07: el blur NO s'anima — animar filter re-rasteritza el text
+     d'amplada completa a cada frame (frames perduts en mòbils modests) i
+     tenir-lo al will-change fixava capes de compositor permanents. El blur
+     salta al valor final; la profunditat la porten transform+opacity. */
+  will-change: transform, opacity;
   transition:
     transform 0.55s cubic-bezier(0.22, 0.9, 0.3, 1),
-    opacity 0.55s ease,
-    filter 0.55s ease;
+    opacity 0.55s ease;
   /* Les frases atenuades es poden clicar per activar-les. */
   cursor: pointer;
 }

@@ -192,6 +192,32 @@ export function createGrid2DSyncController(config = {}) {
     });
   }
 
+  // P-20: lookup O(1) de cel·les — l'attribute-selector escanejava tot el
+  // grid per CADA cel·la de durada/silenci/drag (O(cel·les_durada × total)).
+  // El mapa es reconstrueix un sol cop quan canvia el contenidor o quan la
+  // cel·la cachejada ja no és al DOM (refresh del grid → isConnected false).
+  let cellLookup = null;
+  let cellLookupContainer = null;
+
+  function getCell(rowId, pulse) {
+    const matrixContainer = getMatrixContainer();
+    if (!matrixContainer) return null;
+    if (cellLookupContainer !== matrixContainer) {
+      cellLookup = null;
+      cellLookupContainer = matrixContainer;
+    }
+    const key = `${rowId}|${pulse}`;
+    const cached = cellLookup?.get(key);
+    if (cached?.isConnected) return cached;
+    if (!cellLookup || (cached && !cached.isConnected)) {
+      cellLookup = new Map();
+      matrixContainer.querySelectorAll('.plano-cell').forEach(c => {
+        cellLookup.set(`${c.dataset.rowId}|${c.dataset.colIndex}`, c);
+      });
+    }
+    return cellLookup.get(key) || null;
+  }
+
   /**
    * Highlight a single cell with duration-highlight class
    * Used for cells that extend a note's duration (not the starting cell)
@@ -200,12 +226,7 @@ export function createGrid2DSyncController(config = {}) {
    * @param {number} pulse - Pulse index
    */
   function highlightSingleCell(rowId, pulse) {
-    const matrixContainer = getMatrixContainer();
-    if (!matrixContainer) return;
-
-    const cell = matrixContainer.querySelector(
-      `.plano-cell[data-row-id="${rowId}"][data-col-index="${pulse}"]`
-    );
+    const cell = getCell(rowId, pulse);
     if (cell) {
       cell.classList.add('duration-highlight');
     }
@@ -218,12 +239,7 @@ export function createGrid2DSyncController(config = {}) {
    * @param {number} pulse - Pulse index
    */
   function highlightRestCell(rowId, pulse) {
-    const matrixContainer = getMatrixContainer();
-    if (!matrixContainer) return;
-
-    const cell = matrixContainer.querySelector(
-      `.plano-cell[data-row-id="${rowId}"][data-col-index="${pulse}"]`
-    );
+    const cell = getCell(rowId, pulse);
     if (cell) {
       cell.classList.add('rest');
     }
@@ -414,9 +430,7 @@ export function createGrid2DSyncController(config = {}) {
     if (!matrixContainer) return;
 
     for (let pulse = startPulse; pulse <= endPulse; pulse++) {
-      const cell = matrixContainer.querySelector(
-        `.plano-cell[data-row-id="${rowId}"][data-col-index="${pulse}"]`
-      );
+      const cell = getCell(rowId, pulse);
       if (cell) {
         cell.classList.add('drag-highlight');
       }

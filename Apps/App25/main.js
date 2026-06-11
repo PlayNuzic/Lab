@@ -1204,7 +1204,8 @@ async function init() {
     musicalGrid,
     gridEditor,
     totalNotes: TOTAL_NOTES,
-    currentBPM: currentBPM
+    currentBPM: currentBPM,
+    getBPM: () => currentBPM
   });
 
   // Preload audio on first user interaction anywhere in the app

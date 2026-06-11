@@ -40,16 +40,9 @@ export function createHighlightController({
     pulse: {
       lastType: null,
       lastIntIndex: null,
-      lastFractionKey: null,
-      lastScrollCache: {
-        type: null,
-        index: null,
-        fractionKey: null,
-        trailingIndex: null,
-        rect: null,
-        trailingRect: null,
-        scrollLeft: null
-      }
+      lastFractionKey: null
+      // P-27: aquí hi havia una cache d'scroll (lastScroll*) que
+      // s'escrivia i es resetejava però MAI es llegia (codi mort).
     },
     cycle: {
       activeMarkers: []
@@ -189,21 +182,6 @@ export function createHighlightController({
   }
 
   /**
-   * Resetea cache de scroll de pulso
-   */
-  function resetPulseScrollCache() {
-    state.pulse.lastScrollCache = {
-      type: null,
-      index: null,
-      fractionKey: null,
-      trailingIndex: null,
-      rect: null,
-      trailingRect: null,
-      scrollLeft: null
-    };
-  }
-
-  /**
    * Resetea estado de highlighting de pulso
    */
   function resetPulseHighlightState({ clearFraction = false } = {}) {
@@ -216,7 +194,6 @@ export function createHighlightController({
 
     pulseSeqController?.clearActive();
     clearPulseNumberFlash();
-    resetPulseScrollCache();
   }
 
   /**
@@ -321,23 +298,11 @@ export function createHighlightController({
       if (rect) {
         const newScrollLeft = scrollPulseSeqToRect(rect);
         pulseSeqController?.setActiveIndex(0, { rect, scrollLeft: newScrollLeft });
-
-        state.pulse.lastScrollCache = {
-          type: 'fraction',
-          index: null,
-          fractionKey: key,
-          trailingIndex: null,
-          rect,
-          trailingRect: null,
-          scrollLeft: newScrollLeft
-        };
       } else {
         pulseSeqController?.clearActive();
-        resetPulseScrollCache();
       }
     } else {
       pulseSeqController?.clearActive();
-      resetPulseScrollCache();
     }
 
     // Actualizar estado
@@ -384,7 +349,6 @@ export function createHighlightController({
       state.pulse.lastType = null;
       state.pulse.lastIntIndex = null;
       state.pulse.lastFractionKey = null;
-      resetPulseScrollCache();
       return;
     }
 
@@ -394,7 +358,6 @@ export function createHighlightController({
       state.pulse.lastType = null;
       state.pulse.lastIntIndex = null;
       state.pulse.lastFractionKey = null;
-      resetPulseScrollCache();
       return;
     }
 
@@ -507,7 +470,6 @@ export function createHighlightController({
     state.lastNormalizedStep = null;
     state.lastVisualStep = null;
 
-    resetPulseScrollCache();
   }
 
   // API pública

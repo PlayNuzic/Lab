@@ -1041,7 +1041,8 @@ async function init() {
     musicalGrid,
     gridEditor,
     totalNotes: TOTAL_NOTES,
-    currentBPM: currentBPM
+    currentBPM: currentBPM,
+    getBPM: () => currentBPM
   });
 
   // Wait for DOM to be fully populated by template system

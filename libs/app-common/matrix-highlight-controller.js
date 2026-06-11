@@ -15,7 +15,10 @@
  * @param {Object} config.musicalGrid - Musical grid instance from createMusicalGrid()
  * @param {Object} [config.gridEditor] - Optional grid editor instance from createGridEditor()
  * @param {number} config.totalNotes - Total number of notes (vertical dimension)
- * @param {number} config.currentBPM - Current BPM for interval highlighting
+ * @param {number} config.currentBPM - BPM inicial per a la durada dels highlights
+ * @param {Function} [config.getBPM] - Getter del BPM viu (P-19: el valor per
+ *   construcció quedava congelat — després d'un canvi de tempo les durades
+ *   dels highlights divergien del pols audible)
  * @returns {Object} Controller with highlightPulse() and clearHighlights() methods
  */
 export function createMatrixHighlightController(config) {
@@ -23,7 +26,8 @@ export function createMatrixHighlightController(config) {
     musicalGrid,
     gridEditor = null,
     totalNotes,
-    currentBPM
+    currentBPM,
+    getBPM = null
   } = config;
 
   if (!musicalGrid) {
@@ -39,6 +43,11 @@ export function createMatrixHighlightController(config) {
   }
 
   let currentPulse = -1;
+  // P-19: referència al marcador encès per netejar només aquell en lloc
+  // d'un querySelectorAll de document per pas. (El sweep de .pz.number es
+  // manté: aquella classe l'afegeixen els editors de les apps, no aquest
+  // controller, així que no en podem tenir referència.)
+  let lastMarker = null;
 
   /**
    * Highlights a specific pulse across all grid components
@@ -46,9 +55,10 @@ export function createMatrixHighlightController(config) {
    */
   function highlightPulse(pulse) {
     // Clear previous highlights
-    document.querySelectorAll('.pulse-marker.highlighted').forEach(el => {
-      el.classList.remove('highlighted');
-    });
+    if (lastMarker) {
+      lastMarker.classList.remove('highlighted');
+      lastMarker = null;
+    }
     document.querySelectorAll('.pz.number.highlighted').forEach(el => {
       el.classList.remove('highlighted');
     });
@@ -65,11 +75,13 @@ export function createMatrixHighlightController(config) {
       ?.querySelector(`.pulse-marker[data-pulse-index="${pulse}"]`);
     if (pulseMarker) {
       pulseMarker.classList.add('highlighted');
+      lastMarker = pulseMarker;
     }
 
     // Use native interval highlighting from musical-grid
     if (musicalGrid) {
-      const intervalSec = 60 / currentBPM;
+      const bpm = (typeof getBPM === 'function' && getBPM()) || currentBPM;
+      const intervalSec = 60 / bpm;
       musicalGrid.onPulseStep(pulse, intervalSec * 1000);
     }
 
@@ -89,9 +101,12 @@ export function createMatrixHighlightController(config) {
    * Clears all highlights from the grid
    */
   function clearHighlights() {
+    // Sweep complet expressament: és el camí de reset (stop/re-render),
+    // no el hot path, i ha d'agafar marcadors d'un render anterior.
     document.querySelectorAll('.pulse-marker.highlighted').forEach(el => {
       el.classList.remove('highlighted');
     });
+    lastMarker = null;
     // Clear interval highlights using native method
     if (musicalGrid) {
       musicalGrid.clearIntervalHighlights('horizontal');
