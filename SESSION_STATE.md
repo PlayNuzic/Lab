@@ -1,17 +1,29 @@
-# SESSION_STATE — Auditoria 2026-06-10: aplicació COMPLETADA (ALTES + MITJANES)
+# SESSION_STATE — Auditoria 2026-06-10: BAIXES completades (2026-06-11)
 
 Cap feina activa en curs. Tot el treball de l'auditoria està arxivat:
 
 - **Informe amb checkboxes per troballa:** `docs/audit-report-2026-06-10.md`
-  — estat: 67 tancades + 3 refutades / 144
+  — estat: **128 tancades / 144** (les baixes: 13 verificadors adversaris en
+  paral·lel sobre el codi actual, després aplicades en 4 commits per grup)
 - **Arxius de sessió:** `docs/session-history/2026-06-10-auditoria-completa-i-aplicacio.md`
   i `docs/session-history/2026-06-11-auditoria-mitjanes-completades.md`
 
 ## Únic pendent
 
-Les **~90 troballes BAIXES** (seccions LA/LP/LU/LH de l'informe). NO estan verificades
-adversàriament: **re-verificar cadascuna contra el codi actual abans d'aplicar-la** (el
-codi ha canviat molt des de l'auditoria — diverses ja poden estar resoltes o obsoletes).
+**16 MITJANES mai demanades** (la sessió del 2026-06-10/11 va fer les U-xx i les
+H-xx que l'usuari va anar demanant; aquestes van quedar fora de tots els lots):
+- Àudio: A-05 (hot loop del worklet — ALT RISC: timeline-processor.js), A-06
+  (statechange del context), A-08 (Tone.js innecessari a les apps rítmiques),
+  A-13 (valors transitoris de BPM/Lg al transport)
+- Rendiment: P-03..P-07, P-09, P-11, P-13, P-15 (rebuilds per tecla, reflows
+  per etiqueta, observer de gamificació, VexFlow al resize, JPEG de fons,
+  fonts de VexFlow, @import de Google Fonts)
+- Higiene: H-03 (loop-control captura audio per valor), H-10 (MODULES.md — pot
+  estar ja resolt pels docs-sync; re-verificar), H-20 (App30/31 — majoritàriament
+  resolt per H-02/H-21/H-07; queda només validar el residu)
+
+Totes tenen verificació adversària d'origen a l'informe, però són d'abans dels
+refactors grans: **re-verificar vigència abans d'aplicar-les**.
 
 ## Invariants nous d'aquesta aplicació (no trencar)
 
