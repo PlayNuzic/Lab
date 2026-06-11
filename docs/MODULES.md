@@ -66,4 +66,4 @@ npm test                                    # Tots els tests
 npm test -- --testPathPattern="matrix-seq"  # Tests d'un mòdul
 ```
 
-**Cobertura actual:** 71 suites, 1380+ tests
+**Cobertura actual:** 72 suites, 1380+ tests

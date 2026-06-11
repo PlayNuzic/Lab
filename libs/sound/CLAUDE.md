@@ -53,5 +53,5 @@
 - Quick release for stop-all: 0.05 (prevents clicks)
 
 ## Tests
-- `index.test.js`, `mixer.test.js`
+- `__tests__/`: index, mixer, tone-loader, melodic-sequence, registry-controller, sampler-pool (LH-17: layout unificat, cap test co-locat)
 - Tests produce controlled `console.warn` when simulating fetch errors — DO NOT remove them without adjusting asserts
