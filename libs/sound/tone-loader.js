@@ -1,4 +1,7 @@
 import { hasUserInteracted } from './user-interaction.js';
+// Cicle d'imports amb audio-context-helper: segur — tots dos mòduls només
+// usen l'altre dins de funcions (mai durant l'avaluació del mòdul).
+import { ensurePreferredSampleRateContext } from './audio-context-helper.js';
 
 /**
  * Lazy loader for Tone.js that waits for user interaction before loading
@@ -10,16 +13,19 @@ let toneLoaded = false;
 let scriptInjected = false;
 
 // P-12: descarrega Tone.js (~340KB) en paral·lel a la càrrega de la pàgina
-// SENSE executar-lo — rel=preload només mou bytes, no crea cap AudioContext,
-// així que l'ordre d'init (Tone → gest d'usuari → start) queda intacte. Al
-// primer Play la injecció del <script> es resol des de la cache de preload.
+// SENSE executar-lo — només mou bytes, no crea cap AudioContext, així que
+// l'ordre d'init (Tone → gest d'usuari → start) queda intacte. Al primer ús
+// la injecció del <script> es resol des de la cache.
+// rel=prefetch (no preload): des d'A-08 les apps rítmiques no executen mai
+// Tone i Chrome avisava del preload "not used within a few seconds";
+// prefetch fa la mateixa feina en prioritat baixa i sense l'avís.
 if (typeof document !== 'undefined' && document.head) {
-  const preloadHref = new URL('../vendor/Tone.js', import.meta.url).href;
-  if (!document.querySelector(`link[rel="preload"][href="${preloadHref}"]`)) {
+  const prefetchHref = new URL('../vendor/Tone.js', import.meta.url).href;
+  if (!document.querySelector(`link[rel="prefetch"][href="${prefetchHref}"]`)) {
     const link = document.createElement('link');
-    link.rel = 'preload';
+    link.rel = 'prefetch';
     link.as = 'script';
-    link.href = preloadHref;
+    link.href = prefetchHref;
     document.head.appendChild(link);
   }
 }
@@ -73,6 +79,14 @@ export async function ensureToneLoaded() {
 
       script.onload = () => {
         toneLoaded = true;
+        // Regla d'or del wiki de Tone: "set the context before creating
+        // any nodes" — els nodes d'un context no es poden connectar als
+        // d'un altre. Pinnem el context preferit (44100) AQUÍ, abans de
+        // resoldre la promesa: així CAP consumidor (el preload del piano
+        // inclòs) pot construir nodes sobre un context que després es
+        // canviaria/tancaria — era l'origen del "Connecting nodes after
+        // the context has been closed" i dels samplers muts al 1r play.
+        try { ensurePreferredSampleRateContext(); } catch {}
         resolve(true);
       };
 

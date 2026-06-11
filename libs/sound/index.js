@@ -1032,10 +1032,12 @@ export class TimelineAudio {
   }
 
   _restoreBusGains(buses, prevGains) {
-    if (this._pendingMixerState) {
-      this._applyMixerState(this._pendingMixerState);
-      return;
-    }
+    // SEMPRE cancel·lar l'automatització ABANS de restaurar: mentre la
+    // rampa del fade és activa, una assignació a .value és IGNORADA (Web
+    // Audio: l'automatització mana) — la rampa acabava a 0 i als fluxos
+    // stop()+play() del mateix tick (restart de startPlayback) tot
+    // emmudia just després del primer pols. cancel + setValueAtTime
+    // tanca la rampa; després l'estat del mixer ja pot escriure .value.
     const now = this._ctx?.currentTime ?? 0;
     buses.forEach((bus, i) => {
       try {
@@ -1043,6 +1045,12 @@ export class TimelineAudio {
         bus.gain.setValueAtTime(prevGains[i], now);
       } catch {}
     });
+    // I a sobre, l'estat viu del mixer (mute/volum poden haver canviat
+    // durant la finestra del fade) — ara que no hi ha automatització,
+    // les seves assignacions a .value s'apliquen de debò.
+    if (this._pendingMixerState) {
+      this._applyMixerState(this._pendingMixerState);
+    }
   }
 
   // A-10: quan setTempo rebobina el scheduler per re-temporitzar la finestra

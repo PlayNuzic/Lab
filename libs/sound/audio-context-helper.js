@@ -66,9 +66,13 @@ export function ensurePreferredSampleRateContext() {
     // LA-02: el context desplaçat era l'auto-creat de Tone, sense nodes del
     // motor encara (som pre-Tone.start). Si no es tanca, el seu thread
     // d'àudio viu tota la pàgina (iOS en limita ~4 de concurrents).
+    // close() retorna una PROMESA: el rebuig (Tone v15 ja el tanca tot sol
+    // dins de setContext → "Cannot close a closed AudioContext") s'ha
+    // d'absorbir aquí — un try/catch síncron no atrapa rebuigs async i
+    // sortia com a excepció no capturada a la consola.
     if (current && current !== next) {
       const raw = current.rawContext || current;
-      try { raw.close?.(); } catch {}
+      try { Promise.resolve(raw.close?.()).catch(() => {}); } catch {}
     }
     log(`[audio] AudioContext sampleRate = ${next.sampleRate} Hz (requested ${PREFERRED_SAMPLE_RATE})`);
   } catch (err) {

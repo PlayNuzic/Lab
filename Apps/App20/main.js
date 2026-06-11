@@ -2207,8 +2207,11 @@ function initApp() {
   if (elements.inputCycle) elements.inputCycle.value = cycles;
   if (elements.cycleDigit) elements.cycleDigit.textContent = String(cycles);
 
-  // Ordre nuzic de la fila de controls (helper compartit, H-08)
-  reorderControls();
+  // Ordre nuzic de la fila de controls (helper compartit, H-08).
+  // El codi de sota segueix usant l'element: capturem el retorn (el
+  // refactor H-08 va treure la declaracio local i aixo trencava l'init
+  // amb ReferenceError: controls is not defined).
+  const controls = reorderControls();
 
   // Save controls before initGrid clears .timeline-wrapper
   const timelineWrapper = document.querySelector('.timeline-wrapper');
