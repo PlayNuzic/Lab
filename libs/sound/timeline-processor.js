@@ -35,6 +35,12 @@ class TimelineProcessor extends AudioWorkletProcessor {
     // Voces polirrítmicas arbitrarias
     // Map<string, {id, num, den, periodBeats, countdownBeats, subIndex}>
     this.voices = new Map();
+    // A-05: snapshot en array de les veus, mantingut als punts de mutació
+    // (missatges del fil principal, que arriben ENTRE quanta de render).
+    // El bucle per-sample de process() itera aquest array: iterar el Map
+    // al·locava un iterador per sample (~44.100/s amb veus actives) — GC
+    // dins del fil d'àudio, on una pausa de col·lecció és un glitch.
+    this._voiceList = [];
 
     this.patternBeats = 0;
 
@@ -97,14 +103,17 @@ class TimelineProcessor extends AudioWorkletProcessor {
         if (Array.isArray(msg.voices)) {
           for (const v of msg.voices) this._addVoice(v);
         }
+        this._syncVoiceList();
         break;
       }
       case 'addVoice': {
         this._addVoice(msg.voice);
+        this._syncVoiceList();
         break;
       }
       case 'removeVoice': {
         if (msg && msg.id) this.voices.delete(msg.id);
+        this._syncVoiceList();
         break;
       }
       case 'setLoop': {
@@ -155,6 +164,11 @@ class TimelineProcessor extends AudioWorkletProcessor {
       countdownBeats: 0.0,
       subIndex: 0
     });
+  }
+
+  // A-05: les veus del Map, com a array per al hot loop (vegeu constructor)
+  _syncVoiceList() {
+    this._voiceList = [...this.voices.values()];
   }
 
   _resetVoicesCountdown() {
@@ -279,8 +293,10 @@ class TimelineProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs, outputs) {
-    const output = outputs[0];
-    if (output) output.forEach(ch => ch.fill(0)); // silencio
+    // L'spec de Web Audio entrega els buffers d'output ja zerats a cada
+    // quantum i aquest processor no hi escriu mai (només envia missatges):
+    // l'antic fill(0) per canal al·locava una closure per process() (~344/s)
+    // per re-zerar memòria ja zerada (A-05).
     if (!this.active) return true;
 
     // Quantum de render de l'AudioWorklet: fixat a 128 samples per l'spec
@@ -291,6 +307,7 @@ class TimelineProcessor extends AudioWorkletProcessor {
     // Via globalThis perquè als tests (Node) el global no existeix: allà
     // time=NaN i el fil principal cau al fallback (arribada del missatge).
     const blockTime = globalThis.currentTime;
+    const voiceList = this._voiceList; // A-05: snapshot estable durant el bloc
     for (let i = 0; i < block; i++) {
       if (this.rampSamplesLeft > 0) {
         this.secondsPerBeat += this.rampStep;
@@ -302,10 +319,6 @@ class TimelineProcessor extends AudioWorkletProcessor {
       }
 
       const beatsPerSample = this.secondsPerSample / this.secondsPerBeat;
-
-      if (this.pendingTempoChange && this.pendingTempoChange.align === 'immediate') {
-        this._applyPendingTempoChange();
-      }
 
       this.pulseCountdownBeats -= beatsPerSample;
       this.measurePhaseBeats += beatsPerSample;
@@ -344,20 +357,19 @@ class TimelineProcessor extends AudioWorkletProcessor {
         }
       }
 
-      if (this.voices.size) {
-        for (const voice of this.voices.values()) {
-          voice.countdownBeats -= beatsPerSample;
-          // Epsilon i acumulació (+= period, mai = period): mateixes raons
-          // que el comptador de polsos — anti doble-tret i anti deriva.
-          if (voice.countdownBeats <= 1e-9) {
-            this.port.postMessage({
-              type: 'voice',
-              id: voice.id,
-              index: voice.subIndex++,
-              time: blockTime + i * this.secondsPerSample
-            });
-            voice.countdownBeats += voice.periodBeats;
-          }
+      for (let vi = 0; vi < voiceList.length; vi++) {
+        const voice = voiceList[vi];
+        voice.countdownBeats -= beatsPerSample;
+        // Epsilon i acumulació (+= period, mai = period): mateixes raons
+        // que el comptador de polsos — anti doble-tret i anti deriva.
+        if (voice.countdownBeats <= 1e-9) {
+          this.port.postMessage({
+            type: 'voice',
+            id: voice.id,
+            index: voice.subIndex++,
+            time: blockTime + i * this.secondsPerSample
+          });
+          voice.countdownBeats += voice.periodBeats;
         }
       }
     }
