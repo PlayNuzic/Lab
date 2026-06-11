@@ -18,7 +18,9 @@
       font-family: 'Ubuntu';
       font-style: normal;
       font-weight: 700;
-      src: url('../sistema/fonts/ubuntu-bold.ttf') format('truetype');
+      /* P-10: el .ttf de 270KB es va substituir pel woff2 (14KB) — aquesta
+         còpia inline de l'índex encara hi apuntava (404 a cada càrrega). */
+      src: url('../sistema/fonts/ubuntu-bold.woff2') format('woff2');
       font-display: swap;
     }
 
