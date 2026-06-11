@@ -10,20 +10,32 @@ Cap feina activa en curs. Tot el treball de l'auditoria està arxivat:
 
 ## Únic pendent
 
-**16 MITJANES mai demanades** (la sessió del 2026-06-10/11 va fer les U-xx i les
-H-xx que l'usuari va anar demanant; aquestes van quedar fora de tots els lots):
-- Àudio: A-05 (hot loop del worklet — ALT RISC: timeline-processor.js), A-06
-  (statechange del context), A-08 (Tone.js innecessari a les apps rítmiques),
-  A-13 (valors transitoris de BPM/Lg al transport)
-- Rendiment: P-03..P-07, P-09, P-11, P-13, P-15 (rebuilds per tecla, reflows
-  per etiqueta, observer de gamificació, VexFlow al resize, JPEG de fons,
-  fonts de VexFlow, @import de Google Fonts)
-- Higiene: H-03 (loop-control captura audio per valor), H-10 (MODULES.md — pot
-  estar ja resolt pels docs-sync; re-verificar), H-20 (App30/31 — majoritàriament
-  resolt per H-02/H-21/H-07; queda només validar el residu)
+**13 MITJANES re-verificades adversàriament el 2026-06-11** (7 agents; els
+veredictes detallats són a l'informe, per troballa). De les 16 originals, 3 es
+van tancar a la verificació: P-11 (asset ja re-exportat: 114KB/1280px), H-10
+(docs-sync ho havia resolt) i H-20 (residu = deltes genuïnes de model).
 
-Totes tenen verificació adversària d'origen a l'informe, però són d'abans dels
-refactors grans: **re-verificar vigència abans d'aplicar-les**.
+VIGENTS llestes per aplicar (cap bloqueig):
+- A-06 statechange del context (zombie playing) — compte amb el fade LA-04
+- P-03 rebuild de timeline per tecla (App1/App2) + P-05 reflows per etiqueta
+  (circular-timeline ×2 per passada) — parella natural
+- P-04 callback scrollPulseSeqToRect ombrejat (App4 perd el timeline-follow)
+- P-06 gBCR per cel·la a musical-grid (rect un cop per passada)
+- P-07 observer de gamificació d'App5 (disconnect durant playback)
+- P-09 resize d'App24 sense debounce (patró rAF d'App33)
+- P-13 entry de VexFlow amb 6 fonts (~399KB inútils) → entry/vexflow-nuzic.js
+- P-15 @import de Google Fonts → vendoritzar woff2 (el "risc" 550/600 és fals:
+  Google tampoc no els serveix avui)
+- H-03 loop-control amb resolveAudio (fora els 5 wrappers boilerplate)
+
+VIGENTS amb condicions:
+- A-05 hot loop del worklet — ALT RISC (timeline-processor.js): diff complet +
+  suite + aprovació explícita; el fix és mecànic i no toca cap epsilon
+- A-13 (PARCIAL): U-11 va cobrir la V d'App2; queda V a App1/App4 i els
+  transitoris de Lg a totes tres (patró: estendre U-11)
+- A-08 (PARCIAL): payload de Tone real al primer Play rítmic, però treure
+  l'await trenca el pinning de sampleRate (ensurePreferredSampleRateContext
+  necessita Tone) — cal redissenyar el pinning natiu primer.
 
 ## Invariants nous d'aquesta aplicació (no trencar)
 

@@ -1,7 +1,7 @@
 # App-Common — Context for Claude
 
 ## Role
-Middleware layer between UI and TimelineAudio. 50 modules. Everything reusable across apps lives here.
+Middleware layer between UI and TimelineAudio. 49 modules. Everything reusable across apps lives here.
 
 ## Modules by Function
 

@@ -1,6 +1,6 @@
 # App Common Modules
 
-Capa middleware compartida per totes les apps del Lab. **50 mòduls** que centralitzen audio, DOM, controls de loop, fraction editor, visual sync, preferences i utilitats. Veure [CLAUDE.md](CLAUDE.md) per al mapa complet de mòduls per funcionalitat.
+Capa middleware compartida per totes les apps del Lab. **49 mòduls** que centralitzen audio, DOM, controls de loop, fraction editor, visual sync, preferences i utilitats. Veure [CLAUDE.md](CLAUDE.md) per al mapa complet de mòduls per funcionalitat.
 
 ## Módulos de Pulse Sequence
 

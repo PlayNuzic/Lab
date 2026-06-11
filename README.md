@@ -54,7 +54,7 @@ Capa de presentació narrativa que guia l'usuari pel mètode Nuzic mitjançant 2
 ## 🧩 Llibreries (`libs/`)
 
 ```
-app-common/          — Middleware: 50 mòduls (audio, DOM, loop, fraction-editor, ...)
+app-common/          — Middleware: 49 mòduls (audio, DOM, loop, fraction-editor, ...)
 sound/               — Motor d'àudio sobre Tone.js (TimelineAudio, mixer, samples)
 shared-ui/           — Header, dropdowns, tema Nuzic, performance audio menu
 plano-modular/       — Grid 2D N×P amb soundline + timeline (App19, App20)
