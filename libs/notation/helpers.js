@@ -1,4 +1,4 @@
-import { KeySignature } from '../vendor/vexflow/entry/vexflow.js';
+import { KeySignature } from '../vendor/vexflow/entry/vexflow-nuzic.js';
 import { getKeySignature } from '../scales/index.js';
 
 // Single reference array for diatonic letter cycle

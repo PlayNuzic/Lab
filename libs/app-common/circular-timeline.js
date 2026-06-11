@@ -46,13 +46,32 @@ export function createCircularTimeline({
    * @param {boolean} options.isCircular - Whether to render in circular mode
    * @param {boolean} options.silent - Skip animations
    */
+  // P-03: memo de l'últim render — handleInput de les apps crida render()
+  // a cada tecla (també per a V/T, que no afecten el timeline) i amb el
+  // spinner premut són ~12 reconstruccions DOM per segon. Si (lg,
+  // isCircular) no han canviat i els polsos segueixen al DOM, retornem el
+  // mateix array sense tocar res (les classes de highlight viuen als
+  // elements conservats).
+  let lastLg = null;
+  let lastCircular = null;
+  let lastPulses = [];
+
   function render(lg, options = {}) {
     const { isCircular = false, silent = true } = options;
+
+    if (lg === lastLg && isCircular === lastCircular
+        && lastPulses.length && lastPulses[0].isConnected) {
+      return lastPulses;
+    }
 
     timeline.innerHTML = '';
     const pulses = [];
 
-    if (!Number.isFinite(lg) || lg <= 0) return pulses;
+    if (!Number.isFinite(lg) || lg <= 0) {
+      lastLg = null;
+      lastPulses = [];
+      return pulses;
+    }
 
     // Create pulses
     for (let i = 0; i <= lg; i++) {
@@ -74,6 +93,9 @@ export function createCircularTimeline({
     // Apply layout with local pulses array (not getPulses())
     applyLayout(pulses, isCircular, { silent });
 
+    lastLg = lg;
+    lastCircular = isCircular;
+    lastPulses = pulses;
     return pulses;
   }
 
@@ -88,13 +110,14 @@ export function createCircularTimeline({
 
     if (lg <= 0) return;
 
+    // P-05: updateNumbers el crida cada layout al seu moment (linear al
+    // final síncron; circular DINS del rAF, quan la geometria ja és bona)
+    // — abans es cridava també aquí i cada passada el feia DUES vegades.
     if (isCircular) {
       applyCircularLayout(pulses, bars, lg, silent);
     } else {
       applyLinearLayout(pulses, bars, lg);
     }
-
-    updateNumbers();
   }
 
   /**
@@ -107,6 +130,7 @@ export function createCircularTimeline({
    */
   function setCircular(isCircular, options = {}) {
     const pulses = getPulses();
+    lastCircular = isCircular; // manté el memo de render() coherent
     applyLayout(pulses, isCircular, options);
   }
 
@@ -242,32 +266,42 @@ export function createCircularTimeline({
    * Show number label at pulse index
    */
   function showNumber(i) {
-    const pulses = getPulses();
+    const lg = getPulses().length - 1;
+    const rect = timeline.classList.contains('circular')
+      ? timeline.getBoundingClientRect()
+      : null;
+    timeline.appendChild(buildNumber(i, lg, rect));
+  }
+
+  /**
+   * P-05: construeix l'etiqueta SENSE tocar el DOM — el rect (circular)
+   * arriba per paràmetre perquè updateNumbers el llegeixi UNA vegada i no
+   * per etiqueta (gBCR intercalat amb appendChild = reflow forçat per
+   * etiqueta, ~200 per passada a Lg=99 amb la passada doble d'abans).
+   */
+  function buildNumber(i, lg, rect) {
     const n = document.createElement('div');
     n.className = 'pulse-number';
     n.dataset.index = i;
     n.textContent = i;
 
-    const lgForFont = pulses.length - 1;
-    const fontRem = getNumberFontSize(lgForFont);
+    const fontRem = getNumberFontSize(lg);
     n.style.fontSize = fontRem + 'rem';
 
-    if (i === 0 || i === lgForFont) n.classList.add('endpoint');
+    if (i === 0 || i === lg) n.classList.add('endpoint');
 
-    if (timeline.classList.contains('circular')) {
-      positionNumberCircular(n, i, pulses.length - 1);
+    if (rect) {
+      positionNumberCircular(n, i, lg, rect);
     } else {
-      positionNumberLinear(n, i, pulses.length - 1);
+      positionNumberLinear(n, i, lg);
     }
-
-    timeline.appendChild(n);
+    return n;
   }
 
   /**
    * Position number in circular layout
    */
-  function positionNumberCircular(n, i, lg) {
-    const rect = timeline.getBoundingClientRect();
+  function positionNumberCircular(n, i, lg, rect) {
     const radius = Math.min(rect.width, rect.height) / 2 - 10;
     const offset = NUMBER_CIRCLE_OFFSET;
     const cx = rect.width / 2;
@@ -312,24 +346,31 @@ export function createCircularTimeline({
   function updateNumbers() {
     const pulses = getPulses();
 
-    // Clear existing numbers
-    document.querySelectorAll('.pulse-number').forEach(n => n.remove());
+    // Clear existing numbers — amb scope al timeline (P-05): el query de
+    // document sencer escanejava tota la pàgina i podia endur-se etiquetes
+    // d'altres components (timeline-layout.js crea la mateixa classe).
+    timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
 
     if (pulses.length === 0) return;
 
     const lgForNumbers = pulses.length - 1;
     const tooDense = lgForNumbers >= NUMBER_HIDE_THRESHOLD;
 
-    // Always show endpoints
-    showNumber(0);
-    showNumber(lgForNumbers);
+    // Una sola lectura de layout i una sola inserció (fragment).
+    const rect = timeline.classList.contains('circular')
+      ? timeline.getBoundingClientRect()
+      : null;
+    const fragment = document.createDocumentFragment();
 
-    // Show intermediate numbers if not too dense
+    fragment.appendChild(buildNumber(0, lgForNumbers, rect));
+    fragment.appendChild(buildNumber(lgForNumbers, lgForNumbers, rect));
+
     if (!tooDense) {
       for (let i = 1; i < lgForNumbers; i++) {
-        showNumber(i);
+        fragment.appendChild(buildNumber(i, lgForNumbers, rect));
       }
     }
+    timeline.appendChild(fragment);
   }
 
   return {

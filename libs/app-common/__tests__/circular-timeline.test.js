@@ -22,7 +22,13 @@ describe('createCircularTimeline', () => {
       appendChild: function(element) {
         // Track appended elements for verification
         if (!timeline._children) timeline._children = [];
-        timeline._children.push(element);
+        // Un DocumentFragment (P-05) buida els seus fills dins el pare —
+        // el mock replica l'aplanament del DOM real.
+        if (element && Array.isArray(element.children) && !element.tagName) {
+          timeline._children.push(...element.children);
+        } else {
+          timeline._children.push(element);
+        }
         return element;
       },
       querySelectorAll: function(selector) {
@@ -76,6 +82,14 @@ describe('createCircularTimeline', () => {
     // Mock document for DOM operations
     global.document = {
       querySelectorAll: function() { return []; },
+      // P-05: updateNumbers construeix les etiquetes en un fragment
+      createDocumentFragment: function() {
+        const children = [];
+        return {
+          children,
+          appendChild(el) { children.push(el); return el; }
+        };
+      },
       createElement: function(tag) {
         return {
           tagName: tag.toUpperCase(),

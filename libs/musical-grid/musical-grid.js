@@ -348,7 +348,7 @@ export function createMusicalGrid(config) {
       timelineWidth = totalIntervals * cellSize.minWidth;
     } else {
       // Responsive mode: calculate from matrix container width
-      const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+      const matrixWidth = containers.matrix ? getContainerRect(containers.matrix).width : 0;
       timelineWidth = matrixWidth;
     }
 
@@ -371,7 +371,7 @@ export function createMusicalGrid(config) {
         markerLeft = i * cellSize.minWidth;
       } else {
         // Responsive mode: calculate from matrix container width
-        const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+        const matrixWidth = containers.matrix ? getContainerRect(containers.matrix).width : 0;
         const cellWidth = matrixWidth / totalIntervals;
         markerLeft = i * cellWidth;
       }
@@ -430,7 +430,7 @@ export function createMusicalGrid(config) {
         numLeft = (i - 0.5) * cellSize.minWidth;
       } else {
         // Responsive mode: calculate from matrix container width
-        const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+        const matrixWidth = containers.matrix ? getContainerRect(containers.matrix).width : 0;
         const cellWidth = matrixWidth / totalIntervals;
         numLeft = (i - 0.5) * cellWidth;
       }
@@ -456,7 +456,7 @@ export function createMusicalGrid(config) {
         barLeft = (i - 1) * barWidth;
       } else {
         // Responsive mode: calculate from matrix container width
-        const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+        const matrixWidth = containers.matrix ? getContainerRect(containers.matrix).width : 0;
         barWidth = matrixWidth / totalIntervals;
         barLeft = (i - 1) * barWidth;
       }
@@ -471,6 +471,31 @@ export function createMusicalGrid(config) {
     container.style.setProperty('--interval-color', intervalColor);
   }
 
+  // P-06: el rect de la matriu es llegeix UNA vegada per passada síncrona —
+  // abans cada cel·la/marcador/segment el rellegia just després d'un
+  // appendChild o style write (reflow forçat per element: ~200 a un grid
+  // 12×17 en crear, i el mateix a cada resize/edició). Les escriptures del
+  // grid són sobre fills absolutament posicionats, així que el rect del
+  // contenidor no canvia dins de la passada; la cache mor al següent frame.
+  let rectCache = new Map();
+  let rectCacheFlushScheduled = false;
+
+  function getContainerRect(el) {
+    let rect = rectCache.get(el);
+    if (!rect) {
+      rect = el.getBoundingClientRect();
+      rectCache.set(el, rect);
+      if (!rectCacheFlushScheduled && typeof requestAnimationFrame === 'function') {
+        rectCacheFlushScheduled = true;
+        requestAnimationFrame(() => {
+          rectCache.clear();
+          rectCacheFlushScheduled = false;
+        });
+      }
+    }
+    return rect;
+  }
+
   /**
    * Calculate cell bounds based on note and pulse indices
    */
@@ -483,7 +508,7 @@ export function createMusicalGrid(config) {
       ? containers.matrixInner
       : containers.matrix;
 
-    const matrixRect = targetContainer.getBoundingClientRect();
+    const matrixRect = getContainerRect(targetContainer);
     if (matrixRect.width === 0 || matrixRect.height === 0) {
       return { left: 0, top: 0, width: 0, height: 0 };
     }
@@ -683,7 +708,7 @@ export function createMusicalGrid(config) {
         if (scrollEnabled && cellSize && cellSize.minWidth) {
           timelineWidth = totalIntervals * cellSize.minWidth;
         } else {
-          const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+          const matrixWidth = containers.matrix ? getContainerRect(containers.matrix).width : 0;
           timelineWidth = matrixWidth;
         }
 
@@ -700,7 +725,7 @@ export function createMusicalGrid(config) {
         if (scrollEnabled && cellSize && cellSize.minWidth) {
           markerLeft = i * cellSize.minWidth;
         } else {
-          const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+          const matrixWidth = containers.matrix ? getContainerRect(containers.matrix).width : 0;
           const cellWidth = matrixWidth / totalIntervals;
           markerLeft = i * cellWidth;
         }
@@ -720,7 +745,7 @@ export function createMusicalGrid(config) {
         if (scrollEnabled && cellSize && cellSize.minWidth) {
           numLeft = (i - 0.5) * cellSize.minWidth;
         } else {
-          const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+          const matrixWidth = containers.matrix ? getContainerRect(containers.matrix).width : 0;
           const cellWidth = matrixWidth / totalIntervals;
           numLeft = (i - 0.5) * cellWidth;
         }
@@ -741,7 +766,7 @@ export function createMusicalGrid(config) {
           barLeft = (i - 1) * barWidth;
         } else {
           // Responsive mode: calculate from matrix container width
-          const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+          const matrixWidth = containers.matrix ? getContainerRect(containers.matrix).width : 0;
           barWidth = matrixWidth / totalIntervals;
           barLeft = (i - 1) * barWidth;
         }

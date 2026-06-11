@@ -43,6 +43,8 @@ const PLAYER_KEYS = ['pulso', 'pulso0', 'seleccionados', 'start', 'cycle'];
 let audioReadyPromise = null;
 let toneStartPromise = null;
 const workletModulePromises = new WeakMap();
+// A-06: contexts amb listener de statechange ja penjat (anti doble-attach)
+const watchedContexts = new WeakSet();
 const bufferCacheByContext = new WeakMap();
 const arrayBufferCache = new Map();
 let previewContext = null;
@@ -625,6 +627,31 @@ export class TimelineAudio {
     this._tickFn = null;
   }
 
+  // A-06: sense això, un context suspès pel SO a mig playback (iOS
+  // 'interrupted' per trucada/Siri, canvi de dispositiu Bluetooth, tab
+  // descartada) deixava l'app en estat zombie: isPlaying true, el
+  // setInterval del scheduler girant sobre un currentTime congelat i cap
+  // so fins que l'usuari parava a mà. En recuperar el control intentem
+  // reprendre; si el navegador refusa (cal un gest nou), fem stop()
+  // perquè UI i àudio tornin a coincidir.
+  _watchContextState(ctx) {
+    if (!ctx || typeof ctx.addEventListener !== 'function') return;
+    if (watchedContexts.has(ctx)) return;
+    watchedContexts.add(ctx);
+    ctx.addEventListener('statechange', () => {
+      if (this._ctx !== ctx) return; // context substituït des d'aleshores
+      if (ctx.state === 'running' || !this.isPlaying) return;
+      if (ctx.state === 'closed') {
+        this.stop();
+        return;
+      }
+      // 'suspended' (i l''interrupted' d'iOS, que hi mapeja)
+      tryResumeContext(ctx)
+        .then((resumed) => { if (!resumed && this.isPlaying) this.stop(); })
+        .catch(() => { if (this.isPlaying) this.stop(); });
+    });
+  }
+
   async _ensureContext() {
     // Wait for user interaction before creating any AudioContext
     await waitForUserInteraction();
@@ -682,6 +709,7 @@ export class TimelineAudio {
       }
 
       this._ctx = ctx;
+      this._watchContextState(ctx);
 
       await tryResumeContext(ctx);
 

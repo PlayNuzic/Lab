@@ -862,10 +862,18 @@ function initApp() {
     });
   });
 
-  // Redibuixar línies quan canvia la mida de la finestra
+  // Redibuixar línies quan canvia la mida de la finestra.
+  // P-09: debounce amb rAF (patró App33) — resize dispara per frame mentre
+  // s'arrossega la finestra i cada event feia innerHTML wipe + render
+  // VexFlow complet + 2 lectures de layout (jank visible).
+  let resizeRafId = null;
   window.addEventListener('resize', () => {
-    redrawConnectionLines();
-    renderPentagram();
+    if (resizeRafId !== null) cancelAnimationFrame(resizeRafId);
+    resizeRafId = requestAnimationFrame(() => {
+      resizeRafId = null;
+      redrawConnectionLines();
+      renderPentagram();
+    });
   });
 
   // Event listeners

@@ -1,4 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;700&display=swap');
+/* P-15: Ubuntu auto-hostejada (mateixos woff2 que sistema/fonts/) — l'@import
+   de Google era una cadena render-blocking de 3 salts (index.css → CSS de
+   Google → fonts) repetida a les 37 apps i dins de cada iframe del sistema,
+   duplicava la família que el repo ja porta i deixava les apps sense font
+   offline. El weight 300 (un sol ús: text d'ajuda) cau a 400 per
+   font-matching — mateix comportament que ja teníem sense xarxa. */
+@font-face {
+  font-family: 'Ubuntu';
+  font-style: normal;
+  font-weight: 400;
+  src: url('./fonts/ubuntu-regular.woff2') format('woff2');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ubuntu';
+  font-style: normal;
+  font-weight: 700;
+  src: url('./fonts/ubuntu-bold.woff2') format('woff2');
+  font-display: swap;
+}
 
 /* Shared palette and typography (from App1) */
 

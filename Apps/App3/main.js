@@ -1127,7 +1127,7 @@ playBtn.addEventListener('click', async () => {
 
 // Create loop controller with shared component
 const loopController = createRhythmLoopController({
-  audio: { setLoop: (enabled) => audio?.setLoop?.(enabled) },
+  audio: () => audio, // H-03: getter lazy — l'engine neix al primer gest,
   loopBtn,
   state: {
     get loopEnabled() { return loopEnabled; },

@@ -67,7 +67,7 @@ const appState = {
 
 // Create shared loop controller with pulse memory integration
 const loopController = createPulseMemoryLoopController({
-  audio: { setLoop: (enabled) => audio?.setLoop?.(enabled) },
+  audio: () => audio, // H-03: getter lazy — l'engine neix al primer gest,
   loopBtn: elements.loopBtn,
   state: appState,
   ensureIntervalMemory,

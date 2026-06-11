@@ -5,6 +5,7 @@ import { initRandomMenu, randomizeFractional } from '../../libs/random/index.js'
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { createRhythmAudioInitializer, setupAudioDefaults, CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
 import { fromLgAndTempo, toPlaybackPulseCount, gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
+import { createLiveTransportPush } from '../../libs/app-common/transport-live-update.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
@@ -89,7 +90,7 @@ const appState = {
 
 // Create shared loop controller with pulse memory integration
 const loopController = createPulseMemoryLoopController({
-  audio: { setLoop: (enabled) => audio?.setLoop?.(enabled) },
+  audio: () => audio, // H-03: getter lazy — l'engine neix al primer gest,
   loopBtn: elements.loopBtn,
   state: appState,
   ensurePulseMemory,
@@ -810,6 +811,8 @@ function handleVoiceEvent(event = {}) {
 }
 const selectedPulses = new Set();
 let isPlaying = false;
+// P-03: últim Lg renderitzat des de handleInput
+let lastTimelineRenderLg = null;
 let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let circularTimeline = false;
@@ -2148,11 +2151,29 @@ function handleInput(){
   }
 
   updateFormula();
-  renderTimeline();
+  // P-03: mateix guard que App2 — handleInput és només Lg/V/T i el
+  // timeline només depèn de Lg (els canvis de fracció re-rendericen
+  // pels seus propis camins).
+  if (lg !== lastTimelineRenderLg || !timeline.childElementCount) {
+    lastTimelineRenderLg = Number.isFinite(lg) && lg > 0 ? lg : null;
+    renderTimeline();
+  }
   updatePulseSeqField();
   updateAutoIndicator();
 
+  // A-13: push en viu col·lapsat (250ms trailing) — el bloc empeny veus,
+  // resolució i transport junts; diferir-lo sencer manté la coherència
+  // entre setVoices i updateTransport i cap transitòria de tecleig (bpm=2,
+  // totalPulses=1) no arriba al worklet.
   if (isPlaying && audio) {
+    liveTransportPush.schedule();
+  }
+}
+
+// A-13: cos del push en viu d'App4 — llegeix l'estat fresc en disparar-se.
+const liveTransportPush = createLiveTransportPush({
+  isLive: () => isPlaying && !!audio,
+  apply: () => {
     const scheduling = computeAudioSchedulingState();
     const selectionForAudio = applySelectionToAudio({ scheduling })
       || selectedForAudioFromState({ scheduling });
@@ -2206,7 +2227,8 @@ function handleInput(){
       transportPayload.totalPulses = effectiveTotal;
     }
     const vNow = parseFloat(inputV.value);
-    if (scheduling.validV && Number.isFinite(vNow) && vNow > 0) {
+    // A-13: V només dins de rang (paritat U-11) — cap bpm=2 transitori
+    if (scheduling.validV && Number.isFinite(vNow) && vNow >= 30 && vNow <= 240) {
       const scaledBpm = effectiveResolution > 1 ? vNow * effectiveResolution : vNow;
       transportPayload.bpm = scaledBpm;
     }
@@ -2223,7 +2245,7 @@ function handleInput(){
       audio.updateTransport(transportPayload);
     }
   }
-}
+});
 
 function updateFormula(){
   if (!formula) return;

@@ -44,7 +44,7 @@ Middleware layer between UI and TimelineAudio. 49 modules. Everything reusable a
 ## Key Constants
 - BPM: lib default min 30, max 240, default 100 (les apps 9+ fixen 50-150 per política, 2026-06). DO NOT clamp during typing (allows multi-digit entry), auto-clamp after 1.5s or on blur.
 - Circular timeline: hide numbers if Lg >= 100, number offset 44px
-- Audio init order: (1) load Tone.js, (2) wait user interaction, (3) Tone.start()
+- Audio init order — MELODIC apps: (1) load Tone.js, (2) wait user interaction, (3) Tone.start(). RHYTHM apps (A-08): gest → TimelineAudio natiu directe (context propi a 44100; Tone NO es carrega — el playback rítmic és worklet+BufferSource+GainNode i el mixer és només estat)
 
 ## Tests
 27+ suites in `__tests__/`: audio, audio-schedule, audio-toggles, fraction-editor, loop-resize, subdivision, tap-resync, simple-visual-sync, plus dedicated unit tests.

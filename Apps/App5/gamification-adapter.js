@@ -279,15 +279,29 @@ function setupIntervalTracking() {
 
   if (!timeline) return;
 
-  // Detectar creación de intervalos observando cambios en el timeline
-  const observer = new MutationObserver(() => {
-    analyzeIntervals();
+  // Detectar creación de intervalos observando cambios en el timeline.
+  // P-07: el playback toggleja 'highlight' als .interval-block dos cops per
+  // pols (+timeout) — cada toggle disparava analyzeIntervals sencer
+  // (querySelectorAll + offsetLeft = reflow). Filtrem aquest soroll (els
+  // canvis de SELECCIÓ són classes als .pulse, no als .interval-block) i
+  // coalescem la resta en un únic analyze per frame.
+  let analyzeRafId = null;
+  const observer = new MutationObserver((mutations) => {
+    const relevant = mutations.some(m =>
+      m.type !== 'attributes' || !m.target.classList?.contains('interval-block')
+    );
+    if (!relevant || analyzeRafId !== null) return;
+    analyzeRafId = requestAnimationFrame(() => {
+      analyzeRafId = null;
+      analyzeIntervals();
+    });
   });
 
   observer.observe(timeline, {
     childList: true,
     subtree: true,
-    attributes: true
+    attributes: true,
+    attributeFilter: ['class']
   });
 
   // También detectar clicks en elementos de intervalo

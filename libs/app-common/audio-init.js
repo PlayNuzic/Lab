@@ -59,15 +59,16 @@ export function createAudioInitializer(config = {}) {
 
     if (!audioInitPromise) {
       audioInitPromise = (async () => {
-        // Load Tone.js first (waits for user interaction internally)
-        await ensureToneLoaded();
-
-        // Wait for user interaction before creating AudioContext to avoid browser warnings
+        // A-08: el camí rítmic és 100% natiu (worklet + BufferSource +
+        // GainNode; el mixer és només estat des d'A-17) — aquí ja NO es
+        // carrega Tone.js: l'await d'ensureToneLoaded() posava 345KB +
+        // parse/eval entre el primer gest i el primer pols audible de
+        // CADA app rítmica. El pinning de sampleRate tampoc cal: sense
+        // Tone, el motor crea el seu propi context a 44100 (fallback
+        // natiu d'index.js). Si Tone és present per qualsevol altra via,
+        // resolveToneContext l'adopta com sempre. El camí melòdic manté
+        // el seu ordre Tone→gest→start a createMelodicAudioInitializer.
         await waitForUserInteraction();
-
-        // Pin sampleRate=44100 abans que Tone.js creï el seu context
-        // (eliminem el resampling silenciós a Firefox/Linux 48kHz)
-        ensurePreferredSampleRateContext();
 
         const instance = new TimelineAudio();
 

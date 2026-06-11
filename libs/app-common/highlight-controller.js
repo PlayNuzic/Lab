@@ -35,7 +35,7 @@ export function createHighlightController({
   pulseSeqController,
   pulseSeqEl = null,
   getPulseSeqRectForIndex = null,
-  scrollPulseSeqToRect = null,
+  scrollPulseSeqToRect: customScrollPulseSeqToRect = null,
   epsilon = 0.001,
   highlightFractionMarkers = true
 }) {
@@ -171,9 +171,16 @@ export function createHighlightController({
   }
 
   /**
-   * Hace scroll del pulseSeq a un rect
+   * Hace scroll del pulseSeq a un rect.
+   * P-04: la declaració d'aquesta funció OMBREJAVA el paràmetre de config
+   * homònim — el scroller que App4 passava (clamp + syncTimelineScroll per
+   * fer seguir el timeline) no s'invocava MAI i el codi semblava que sí.
+   * Ara el custom té prioritat i aquest cos queda com a fallback.
    */
   function scrollPulseSeqToRect(rect) {
+    if (typeof customScrollPulseSeqToRect === 'function') {
+      return customScrollPulseSeqToRect(rect);
+    }
     if (!pulseSeqEl || !rect) return pulseSeqEl?.scrollLeft || 0;
 
     const container = pulseSeqEl.getBoundingClientRect();
@@ -263,7 +270,7 @@ export function createHighlightController({
       }
 
       if (rect) {
-        const newScrollLeft = scrollPulseSeqToRect ? scrollPulseSeqToRect(rect) : pulseSeqEl.scrollLeft;
+        const newScrollLeft = scrollPulseSeqToRect(rect);
         pulseSeqController.setActiveIndex(targetIndex, {
           rect,
           trailingIndex,

@@ -1,5 +1,6 @@
 import { createRhythmAudioInitializer, setupAudioDefaults, CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
 import { withPlayButtonLoading } from '../../libs/app-common/play-loading.js';
+import { createLiveTransportPush } from '../../libs/app-common/transport-live-update.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu, mergeRandomConfig, applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/random/index.js';
@@ -74,7 +75,7 @@ const appState = {
 
 // Create shared loop controller with pulse memory integration
 const loopController = createPulseMemoryLoopController({
-  audio: { setLoop: (enabled) => audio?.setLoop?.(enabled) },
+  audio: () => audio, // H-03: getter lazy — l'engine neix al primer gest,
   loopBtn: elements.loopBtn,
   state: appState,
   ensurePulseMemory,
@@ -343,6 +344,8 @@ applyRandomConfig(randomConfig);
 // pulseSeqEl?.addEventListener('input', handlePulseSeqInput);
 
 let pulses = [];
+// P-03: últim Lg renderitzat des de handleInput — teclejar V/T no toca el timeline
+let lastTimelineRenderLg = null;
 // Hit targets (separate from the visual dots) and drag mode
 let pulseHits = [];
 // --- Selection memory across Lg changes ---
@@ -1140,11 +1143,29 @@ function handleInput(){
   }
 
   updateFormula();
-  renderTimeline();
+  // P-03: el timeline només depèn de Lg — re-renderitzar-lo a cada tecla
+  // de V/T reconstruïa tots els polsos+hits+listeners (~12/s amb spinner
+  // premut). Les altres crides a renderTimeline (reset, random, memòria)
+  // no passen per aquí i segueixen forçant-lo.
+  if (lg !== lastTimelineRenderLg || !pulses.length || !pulses[0]?.isConnected) {
+    lastTimelineRenderLg = Number.isFinite(lg) && lg > 0 ? lg : null;
+    renderTimeline();
+  }
   updatePulseSeqField();
   updateAutoIndicator();
 
+  // A-13: push col·lapsat (250ms trailing) — U-11 ja gatejava la V; ara
+  // tampoc cap transitòria de Lg no arriba al worklet (escrivint '16',
+  // totalPulses=1 feia saltar la posició o un 'done' prematur en no-loop).
   if (isPlaying && audio) {
+    liveTransportPush.schedule();
+  }
+}
+
+// A-13: cos del push en viu — llegeix l'estat fresc en disparar-se.
+const liveTransportPush = createLiveTransportPush({
+  isLive: () => isPlaying && !!audio,
+  apply: () => {
     const lgNow = parseInt(inputLg.value);
     const vNow  = parseFloat(inputV.value);
     if (typeof audio.setSelected === 'function') {
@@ -1163,7 +1184,7 @@ function handleInput(){
       });
     }
   }
-}
+});
 
 function updateFormula(){
   if (!formula) return;

@@ -5,6 +5,7 @@ import { initRandomMenu, mergeRandomConfig } from '../../libs/random/index.js';
 import { toRange, parseNum, formatSec, randomInt } from '../../libs/app-common/number-utils.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
+import { createLiveTransportPush } from '../../libs/app-common/transport-live-update.js';
 import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
@@ -328,7 +329,7 @@ animateTimelineCircle(loopEnabled && circularTimeline);
 
 // Create loop controller with shared component
 const loopController = createRhythmLoopController({
-  audio: { setLoop: (enabled) => audio?.setLoop?.(enabled) },
+  audio: () => audio, // H-03: getter lazy — l'engine neix al primer gest,
   loopBtn,
   state: {
     get loopEnabled() { return loopEnabled; },
@@ -562,23 +563,36 @@ function handleInput(e){
   updateFormula();
   renderTimeline();
   updateAutoIndicator();
-  // Si canvia Lg mentre està sonant, refresquem la selecció viva filtrant 0 i lg
+  // Si canvia Lg mentre està sonant, refresquem la selecció viva filtrant 0 i lg.
+  // A-13: el push va col·lapsat (liveTransportPush) — abans cada tecla
+  // empenyia transitòries al worklet (escrivint '240': bpm=2 → interval de
+  // 30s; escrivint '16': totalPulses=1 → salt de posició). La V només
+  // s'aplica dins de rang, com U-11 a App2.
   if (isPlaying && audio && typeof audio.updateTransport === 'function') {
+    cancelTapResync();
+    liveTransportPush.schedule();
+  }
+}
+
+// A-13: cos del push en viu — llegeix l'estat FRESC en disparar-se
+// (després de la finestra de 250ms, l'última tecla guanya).
+const liveTransportPush = createLiveTransportPush({
+  isLive: () => isPlaying && !!audio,
+  apply: () => {
+    if (typeof audio.updateTransport !== 'function') return;
     const lgNow = parseInt(inputLg.value);
     const vNow  = parseFloat(inputV.value);
     const validLg = Number.isFinite(lgNow) && lgNow > 0;
-    const validV = Number.isFinite(vNow) && vNow > 0;
-    if (validLg || validV) {
-      const playbackTotal = validLg ? toPlaybackPulseCount(lgNow, loopEnabled) : null;
-      audio.updateTransport({
-        align: 'nextPulse',
-        totalPulses: playbackTotal != null ? playbackTotal : undefined,
-        bpm: validV ? vNow : undefined
-      });
-      cancelTapResync();
-    }
+    const validV = Number.isFinite(vNow) && vNow >= 30 && vNow <= 240;
+    if (!validLg && !validV) return;
+    const playbackTotal = validLg ? toPlaybackPulseCount(lgNow, loopEnabled) : null;
+    audio.updateTransport({
+      align: 'nextPulse',
+      totalPulses: playbackTotal != null ? playbackTotal : undefined,
+      bpm: validV ? vNow : undefined
+    });
   }
-}
+});
 
 function updateFormula(){
   const tNum = parseNum(inputT.value);

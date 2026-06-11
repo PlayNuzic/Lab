@@ -6,7 +6,13 @@
 /**
  * Create a loop controller that handles UI state and audio synchronization
  * @param {Object} options - Configuration options
- * @param {Object} options.audio - Audio engine instance (should have setLoop method)
+ * @param {Object|Function} options.audio - Audio engine instance O un getter
+ *   () => engine. H-03: les apps creen el controller al load del mòdul però
+ *   TimelineAudio neix lazy al primer gest — passar la instància (com deia
+ *   aquest JSDoc) capturava undefined per sempre i setLoop no es cridava mai
+ *   (ressuscitant el bug del "pols 0 repetit"). Amb el getter, l'engine es
+ *   resol a CADA toggle, com fan visual-sync (getAudio) i el scheduling
+ *   bridge. Les instàncies directes segueixen acceptades.
  * @param {HTMLElement} options.loopBtn - Loop button element
  * @param {Function} options.getLoopState - Function that returns current loop state
  * @param {Function} options.setLoopState - Function that updates loop state
@@ -22,6 +28,9 @@ export function createLoopController({
   onToggle,
   isPlaying
 }) {
+  // H-03: funció => getter lazy; objecte => instància capturada (legacy)
+  const resolveAudio = typeof audio === 'function' ? audio : () => audio;
+
   const controller = {
     /**
      * Toggle loop state with proper audio engine synchronization
@@ -44,8 +53,9 @@ export function createLoopController({
 
       // CRITICAL: Synchronize with audio engine when playing
       // This fixes the "repeated pulse 0" bug in App2 and App4
-      if (audio && typeof audio.setLoop === 'function') {
-        audio.setLoop(newState);
+      const engine = resolveAudio();
+      if (engine && typeof engine.setLoop === 'function') {
+        engine.setLoop(newState);
       }
 
       // Call optional callback
@@ -72,8 +82,9 @@ export function createLoopController({
         loopBtn.setAttribute?.('aria-pressed', state ? 'true' : 'false');
       }
 
-      if (syncAudio && audio && typeof audio.setLoop === 'function') {
-        audio.setLoop(state);
+      const engine = resolveAudio();
+      if (syncAudio && engine && typeof engine.setLoop === 'function') {
+        engine.setLoop(state);
       }
 
       if (typeof onToggle === 'function') {
@@ -115,7 +126,7 @@ export function createLoopController({
  * Create loop controller for standard rhythm apps
  * Provides common pattern for Apps 1-4
  * @param {Object} options - Configuration options
- * @param {Object} options.audio - Audio engine instance
+ * @param {Object|Function} options.audio - Engine o getter () => engine (H-03)
  * @param {HTMLElement} options.loopBtn - Loop button element
  * @param {Object} options.state - State object with loopEnabled property
  * @param {Function} [options.onToggle] - Optional callback
@@ -142,7 +153,7 @@ export function createRhythmLoopController({
 /**
  * Enhanced loop controller that also handles memory persistence (for App2/App4/App5)
  * @param {Object} options - Configuration options
- * @param {Object} options.audio - Audio engine instance
+ * @param {Object|Function} options.audio - Engine o getter () => engine (H-03)
  * @param {HTMLElement} options.loopBtn - Loop button element
  * @param {Object} options.state - State object with loopEnabled property
  * @param {Function} [options.ensurePulseMemory] - Function to ensure pulse memory (App2/App4)
