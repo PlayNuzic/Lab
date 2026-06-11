@@ -61,3 +61,30 @@ A-05 tancada sota el protocol d'alt risc (diff complet + aprovació).
 - Informe: **144/144 tancades** (algunes per decisió documentada: A-15,
   P-21/22/23, LP-05/09/10, LU-07 — el perquè és a cada troballa)
 - Mòduls app-common: 49 · Suite: 73/1390 · Working tree net
+
+## Postdata (mateixa nit): regressions del lot d'àudio, caçades i resoltes
+
+L'usuari va reportar primer-play mort a ~25 apps + App20 trencada. Diagnòstic
+amb cronologia CDP en Chrome REAL (headless no ho reproduïa: el seu autoplay
+lliure i el seu device fake amagaven el problema):
+
+1. **Causa arrel**: A-17 va eliminar la subscripció waitForUserInteraction del
+   constructor de l'AudioMixer — era l'ARMAT IMPLÍCIT del gate d'interacció a
+   la càrrega de cada pàgina. Sense ell, el gate s'armava post-await (després
+   de carregar Tone) = després del clic → ready() penjat fins a un segon gest.
+   Lliçó: abans d'esborrar "codi mort", buscar-ne els EFECTES LATERALS
+   (aquella crida "morta" era load-bearing per a tot el repo).
+2. El pinning de sampleRate s'ha mogut a l'onload de Tone (abans que cap node
+   existeixi) — el preload del piano construïa samplers sobre el context
+   auto-creat que després es swapejava/tancava (App24: "Connecting nodes
+   after the context has been closed").
+3. H-08 havia deixat 3 apps usant `controls` sense declarar (App20 no
+   arrencava; App30/31 ReferenceError) — es captura el retorn de
+   reorderControls().
+4. Satèl·lits: close() del context com a promesa (rebuig absorbit — Tone v15
+   ja tanca el vell dins setContext), preload→prefetch del hint de Tone,
+   _restoreBusGains cancel·la l'automatització abans de restaurar.
+
+Commit: b43e138. Lliçó de probes: headless ≠ Chrome real per a àudio
+(autoplay policy, device rate); i navegar la pestanya ABANS d'activar
+Network.setCacheDisabled serveix mòduls vells del perfil.

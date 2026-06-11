@@ -12,6 +12,14 @@ troballa, és a `docs/audit-report-2026-06-10.md`, i el resum de cada sessió a:
 
 - Worklet: epsilons 1e-9 i acumulació += intocables; el per-sample itera
   `_voiceList` (mai el Map). Fitxers d'alt risc → diff + suite + aprovació.
+- **user-interaction.js s'AUTO-ARMA al load del mòdul** (attachListeners a
+  module scope) i honora navigator.userActivation — NO és opcional: sense
+  l'armat, el primer Play de TOTES les apps queda penjat esperant un gest
+  que ja ha passat (regressió A-17 del 2026-06-11, vegeu l'arxiu).
+- El context de Tone es PINNA a l'onload de tone-loader (44100, abans que
+  cap node existeixi — regla del wiki de Tone); mai swapejar contexts amb
+  nodes vius. El hint és rel=prefetch (no preload: les rítmiques no
+  executen Tone i Chrome avisa).
 - Apps rítmiques SENSE Tone.js al camí d'init (natiu 44100); melòdiques via
   createMelodicAudioInitializer (Tone→gest→start).
 - Push en viu al transport NOMÉS via createLiveTransportPush (250ms);
