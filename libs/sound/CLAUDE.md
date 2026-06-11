@@ -18,7 +18,7 @@
 ## Mixer
 - Master volume default: 0.75, clamping always [0, 1]
 - Solo logic: if any channel has solo, all non-solo channels mute
-- Rhythmic channels (pulse/start/accent/subdivision): volume 0.1
+- Rhythm channels al motor melòdic (pulse/start/accent/subdivision): volume 0.6 (LA-09: 0.1 feia el metrònom inaudible sota l'instrument; clau de persistència bumped a :v2 pel canvi). Apps rítmiques pures: defaults del bus del motor.
 - Melodic instrument channel: volume 1.0
 - Linear-to-dB conversion: `20 * Math.log10(clampedValue)`
 

@@ -13,6 +13,7 @@
  */
 
 import { log } from '../app-common/logger.js';
+import { whenMelodicChannelReady } from './engine-ready.js';
 let sampler = null;
 let isLoaded = false;
 let loadPromise = null;
@@ -76,11 +77,12 @@ export async function loadFlute() {
       // Wait for the engine's melodic channel FIRST, then pin Tone.js to its
       // AudioContext BEFORE building the sampler — same cross-context fix as
       // piano.js (Chrome enforces same-context connects; Firefox is lax).
-      let melodicChannel = null;
-      for (let i = 0; i < 10 && !melodicChannel; i++) {
-        melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
-        if (!melodicChannel && i < 9) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+      // LA-08: senyal del motor en lloc de polling (vegeu engine-ready.js).
+      let melodicChannel = await whenMelodicChannelReady(1500);
+      if (!melodicChannel) {
+        melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.() || null;
+        if (!melodicChannel) {
+          console.warn('Flute: melodic channel not ready — sampler will bypass the master FX chain');
         }
       }
       if (melodicChannel?.context) {

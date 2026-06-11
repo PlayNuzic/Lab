@@ -4,7 +4,7 @@ import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.
 import { createNoteHighlightController } from '../../libs/app-common/note-highlight.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
-import { setupPianoPreload } from '../../libs/sound/piano.js';
+import { setupPianoPreload, loadPiano, playNote } from '../../libs/sound/piano.js';
 import { log } from '../../libs/app-common/logger.js';
 
 // ========== ESTADO ==========
@@ -83,16 +83,6 @@ if (typeof window !== 'undefined') {
   window.__labInitAudio = initAudio;
 }
 
-/**
- * Reproduce una nota melódica con piano (patrón App13)
- * @param {number} midiNumber - Número MIDI (60-71 para registro 4)
- * @param {number} durationSec - Duración en segundos
- */
-async function playMelodicNote(midiNumber, durationSec) {
-  const { playNote } = await import('../../libs/sound/piano.js');
-  await playNote(midiNumber, durationSec);
-}
-
 async function handlePlay() {
   if (isPlaying) return; // Bloquear si ya está reproduciendo
 
@@ -137,7 +127,12 @@ async function handlePlay() {
   // Limpiar highlights previos
   noteHighlightController.clearHighlights();
 
-  // Reproducir secuencia de 6 notas aleatorias
+  // A-16: l'àudio s'agenda TOT per avançat al rellotge d'àudio (playNote
+  // accepta un offset en segons sobre Tone.now()) — els onsets ja no
+  // hereten el jitter del main thread. Carreguem el piano UNA vegada abans
+  // del bucle perquè la primera nota no desplaci les altres mentre espera.
+  // Els setTimeout queden només per als highlights visuals.
+  await loadPiano();
   let currentTime = 0; // Tiempo acumulado en segundos
 
   for (let idx = 0; idx < randomNotes.length; idx++) {
@@ -147,11 +142,11 @@ async function handlePlay() {
     // Todas las notas tienen la misma duración (1 pulso)
     const noteDurationSec = intervalSec;
 
-    // Programar reproducción y highlight
+    playNote(midi, noteDurationSec * 0.9, currentTime);
+
     const delayMs = currentTime * 1000;
-    setTimeout(async () => {
+    setTimeout(() => {
       log(`[RANDOM] Nota ${idx + 1}/6: ${noteIndex} (MIDI ${midi})`);
-      await playMelodicNote(midi, noteDurationSec * 0.9);
       noteHighlightController.highlightNote(noteIndex, noteDurationSec * 1000 * 0.9);
     }, delayMs);
 
@@ -184,7 +179,7 @@ async function playChromaticScale(notes, intervalMs) {
     log(`[INTRO] Nota ${i}: ${noteIndex} (MIDI ${midi})`);
 
     // Play note and highlight
-    await playMelodicNote(midi, (intervalMs / 1000) * 0.9);
+    await playNote(midi, (intervalMs / 1000) * 0.9);
     noteHighlightController.highlightNote(noteIndex, intervalMs * 0.9);
 
     // Wait for next note

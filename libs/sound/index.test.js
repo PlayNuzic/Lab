@@ -478,9 +478,11 @@ describe('mixer helpers', () => {
 });
 
 describe('sample offset (Tier 1)', () => {
-  test('_sampleOffsetSec defaults to 0', () => {
+  test('_sampleOffsetSec defaults to the balanced preset (LA-01)', () => {
     const audio = new TimelineAudio();
-    expect(audio._sampleOffsetSec).toBe(0);
+    expect(audio._sampleOffsetSec).toBe(0.006);
+    expect(audio._lookAheadSec).toBe(0.03);
+    expect(audio._schedulerEverySec).toBe(0.015);
   });
 
   test('setSampleOffset sets value within bounds', () => {

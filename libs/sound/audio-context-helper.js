@@ -63,6 +63,13 @@ export function ensurePreferredSampleRateContext() {
     if (typeof Tone.setContext === 'function') {
       Tone.setContext(next);
     }
+    // LA-02: el context desplaçat era l'auto-creat de Tone, sense nodes del
+    // motor encara (som pre-Tone.start). Si no es tanca, el seu thread
+    // d'àudio viu tota la pàgina (iOS en limita ~4 de concurrents).
+    if (current && current !== next) {
+      const raw = current.rawContext || current;
+      try { raw.close?.(); } catch {}
+    }
     log(`[audio] AudioContext sampleRate = ${next.sampleRate} Hz (requested ${PREFERRED_SAMPLE_RATE})`);
   } catch (err) {
     // Si el navegador rebutja sampleRate (poc comú) seguim amb el default

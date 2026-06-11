@@ -10,6 +10,7 @@
  */
 
 import { log } from '../app-common/logger.js';
+import { whenMelodicChannelReady } from './engine-ready.js';
 let sampler = null;
 let isLoaded = false;
 let loadPromise = null;
@@ -80,12 +81,14 @@ export async function loadPiano() {
       // AudioContext BEFORE building the sampler. Otherwise the preload path can
       // create the sampler in a stale context and sampler.connect() throws
       // InvalidAccessError — Chrome enforces same-context connects, Firefox is
-      // lax (which is why it only broke in Chrome). Retry up to 10×100ms.
-      let melodicChannel = null;
-      for (let i = 0; i < 10 && !melodicChannel; i++) {
-        melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
-        if (!melodicChannel && i < 9) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+      // lax (which is why it only broke in Chrome).
+      // LA-08: el motor senyala el bus quan el crea (engine-ready.js) — res
+      // de polling; el timeout deixa el fallback global com a camí explícit.
+      let melodicChannel = await whenMelodicChannelReady(1500);
+      if (!melodicChannel) {
+        melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.() || null;
+        if (!melodicChannel) {
+          console.warn('Piano: melodic channel not ready — sampler will bypass the master FX chain');
         }
       }
       if (melodicChannel?.context) {

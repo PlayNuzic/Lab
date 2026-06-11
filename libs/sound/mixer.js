@@ -1,6 +1,26 @@
-import { waitForUserInteraction, hasUserInteracted } from './user-interaction.js';
-
-/* global Tone */
+/**
+ * @fileoverview AudioMixer — magatzem d'estat de mescla compartit per totes
+ * les apps (singleton a libs/sound/index.js).
+ *
+ * NOMÉS estat: cap node d'àudio viu aquí. El so s'aplica quan TimelineAudio
+ * consumeix l'estat via subscribe() i escriu els seus GainNode natius
+ * (_applyMixerState a libs/sound/index.js). Fins al 2026-06 la classe
+ * mantenia en paral·lel un graf de Tone.Volume (master + un per canal,
+ * connectats a Tone.Destination) pel qual MAI passava àudio (A-17): un
+ * lector podia creure raonablement que channel.node mutejava de debò.
+ *
+ * Contracte (LH-13):
+ * - Volums sempre clampats a [0, 1]; master per defecte 0.75.
+ * - Solo: si CAP canal té solo, tots els no-solo queden effectiveMuted.
+ *   En treure el solo es restaura el mute previ de cada canal
+ *   (_soloOverride recorda l'estat d'abans de la imposició).
+ * - effectiveMuted = master.muted || channel.muted || (haySolo && !channel.solo).
+ * - LA-07: els setters NO creen canals. registerChannel és l'únic camí de
+ *   creació; un id desconegut (typo, o localStorage ranci rehidratat per
+ *   createMixerPersistence) s'ignora en lloc de ressuscitar un canal
+ *   fantasma que mixer-menu pintaria com un fader real.
+ * - Tot és lineal 0-1; la conversió a dB (20·log10) és cosa del consumidor.
+ */
 
 const DEFAULT_MASTER_LABEL = 'Master';
 
@@ -10,30 +30,6 @@ function clampVolume(value) {
   return Math.max(0, Math.min(1, num));
 }
 
-function toDecibels(value) {
-  const v = clampVolume(value);
-  if (v <= 0) return -Infinity;
-  return 20 * Math.log10(v);
-}
-
-function hasTone() {
-  return typeof Tone !== 'undefined' && Tone != null;
-}
-
-function hasToneVolume() {
-  return hasTone() && typeof Tone.Volume === 'function';
-}
-
-function ensureConnect(node, destination) {
-  if (!node) return;
-  if (typeof node.connect === 'function' && destination) {
-    try { node.connect(destination); return; } catch {}
-  }
-  if (typeof node.toDestination === 'function') {
-    try { node.toDestination(); } catch {}
-  }
-}
-
 export class AudioMixer {
   constructor({ masterLabel = DEFAULT_MASTER_LABEL } = {}) {
     this.master = {
@@ -41,67 +37,11 @@ export class AudioMixer {
       label: masterLabel,
       volume: 0.75,
       muted: false,
-      allowSolo: false,
-      node: null
+      allowSolo: false
     };
     this.channels = new Map();
     this._channelOrder = [];
     this._listeners = new Set();
-    this._toneReady = hasUserInteracted();
-    this._toneSyncPending = false;
-
-    if (!this._toneReady) {
-      waitForUserInteraction().then(() => {
-        this._toneReady = true;
-        this._toneSyncPending = false;
-        this._syncToneState();
-      }).catch(() => {
-        this._toneSyncPending = false;
-      });
-    }
-  }
-
-  _hasUserGesture() {
-    if (this._toneReady) return true;
-    if (hasUserInteracted()) {
-      this._toneReady = true;
-      return true;
-    }
-    return false;
-  }
-
-  _canUseToneNodes() {
-    return this._hasUserGesture() && hasTone();
-  }
-
-  _scheduleToneSync() {
-    if (this._canUseToneNodes()) {
-      this._syncToneState();
-      return;
-    }
-    if (this._toneSyncPending) return;
-    this._toneSyncPending = true;
-    waitForUserInteraction().then(() => {
-      this._toneSyncPending = false;
-      this._toneReady = true;
-      this._syncToneState();
-    }).catch(() => {
-      this._toneSyncPending = false;
-    });
-  }
-
-  _syncToneState() {
-    if (!this._canUseToneNodes()) {
-      return;
-    }
-
-    this._ensureMasterNode();
-    this._applyMasterVolume();
-    for (const channel of this.channels.values()) {
-      this._ensureChannelNode(channel);
-      this._applyChannelVolume(channel);
-    }
-    this._refreshMutes();
   }
 
   _hasSolo() {
@@ -111,83 +51,8 @@ export class AudioMixer {
     return false;
   }
 
-  _ensureMasterNode() {
-    if (this.master.node && !this.master.node.disposed) {
-      return this.master.node;
-    }
-
-    if (!this._canUseToneNodes()) {
-      this._scheduleToneSync();
-      return null;
-    }
-
-    if (hasToneVolume()) {
-      try {
-        const node = new Tone.Volume(toDecibels(this.master.volume));
-        node.mute = this.master.muted;
-        ensureConnect(node, Tone.Destination);
-        this.master.node = node;
-        return node;
-      } catch {}
-    }
-
-    if (Tone?.Destination?.volume) {
-      try { Tone.Destination.volume.value = toDecibels(this.master.volume); } catch {}
-    }
-
-    return null;
-  }
-
-  _ensureChannelNode(channel) {
-    if (!channel) return null;
-    if (channel.node && !channel.node.disposed) {
-      return channel.node;
-    }
-
-    if (!this._canUseToneNodes()) {
-      this._scheduleToneSync();
-      return null;
-    }
-
-    const masterNode = this._ensureMasterNode();
-
-    if (hasToneVolume()) {
-      try {
-        const node = new Tone.Volume(toDecibels(channel.volume));
-        node.mute = this._computeEffectiveMute(channel);
-        const destination = (typeof Tone !== 'undefined' && Tone?.Destination) ? Tone.Destination : null;
-        ensureConnect(node, masterNode || destination);
-        channel.node = node;
-        return node;
-      } catch {}
-    }
-
-    return null;
-  }
-
-  _computeEffectiveMute(channel) {
-    if (!channel) return !!this.master.muted;
-    return !!(this.master.muted || channel.muted || (this._hasSolo() && !channel.solo));
-  }
-
-  _applyMasterVolume() {
-    const node = this._ensureMasterNode();
-    if (node?.volume) {
-      try { node.volume.value = toDecibels(this.master.volume); } catch {}
-    } else if (this._canUseToneNodes() && Tone?.Destination?.volume) {
-      try { Tone.Destination.volume.value = toDecibels(this.master.volume); } catch {}
-    } else {
-      this._scheduleToneSync();
-    }
-  }
-
-  _applyChannelVolume(channel) {
-    const node = this._ensureChannelNode(channel);
-    if (node?.volume) {
-      try { node.volume.value = toDecibels(channel.volume); } catch {}
-    }
-  }
-
+  // El solo imposa mute als altres canals sense perdre el seu estat manual:
+  // _soloOverride guarda el muted previ i el restaura quan el solo marxa.
   _applySoloOverride(channel, type) {
     if (!channel) return false;
 
@@ -233,15 +98,9 @@ export class AudioMixer {
     return changed;
   }
 
+  /** Recalcula effectiveMuted de tots els canals; retorna si res ha canviat. */
   _refreshMutes() {
     const hasSolo = this._hasSolo();
-    if (this.master.node) {
-      try { this.master.node.mute = !!this.master.muted; } catch {}
-    }
-    const canUseDestination = this._canUseToneNodes() && Tone?.Destination;
-    if (!this.master.node && canUseDestination) {
-      try { Tone.Destination.mute = !!this.master.muted; } catch {}
-    }
     let changed = false;
     for (const channel of this.channels.values()) {
       if (hasSolo) {
@@ -258,12 +117,6 @@ export class AudioMixer {
         channel.effectiveMuted = effective;
         changed = true;
       }
-      if (channel.node) {
-        try { channel.node.mute = effective; } catch {}
-      }
-    }
-    if (!this.master.node && !canUseDestination) {
-      this._scheduleToneSync();
     }
     return changed;
   }
@@ -275,6 +128,7 @@ export class AudioMixer {
     });
   }
 
+  /** Subscriu un listener: rep l'estat immediatament i a cada canvi. Retorna l'unsubscribe. */
   subscribe(listener) {
     if (typeof listener !== 'function') return () => {};
     this._listeners.add(listener);
@@ -282,6 +136,10 @@ export class AudioMixer {
     return () => this._listeners.delete(listener);
   }
 
+  /**
+   * Únic camí de creació de canals (LA-07). Idempotent: si el canal ja
+   * existeix, només aplica les opcions passades (label/volume/muted/solo).
+   */
   registerChannel(id, options = {}) {
     if (!id) return null;
     let channel = this.channels.get(id);
@@ -294,7 +152,6 @@ export class AudioMixer {
         muted: !!options.muted,
         solo: !!options.solo,
         allowSolo: options.allowSolo !== false,
-        node: null,
         effectiveMuted: false
       };
       channel._soloOverride = null;
@@ -314,7 +171,6 @@ export class AudioMixer {
         const vol = clampVolume(options.volume);
         if (vol !== channel.volume) {
           channel.volume = vol;
-          this._applyChannelVolume(channel);
           changed = true;
         }
       }
@@ -328,18 +184,11 @@ export class AudioMixer {
       }
     }
 
-    this._ensureChannelNode(channel);
     if (this._refreshMutes()) {
       changed = true;
     }
     if (changed) this._emit();
     return channel;
-  }
-
-  getChannelNode(id, options = {}) {
-    const channel = this.registerChannel(id, options);
-    if (!channel) return this._ensureMasterNode();
-    return this._ensureChannelNode(channel) || this._ensureMasterNode();
   }
 
   getChannelState(id) {
@@ -357,18 +206,19 @@ export class AudioMixer {
     };
   }
 
+  /** Volum [0,1] d'un canal REGISTRAT; ids desconeguts s'ignoren (LA-07). */
   setChannelVolume(id, value) {
-    const channel = this.registerChannel(id);
+    const channel = this.channels.get(id);
     if (!channel) return;
     const vol = clampVolume(value);
     if (vol === channel.volume) return;
     channel.volume = vol;
-    this._applyChannelVolume(channel);
     this._emit();
   }
 
+  /** Mute manual d'un canal REGISTRAT; ids desconeguts s'ignoren (LA-07). */
   setChannelMute(id, value) {
-    const channel = this.registerChannel(id);
+    const channel = this.channels.get(id);
     if (!channel) return;
     const muted = !!value;
     if (muted === channel.muted) return;
@@ -378,13 +228,14 @@ export class AudioMixer {
   }
 
   toggleChannelMute(id) {
-    const channel = this.registerChannel(id);
+    const channel = this.channels.get(id);
     if (!channel) return;
     this.setChannelMute(id, !channel.muted);
   }
 
+  /** Solo exclusiu: activar-lo en un canal el treu de qualsevol altre. */
   setChannelSolo(id, value) {
-    const channel = this.registerChannel(id);
+    const channel = this.channels.get(id);
     if (!channel || channel.allowSolo === false) return;
     const solo = !!value;
     if (solo === channel.solo) return;
@@ -413,7 +264,7 @@ export class AudioMixer {
   }
 
   toggleChannelSolo(id) {
-    const channel = this.registerChannel(id);
+    const channel = this.channels.get(id);
     if (!channel || channel.allowSolo === false) return;
     this.setChannelSolo(id, !channel.solo);
   }
@@ -430,7 +281,6 @@ export class AudioMixer {
     const vol = clampVolume(value);
     if (vol === this.master.volume) return;
     this.master.volume = vol;
-    this._applyMasterVolume();
     this._emit();
   }
 
@@ -455,16 +305,7 @@ export class AudioMixer {
     return !!this.master.muted;
   }
 
-  getDestination() {
-    const node = this._ensureMasterNode();
-    if (node) return node;
-    if (this._canUseToneNodes()) {
-      return Tone?.Destination || null;
-    }
-    this._scheduleToneSync();
-    return null;
-  }
-
+  /** Snapshot serialitzable (master + canals en ordre de registre). */
   getState() {
     const hasSolo = this._hasSolo();
     const channels = this._channelOrder
@@ -496,4 +337,3 @@ export class AudioMixer {
 export function createMixer(options) {
   return new AudioMixer(options);
 }
-

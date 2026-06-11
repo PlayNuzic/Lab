@@ -167,7 +167,7 @@ this.mixer.registerChannel('instrument', {
     allowSolo: true, label: 'Instrumento', volume: 1   // volum 1.0
 });
 for (const ch of ['pulse', 'start', 'accent', 'subdivision']) {
-    this.mixer.registerChannel(ch, { volume: 0.1 });   // volum 0.1
+    this.mixer.registerChannel(ch, { volume: 0.6 });   // volum 0.6 (0.1 era inaudible — LA-09)
 }
 ```
 
@@ -1225,7 +1225,7 @@ libs/app-common/audio-schedule.js — Matemàtica de resync/look-ahead (computeR
 | Rang | [0, 1] | sound/mixer.js |
 | Master default | 0.75 | sound/mixer.js |
 | Instrument channel | 1.0 | sound/melodic-audio.js |
-| Rhythm channels | 0.1 | sound/melodic-audio.js |
+| Rhythm channels (motor melòdic) | 0.6 | sound/melodic-audio.js |
 | **Registre/MIDI** | | |
 | Registres | 0-7 (8 total) | sound/registry-controller.js |
 | Notes per registre | 12 | sound/registry-controller.js |

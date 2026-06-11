@@ -25,9 +25,12 @@ function attachListeners() {
         resolve();
       };
 
-      document.addEventListener('click', handleInteraction);
-      document.addEventListener('keydown', handleInteraction);
-      document.addEventListener('touchstart', handleInteraction);
+      // LA-03: el handler mai fa preventDefault, així que passive és
+      // gratis — sense això, un touchstart no-passiu a document bloqueja
+      // el primer scroll de la pàgina fins que el JS respon.
+      document.addEventListener('click', handleInteraction, { passive: true });
+      document.addEventListener('keydown', handleInteraction, { passive: true });
+      document.addEventListener('touchstart', handleInteraction, { passive: true });
     });
   }
 

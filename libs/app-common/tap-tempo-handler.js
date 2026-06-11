@@ -35,13 +35,18 @@ export function createTapTempoHandler({
      */
     async tap() {
       try {
+        // LA-10: el timestamp es captura ABANS de l'await — el primer tap
+        // d'una sessió dispara la init d'àudio sencera (centenars de ms) i
+        // capturar-lo després escurçava el primer interval, esbiaixant el
+        // BPM detectat cap amunt.
+        const tappedAt = performance.now();
         const audioInstance = await getAudioInstance();
         if (!audioInstance || typeof audioInstance.tapTempo !== 'function') {
           console.warn('Audio instance does not support tapTempo');
           return;
         }
 
-        const result = audioInstance.tapTempo(performance.now());
+        const result = audioInstance.tapTempo(tappedAt);
         if (!result) return;
 
         // Show feedback for remaining taps

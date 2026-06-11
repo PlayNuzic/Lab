@@ -90,6 +90,16 @@ export class MelodicTimelineAudio extends TimelineAudio {
       }
     }
 
+    // LA-06: el pool antic connecta les envolupants de les seves veus
+    // directament al bus melòdic — desconnectar el sampler NO les afecta.
+    // Sense silenciar-lo, canviar d'instrument a mig playback deixava cues
+    // de l'instrument anterior sonant fora de l'abast de stop() (stopAll
+    // només veu el pool nou). El quickRelease de 50ms ho fa sense clic.
+    if (this._samplerPool && this._currentInstrument !== key) {
+      try { this._samplerPool.stopAll(); } catch {}
+      this._samplerPool = null;
+    }
+
     // Load new instrument sampler
     // Note: piano.js and flute.js now connect to melodicChannel automatically
     // which routes through the master effects chain (EQ → Compressor → Limiter)
@@ -178,9 +188,10 @@ export class MelodicTimelineAudio extends TimelineAudio {
   playNote(midi, duration, when, velocity = 0.8) {
     // Try low-latency pool first (sample-accurate timing)
     if (this._samplerPool && this._samplerPool.isReady()) {
-      // Convert Tone.now() to AudioContext.currentTime if needed
-      const audioTime = this._ctx ? when : when;
-      this._samplerPool.playNote(midi, duration, audioTime, velocity);
+      // El pool i el sampler comparteixen l'AudioContext del motor
+      // (Tone.setContext a setInstrument): `when` ja és temps
+      // d'AudioContext — cap conversió necessària.
+      this._samplerPool.playNote(midi, duration, when, velocity);
       return;
     }
 

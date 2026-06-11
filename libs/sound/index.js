@@ -2,6 +2,7 @@ import { loadSampleMap } from './sample-map.js';
 import { AudioMixer } from './mixer.js';
 import { waitForUserInteraction, hasUserInteracted } from './user-interaction.js';
 import { ensureToneLoaded } from './tone-loader.js';
+import { signalMelodicChannelReady } from './engine-ready.js';
 
 /* global Tone */
 
@@ -310,12 +311,14 @@ export function prefetchDefaultSamples() {
   }
 }
 
+// LA-05: contracte — el caller passa un ArrayBuffer de la seva propietat
+// (fetchSampleArrayBuffer ja retorna una còpia privada de la cache), així
+// que decodeAudioData pot detachar-lo sense còpia defensiva extra aquí.
 function decodeAudioBuffer(ctx, arrayBuffer) {
   if (!ctx || !arrayBuffer) return Promise.reject(new Error('AudioContext or buffer missing'));
   return new Promise((resolve, reject) => {
     try {
-      const copy = arrayBuffer.slice ? arrayBuffer.slice(0) : arrayBuffer;
-      const result = ctx.decodeAudioData(copy, resolve, reject);
+      const result = ctx.decodeAudioData(arrayBuffer, resolve, reject);
       if (result && typeof result.then === 'function') {
         result.then(resolve, reject);
       }
@@ -500,12 +503,19 @@ export class TimelineAudio {
     this._ctx = null;
     this._node = null;
     this._schedulerId = null;
-    this._lookAheadSec = 0.12;
-    this._schedulerEverySec = 0.02;
+    // LA-01: arrenquem amb el preset 'balanced' documentat — abans 0.12 de
+    // lookAhead (2-6x els perfils), que era el que patia qualsevol consumidor
+    // sense el scheduling bridge del header (mute/so/selecció trigaven fins a
+    // 120ms a sentir-se). El bridge segueix sobreescrivint per dispositiu.
+    this._lookAheadSec = SCHEDULING_PRESETS.balanced.lookAhead;
+    this._schedulerEverySec = SCHEDULING_PRESETS.balanced.updateInterval;
     this._schedulerOverrideSec = null;
-    this._sampleOffsetSec = 0;
+    this._sampleOffsetSec = SCHEDULING_PRESETS.balanced.sampleOffset;
 
     this._bus = { master: null, pulso: null, start: null, seleccionados: null, cycle: null, effects: null };
+    this._previewGain = null;
+    this._stopFadeTimer = null;
+    this._stopFadeRestore = null;
     this._effectsEnabled = true; // Master effects chain enabled for testing
 
     this._sampleMap = null;
@@ -706,6 +716,7 @@ export class TimelineAudio {
       this._bus.cycle.gain.value = 0.75; // Default channel volume at 75%
       this._bus.melodic = ctx.createGain(); // Channel for melodic instruments (piano, violin)
       this._bus.melodic.gain.value = 0.75; // Default channel volume at 75%
+      signalMelodicChannelReady(this._bus.melodic); // LA-08: desbloqueja piano/flute sense polling
 
       // Fixar canal count explícit (stereo) a tots els buses. Sense
       // això, GainNode usa 'max' i canvia de canals dinàmicament segons
@@ -956,6 +967,56 @@ export class TimelineAudio {
     }
   }
 
+  // LA-04: stop manual sense clic — rampa els busos rítmics a 0 en ~40ms,
+  // atura les fonts quan ja són inaudibles i llavors restaura els guanys
+  // (mixer si en tenim estat; si no, els valors pre-fade). play() buida el
+  // timer pendent perquè els fluxos stop()+play() immediats (resync de tap,
+  // restart d'apps) no arrenquin amb busos a mig esvair.
+  _fadeOutAndStopPlayers() {
+    const ctx = this._ctx;
+    const buses = [this._bus.pulso, this._bus.start, this._bus.seleccionados, this._bus.cycle]
+      .filter(Boolean);
+    if (!ctx || ctx.state !== 'running' || !buses.length) {
+      this._stopAllPlayers();
+      return;
+    }
+    this._flushPendingStopFade();
+    const now = ctx.currentTime;
+    const prevGains = buses.map((bus) => bus.gain.value);
+    for (const bus of buses) {
+      try {
+        bus.gain.cancelScheduledValues(now);
+        bus.gain.setValueAtTime(bus.gain.value, now);
+        bus.gain.linearRampToValueAtTime(0, now + 0.04);
+      } catch {}
+    }
+    this._stopFadeRestore = () => this._restoreBusGains(buses, prevGains);
+    this._stopFadeTimer = setTimeout(() => this._flushPendingStopFade(), 50);
+  }
+
+  _flushPendingStopFade() {
+    if (this._stopFadeTimer == null) return;
+    clearTimeout(this._stopFadeTimer);
+    this._stopFadeTimer = null;
+    this._stopAllPlayers();
+    this._stopFadeRestore?.();
+    this._stopFadeRestore = null;
+  }
+
+  _restoreBusGains(buses, prevGains) {
+    if (this._pendingMixerState) {
+      this._applyMixerState(this._pendingMixerState);
+      return;
+    }
+    const now = this._ctx?.currentTime ?? 0;
+    buses.forEach((bus, i) => {
+      try {
+        bus.gain.cancelScheduledValues(now);
+        bus.gain.setValueAtTime(prevGains[i], now);
+      } catch {}
+    });
+  }
+
   // A-10: quan setTempo rebobina el scheduler per re-temporitzar la finestra
   // de lookahead, les fonts ja emeses per als passos invalidats seguirien
   // sonant a més de les còpies noves (flam/doble clic a cada canvi de tempo
@@ -1179,7 +1240,25 @@ export class TimelineAudio {
     if (!url) return;
     await ensureAudio();
     try {
-      const ctx = await getPreviewContext();
+      // A-14: si el motor ja té context (sempre, un cop inicialitzat),
+      // previsualitzem per un GainNode directe a ctx.destination — manté el
+      // bypass del mixer (mutes no afecten el preview) sense pagar un segon
+      // AudioContext persistent ni re-descodificar samples que el motor ja
+      // té (la cache de buffers és per context). El context dedicat queda
+      // només com a fallback pre-init.
+      let ctx, destination;
+      if (this._ctx) {
+        ctx = this._ctx;
+        if (!this._previewGain) {
+          this._previewGain = ctx.createGain();
+          this._previewGain.gain.value = 0.8;
+          this._previewGain.connect(ctx.destination);
+        }
+        destination = this._previewGain;
+      } else {
+        ctx = await getPreviewContext();
+        destination = previewGain || ctx.destination;
+      }
       const buffer = await loadBufferForContext(ctx, url);
       if (!buffer) return;
       for (const src of Array.from(previewSources)) {
@@ -1191,7 +1270,6 @@ export class TimelineAudio {
         previewSources.delete(source);
         try { source.disconnect(); } catch {}
       };
-      const destination = previewGain || ctx.destination;
       if (destination) source.connect(destination);
       const startTime = ctx.currentTime + 0.01;
       const stopTime = startTime + Math.max(0.05, buffer.duration + 0.05);
@@ -1347,6 +1425,10 @@ export class TimelineAudio {
   }
 
   async play(totalPulses, intervalSec, selectedPulses, loop, onPulse, onComplete, options = {}) {
+    // LA-04: si un stop() amb fade encara té el timer pendent, resol-lo ARA
+    // (fonts fora + guanys restaurats) perquè aquest play no arrenqui amb
+    // els busos a mig esvair.
+    this._flushPendingStopFade();
     await this._ensureContext();
 
     this.totalRef = Math.max(1, +totalPulses || 1);
@@ -1481,11 +1563,13 @@ export class TimelineAudio {
       this._schedulerId = null;
     }
     this._node?.port?.postMessage({ action: 'stop' });
-    // Tall dur dels BufferSources rítmics només si NO és final natural.
+    // Tall dels BufferSources rítmics només si NO és final natural.
     // En final natural, els sources ja programats acaben el seu buffer i
     // s'auto-netegen via source.onended (cap clic, cap tall sec).
+    // LA-04: el tall manual esvaeix els busos ~40ms abans d'aturar les
+    // fonts — source.stop(0) a mig buffer feia clic audible.
     if (!graceful) {
-      this._stopAllPlayers();
+      this._fadeOutAndStopPlayers();
     }
     this._lastStep = null;
     this._lastPulseTime = null;
