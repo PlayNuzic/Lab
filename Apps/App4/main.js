@@ -468,6 +468,11 @@ function initFractionEditorController() {
     host,
     defaults: fractionDefaults,
     startEmpty: true,
+    // Reducció automàtica a la fracció mínima (ex. 6/4 → 3/2), com la resta
+    // d'apps de fraccions, però SENSE el DOM fantasma de preview: amb
+    // autoReduce el ghost mai es mostra i només seria codi mort.
+    autoReduce: true,
+    enableGhost: false,
     storage: {
       load: loadOpt,
       save: saveOpt,
