@@ -650,6 +650,16 @@ function handleSlotFractionChange(slot, { info, cause }) {
 // Toggle d'activació d'un slot (el punt rodó). Tornar-lo ON valida la
 // combinació hipotètica; OFF sempre és legal (zero fraccions actives =
 // cicle gran 1, app de pulsos plans).
+/* El mixer només mostra els canals (metrònom + sel.) de les fraccions
+   ACTIVES: un data-attribute per slot al body governa la visibilitat
+   per CSS — funciona encara que el menú del mixer es creï més tard. */
+function syncMixerChannelVisibility() {
+  fractionSlots.forEach((slot) => {
+    const visible = slot.added && slot.active;
+    document.body.dataset[`${slot.id}On`] = visible ? '1' : '0';
+  });
+}
+
 function setSlotActive(slot, nextActive, { persist = true, refresh = true } = {}) {
   if (!slot) return false;
   if (nextActive && slot.controller) {
@@ -664,6 +674,20 @@ function setSlotActive(slot, nextActive, { persist = true, refresh = true } = {}
     slot.elements.toggleBtn.setAttribute('aria-pressed', slot.active ? 'true' : 'false');
   }
   slot.elements?.slotEl?.classList.toggle('fraction-slot--off', !slot.active);
+  if (!slot.active) {
+    // En desactivar la fracció es netegen els mute/solo dels seus dos
+    // canals: un solo "fantasma" en un canal ja ocult callaria la resta
+    // del mixer sense cap pista visible del perquè.
+    try {
+      const mixer = getMixer();
+      [fractionChannelForSlot(slot.id), fractionSelectedChannelForSlot(slot.id)]
+        .forEach((channelId) => {
+          mixer?.setChannelSolo?.(channelId, false);
+          mixer?.setChannelMute?.(channelId, false);
+        });
+    } catch {}
+  }
+  syncMixerChannelVisibility();
   if (persist) {
     saveOpt(slot.activeKey, slot.active ? '1' : '0');
   }
@@ -816,6 +840,7 @@ function initFractionSlots() {
   fractionAddButton.addEventListener('click', addNextFractionSlot);
   attachHover(fractionAddButton, { text: 'Añadir otra fracción' });
   updateFractionAddButton();
+  syncMixerChannelVisibility();
 
   lastActiveFractionsSignature = activeFractionsSignature();
   refreshFractionUI({ reveal: false });

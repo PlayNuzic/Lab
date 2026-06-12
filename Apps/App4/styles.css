@@ -52,6 +52,18 @@ body.app4 .mixer-channel[data-channel="frac3"] {
   margin-left: 1.4rem;
 }
 
+/* Només es mostren els canals de les fraccions ACTIVES (main.js manté
+   data-fN-on al body via syncMixerChannelVisibility). Una fracció
+   apagada o no afegida no apareix al mixer. */
+body.app4[data-f1-on="0"] .mixer-channel[data-channel="frac1"],
+body.app4[data-f1-on="0"] .mixer-channel[data-channel="fracSel1"],
+body.app4[data-f2-on="0"] .mixer-channel[data-channel="frac2"],
+body.app4[data-f2-on="0"] .mixer-channel[data-channel="fracSel2"],
+body.app4[data-f3-on="0"] .mixer-channel[data-channel="frac3"],
+body.app4[data-f3-on="0"] .mixer-channel[data-channel="fracSel3"] {
+  display: none;
+}
+
 body.app4 .mixer-channel {
   min-width: 0;
   width: clamp(5rem, 7vw, 6.5rem);
