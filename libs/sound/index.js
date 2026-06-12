@@ -453,11 +453,35 @@ function resolveToneContext() {
   return null;
 }
 
-function toSet(indices) {
-  if (indices instanceof Set) return new Set(indices);
-  if (Array.isArray(indices)) return new Set(indices);
-  if (indices == null) return new Set();
-  return new Set(indices);
+// F4b: una selecció pot barrejar números (legacy → bus 'seleccionados')
+// i objectes { value, channel } que han de sonar pel bus del seu canal de
+// mixer. Normalitza a Set de valors + Map valor→canal. Amb només números
+// el Set conté els valors tal qual (semàntica de l'antic toSet) i el Map
+// queda buit — cap canvi de comportament per a la resta d'apps. Si un
+// valor arriba repetit amb
+// canals diferents, la PRIMERA etiqueta guanya (el Set ja deduplica el
+// so: cada valor sona per exactament un bus).
+function normalizeSelection(indices) {
+  const set = new Set();
+  const channels = new Map();
+  const add = (entry) => {
+    if (entry != null && typeof entry === 'object') {
+      const value = Number(entry.value);
+      if (!Number.isFinite(value)) return;
+      set.add(value);
+      const channel = (typeof entry.channel === 'string' && entry.channel) ? entry.channel : null;
+      if (channel && !channels.has(value)) channels.set(value, channel);
+      return;
+    }
+    if (entry == null) return;
+    set.add(entry);
+  };
+  if (indices instanceof Set || Array.isArray(indices)) {
+    indices.forEach(add);
+  } else if (indices != null && typeof indices[Symbol.iterator] === 'function') {
+    for (const entry of indices) add(entry);
+  }
+  return { set, channels };
 }
 
 export class TimelineAudio {
@@ -498,6 +522,10 @@ export class TimelineAudio {
 
     this.selectedRef = new Set();
     this._selectedResolution = 1;
+    // F4b: valor seleccionat → canal de mixer propi (només per als valors
+    // arribats com a objectes { value, channel }; els números legacy no hi
+    // són i segueixen sortint pel bus 'seleccionados').
+    this._selectedChannels = new Map();
     this._voiceDefs = new Map();
     this._baseResolution = 1;
     this.baseResolution = 1;
@@ -515,6 +543,21 @@ export class TimelineAudio {
     this._sampleOffsetSec = SCHEDULING_PRESETS.balanced.sampleOffset;
 
     this._bus = { master: null, pulso: null, start: null, seleccionados: null, cycle: null, effects: null };
+    // F4 (veus amb canal propi): un GainNode per canal de mixer de veu,
+    // creat lazy a _ensureVoiceBus i governat per _applyMixerState.
+    this._voiceBuses = new Map();
+    // Mapa pla canal→muted (inclou master), refrescat a _applyMixerState;
+    // el consulta l'agenda de veus igual que _cycleMutedForFallback.
+    this._mixerChannelMuted = new Map();
+    // Canal de mixer que governa el bus de cicle ('subdivision' per defecte;
+    // les apps multi-fracció el poden re-apuntar amb setCycleChannel).
+    this._cycleChannelId = 'subdivision';
+    // F4c: canal de mixer → sample PROPI (setChannelSound). Precedència en
+    // temps d'agenda: override de canal > sample de ROL (setBase/setAccent/
+    // setCycle — els selects del header dev fixen els defaults). El mapa
+    // sobreviu el teardown del context (els buffers es re-carreguen a
+    // _initPlayers); buit = comportament byte-idèntic al d'abans.
+    this._channelSounds = new Map();
     this._previewGain = null;
     this._stopFadeTimer = null;
     this._stopFadeRestore = null;
@@ -608,6 +651,14 @@ export class TimelineAudio {
       }
       this._bus[key] = null;
     });
+
+    // F4: els busos de veu viuen fora de _bus — desconnectar-los també.
+    if (this._voiceBuses) {
+      for (const bus of this._voiceBuses.values()) {
+        try { bus.disconnect(); } catch {}
+      }
+      this._voiceBuses.clear();
+    }
 
     this._stopAllPlayers();
     if (this._buffers) this._buffers.clear();
@@ -917,6 +968,22 @@ export class TimelineAudio {
       }
     }));
 
+    // F4c: overrides de sample per canal (setChannelSound) — es carreguen
+    // aquí tant si l'app els va demanar abans del primer gest (assignació
+    // lazy sense context) com en un rebuild després d'un teardown.
+    if (this._channelSounds?.size) {
+      await Promise.all(Array.from(this._channelSounds, async ([channelId, soundKey]) => {
+        const { url } = normalizeSound(soundKey, null);
+        if (!url) return;
+        try {
+          const buffer = await loadBufferForContext(this._ctx, url);
+          if (buffer) buffers.set(`channel:${channelId}`, { url, buffer });
+        } catch (error) {
+          console.warn(`Failed to load channel sound for ${channelId}`, error);
+        }
+      }));
+    }
+
     this._buffers = buffers;
   }
 
@@ -964,7 +1031,14 @@ export class TimelineAudio {
     const masterVolume = state.master?.volume ?? 0.75;
 
     this._pulseMutedForFallback = masterMuted || !!channels.get('pulse')?.effectiveMuted;
-    this._cycleMutedForFallback = masterMuted || !!channels.get('subdivision')?.effectiveMuted;
+    this._cycleMutedForFallback = masterMuted || !!channels.get(this._cycleChannelId)?.effectiveMuted;
+
+    // F4: mapa pla canal→muted per a les rutes que decideixen en temps
+    // d'agenda (veus amb canal propi); mateixa semàntica que els flags
+    // *MutedForFallback (master O effectiveMuted del canal).
+    const mutedMap = new Map();
+    channels.forEach((ch, id) => { mutedMap.set(id, masterMuted || !!ch.effectiveMuted); });
+    this._mixerChannelMuted = mutedMap;
 
     const applyGain = (node, channelId) => {
       if (!node) return;
@@ -978,7 +1052,11 @@ export class TimelineAudio {
     applyGain(this._bus.pulso, 'pulse');
     applyGain(this._bus.start, 'start');
     applyGain(this._bus.seleccionados, 'accent');
-    applyGain(this._bus.cycle, 'subdivision');
+    applyGain(this._bus.cycle, this._cycleChannelId);
+    // F4: cada bus de veu segueix el seu canal de mixer.
+    if (this._voiceBuses) {
+      this._voiceBuses.forEach((bus, channelId) => applyGain(bus, channelId));
+    }
     // Sense aquesta línia el fader/mute/solo del canal 'instrument' no
     // arriba mai al bus melòdic (piano/flauta). Per apps rítmiques sense
     // canal registrat, `?? 0.75` coincideix amb el default del bus.
@@ -1002,8 +1080,10 @@ export class TimelineAudio {
   // restart d'apps) no arrenquin amb busos a mig esvair.
   _fadeOutAndStopPlayers() {
     const ctx = this._ctx;
-    const buses = [this._bus.pulso, this._bus.start, this._bus.seleccionados, this._bus.cycle]
-      .filter(Boolean);
+    const buses = [
+      this._bus.pulso, this._bus.start, this._bus.seleccionados, this._bus.cycle,
+      ...(this._voiceBuses ? this._voiceBuses.values() : []) // F4: veus també
+    ].filter(Boolean);
     if (!ctx || ctx.state !== 'running' || !buses.length) {
       this._stopAllPlayers();
       return;
@@ -1142,7 +1222,103 @@ export class TimelineAudio {
     return this._bus.pulso;
   }
 
-  _schedulePlayerStart(key, when, duration = null, absStep = null) {
+  // F4: bus de guany per a un canal de mixer de veu, creat lazy (el context
+  // pot no existir quan arriba setVoices) i connectat al master amb el
+  // mateix perfil stereo explícit que la resta de busos.
+  _ensureVoiceBus(channelId) {
+    if (!channelId || !this._ctx || !this._bus?.master) return null;
+    let bus = this._voiceBuses.get(channelId);
+    if (bus) return bus;
+    try {
+      bus = this._ctx.createGain();
+      bus.gain.value = 0.75; // mateix default que la resta de canals
+    } catch {
+      return null;
+    }
+    try {
+      bus.channelCount = 2;
+      bus.channelCountMode = 'explicit';
+      bus.channelInterpretation = 'speakers';
+    } catch {
+      // Mock de test
+    }
+    try { bus.connect(this._bus.master); } catch {}
+    this._voiceBuses.set(channelId, bus);
+    // Aplica l'estat viu del mixer (volum/mute del canal) al bus nou.
+    if (this._pendingMixerState) {
+      this._applyMixerState(this._pendingMixerState);
+    }
+    return bus;
+  }
+
+  /**
+   * F4: re-apunta el canal de mixer que governa el bus de cicle (mute del
+   * fallback inclòs). Per defecte 'subdivision'; les apps multi-fracció hi
+   * posen el canal de la fracció principal. Additiu: sense cridar-lo, el
+   * comportament és idèntic al d'abans.
+   */
+  setCycleChannel(channelId) {
+    const id = (typeof channelId === 'string' && channelId) ? channelId : 'subdivision';
+    if (id === this._cycleChannelId) return;
+    this._cycleChannelId = id;
+    if (this._pendingMixerState) {
+      this._applyMixerState(this._pendingMixerState);
+    }
+  }
+
+  /**
+   * F4c: assigna un sample PROPI a un canal de mixer (override per canal).
+   * Regla de precedència: override de canal > sample de ROL (setBase/
+   * setAccent/setCycle — els selects dev del header continuen fixant els
+   * DEFAULTS); la resolució es fa en temps d'agenda via
+   * _resolveChannelBufferKey, així que el canvi s'aplica al lookahead
+   * següent fins i tot en ple playback. `soundKey` null/'' elimina
+   * l'override (el canal torna al rol). Additiu: sense cap crida el
+   * comportament és byte-idèntic al d'abans.
+   * Lazy: sense context encara (pre-gest) només es desa l'assignació;
+   * _initPlayers carregarà el buffer quan el motor neixi.
+   */
+  async setChannelSound(channelId, soundKey) {
+    if (typeof channelId !== 'string' || !channelId) return;
+    const bufferKey = `channel:${channelId}`;
+    if (soundKey == null || soundKey === '') {
+      this._channelSounds.delete(channelId);
+      this._buffers?.delete(bufferKey);
+      return;
+    }
+    const { key: resolved, url } = normalizeSound(soundKey, null);
+    if (!url) return;
+    this._channelSounds.set(channelId, resolved);
+    if (!this._ctx) return;
+    try {
+      const buffer = await loadBufferForContext(this._ctx, url);
+      // Guarda anti-cursa: l'assignació pot haver canviat durant l'await
+      // (l'usuari navega ràpid pel dropdown) — només mana l'última.
+      if (buffer && this._channelSounds.get(channelId) === resolved && this._buffers) {
+        this._buffers.set(bufferKey, { url, buffer });
+      }
+    } catch (error) {
+      console.warn(`Failed to set channel sound ${soundKey} for ${channelId}`, error);
+    }
+  }
+
+  getChannelSound(channelId) {
+    return this._channelSounds?.get(channelId) ?? null;
+  }
+
+  // F4c: clau de buffer efectiva per a un canal de mixer en temps d'agenda.
+  // Si el canal té override carregat → la seva clau 'channel:<id>'; si no
+  // (o el buffer encara s'està descarregant) → la clau de ROL rebuda. Mai
+  // retorna una clau sense buffer si roleKey en té: zero forats d'àudio.
+  _resolveChannelBufferKey(channelId, roleKey) {
+    if (channelId && this._channelSounds?.has(channelId)) {
+      const key = `channel:${channelId}`;
+      if (this._buffers?.has(key)) return key;
+    }
+    return roleKey;
+  }
+
+  _schedulePlayerStart(key, when, duration = null, absStep = null, destination = null) {
     if (!this._ctx || !this._buffers) return;
     const entry = this._buffers.get(key);
     if (!entry?.buffer) return;
@@ -1162,8 +1338,8 @@ export class TimelineAudio {
         }
         try { source.disconnect(); } catch {}
       };
-      const destination = this._resolveBusForSampleKey(key) || this._bus.master;
-      if (destination) source.connect(destination);
+      const dest = destination || this._resolveBusForSampleKey(key) || this._bus.master;
+      if (dest) source.connect(dest);
       const startTime = Math.max(ctx.currentTime, when);
       source.start(startTime);
       // Si se especifica duración, detener el sonido después de ese tiempo
@@ -1390,7 +1566,10 @@ export class TimelineAudio {
         resolution = Math.max(1, Math.round(providedResolution));
       }
     }
-    this.selectedRef = toSet(values);
+    // F4b: els valors poden ser números (legacy) o objectes { value, channel }.
+    const { set, channels } = normalizeSelection(values);
+    this.selectedRef = set;
+    this._selectedChannels = channels;
     this._selectedResolution = resolution;
     this._adaptSchedulerInterval();
   }
@@ -1491,7 +1670,11 @@ export class TimelineAudio {
         selectionResolution = Math.max(1, Math.round(providedResolution));
       }
     }
-    this.selectedRef = toSet(selectionValues);
+    // F4b: mateix contracte que setSelected — números legacy o objectes
+    // { value, channel } amb canal de mixer propi.
+    const normalizedSelection = normalizeSelection(selectionValues);
+    this.selectedRef = normalizedSelection.set;
+    this._selectedChannels = normalizedSelection.channels;
     this._selectedResolution = selectionResolution;
     this._onPulseRef = (typeof onPulse === 'function') ? onPulse : null;
     if (typeof options?.onSchedule === 'function') {
@@ -1718,6 +1901,7 @@ export class TimelineAudio {
 
   setVoices(voices = []) {
     const map = new Map();
+    const workletVoices = [];
     if (Array.isArray(voices)) {
       voices.forEach((voice) => {
         if (!voice || !voice.id) return;
@@ -1725,12 +1909,18 @@ export class TimelineAudio {
         const denominator = Number(voice.denominator);
         map.set(voice.id, {
           numerator: Number.isFinite(numerator) ? numerator : null,
-          denominator: Number.isFinite(denominator) ? denominator : null
+          denominator: Number.isFinite(denominator) ? denominator : null,
+          // F4: canal de mixer propi → l'àudio s'agenda al lookahead
+          // (_scheduleVoiceAudio) en lloc del camí reactiu legacy.
+          channel: (typeof voice.channel === 'string' && voice.channel) ? voice.channel : null
         });
+        // El worklet només necessita id + raó (camps extra fora).
+        workletVoices.push({ id: voice.id, numerator: voice.numerator, denominator: voice.denominator });
       });
     }
     this._voiceDefs = map;
-    this._node?.port?.postMessage({ action: 'setVoices', voices });
+    this._node?.port?.postMessage({ action: 'setVoices', voices: workletVoices });
+    this._adaptSchedulerInterval();
   }
 
   setVoiceHandler(handler) {
@@ -1743,9 +1933,14 @@ export class TimelineAudio {
       const denominator = Number(voice.denominator);
       this._voiceDefs.set(voice.id, {
         numerator: Number.isFinite(numerator) ? numerator : null,
-        denominator: Number.isFinite(denominator) ? denominator : null
+        denominator: Number.isFinite(denominator) ? denominator : null,
+        channel: (typeof voice.channel === 'string' && voice.channel) ? voice.channel : null
       });
-      this._node?.port?.postMessage({ action: 'addVoice', voice });
+      this._node?.port?.postMessage({
+        action: 'addVoice',
+        voice: { id: voice.id, numerator: voice.numerator, denominator: voice.denominator }
+      });
+      this._adaptSchedulerInterval();
     }
   }
 
@@ -1810,9 +2005,11 @@ export class TimelineAudio {
     // Pas absolut que tick() està agendant ara mateix; triggerPlayer el
     // propaga perquè el rebobinat de setTempo pugui cancel·lar per pas.
     let schedulingStep = null;
-    const triggerPlayer = (key, when, duration = null) => {
+    // F4b: destination opcional — un bus de canal de veu en lloc del bus
+    // per defecte del sample (el rebobinat per pas absolut segueix igual).
+    const triggerPlayer = (key, when, duration = null, destination = null) => {
       if (!this._buffers?.has(key)) return;
-      this._schedulePlayerStart(key, when, duration, schedulingStep);
+      this._schedulePlayerStart(key, when, duration, schedulingStep, destination);
     };
 
     this._stepTime = (absoluteStep) => {
@@ -1953,7 +2150,12 @@ export class TimelineAudio {
 
           // Play base pulse sound on ALL base steps (including step 0)
           if (baseKey && isBaseStep) {
-            triggerPlayer(baseKey, sampleWhen);
+            // F4c: l'override del canal 'pulse' (setChannelSound) guanya
+            // sobre el sample de rol; el bus segueix sent el de pols
+            // (destination explícit perquè _resolveBusForSampleKey no
+            // coneix les claus 'channel:*').
+            const pulseKey = this._resolveChannelBufferKey('pulse', baseKey);
+            triggerPlayer(pulseKey, sampleWhen, null, pulseKey === baseKey ? null : this._bus.pulso);
             triggered = true;
           }
 
@@ -1971,7 +2173,27 @@ export class TimelineAudio {
             // pols/subdivisió comenci abans que acabi. (La truncadura a
             // 1 interval venia de l'època del click11/Ruido Rosa i feia
             // que l'accent "es tallés" amb el pols següent.)
-            triggerPlayer('seleccionados', sampleWhen);
+            // F4b: una selecció amb canal de mixer propi (objecte
+            // { value, channel } a setSelected) surt pel bus del seu canal
+            // — mateix sample 'seleccionados', bus diferent. Cada valor
+            // sona per EXACTAMENT un bus. Canal silenciat al mixer → no
+            // s'agenda cap font (paritat amb _scheduleVoiceAudio), però
+            // triggered queda a true perquè el beep de fallback no
+            // "supleixi" un canal mutat expressament.
+            // F4c: el sample efectiu pot ser l'override del canal de la
+            // selecció ('accent' per als números legacy, fracSelN per a les
+            // etiquetades) — _resolveChannelBufferKey cau al rol
+            // 'seleccionados' si no n'hi ha.
+            const selectedChannel = this._selectedChannels?.get(selectionIndex) || null;
+            const selKey = this._resolveChannelBufferKey(selectedChannel || 'accent', 'seleccionados');
+            if (!selectedChannel) {
+              triggerPlayer(selKey, sampleWhen, null, selKey === 'seleccionados' ? null : this._bus.seleccionados);
+            } else if (!this._mixerChannelMuted?.get(selectedChannel)) {
+              // Si el bus no es pot crear (context a mig morir), destination
+              // null fa caure _schedulePlayerStart al bus legacy: mai zero
+              // ni dos busos per a un mateix valor.
+              triggerPlayer(selKey, sampleWhen, null, this._ensureVoiceBus(selectedChannel));
+            }
             triggered = true;
           }
         }
@@ -1987,21 +2209,32 @@ export class TimelineAudio {
           }
         }
 
+        // Durada real del segment [n, n+1): incorpora canvis de tempo
+        // pendents via _stepTime. La comparteixen els sons de cicle i les
+        // veus amb canal propi (F4).
+        const nextWhen = this._stepTime(n + 1);
+        const segDur = Number.isFinite(nextWhen) ? (nextWhen - when) : intv;
+
         // Sons de cicle del segment [stepIndex, stepIndex+1): pre-agendats
-        // amb el temps fraccionari exacte (interval real del segment, que
-        // ja incorpora canvis de tempo pendents via _stepTime).
+        // amb el temps fraccionari exacte (interval real del segment).
+        // F4c: el canal que governa el cicle (_cycleChannelId, p.ex. fracN
+        // a App4) pot dur sample propi — override sobre el rol 'cycle'.
         if (!this._cycleMutedForFallback && this._buffers?.has('cycle')) {
           const beats = cycleEventBeats();
           if (beats.length) {
-            const nextWhen = this._stepTime(n + 1);
-            const segDur = Number.isFinite(nextWhen) ? (nextWhen - when) : intv;
+            const cycleKey = this._resolveChannelBufferKey(this._cycleChannelId, 'cycle');
+            const cycleDest = cycleKey === 'cycle' ? null : this._bus.cycle;
             for (const beat of beats) {
               if (beat >= stepIndex && beat < stepIndex + 1) {
-                triggerPlayer('cycle', sampleWhen + (beat - stepIndex) * segDur);
+                triggerPlayer(cycleKey, sampleWhen + (beat - stepIndex) * segDur, null, cycleDest);
               }
             }
           }
         }
+
+        // F4: àudio de les veus polirítmiques amb canal de mixer propi —
+        // mateix patró de pre-agenda del lookahead que els sons de cicle.
+        this._scheduleVoiceAudio({ stepIndex, sampleWhen, segDur, absStep: n });
 
         scheduledStep = n;
         n++;
@@ -2026,6 +2259,59 @@ export class TimelineAudio {
     return mod;
   }
 
+  /**
+   * F4: pre-agenda l'àudio de les veus polirítmiques que porten canal de
+   * mixer propi (def.channel). Mateix mecanisme que els sons de cicle
+   * (A-03): esdeveniments deterministes (múltiples del període n/d) dins
+   * del segment [stepIndex, stepIndex+1), amb el sample 'cycle' i el temps
+   * fraccionari exacte. Es calcula en espai de mesura (stepIndex, que
+   * embolcalla amb el loop): si el període divideix el patró — el model
+   * d'App4 ho garanteix (Lg = mcm de numeradors × m) — coincideix amb el
+   * comptador free-running del worklet a cada volta.
+   * Les veus SENSE channel conserven el camí reactiu legacy ('seleccionados'
+   * a _handleClockMessage) i no passen per aquí.
+   */
+  _scheduleVoiceAudio({ stepIndex, sampleWhen, segDur, absStep }) {
+    if (!this._voiceDefs?.size) return;
+    if (!this._buffers?.has('cycle')) return;
+    // Mateix límit que cycleEventBeats: cap so de subdivisió al pols final
+    // (totalRef = patternBeats + 1 en reproducció single-shot).
+    const limit = (Number.isFinite(this._patternBeats) && this._patternBeats > 0)
+      ? this._patternBeats
+      : this.totalRef;
+    for (const def of this._voiceDefs.values()) {
+      const channel = def?.channel;
+      if (!channel) continue;
+      if (this._mixerChannelMuted?.get(channel)) continue;
+      const num = Number(def.numerator);
+      const den = Number(def.denominator);
+      if (!(num > 0 && den > 0)) continue;
+      const period = num / den;
+      const bus = this._ensureVoiceBus(channel);
+      if (!bus) continue;
+      // F4c: sample propi del canal de la veu (override) o rol 'cycle'.
+      const voiceKey = this._resolveChannelBufferKey(channel, 'cycle');
+      // Primer múltiple del període dins del segment. Epsilon 1e-9 (el
+      // mateix conveni que el worklet i els sons de cicle): l'esdeveniment
+      // a la frontera pertany exactament a un segment, mai a tots dos.
+      let k = Math.ceil((stepIndex - 1e-9) / period);
+      for (;;) {
+        const beat = k * period;
+        if (beat >= stepIndex + 1 - 1e-9) break;
+        if (!(limit > 0) || beat < limit - 1e-9) {
+          this._schedulePlayerStart(
+            voiceKey,
+            sampleWhen + (beat - stepIndex) * segDur,
+            null,
+            absStep,
+            bus
+          );
+        }
+        k += 1;
+      }
+    }
+  }
+
   _adaptSchedulerInterval() {
     if (this._schedulerOverrideSec != null) {
       this._schedulerEverySec = this._schedulerOverrideSec;
@@ -2033,7 +2319,8 @@ export class TimelineAudio {
     }
     const streams =
       1 + (this.selectedRef.size > 0 ? 1 : 0) +
-      (this._cycleConfig?.denominator ? 1 : 0);
+      (this._cycleConfig?.denominator ? 1 : 0) +
+      (this._voiceDefs?.size ? 1 : 0); // F4: veus actives = un flux més
     const ms = clamp(20 - (streams - 1) * 3, 10, 30);
     this._schedulerEverySec = ms / 1000;
   }
@@ -2089,7 +2376,9 @@ export class TimelineAudio {
         this._onVoiceRef(payload);
       }
       const def = payload.id ? this._voiceDefs?.get(payload.id) : null;
-      if (def && this._buffers?.has('seleccionados')) {
+      // F4: les veus amb canal propi ja sonen pel lookahead
+      // (_scheduleVoiceAudio) — el fallback reactiu només per a la resta.
+      if (def && !def.channel && this._buffers?.has('seleccionados')) {
         const numerator = Number(def.numerator);
         const denominator = Number(def.denominator);
         const idx = Number(payload.index);

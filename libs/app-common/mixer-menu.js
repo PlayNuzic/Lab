@@ -65,7 +65,36 @@ function mixerAppId() {
 
 // Build the dropdown that lives under a channel's M/S buttons (null if the
 // channel controls no selectable sound, e.g. master).
-function buildChannelSound(channelId) {
+//
+// F4c (additiu): un canal pot dur la seva pròpia configuració de selector via
+// `soundSelector` al config del canal — té prioritat sobre el default de
+// CHANNEL_SOUND i permet selectors per a canals propis de l'app (frac1,
+// fracSel2…). Forma:
+//   soundSelector: {
+//     storageKey,     // clau localStorage COMPLETA (l'app la namespacea,
+//                     //  p.ex. preferenceStorage.storeKey('sound:frac1'))
+//     eventType?,     // tipus de sharedui:sound per sincronitzar vistes
+//     defaultValue?,  // sample inicial si no hi ha res persistit
+//     apply?          // (audio, value) => …; default:
+//                     //  audio.setChannelSound(channelId, value) — override
+//                     //  per canal que GUANYA sobre el sample de rol.
+//   }
+// Les apps que no el passen no veuen cap canvi.
+function buildChannelSound(channelId, soundSelector = null) {
+  if (soundSelector && typeof soundSelector === 'object') {
+    const container = document.createElement('div');
+    container.className = 'mixer-channel__sound';
+    initSoundDropdown(container, {
+      storageKey: soundSelector.storageKey || `mixerSound:${channelId}`,
+      eventType: soundSelector.eventType || `mixerSound:${channelId}`,
+      getAudio: getMixerAudio,
+      apply: typeof soundSelector.apply === 'function'
+        ? soundSelector.apply
+        : (a, v) => a?.setChannelSound?.(channelId, v),
+      defaultValue: soundSelector.defaultValue
+    });
+    return container;
+  }
   const desc = CHANNEL_SOUND[channelId];
   if (!desc) return null;
   const container = document.createElement('div');
@@ -317,7 +346,8 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     wrapper.appendChild(actions);
 
     // Per-channel sound/instrument selector below the M/S buttons (synced with header).
-    const soundSelector = buildChannelSound(channelId);
+    // F4c: config.soundSelector (si l'app en passa) mana sobre el default.
+    const soundSelector = buildChannelSound(channelId, config.soundSelector);
     if (soundSelector) wrapper.appendChild(soundSelector);
 
     if (config.isMaster) {

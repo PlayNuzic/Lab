@@ -332,6 +332,338 @@ describe('TimelineAudio (new engine)', () => {
     expect(typeof when).toBe('number');
   });
 
+  test('voice events with own channel skip the reactive accent fallback (F4)', () => {
+    const audio = new TimelineAudio();
+    audio._schedulePlayerStart = jest.fn();
+    audio._buffers = new Map([['seleccionados', { buffer: {} }]]);
+    // Canal propi → l'àudio surt pre-agendat de _scheduleVoiceAudio; el
+    // camí reactiu no ha de doblar-lo.
+    audio.setVoices([{ id: 'frac-f2', numerator: 4, denominator: 3, channel: 'frac2' }]);
+    audio._handleClockMessage({ type: 'voice', id: 'frac-f2', index: 1 });
+    expect(audio._schedulePlayerStart).not.toHaveBeenCalled();
+  });
+
+  test('setVoices strips channel before posting to the worklet (F4)', async () => {
+    const audio = new TimelineAudio();
+    await audio.ready();
+    workletMock.port.postMessage.mockClear();
+    audio.setVoices([{ id: 'frac-f2', numerator: 1, denominator: 3, channel: 'frac2' }]);
+    expect(workletMock.port.postMessage).toHaveBeenCalledWith({
+      action: 'setVoices',
+      voices: [{ id: 'frac-f2', numerator: 1, denominator: 3 }]
+    });
+    expect(audio._voiceDefs.get('frac-f2').channel).toBe('frac2');
+  });
+
+  test('voice audio is pre-scheduled on its own channel bus (F4)', async () => {
+    const audio = new TimelineAudio();
+    audio._initPlayers = jest.fn().mockResolvedValue();
+    await audio.ready();
+    audio._buffers = new Map([['cycle', { buffer: {} }]]);
+    audio.setVoices([{ id: 'frac-f2', numerator: 1, denominator: 3, channel: 'frac2' }]);
+    const spy = jest.spyOn(audio, '_schedulePlayerStart').mockImplementation(() => {});
+    audio._patternBeats = 4;
+    audio.totalRef = 5; // single-shot: pols final inclòs però sense subdivisió
+
+    // Segment [0, 1): període 1/3 → esdeveniments a 0, 1/3 i 2/3
+    audio._scheduleVoiceAudio({ stepIndex: 0, sampleWhen: 10, segDur: 0.5, absStep: 0 });
+    const calls = spy.mock.calls.filter(([key]) => key === 'cycle');
+    expect(calls.length).toBe(3);
+    expect(calls[0][1]).toBeCloseTo(10);
+    expect(calls[1][1]).toBeCloseTo(10 + 0.5 / 3);
+    expect(calls[2][1]).toBeCloseTo(10 + 1 / 3);
+    const bus = audio._voiceBuses.get('frac2');
+    expect(bus).toBeTruthy();
+    expect(calls.every((call) => call[4] === bus)).toBe(true);
+
+    // Pols final (stepIndex = patternBeats): cap so de subdivisió, com el
+    // camí de cicle legacy (cycleEventBeats talla a beat < pattern).
+    spy.mockClear();
+    audio._scheduleVoiceAudio({ stepIndex: 4, sampleWhen: 12, segDur: 0.5, absStep: 4 });
+    expect(spy).not.toHaveBeenCalled();
+
+    // Canal silenciat al mixer → res s'agenda (paritat amb el cicle legacy)
+    spy.mockClear();
+    audio._mixerChannelMuted = new Map([['frac2', true]]);
+    audio._scheduleVoiceAudio({ stepIndex: 1, sampleWhen: 11, segDur: 0.5, absStep: 1 });
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  test('setCycleChannel re-routes the cycle mute mapping (F4)', async () => {
+    const audio = new TimelineAudio();
+    await audio.ready();
+    audio.setCycleChannel('frac1');
+    audio._applyMixerState({
+      master: { volume: 0.8, effectiveMuted: false },
+      channels: [
+        { id: 'subdivision', volume: 0.75, effectiveMuted: false },
+        { id: 'frac1', volume: 0.5, effectiveMuted: true }
+      ]
+    });
+    expect(audio._cycleMutedForFallback).toBe(true);
+    // El bus de cicle segueix el canal re-apuntat (gain = 0 per mute)
+    expect(audio._bus.cycle.gain.value).toBe(0);
+  });
+
+  test('setSelected accepts { value, channel } entries alongside legacy numbers (F4b)', () => {
+    const audio = new TimelineAudio();
+    // Només números → comportament idèntic al d'abans (cap canal etiquetat)
+    audio.setSelected({ values: [1, 3, 5], resolution: 2 });
+    expect(Array.from(audio.selectedRef)).toEqual([1, 3, 5]);
+    expect(audio._selectedChannels.size).toBe(0);
+    expect(audio._selectedResolution).toBe(2);
+
+    // Barreja: el Set conté tots els valors; el Map només els etiquetats.
+    // Valor repetit amb canals diferents → la primera etiqueta guanya
+    // (cada valor sona per exactament un bus).
+    audio.setSelected({
+      values: [2, { value: 3.5, channel: 'fracSel1' }, { value: 7 }, { value: 3.5, channel: 'fracSel2' }],
+      resolution: 1
+    });
+    expect(Array.from(audio.selectedRef).sort((a, b) => a - b)).toEqual([2, 3.5, 7]);
+    expect(audio._selectedChannels.get(3.5)).toBe('fracSel1');
+    expect(audio._selectedChannels.has(2)).toBe(false);
+    expect(audio._selectedChannels.has(7)).toBe(false);
+  });
+
+  test('selected values with channel are scheduled on their own channel bus (F4b)', async () => {
+    const scheduledTicks = [];
+    const originalSetInterval = global.setInterval;
+    const originalClearInterval = global.clearInterval;
+    global.setInterval = jest.fn((fn) => { scheduledTicks.push(fn); return 123; });
+    global.clearInterval = jest.fn();
+
+    let audio;
+    let spy;
+    try {
+      audio = new TimelineAudio();
+      audio._initPlayers = jest.fn().mockResolvedValue();
+      await audio.ready();
+      audio._buffers = new Map([
+        ['pulso', { buffer: {} }],
+        ['seleccionados', { buffer: {} }]
+      ]);
+      spy = jest.spyOn(audio, '_schedulePlayerStart').mockImplementation(() => {});
+      audio._lookAheadSec = 2;
+
+      // Pas 1 etiquetat (fracSel1), pas 2 legacy (número pelat)
+      await audio.play(8, 0.5, { values: [{ value: 1, channel: 'fracSel1' }, 2], resolution: 1 }, false);
+
+      audio._lastAbsoluteStep = 0;
+      audio._lastPulseTime = audio._ctx.currentTime;
+      audio._zeroOffset = 0;
+      scheduledTicks[0]();
+
+      const selCalls = spy.mock.calls.filter(([key]) => key === 'seleccionados');
+      expect(selCalls.length).toBe(2);
+      // Pas 1 → bus lazy del canal fracSel1 (creat per _ensureVoiceBus)
+      const bus = audio._voiceBuses.get('fracSel1');
+      expect(bus).toBeTruthy();
+      expect(selCalls[0][4]).toBe(bus);
+      // Pas 2 → destination null: _schedulePlayerStart cau al bus legacy
+      // 'seleccionados' (camí intacte per als números)
+      expect(selCalls[1][4] ?? null).toBeNull();
+    } finally {
+      if (audio) audio.stop();
+      if (spy) spy.mockRestore();
+      global.setInterval = originalSetInterval;
+      global.clearInterval = originalClearInterval;
+    }
+  });
+
+  test('selected channel muted in the mixer skips scheduling but keeps the rest (F4b)', async () => {
+    const scheduledTicks = [];
+    const originalSetInterval = global.setInterval;
+    const originalClearInterval = global.clearInterval;
+    global.setInterval = jest.fn((fn) => { scheduledTicks.push(fn); return 123; });
+    global.clearInterval = jest.fn();
+
+    let audio;
+    let spy;
+    try {
+      audio = new TimelineAudio();
+      audio._initPlayers = jest.fn().mockResolvedValue();
+      await audio.ready();
+      audio._buffers = new Map([['seleccionados', { buffer: {} }]]);
+      spy = jest.spyOn(audio, '_schedulePlayerStart').mockImplementation(() => {});
+      audio._lookAheadSec = 2;
+
+      await audio.play(8, 0.5, { values: [{ value: 1, channel: 'fracSel1' }, 2], resolution: 1 }, false);
+      // Canal etiquetat silenciat al mixer → cap font per al pas 1
+      // (paritat amb _scheduleVoiceAudio); el pas 2 legacy segueix sonant.
+      audio._mixerChannelMuted = new Map([['fracSel1', true]]);
+
+      audio._lastAbsoluteStep = 0;
+      audio._lastPulseTime = audio._ctx.currentTime;
+      audio._zeroOffset = 0;
+      scheduledTicks[0]();
+
+      const selCalls = spy.mock.calls.filter(([key]) => key === 'seleccionados');
+      expect(selCalls.length).toBe(1);
+      expect(selCalls[0][4] ?? null).toBeNull();
+      // I el mute no s'ha "suplert" amb el beep de fallback: sense buffer
+      // de pols, els passos base NO seleccionats (0, 3, 4) beepegen com
+      // sempre; el pas 1 (seleccionat amb canal mutat) ha de quedar marcat
+      // com a triggered i NO afegir-ne un quart.
+      expect(audioCtxMock.createOscillator.mock.calls.length).toBe(3);
+    } finally {
+      if (audio) audio.stop();
+      if (spy) spy.mockRestore();
+      global.setInterval = originalSetInterval;
+      global.clearInterval = originalClearInterval;
+    }
+  });
+
+  test('teardown clears selected-channel buses and channel map survives re-set (F4b)', async () => {
+    const audio = new TimelineAudio();
+    await audio.ready();
+    expect(audio._ensureVoiceBus('fracSel2')).toBeTruthy();
+    expect(audio._voiceBuses.size).toBe(1);
+    audio._teardownAudioGraph();
+    expect(audio._voiceBuses.size).toBe(0);
+    // Una selecció nova substitueix el mapa de canals sencer (cap residu)
+    audio.setSelected({ values: [{ value: 4, channel: 'fracSel3' }], resolution: 1 });
+    audio.setSelected({ values: [4], resolution: 1 });
+    expect(audio._selectedChannels.size).toBe(0);
+  });
+
+  test('setChannelSound stores assignments lazily and loads them at init (F4c)', async () => {
+    const audio = new TimelineAudio();
+    // Pre-gest (sense context): només es desa l'assignació
+    await audio.setChannelSound('frac1', 'click3');
+    expect(audio.getChannelSound('frac1')).toBe('click3');
+    expect(audio._buffers.has('channel:frac1')).toBe(false);
+
+    // _initPlayers (dins ready) carrega el buffer de l'override pendent
+    await audio.ready();
+    expect(audio._buffers.has('channel:frac1')).toBe(true);
+
+    // Amb context viu: càrrega immediata
+    await audio.setChannelSound('fracSel2', 'click4');
+    expect(audio._buffers.has('channel:fracSel2')).toBe(true);
+
+    // null/'' elimina l'override (torna al sample de ROL)
+    await audio.setChannelSound('frac1', null);
+    expect(audio.getChannelSound('frac1')).toBeNull();
+    expect(audio._buffers.has('channel:frac1')).toBe(false);
+
+    // El teardown buida els buffers però CONSERVA les assignacions
+    // (es re-carregaran al proper _initPlayers)
+    audio._teardownAudioGraph();
+    expect(audio.getChannelSound('fracSel2')).toBe('click4');
+  });
+
+  test('channel buffer resolution: override wins, role is the fallback (F4c)', () => {
+    const audio = new TimelineAudio();
+    // Sense override → rol
+    expect(audio._resolveChannelBufferKey('frac1', 'cycle')).toBe('cycle');
+    // Override assignat però buffer ENCARA no carregat → rol (cap forat)
+    audio._channelSounds.set('frac2', 'click4');
+    expect(audio._resolveChannelBufferKey('frac2', 'cycle')).toBe('cycle');
+    // Buffer carregat → la clau del canal guanya
+    audio._buffers.set('channel:frac2', { buffer: {} });
+    expect(audio._resolveChannelBufferKey('frac2', 'cycle')).toBe('channel:frac2');
+    // Canal sense channelId (rutes legacy) → rol
+    expect(audio._resolveChannelBufferKey(null, 'pulso')).toBe('pulso');
+  });
+
+  test('voice audio uses the per-channel sample override (F4c)', async () => {
+    const audio = new TimelineAudio();
+    audio._initPlayers = jest.fn().mockResolvedValue();
+    await audio.ready();
+    audio._buffers = new Map([
+      ['cycle', { buffer: {} }],
+      ['channel:frac2', { buffer: {} }]
+    ]);
+    audio._channelSounds.set('frac2', 'click4');
+    audio.setVoices([
+      { id: 'frac-f2', numerator: 1, denominator: 2, channel: 'frac2' },
+      { id: 'frac-f3', numerator: 1, denominator: 2, channel: 'frac3' }
+    ]);
+    const spy = jest.spyOn(audio, '_schedulePlayerStart').mockImplementation(() => {});
+    audio._patternBeats = 4;
+    audio.totalRef = 4;
+
+    audio._scheduleVoiceAudio({ stepIndex: 0, sampleWhen: 10, segDur: 0.5, absStep: 0 });
+    // frac2 (amb override) sona amb el seu sample; frac3 (sense) amb el rol
+    const frac2Calls = spy.mock.calls.filter(([key]) => key === 'channel:frac2');
+    const roleCalls = spy.mock.calls.filter(([key]) => key === 'cycle');
+    expect(frac2Calls.length).toBe(2); // període 1/2 → beats 0 i 0.5
+    expect(roleCalls.length).toBe(2);
+    expect(frac2Calls.every((call) => call[4] === audio._voiceBuses.get('frac2'))).toBe(true);
+    expect(roleCalls.every((call) => call[4] === audio._voiceBuses.get('frac3'))).toBe(true);
+  });
+
+  test('pulse, selected and cycle paths resolve channel overrides at schedule time (F4c)', async () => {
+    const scheduledTicks = [];
+    const originalSetInterval = global.setInterval;
+    const originalClearInterval = global.clearInterval;
+    global.setInterval = jest.fn((fn) => { scheduledTicks.push(fn); return 123; });
+    global.clearInterval = jest.fn();
+
+    let audio;
+    let spy;
+    try {
+      audio = new TimelineAudio();
+      audio._initPlayers = jest.fn().mockResolvedValue();
+      await audio.ready();
+      audio._buffers = new Map([
+        ['pulso', { buffer: {} }],
+        ['seleccionados', { buffer: {} }],
+        ['cycle', { buffer: {} }],
+        ['channel:pulse', { buffer: {} }],
+        ['channel:accent', { buffer: {} }],
+        ['channel:fracSel1', { buffer: {} }],
+        ['channel:frac1', { buffer: {} }]
+      ]);
+      audio._channelSounds = new Map([
+        ['pulse', 'click3'],
+        ['accent', 'click5'],
+        ['fracSel1', 'click4'],
+        ['frac1', 'click6']
+      ]);
+      audio.setCycleChannel('frac1');
+      spy = jest.spyOn(audio, '_schedulePlayerStart').mockImplementation(() => {});
+      audio._lookAheadSec = 2;
+
+      // Pas 1 etiquetat (fracSel1) + pas 2 legacy (canal 'accent')
+      await audio.play(8, 0.5, { values: [{ value: 1, channel: 'fracSel1' }, 2], resolution: 1 }, false);
+      audio._cycleConfig = { numerator: 1, denominator: 2 };
+      audio._lastAbsoluteStep = 0;
+      audio._lastPulseTime = audio._ctx.currentTime;
+      audio._zeroOffset = 0;
+      scheduledTicks[0]();
+
+      // Pols base → override del canal 'pulse' pel bus de pols
+      const pulseCalls = spy.mock.calls.filter(([key]) => key === 'channel:pulse');
+      expect(pulseCalls.length).toBeGreaterThan(0);
+      expect(spy.mock.calls.some(([key]) => key === 'pulso')).toBe(false);
+      expect(pulseCalls.every((call) => call[4] === audio._bus.pulso)).toBe(true);
+
+      // Selecció legacy → override del canal 'accent' pel bus de seleccionats
+      const accentCalls = spy.mock.calls.filter(([key]) => key === 'channel:accent');
+      expect(accentCalls.length).toBe(1);
+      expect(accentCalls[0][4]).toBe(audio._bus.seleccionados);
+
+      // Selecció etiquetada → override del seu canal pel bus lazy del canal
+      const selCalls = spy.mock.calls.filter(([key]) => key === 'channel:fracSel1');
+      expect(selCalls.length).toBe(1);
+      expect(selCalls[0][4]).toBe(audio._voiceBuses.get('fracSel1'));
+      expect(spy.mock.calls.some(([key]) => key === 'seleccionados')).toBe(false);
+
+      // Cicle → override del canal de cicle re-apuntat (frac1) pel bus de cicle
+      const cycleCalls = spy.mock.calls.filter(([key]) => key === 'channel:frac1');
+      expect(cycleCalls.length).toBeGreaterThan(0);
+      expect(spy.mock.calls.some(([key]) => key === 'cycle')).toBe(false);
+      expect(cycleCalls.every((call) => call[4] === audio._bus.cycle)).toBe(true);
+    } finally {
+      if (audio) audio.stop();
+      if (spy) spy.mockRestore();
+      global.setInterval = originalSetInterval;
+      global.clearInterval = originalClearInterval;
+    }
+  });
+
   test('play keeps interval tied to base pulses', async () => {
     const scheduledTicks = [];
     const originalSetInterval = global.setInterval;

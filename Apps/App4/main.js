@@ -367,8 +367,42 @@ notationPanelController = createNotationPanelController({
 });
 
 // Canals registrats al motor (TimelineAudio constructor);
-// setupAudioDefaults dins initAudio() els personalitza via RHYTHM_FULL.
+// setupAudioDefaults dins initAudio() els personalitza.
 const globalMixer = getMixer();
+
+// F4: un canal de mixer per SLOT de fracció (estables per slot, mai per
+// ordre d'activació). L'àudio de cada fracció activa hi surt sempre pel seu:
+// la primera activa via el bus de cicle re-apuntat (setCycleChannel) i la
+// resta via veus polirítmiques amb `channel` propi. El canal 'subdivision'
+// del motor queda sense ús a App4 (ni menú ni so).
+const FRACTION_MIXER_CHANNELS = [
+  { id: 'frac1', label: 'Fracció 1', allowSolo: true },
+  { id: 'frac2', label: 'Fracció 2', allowSolo: true },
+  { id: 'frac3', label: 'Fracció 3', allowSolo: true }
+];
+const FRACTION_CHANNEL_IDS = FRACTION_MIXER_CHANNELS.map((channel) => channel.id);
+const fractionChannelForSlot = (slotId) => `frac${String(slotId).replace(/^f/, '')}`;
+
+// F4b: cada slot té, a més, un canal per als pulsos fraccionats que l'usuari
+// ha SELECCIONAT sobre la graella d'aquella fracció ("Fracció N sel."). Els
+// pulsos sencers seleccionats segueixen al canal global 'accent'
+// ("Seleccionado"). El so és el mateix sample d'accent per a tots: només
+// canvia el fader/mute que els governa.
+const FRACTION_SELECTED_MIXER_CHANNELS = [
+  { id: 'fracSel1', label: 'Fracció 1 sel.', allowSolo: true },
+  { id: 'fracSel2', label: 'Fracció 2 sel.', allowSolo: true },
+  { id: 'fracSel3', label: 'Fracció 3 sel.', allowSolo: true }
+];
+const FRACTION_SELECTED_CHANNEL_IDS = FRACTION_SELECTED_MIXER_CHANNELS.map((channel) => channel.id);
+const fractionSelectedChannelForSlot = (slotId) => `fracSel${String(slotId).replace(/^f/, '')}`;
+// F4b: grup que governa el toggle "Seleccionado" del header — el canal
+// global de sencers + els tres canals de seleccionats fraccionats.
+const SELECTED_GROUP_CHANNEL_IDS = ['accent', ...FRACTION_SELECTED_CHANNEL_IDS];
+
+// Registre immediat al singleton: els toggles d'àudio i el menú del mixer
+// han de poder silenciar-los abans que el motor existeixi (gest del Play).
+[...FRACTION_MIXER_CHANNELS, ...FRACTION_SELECTED_MIXER_CHANNELS]
+  .forEach(({ id, ...meta }) => globalMixer.registerChannel(id, meta));
 
 const FRACTION_NUMERATOR_KEY = 'n';
 const FRACTION_DENOMINATOR_KEY = 'd';
@@ -387,6 +421,42 @@ setupMutePersistence({
   storage: preferenceStorage,
   getAudioInstance: () => audio,
   muteButton
+});
+
+// F4c: cada canal del mixer (tots menys Master) té el seu selector
+// d'instrument al propi menú. Persistència per canal a `sound:<canal>`
+// (preferenceStorage → 'app4:sound:<canal>'); el motor rep l'override via
+// audio.setChannelSound. PRECEDÈNCIA del sample d'un canal: override del
+// mixer > sample de ROL que fixen els selects dev del header
+// (Base/Pulso/Fracciones, que segueixen sent els fixadors de DEFAULTS).
+const MIXER_SOUND_CHANNEL_IDS = [
+  'pulse', 'accent',
+  ...FRACTION_CHANNEL_IDS.flatMap((id, i) => [id, FRACTION_SELECTED_CHANNEL_IDS[i]])
+];
+
+// Default del selector = valor actual del ROL del canal (el que mostren els
+// selects dev del header), llegit de les seves claus RAW de localStorage
+// (compartides entre apps, sense prefix): Pulso→base, Fracció N→cycle,
+// Seleccionado i Fracció N sel.→accent.
+function mixerSoundDefault(channelId) {
+  const read = (key, fallback) => {
+    try { return localStorage.getItem(key) || fallback; } catch { return fallback; }
+  };
+  if (channelId === 'pulse') return read('baseSound', 'click9');
+  if (FRACTION_CHANNEL_IDS.includes(channelId)) return read('cycleSound', 'click10');
+  return read('accentSound', 'click8'); // accent + fracSel1/2/3
+}
+
+// Afegeix el selector d'instrument al config d'un canal d'initMixerMenu
+// (còpia: els arrays FRACTION_* es comparteixen amb setupAudioDefaults i
+// registerChannel i han de quedar nets de camps d'UI).
+const withMixerSoundSelector = (channel) => ({
+  ...channel,
+  soundSelector: {
+    storageKey: storeKey(`sound:${channel.id}`),
+    eventType: `app4Sound:${channel.id}`,
+    defaultValue: mixerSoundDefault(channel.id)
+  }
 });
 
 const randomControls = {
@@ -513,7 +583,8 @@ function getFirstActiveSlot() {
 }
 
 // Fracció "principal" per a la resta de l'app: la PRIMERA activa (F1>F2>F3).
-// TODO(F4): l'àudio passarà a una veu per fracció activa (setVoices).
+// F4: l'àudio ja és multi-fracció — la principal pel camí de cicle (canal
+// fracN del seu slot via setCycleChannel) i la resta com a veus (setVoices).
 // TODO(F5): la visualització passarà a anells concèntrics multi-fracció;
 // fins llavors timeline/selecció/notació segueixen sobre aquesta única fracció.
 function getFraction() {
@@ -522,18 +593,43 @@ function getFraction() {
   return slot.controller.getFraction();
 }
 
-// Fraccions actives amb valors vàlids + numerador reduït (per al cicle gran
-// i, més endavant, per a les veus d'àudio de F4 i els anells de F5).
+// Fraccions actives amb valors vàlids + numerador reduït (per al cicle gran)
+// + id del slot (per a les veus d'àudio F4 i els anells F5). L'ordre és el
+// dels slots: la primera entrada és sempre la fracció "principal".
 function getActiveFractions() {
   return fractionSlots
     .filter((slot) => slot.added && slot.active && slot.controller)
-    .map((slot) => slot.controller.getFraction())
+    .map((slot) => ({ id: slot.id, ...slot.controller.getFraction() }))
     .filter(isValidFractionPair)
-    .map(({ numerator, denominator }) => ({
+    .map(({ id, numerator, denominator }) => ({
+      id,
       numerator,
       denominator,
       reducedNumerator: numerator / gcd(numerator, denominator)
     }));
+}
+
+// F4b: regla de mapatge selecció fraccionada → slot. Una selecció guarda el
+// n/d LITERAL (sense reduir) de la graella on es va fer: pulsesPerCycle = n
+// del slot i denominator = d del slot (vegeu timeline-renderer, que estampa
+// dataset.pulsesPerCycle als hits). Es compara LITERALMENT amb els slots
+// actius en ordre F1>F2>F3 (una selecció 2/4 NO casa amb un slot que mostra
+// 1/2):
+//   1. pulsesPerCycle i denominator coincideixen → canal fracSelN del slot.
+//   2. pulsesPerCycle desconegut (entrades antigues de memòria) → primer
+//      slot actiu amb el mateix denominator.
+//   3. cap coincidència → null: la selecció queda sense etiqueta i sona pel
+//      canal global 'accent' (comportament legacy).
+function selectionChannelForFraction(item, activeFractions) {
+  if (!item || !Array.isArray(activeFractions) || !activeFractions.length) return null;
+  const den = Number(item.denominator);
+  if (!(Number.isFinite(den) && den > 0)) return null;
+  const num = Number.isFinite(item.pulsesPerCycle) && item.pulsesPerCycle > 0
+    ? Number(item.pulsesPerCycle)
+    : null;
+  const slot = activeFractions.find((fraction) => fraction.denominator === den
+    && (num == null || fraction.numerator === num));
+  return slot ? fractionSelectedChannelForSlot(slot.id) : null;
 }
 
 // Cicle gran = mcm dels numeradors reduïts de les fraccions actives; 1 si
@@ -988,6 +1084,12 @@ function setFractionSelected(info, shouldSelect) {
 function computeAudioSchedulingState() {
   const lg = parseInt(inputLg.value);
   const v = parseFloat(inputV.value);
+  // F4: la primera fracció activa sona pel camí de cicle LEGACY (pre-agenda
+  // + missatges 'cycle' del worklet alineats a la mesura, que també guien
+  // els highlights); la resta d'actives sonen com a VEUS polirítmiques amb
+  // canal de mixer propi. Cada slot surt sempre pel seu canal fracN.
+  const activeFractions = getActiveFractions();
+  const firstActive = activeFractions[0] || null;
   const { numerator, denominator } = getFraction();
 
   const validLg = Number.isFinite(lg) && lg > 0;
@@ -1032,7 +1134,28 @@ function computeAudioSchedulingState() {
     ? { numerator: cycleNumerator, denominator: cycleDenominator, onTick: highlightCycle }
     : null;
 
+  // Canal de mixer de la fracció principal (re-apunta el bus de cicle del
+  // motor); null = cap fracció activa → el motor manté 'subdivision'.
+  const cycleChannel = firstActive ? fractionChannelForSlot(firstActive.id) : null;
+
+  // Veus: una per fracció activa MENYS la primera (que ja és el cicle).
+  // n/d en RAW, no reduïts: el període n/d és idèntic, però l'índex de tick
+  // del worklet només mapeja 1:1 amb la graella de subdivisions (cicle ×
+  // denominador) que faran servir els anells de F5 si d és el d original.
   const voices = [];
+  if (validLg) {
+    activeFractions.slice(1).forEach((fraction) => {
+      // Mateixa guarda que hasCycle: si el cicle (raw) no cap dins Lg, la
+      // fracció no genera so (paritat amb el comportament de la principal).
+      if (Math.floor(lg / fraction.numerator) <= 0) return;
+      voices.push({
+        id: `frac-${fraction.id}`,
+        numerator: fraction.numerator,
+        denominator: fraction.denominator,
+        channel: fractionChannelForSlot(fraction.id)
+      });
+    });
+  }
 
   return {
     resolution,
@@ -1040,7 +1163,12 @@ function computeAudioSchedulingState() {
     interval,
     patternBeats,
     cycleConfig,
+    cycleChannel,
     voices,
+    // F4b: les fraccions actives (id de slot + n/d raw) també les consumeix
+    // selectedForAudioFromState per etiquetar cada selecció fraccionada amb
+    // el canal fracSelN del seu slot.
+    activeFractions,
     validLg,
     validV,
     grid,
@@ -1070,13 +1198,20 @@ function selectedForAudioFromState({ scheduling } = {}) {
       audio: audioSet
     };
   }
+  // F4b: valor escalat → canal de mixer (null = canal global 'accent').
+  // Es construeix com a Map per deduplicar: si dues seleccions cauen al
+  // mateix índex de graella, la primera mana i el valor sona UN sol cop.
+  const audioValueChannels = new Map();
+  const activeFractions = Array.isArray(state?.activeFractions)
+    ? state.activeFractions
+    : getActiveFractions();
   const maxIdx = Math.min(lg, pulseMemory.length - 1);
   for (let i = 1; i <= maxIdx; i++) {
     if (pulseMemory[i]) {
       baseSet.add(i);
       const scaled = i * scale;
       combinedSet.add(scaled);
-      audioSet.add(scaled);
+      audioValueChannels.set(scaled, null);
     }
   }
   const epsilon = 1e-6;
@@ -1098,8 +1233,18 @@ function selectedForAudioFromState({ scheduling } = {}) {
     const scaled = Math.round(item.value * scale);
     if (Math.abs(scaled / scale - item.value) <= epsilon) {
       combinedSet.add(scaled);
-      audioSet.add(scaled);
+      // F4b: etiqueta la selecció amb el canal fracSelN del seu slot
+      // (selectionChannelForFraction); sense slot actiu → 'accent' legacy.
+      if (!audioValueChannels.has(scaled)) {
+        audioValueChannels.set(scaled, selectionChannelForFraction(item, activeFractions));
+      }
     }
+  });
+  // Els sencers viatgen com a números legacy ('accent'); els fraccionats
+  // amb slot, com a objectes { value, channel } que el motor enruta al bus
+  // del canal (vegeu normalizeSelection a libs/sound/index.js).
+  audioValueChannels.forEach((channel, value) => {
+    audioSet.add(channel ? { value, channel } : value);
   });
   return {
     base: baseSet,
@@ -1129,26 +1274,23 @@ function applySelectionToAudio({ scheduling, instance } = {}) {
   return selection;
 }
 
+// F4: handlers visuals per als ticks de veu del worklet. Les veus són les
+// fraccions actives NO principals i el timeline encara només dibuixa la
+// principal — que s'il·lumina pel camí de cicle legacy (cycleConfig.onTick →
+// highlightCycle, alineat a la mesura pel worklet). Per tant, de moment cap
+// veu registra handler: handleVoiceEvent és un no-op per a totes.
+// TODO(F5): quan hi hagi anells concèntrics, registrar aquí un handler per
+// veu (createCycleVoiceHandler ja reconstrueix cicle/subdivisió des de
+// l'índex de tick) que il·lumini el punt corresponent del seu anell.
 function updateVoiceHandlers({ scheduling } = {}) {
   voiceHighlightHandlers.clear();
   if (!scheduling || !Array.isArray(scheduling.voices)) return;
-  const voices = scheduling.voices;
-  const grid = scheduling.grid;
-  const cycles = Number.isFinite(grid?.cycles) ? grid.cycles : null;
-  voices.forEach((voice) => {
-    if (!voice || !voice.id) return;
-    const numerator = Number(voice.numerator);
-    const denominator = Number(voice.denominator);
-    if (!(Number.isFinite(numerator) && numerator > 0 && Number.isFinite(denominator) && denominator > 0)) {
-      return;
-    }
-    if (voice.id.startsWith('cycle-') && Number.isFinite(cycles) && cycles > 0) {
-      const handler = createCycleVoiceHandler({ numerator, denominator, cycles });
-      if (handler) voiceHighlightHandlers.set(voice.id, handler);
-    }
-  });
 }
 
+// Reconstrueix { cycleIndex, subdivisionIndex } des de l'índex de tick d'una
+// veu i dispara highlightCycle. Sense consumidors fins F5 (vegeu el TODO de
+// updateVoiceHandlers); es conserva perquè és l'adaptador tick→highlight
+// que faran servir els anells.
 function createCycleVoiceHandler({ numerator, denominator, cycles }) {
   const totalCycles = Math.max(1, Math.floor(cycles));
   const epsilon = 1e-6;
@@ -1450,7 +1592,7 @@ attachHover(randDMax, { text: 'Máximo denominador' });
 attachHover(randComplexToggle, { text: 'Permitir fracciones complejas' });
 if (pulseToggleBtn) attachHover(pulseToggleBtn, { text: 'Activar o silenciar el pulso' });
 if (selectedToggleBtn) attachHover(selectedToggleBtn, { text: 'Activar o silenciar la selección' });
-if (cycleToggleBtn) attachHover(cycleToggleBtn, { text: 'Activar o silenciar la subdivisión' });
+if (cycleToggleBtn) attachHover(cycleToggleBtn, { text: 'Activar o silenciar las fracciones' });
 
 
 const PULSE_AUDIO_KEY = 'pulseAudio';
@@ -1482,19 +1624,30 @@ const audioToggleManager = initAudioToggles({
       id: 'accent',
       button: selectedToggleBtn,
       storageKey: SELECTED_AUDIO_KEY,
-      mixerChannel: 'accent',
-      defaultEnabled: true
+      defaultEnabled: true,
+      // F4b: el toggle "Seleccionado" del header governa TOTA la selecció
+      // com a GRUP — el canal global 'accent' (pulsos sencers) + els tres
+      // fracSelN (pulsos fraccionats per slot) — mirall del que fa el
+      // toggle de fraccions amb frac1/2/3. Source 'mixer' s'ignora pel
+      // mateix motiu: el menú governa canals individuals i no s'ha de
+      // col·lapsar el seu estat fi.
+      onChange: (enabled, { source } = {}) => {
+        if (source === 'mixer') return;
+        SELECTED_GROUP_CHANNEL_IDS.forEach((id) => globalMixer.setChannelMute(id, !enabled));
+      }
     },
     {
       id: 'cycle',
       button: cycleToggleBtn,
       storageKey: CYCLE_AUDIO_KEY,
-      mixerChannel: 'subdivision',
       defaultEnabled: true,
-      onChange: (enabled) => {
-        if (audio && typeof audio.setCycleEnabled === 'function') {
-          audio.setCycleEnabled(enabled);
-        }
+      // F4: el toggle "Subdivisión" del header governa TOTES les fraccions
+      // — silencia els tres canals fracN (cicle de la principal + veus).
+      // Amb source 'mixer' no es re-empeny res: el menú del mixer governa
+      // canals individuals i no s'ha de col·lapsar el seu estat fi.
+      onChange: (enabled, { source } = {}) => {
+        if (source === 'mixer') return;
+        FRACTION_CHANNEL_IDS.forEach((id) => globalMixer.setChannelMute(id, !enabled));
       }
     }
   ],
@@ -1508,11 +1661,16 @@ const audioToggleManager = initAudioToggles({
     if (!snapshot || !Array.isArray(snapshot.channels)) return;
     const soloActive = snapshot.channels.some((channel) => channel.solo);
     const channelPairs = [
-      ['pulse', 'pulse'],
-      ['accent', 'accent'],
-      ['cycle', 'subdivision']
+      ['pulse', 'pulse']
     ];
     const toggleByChannel = new Map(channelPairs.map(([toggleId, channelId]) => [channelId, toggleId]));
+    // F4/F4b: els toggles 'cycle' i 'accent' espellegen GRUPS de canals;
+    // entrades sintètiques al set de solo-mute perquè la restauració final
+    // els trobi.
+    const FRACTION_GROUP_KEY = 'fracGroup';
+    const SELECTED_GROUP_KEY = 'selGroup';
+    toggleByChannel.set(FRACTION_GROUP_KEY, 'cycle');
+    toggleByChannel.set(SELECTED_GROUP_KEY, 'accent');
 
     channelPairs.forEach(([toggleId, channelId]) => {
       const channelState = channels.get(channelId);
@@ -1540,6 +1698,36 @@ const audioToggleManager = initAudioToggles({
       if (getState(toggleId) === shouldEnable) return;
       setFromMixer(toggleId, shouldEnable);
     });
+
+    // F4/F4b: grups de canals → toggle. Encès si ALGUN canal del grup no
+    // està mutat manualment; un solo aliè que els força tots el posa OFF
+    // transitòriament (sense persistir), com el camí per-canal de dalt.
+    const syncGroupToggle = (groupKey, toggleId, channelIds) => {
+      const states = channelIds
+        .map((channelId) => channels.get(channelId))
+        .filter(Boolean);
+      if (!states.length) return;
+      const forcedBySolo = soloActive
+        && states.every((ch) => !ch.solo && ch.effectiveMuted && !ch.muted);
+      if (forcedBySolo) {
+        if (!soloMutedChannels.has(groupKey)) {
+          soloMutedChannels.add(groupKey);
+          setFromMixer(toggleId, false);
+        }
+      } else if (!soloActive && soloMutedChannels.has(groupKey)) {
+        soloMutedChannels.delete(groupKey);
+        setFromMixer(toggleId, true);
+      } else if (!(soloActive && soloMutedChannels.has(groupKey))) {
+        const shouldEnable = states.some((ch) => !ch.muted);
+        if (getState(toggleId) !== shouldEnable) {
+          setFromMixer(toggleId, shouldEnable);
+        }
+      }
+    };
+    // 'cycle' = metrònoms de fracció (frac1/2/3); 'accent' = tota la
+    // selecció (accent global + fracSel1/2/3).
+    syncGroupToggle(FRACTION_GROUP_KEY, 'cycle', FRACTION_CHANNEL_IDS);
+    syncGroupToggle(SELECTED_GROUP_KEY, 'accent', SELECTED_GROUP_CHANNEL_IDS);
 
     if (!soloActive && lastSoloActive && soloMutedChannels.size) {
       soloMutedChannels.forEach((channelId) => {
@@ -1777,7 +1965,27 @@ async function initAudio() {
   if (!audio) {
     audio = await _baseInitAudio();
     if (audio) {
-      setupAudioDefaults(audio, { channels: CHANNEL_TIERS.RHYTHM_FULL });
+      // F4/F4b: pulse + accent del tier estàndard, més els tres canals de
+      // fracció (substitueixen 'subdivision', que App4 ja no fa servir) i
+      // els tres de seleccionats fraccionats.
+      setupAudioDefaults(audio, {
+        channels: [
+          ...CHANNEL_TIERS.RHYTHM_ACCENT,
+          ...FRACTION_MIXER_CHANNELS,
+          ...FRACTION_SELECTED_MIXER_CHANNELS
+        ]
+      });
+    }
+
+    // F4c: restaura els overrides de so per canal triats al mixer
+    // (persistits a 'app4:sound:<canal>'). Aplicats AQUÍ i no al load:
+    // l'àudio neix al primer gest i setChannelSound carrega el buffer
+    // lazy sobre el context acabat de crear.
+    if (typeof audio.setChannelSound === 'function') {
+      MIXER_SOUND_CHANNEL_IDS.forEach((channelId) => {
+        const saved = loadOpt(`sound:${channelId}`);
+        if (saved) audio.setChannelSound(channelId, saved);
+      });
     }
 
     // Apply App4-specific configurations after initialization
@@ -2001,6 +2209,11 @@ const liveTransportPush = createLiveTransportPush({
     }
 
     currentAudioResolution = effectiveResolution;
+    // F4: si la fracció principal ha canviat de slot en viu, re-apunta el
+    // bus de cicle al canal nou abans d'empènyer veus i transport.
+    if (typeof audio.setCycleChannel === 'function') {
+      audio.setCycleChannel(scheduling.cycleChannel || 'subdivision');
+    }
     updateVoiceHandlers({ scheduling: { ...scheduling, voices: effectiveVoices } });
     if (typeof audio.setVoices === 'function') {
       audio.setVoices(effectiveVoices);
@@ -2019,9 +2232,10 @@ const liveTransportPush = createLiveTransportPush({
     if (effectivePatternBeats != null) {
       transportPayload.patternBeats = effectivePatternBeats;
     }
-    if (effectiveCycleConfig) {
-      transportPayload.cycle = effectiveCycleConfig;
-    }
+    // F4: SEMPRE empènyer el cicle — amb zeros quan no hi ha fracció
+    // principal, perquè desactivar-la en viu silenciï el camí de cicle
+    // (sense això el worklet conservaria el n/d antic i seguiria sonant).
+    transportPayload.cycle = effectiveCycleConfig || { numerator: 0, denominator: 0 };
     if (effectiveResolution != null) {
       transportPayload.baseResolution = effectiveResolution;
     }
@@ -2455,6 +2669,10 @@ async function startPlayback(providedAudio) {
   }
 
   currentAudioResolution = effectiveResolution;
+  // F4: el bus de cicle (fracció principal) sona pel canal del seu slot.
+  if (typeof audioInstance.setCycleChannel === 'function') {
+    audioInstance.setCycleChannel(scheduling.cycleChannel || 'subdivision');
+  }
   updateVoiceHandlers({ scheduling: { ...scheduling, voices } });
   if (typeof audioInstance.setVoices === 'function') {
     audioInstance.setVoices(voices);
@@ -2619,14 +2837,27 @@ if (menu && optionsContent) {
 const mixerMenu = document.getElementById('mixerMenu');
 const mixerTriggers = [playBtn, tapBtn].filter(Boolean);
 
+// F4: un fader per fracció (frac1/frac2/frac3) en lloc del antic
+// "Subdivisión" — cada slot de fracció sona sempre pel seu canal.
+// F4b: cada fracció duu el seu fader de seleccionats ADJACENT ("Fracció N
+// sel."): l'usuari pensa per fracció i aïllar-ne una vol dir tocar dos
+// faders veïns.
+// F4c: 'Seleccionado' puja al costat de 'Pulso' — són la parella del pols
+// base (metrònom + sencers seleccionats), mateixa lògica de veïnatge que
+// les parelles de fracció. Ordre: Pulso · Seleccionado · F1 · F1 sel. ·
+// F2 · F2 sel. · F3 · F3 sel. · Master. I cada canal (menys Master) duu
+// el seu selector d'instrument (withMixerSoundSelector).
 initMixerMenu({
   menu: mixerMenu,
   triggers: mixerTriggers,
   channels: [
-    { id: 'pulse',  label: 'Pulso', allowSolo: true },
-    { id: 'subdivision', label: 'Subdivisión',  allowSolo: true },
-    { id: 'accent', label: 'Seleccionado',  allowSolo: true },
-    { id: 'master', label: 'Master',        allowSolo: false, isMaster: true }
+    withMixerSoundSelector({ id: 'pulse',  label: 'Pulso', allowSolo: true }),
+    withMixerSoundSelector({ id: 'accent', label: 'Seleccionado', allowSolo: true }),
+    ...FRACTION_MIXER_CHANNELS.flatMap((channel, index) => [
+      withMixerSoundSelector(channel),
+      withMixerSoundSelector(FRACTION_SELECTED_MIXER_CHANNELS[index])
+    ]),
+    { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
   ]
 });
 

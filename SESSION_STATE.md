@@ -101,10 +101,126 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
         (el try/catch de load/saveRandomConfig s'empassava el ReferenceError
         i la config random no es persistia MAI); ara `app4:random` funciona.
       - Reset: neteja n/d + flags dels 3 slots + cycles → F1-only buida, m=8.
-- [ ] **F4 — Àudio polirítmic**: scheduling.voices amb una veu per fracció
-      activa (API setVoices ja existent — App4 té el handler esquelet
-      updateVoiceHandlers mai usat); canals de mixer dinàmics per fracció
-      amb nom/color. SENSE tocar fitxers d'alt risc.
+- [x] **F4 — Àudio polirítmic** ✅ (codi fet, pendent de commit; verificat
+      amb CDP headless: clic CONFIAT de Play, F1=1/2 + F2=1/3 a loop,
+      toggles en viu de F2 i de F1 (canvi de principal), stop net, consola
+      neta; suite 73/1395 verda). Decisions:
+      - **Híbrid per qualitat** (àudio > simetria): la PRIMERA fracció
+        activa segueix el camí de cicle LEGACY (pre-agenda al lookahead +
+        missatges 'cycle' del worklet alineats a la mesura → highlights i
+        getVisualState().cycle intactes); la resta d'actives són VEUS
+        (setVoices, ids `frac-f2`/`frac-f3` estables per slot) amb àudio
+        pre-agendat al MATEIX lookahead — nou `_scheduleVoiceAudio` a
+        libs/sound/index.js, mateixa matemàtica de segment (segDur via
+        `_stepTime`) i epsilon 1e-9 que el cicle, sample 'cycle' per a totes.
+        "Tot veus" es va descartar: el worklet re-ancora la fase de les veus
+        a cada setVoices (countdown 0 → tick immediat) i el push en viu
+        n'envia un a cada edició — els highlights de la principal haurien
+        quedat desfasats; el cicle es realinea amb measurePhaseBeats.
+      - **Canals de mixer per SLOT**: frac1/frac2/frac3 ("Fracció 1/2/3"),
+        registrats al singleton a l'init del mòdul (els toggles poden mutar
+        abans del motor); el bus de cicle es re-apunta al canal del slot
+        principal amb el NOU `setCycleChannel` (additiu; default
+        'subdivision' intacte per a la resta d'apps). 'subdivision' queda
+        sense ús a App4: fora del menú del mixer, cap slider mort.
+      - **libs/sound/index.js** (no és fitxer d'alt risc; el worklet NO s'ha
+        tocat): `_voiceDefs` amb `channel`, busos de veu lazy
+        (`_ensureVoiceBus`, stereo explícit, governats per `_applyMixerState`
+        via `_mixerChannelMuted`), setVoices/addVoice despullen els camps
+        extres abans del postMessage, el fallback reactiu 'seleccionados'
+        SE SALTA les veus amb canal (anti-doble so), fade-out i teardown
+        inclouen els busos nous. +4 tests a la suite del motor.
+      - **Toggle "Subdivisión" del header = grup**: silencia
+        frac1+frac2+frac3 (onChange ignora source 'mixer' per no col·lapsar
+        mutes individuals del menú); sync mixer→toggle com a grup (algun
+        canal no mutat = ON; solo aliè que els força tots = OFF transitori).
+      - **Push en viu**: la mateixa liveTransportPush (250ms) ara empeny
+        setCycleChannel + setVoices + cycle SEMPRE (zeros quan no hi ha
+        principal — sense això, desactivar-la en viu deixava sonant el n/d
+        antic al worklet).
+      - **Veus amb n/d RAW** (no reduïts): el període n/d és idèntic, però
+        l'índex de tick només mapeja 1:1 amb la graella cicle×denominador
+        (la dels anells F5) si d és l'original; mateixa guarda que hasCycle
+        (floor(lg/n) > 0) per fracció.
+      - **updateVoiceHandlers**: cap handler visual per ara (la principal
+        s'il·lumina pel camí legacy); `createCycleVoiceHandler` es conserva
+        com a adaptador tick→highlight per als anells (TODO(F5) al codi).
+      - El canal seleccionat (accent) continua sobre la graella de la
+        primera activa (F5 ho generalitzarà). Stop/loop verificats: veus
+        re-enviades a cada startPlayback, `_resetVoicesCountdown` al start
+        del worklet (cap countdown ranci), stop buida `_futureSources`.
+      - **F4b — Canals de seleccionats per fracció** ✅ (codi fet, pendent de
+        commit; suite 73/1399 verda; smoke CDP: pols 2 + fraccions 0.5/1.5
+        amb F1=1/2 → selectedRef {1,3,4} amb {1,3}→fracSel1 i 4 legacy,
+        cycleChannel frac1, bus fracSel1 creat, consola neta — script a
+        /tmp/app4-f4b-smoke.mjs). Decisions:
+        - **6 canals de fracció**: frac1/2/3 (metrònom, F4) + fracSel1/2/3
+          ("Fracció N sel.") per als pulsos fraccionats SELECCIONATS del
+          slot. Els sencers seleccionats segueixen al canal global 'accent'
+          ("Seleccionado"). Mateix sample d'accent per a tots: només canvia
+          el fader/mute. Ordre del menú: Pulso · Fracció 1 · Fracció 1 sel.
+          · Fracció 2 · Fracció 2 sel. · Fracció 3 · Fracció 3 sel. ·
+          Seleccionado · Master (parella metrònom+selecció adjacent per
+          fracció: aïllar-ne una = dos faders veïns).
+        - **Motor (libs/sound/index.js, additiu)**: setSelected/play
+          accepten entrades número (legacy → bus 'seleccionados', INTACTE)
+          o objecte `{ value, channel }` → `normalizeSelection` separa Set
+          de valors + Map valor→canal (`_selectedChannels`); al tick del
+          scheduler la selecció amb canal s'agenda al bus lazy del canal
+          (`_ensureVoiceBus`, governat per `_applyMixerState`), canal mutat
+          → no s'agenda font però `triggered=true` (cap beep supletori);
+          valor duplicat → primera etiqueta guanya (un valor = exactament
+          un bus). `toSet` mort, eliminat. +4 tests (normalització,
+          routing, mute-skip, teardown).
+        - **Regla de mapatge selecció→slot** (selectionChannelForFraction):
+          una selecció guarda el n/d LITERAL de la graella on es va fer
+          (pulsesPerCycle = n del slot, denominator = d, sense reduir);
+          es compara literalment amb els slots actius en ordre F1>F2>F3
+          (2/4 NO casa amb 1/2); pulsesPerCycle absent (memòria antiga) →
+          primer slot actiu amb el mateix d; cap match → sense etiqueta →
+          'accent' legacy. L'etiquetatge viu a selectedForAudioFromState
+          (computeAudioSchedulingState ara exposa activeFractions) i flueix
+          també pel push en viu (applySelectionToAudio → setSelected).
+        - **Toggle "Seleccionado" del header = grup**: silencia
+          accent+fracSel1/2/3 (mirall del toggle "fracciones" de F4, source
+          'mixer' ignorat); sync mixer→toggle factoritzat a syncGroupToggle
+          (mateixa semàntica de solo transitori per als dos grups).
+      - **F4c — Veu pròpia per canal al mixer** ✅ (codi fet, pendent de
+        commit; suite 73/1403 verda; smoke CDP a /tmp/app4-f4c-smoke.mjs:
+        ordre de canals, 8 selectors, canvi de "Fracció 1"→Sticks amb
+        persistència + override al motor, restauració després del reload,
+        consola neta). Decisions:
+        - **Ordre del menú**: Pulso · Seleccionado · F1 · F1 sel. · F2 ·
+          F2 sel. · F3 · F3 sel. · Master — 'Seleccionado' puja al costat
+          de 'Pulso' (parella del pols base: metrònom + sencers
+          seleccionats, mateixa lògica de veïnatge que les parelles de
+          fracció de F4b).
+        - **Selector d'instrument per canal** (tots menys Master) DINS del
+          mixer (superfície d'alumne; el header és dev-only):
+          mixer-menu.js accepta `soundSelector` opcional al config del
+          canal `{ storageKey, eventType?, defaultValue?, apply? }` —
+          reutilitza initSoundDropdown (preview + commit/cancel idèntics
+          al header); apply default = `audio.setChannelSound(id, v)`.
+          Apps sense `soundSelector` → zero canvi (CHANNEL_SOUND segueix).
+        - **Motor (libs/sound/index.js, additiu)**:
+          `setChannelSound(channelId, sampleKey)` / `getChannelSound` —
+          mapa `_channelSounds` (sobreviu el teardown; buffers
+          `channel:<id>` re-carregats a `_initPlayers`, càrrega lazy si
+          encara no hi ha context). Resolució en TEMPS D'AGENDA via
+          `_resolveChannelBufferKey(channelId, roleKey)` als 4 camins:
+          pols base ('pulse'), seleccionats legacy ('accent'),
+          seleccionats etiquetats (fracSelN), cicle (_cycleChannelId) i
+          veus (_scheduleVoiceAudio) — destination explícit quan hi ha
+          override (les claus 'channel:*' no passen per
+          _resolveBusForSampleKey). Override sense buffer carregat → rol
+          (mai forats d'àudio). +4 tests.
+        - **PRECEDÈNCIA**: override per canal del mixer > sample de ROL
+          (setBase/setAccent/setCycle — els selects dev del header queden
+          com a fixadors de DEFAULTS, intactes a index.html).
+        - **Persistència App4**: `app4:sound:<canal>` (initSoundDropdown
+          escriu `storeKey('sound:<id>')`); restauració a initAudio (lazy,
+          cap init d'àudio al load). Defaults del selector = valor RAW
+          actual del rol (baseSound/accentSound/cycleSound).
 - [ ] **F5 — Mòdul `libs/app-common/circular-rings.js`** + tests: N anells
       concèntrics, radi ∝ velocitat (fórmula de dalt), punts/etiquetes
       adaptatius, clic-per-seleccionar, highlight de playback per anell,
@@ -151,7 +267,7 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
   (engine.normalizeSilences — mai silencis al final ni adjacents); l'editor
   els mostra com a caselles buides editables; tota mutació del model passa
   per applySequenceMutation.
-- Suite: 73 suites / 1391 tests — `npm test` després de cada batch; commits
+- Suite: 73 suites / 1399 tests — `npm test` després de cada batch; commits
   amb llista explícita de fitxers (sessions paral·leles comparteixen el repo).
 - Verificació CDP: events de confiança, cache desactivada, perfil net, i
   viewport gran (Emulation.setDeviceMetricsOverride) — un clic sota el fold

@@ -50,6 +50,67 @@ body {
   --unit-label-offset: -20px;
 }
 
+/* ========== MIXER COMPACTE (9 canals) ==========
+   Cada parella metrònom+seleccionats va junta: gap petit de base i
+   marge extra només a l'inici de cada parella nova (frac1/2/3). Les
+   columnes tenen amplada fixa perquè el nom del sample del dropdown
+   no les estiri (ellipsis). */
+body.app4 .mixer-strips {
+  gap: 0.3rem;
+}
+
+body.app4 .mixer-channel[data-channel="frac1"],
+body.app4 .mixer-channel[data-channel="frac2"],
+body.app4 .mixer-channel[data-channel="frac3"] {
+  margin-left: 1.4rem;
+}
+
+body.app4 .mixer-channel {
+  min-width: 0;
+  width: clamp(5rem, 7vw, 6.5rem);
+}
+
+body.app4 .mixer-channel__sound {
+  min-width: 0;
+}
+
+body.app4 .mixer-channel__sound .dropdown-toggle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* La bola del fader de cada parella pren el color d'identitat de la seva
+   fracció (F1 groc, F2 rosa, F3 blau) — mateix codi de color que les
+   caixes d'edició i, a F5, els anells. Pulso/Seleccionado queden foscos
+   (pols base) i Master verd (com sempre). */
+body.app4 .mixer-channel__slider[data-channel="frac1"]::-webkit-slider-thumb,
+body.app4 .mixer-channel__slider[data-channel="fracSel1"]::-webkit-slider-thumb {
+  background: var(--nuzic-yellow, #FFBB33);
+}
+body.app4 .mixer-channel__slider[data-channel="frac1"]::-moz-range-thumb,
+body.app4 .mixer-channel__slider[data-channel="fracSel1"]::-moz-range-thumb {
+  background: var(--nuzic-yellow, #FFBB33);
+}
+
+body.app4 .mixer-channel__slider[data-channel="frac2"]::-webkit-slider-thumb,
+body.app4 .mixer-channel__slider[data-channel="fracSel2"]::-webkit-slider-thumb {
+  background: var(--nuzic-pink, #F28AAD);
+}
+body.app4 .mixer-channel__slider[data-channel="frac2"]::-moz-range-thumb,
+body.app4 .mixer-channel__slider[data-channel="fracSel2"]::-moz-range-thumb {
+  background: var(--nuzic-pink, #F28AAD);
+}
+
+body.app4 .mixer-channel__slider[data-channel="frac3"]::-webkit-slider-thumb,
+body.app4 .mixer-channel__slider[data-channel="fracSel3"]::-webkit-slider-thumb {
+  background: var(--nuzic-blue, #7BB4CD);
+}
+body.app4 .mixer-channel__slider[data-channel="frac3"]::-moz-range-thumb,
+body.app4 .mixer-channel__slider[data-channel="fracSel3"]::-moz-range-thumb {
+  background: var(--nuzic-blue, #7BB4CD);
+}
+
 header.top-bar h1 {
   gap: 0.75rem;
 }
