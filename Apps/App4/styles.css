@@ -404,6 +404,99 @@ pointer-events: none; /* purely visual */
 font-size: 0.9rem; /* Keep same font size */
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * F3: fila de tres fraccions activables dins de .middle.
+ * Cada slot és una columna: punt d'activació (dot) damunt de la caixa de
+ * l'editor; el color d'identitat viu a --slot-color per slot.
+ * ────────────────────────────────────────────────────────────────────────── */
+.fraction-row {
+  display: flex;
+  align-items: flex-end; /* les caixes s'alineen per la base; el dot queda dalt */
+  justify-content: center;
+  gap: clamp(1rem, 3vw, 2rem);
+}
+
+.fraction-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.fraction-slot--hidden {
+  display: none;
+}
+
+/* Colors d'identitat (F1 groc, F2 rosa, F3 blau) */
+.fraction-slot--f1 { --slot-color: var(--nuzic-yellow); }
+.fraction-slot--f2 { --slot-color: var(--nuzic-pink); }
+.fraction-slot--f3 { --slot-color: var(--nuzic-blue); }
+
+/* La caixa n/─/d de l'editor rep la vora del color del slot */
+.fraction-slot .fraction-editor {
+  border: 3px solid var(--slot-color);
+  border-radius: 0.4rem;
+}
+
+/* Slot desactivat: valors preservats però atenuats */
+.fraction-slot--off .fraction-editor {
+  opacity: 0.35;
+}
+
+/* Dot d'activació: ple = actiu, buit = inactiu */
+.fraction-toggle {
+  width: 0.9rem;
+  height: 0.9rem;
+  padding: 0;
+  border: 2px solid var(--slot-color);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.12s ease;
+}
+
+.fraction-toggle[aria-pressed="true"] {
+  background: var(--slot-color);
+}
+
+.fraction-toggle:active {
+  transform: scale(0.9);
+}
+
+/* Slot fantasma "+": mateixes proporcions que una caixa d'editor,
+   vora discontínua i creu gran al centre */
+.fraction-add {
+  width: clamp(3.2rem, 7vw, 4.5rem);
+  height: clamp(5rem, 11vw, 7rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed color-mix(in srgb, var(--nuzic-dark) 40%, transparent);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: color-mix(in srgb, var(--nuzic-dark) 55%, transparent);
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.fraction-add:hover {
+  border-color: var(--nuzic-dark);
+  color: var(--nuzic-dark);
+  background: color-mix(in srgb, var(--nuzic-light) 60%, transparent);
+}
+
+/* Pill Lg com a display calculat (Lg = cicle gran × m): fons "només
+   lectura" subtil. El spinner s'elimina del DOM a initCyclesParam (el tema
+   nuzic força els .spin amb !important; sense spinner la pill cau a la
+   variant buida del tema). La pill Cicles clonada conserva els seus. */
+body.app4 .param.lg .circle input[readonly] {
+  background: var(--nuzic-light);
+  cursor: default;
+}
+
 /**
  * Layout adjustments for timeline wrapper and controls on narrow screens.
  */

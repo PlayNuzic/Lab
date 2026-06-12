@@ -14,12 +14,15 @@ export const fractionDefaults = {
 };
 
 export const randomDefaults = {
-  Lg: { enabled: true, range: [2, 30] },
+  // F3: la fila "Lg" del menú random ara és "Cicles" (m) — Lg es deriva
+  // de cicle gran × m. Els ids randLg* es conserven per evitar més churn.
+  Lg: { enabled: true, range: [1, 8] },
   V: { enabled: true, range: [40, 320] },
   T: { enabled: true, range: [0.1, 20] },
   Pulses: { enabled: true, count: '' },
-  n: { enabled: true, range: [1, 9] },
-  d: { enabled: true, range: [1, 9] }
+  // Rangs del model F3: n ∈ [1,7], d ∈ [1,12]
+  n: { enabled: true, range: [1, 7] },
+  d: { enabled: true, range: [1, 12] }
 };
 
 export function createFractionSelectionStore() {

@@ -67,10 +67,40 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
       - Cap lib compartida tocada (paràmetres pulseSeq* de
         highlight-controller són opcionals). gamification-adapter intacte
         (lookups de #pulseSeq/#fractionInlineSlot amb null-guard).
-- [ ] **F3 — 3 fraccions + model Lg**: array de fraccions amb actiu/valors
-      persistits (`app4:f1..f3`), pill "Cicles (m)", display Lg calculat,
-      validateFractionCombo (cicle ≤ 210, tooltip amb el mcm explicat),
-      random menu adaptat (aleatoritza fraccions actives + m; Lg derivat).
+- [x] **F3 — 3 fraccions + model Lg** ✅ (codi fet, pendent de commit;
+      verificat amb CDP headless: load net, +F2, toggles, 3/2+7/4→Lg=168,
+      mMax=10, persistència entre reloads, consola neta). Decisions:
+      - `fractionSlots[]` de 3 entrades amb editor block per slot (host
+        propi dins `.fraction-row`); F1 conserva les claus LEGACY `app4:n/d`,
+        F2/F3 usen `n2/d2`, `n3/d3`; flags `f1on/f2on/f3on` (defaults 1/0/0).
+        "added" de F2/F3 = flag present O valors n/d guardats (llegit ABANS
+        de crear l'editor: amb startEmpty l'editor neteja les claus a init).
+      - **getFraction() = primera fracció activa AMB valors vàlids**
+        (F1>F2>F3; un slot actiu però buit no compta) — shim fins F4/F5;
+        `getActiveFractions()` exposa numeradors reduïts per al cicle gran.
+        El pipeline prune+renderTimeline+handleInput es dispara quan canvia
+        la SIGNATURA n/d de la primera activa (toggles que no la canvien
+        no re-rendericen).
+      - **Pill "Cicles"** clonada de la d'Lg (mateix crom nuzic), inserida
+        abans; `app4:cycles` default 8. **El spinner d'Lg s'ELIMINA del DOM**
+        (display:none no basta: el tema força els .spin amb !important;
+        sense spinner la pill cau a la variant buida del tema) + readonly
+        amb fons --nuzic-light.
+      - validateFractionCombo com a xarxa de seguretat (inassolible amb
+        n≤7): revert al darrer valor vàlid + tooltip
+        `Cicle gran = mcm(…) = X pulsos > màxim 210` (createInfoTooltip,
+        auto-hide 4s). Per provar-la: abaixar MAX_LG temporalment a main.js.
+      - Random: fila Lg → **Cicles** (ids randLg* conservats); n/d
+        aleatoritzen TOTES les fraccions actives independentment (re-roll
+        ≤20 si combo >210, fallback n=1); V/Pulsos segueixen per
+        randomizeFractional amb shim `{ getFraction }`. randomDefaults:
+        m [1,8], n [1,7], d [1,12].
+      - Editors amb `maxNumerator: 7, maxDenominator: 12` (opcions natives
+        de fraction-editor.js — cap lib tocada).
+      - Bugfix de passada: `RANDOM_STORE_KEY` es referenciava sense definir
+        (el try/catch de load/saveRandomConfig s'empassava el ReferenceError
+        i la config random no es persistia MAI); ara `app4:random` funciona.
+      - Reset: neteja n/d + flags dels 3 slots + cycles → F1-only buida, m=8.
 - [ ] **F4 — Àudio polirítmic**: scheduling.voices amb una veu per fracció
       activa (API setVoices ja existent — App4 té el handler esquelet
       updateVoiceHandlers mai usat); canals de mixer dinàmics per fracció

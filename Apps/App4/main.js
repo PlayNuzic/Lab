@@ -14,7 +14,7 @@ import { reorderControls } from '../../libs/app-common/template.js';
 import { randomize as randomizeValues } from '../../libs/random/index.js';
 import createPulseSeqController from '../../libs/pulse-seq/index.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
-import { parseIntSafe, gcd, lcm } from '../../libs/app-common/number-utils.js';
+import { parseIntSafe, gcd, lcm, randomInt } from '../../libs/app-common/number-utils.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
@@ -147,9 +147,6 @@ function applyFractionInfoBackground(panel) {
   panel.style.backdropFilter = 'blur(8px)';
 }
 
-let numeratorInput;
-let denominatorInput;
-let fractionEditorController = null;
 let currentFractionInfo = createEmptyFractionInfo();
 let pulses = [];
 let pulseNumberLabels = [];
@@ -375,6 +372,10 @@ const globalMixer = getMixer();
 
 const FRACTION_NUMERATOR_KEY = 'n';
 const FRACTION_DENOMINATOR_KEY = 'd';
+// F3: abans aquesta clau es referenciava sense definir (el try/catch de
+// load/saveRandomConfig s'empassava el ReferenceError i la config random
+// no es persistia mai). Definir-la arregla la persistència de passada.
+const RANDOM_STORE_KEY = 'random';
 
 const preferenceStorage = createPreferenceStorage({ prefix: 'app4', separator: ':' });
 const { storeKey, save: saveOpt, load: loadOpt, clear: clearOpt } = preferenceStorage;
@@ -435,35 +436,250 @@ applyRandomConfig();
   randPulsesToggle, randomCount
 ].forEach(el => el?.addEventListener('change', updateRandomConfig));
 
-function getFraction() {
-  if (!fractionEditorController) {
-    return { numerator: null, denominator: null };
+// ───────────────────────────────────────────────────────────────────────────
+// F3: tres fraccions activables (F1 groc, F2 rosa, F3 blau) + model
+// Lg = cicle gran × m. El cicle gran és el mcm dels numeradors REDUÏTS de
+// les fraccions actives (els denominadors no hi influeixen); m ("Cicles")
+// és l'únic control de longitud. MAX_LG = mcm(5,6,7) = 210: el pitjor cas
+// matemàtic amb numeradors ≤ 7 — cap combinació vàlida queda mai bloquejada.
+// Per provar manualment la xarxa de seguretat, abaixar temporalment MAX_LG.
+// ───────────────────────────────────────────────────────────────────────────
+const MAX_LG = 210;
+const CYCLES_KEY = 'cycles';
+const DEFAULT_CYCLES = 8; // amb cicle gran 1 reprodueix el Lg≈8 de sempre
+
+const FRACTION_SLOT_DEFS = [
+  {
+    id: 'f1',
+    label: 'F1',
+    color: 'var(--nuzic-yellow)',
+    numeratorKey: FRACTION_NUMERATOR_KEY,   // claus LEGACY app4:n / app4:d
+    denominatorKey: FRACTION_DENOMINATOR_KEY,
+    activeKey: 'f1on',
+    defaultActive: true
+  },
+  {
+    id: 'f2',
+    label: 'F2',
+    color: 'var(--nuzic-pink)',
+    numeratorKey: 'n2',
+    denominatorKey: 'd2',
+    activeKey: 'f2on',
+    defaultActive: false
+  },
+  {
+    id: 'f3',
+    label: 'F3',
+    color: 'var(--nuzic-blue)',
+    numeratorKey: 'n3',
+    denominatorKey: 'd3',
+    activeKey: 'f3on',
+    defaultActive: false
   }
-  return fractionEditorController.getFraction();
+];
+
+// Estat viu dels tres slots: { id, color, controller, active, added, ... }
+const fractionSlots = [];
+let fractionAddButton = null;
+let isRevertingCombo = false; // evita reentrada del pipeline en revertir
+let lastFirstActiveSignature = null;
+
+// Tooltip d'error de combinació (ancorat al slot culpable, auto-hide)
+const comboErrorTooltip = createInfoTooltip({
+  className: 'fraction-info-bubble auto-tip-below fraction-combo-tip'
+});
+let comboErrorTimer = null;
+
+function showComboError(slot, reducedNums, bigCycle) {
+  const anchor = slot?.elements?.slotEl || document.querySelector('.fraction-row');
+  if (!anchor) return;
+  const text = `Cicle gran = mcm(${reducedNums.join(', ')}) = ${bigCycle} pulsos > màxim ${MAX_LG}`;
+  comboErrorTooltip.show(text, anchor);
+  if (comboErrorTimer) clearTimeout(comboErrorTimer);
+  comboErrorTimer = setTimeout(() => comboErrorTooltip.hide(), 4000);
+}
+
+function isValidFractionPair(fraction) {
+  return !!fraction
+    && Number.isFinite(fraction.numerator) && fraction.numerator > 0
+    && Number.isFinite(fraction.denominator) && fraction.denominator > 0;
+}
+
+// Primer slot actiu AMB valors vàlids (un slot actiu però buit no compta:
+// no aporta fracció ni al timeline ni al cicle gran).
+function getFirstActiveSlot() {
+  return fractionSlots.find((slot) => slot.added && slot.active && slot.controller
+    && isValidFractionPair(slot.controller.getFraction())) || null;
+}
+
+// Fracció "principal" per a la resta de l'app: la PRIMERA activa (F1>F2>F3).
+// TODO(F4): l'àudio passarà a una veu per fracció activa (setVoices).
+// TODO(F5): la visualització passarà a anells concèntrics multi-fracció;
+// fins llavors timeline/selecció/notació segueixen sobre aquesta única fracció.
+function getFraction() {
+  const slot = getFirstActiveSlot();
+  if (!slot) return { numerator: null, denominator: null };
+  return slot.controller.getFraction();
+}
+
+// Fraccions actives amb valors vàlids + numerador reduït (per al cicle gran
+// i, més endavant, per a les veus d'àudio de F4 i els anells de F5).
+function getActiveFractions() {
+  return fractionSlots
+    .filter((slot) => slot.added && slot.active && slot.controller)
+    .map((slot) => slot.controller.getFraction())
+    .filter(isValidFractionPair)
+    .map(({ numerator, denominator }) => ({
+      numerator,
+      denominator,
+      reducedNumerator: numerator / gcd(numerator, denominator)
+    }));
+}
+
+// Cicle gran = mcm dels numeradors reduïts de les fraccions actives; 1 si
+// no n'hi ha cap (l'app es comporta com a pulsos plans).
+function computeBigCycle(actives = getActiveFractions()) {
+  return actives.length
+    ? actives.reduce((acc, f) => lcm(acc, f.reducedNumerator), 1)
+    : 1;
+}
+
+// Cicle gran "hipotètic": permet validar una edició (override d'un slot) o
+// un toggle-ON (forceActiveId) ABANS d'acceptar-los.
+function wouldBeBigCycle({ override = null, forceActiveId = null } = {}) {
+  const reducedNums = [];
+  fractionSlots.forEach((slot) => {
+    const active = slot.id === forceActiveId ? true : (slot.added && slot.active);
+    if (!active || !slot.controller) return;
+    const fraction = (override && override.id === slot.id)
+      ? override.fraction
+      : slot.controller.getFraction();
+    if (!isValidFractionPair(fraction)) return;
+    reducedNums.push(fraction.numerator / gcd(fraction.numerator, fraction.denominator));
+  });
+  const bigCycle = reducedNums.length
+    ? reducedNums.reduce((acc, n) => lcm(acc, n), 1)
+    : 1;
+  return { bigCycle, reducedNums };
+}
+
+function firstActiveFractionSignature() {
+  const slot = getFirstActiveSlot();
+  if (!slot) return 'none';
+  const { numerator, denominator } = slot.controller.getFraction();
+  return `${numerator ?? '-'}_${denominator ?? '-'}`;
+}
+
+// Pipeline comú després de qualsevol canvi d'estructura de fraccions
+// (edició de valors, toggle on/off, afegir slot): recalcula Lg i, si la
+// primera fracció activa ha canviat, poda memòria i re-renderitza.
+function handleFractionLayoutChange() {
+  recomputeLg({ dispatch: false });
+  const signature = firstActiveFractionSignature();
+  if (signature !== lastFirstActiveSignature) {
+    lastFirstActiveSignature = signature;
+    currentFractionInfo = getFirstActiveSlot()?.info || createEmptyFractionInfo();
+    prunePulseMemoryForFraction();
+    renderTimeline();
+  }
+  if (!isUpdating) {
+    handleInput();
+  }
+}
+
+function handleSlotFractionChange(slot, { info, cause }) {
+  if (cause === 'init') {
+    slot.info = info || createEmptyFractionInfo();
+    slot.lastValid = slot.controller ? slot.controller.getFraction() : { numerator: null, denominator: null };
+    return;
+  }
+  if (isRevertingCombo) {
+    slot.info = info || createEmptyFractionInfo();
+    return;
+  }
+  // validateFractionCombo: amb MAX_LG=210 i n≤7 és inassolible (xarxa de
+  // seguretat), però si el cicle gran hipotètic no hi cap, es reverteix
+  // l'edició al darrer valor vàlid i s'explica el mcm al slot.
+  if (slot.added && slot.active) {
+    const { bigCycle, reducedNums } = wouldBeBigCycle();
+    if (bigCycle > MAX_LG) {
+      isRevertingCombo = true;
+      try {
+        slot.controller.setFraction({
+          numerator: slot.lastValid?.numerator ?? null,
+          denominator: slot.lastValid?.denominator ?? null
+        }, { cause: 'combo-revert' });
+      } finally {
+        isRevertingCombo = false;
+      }
+      showComboError(slot, reducedNums, bigCycle);
+      return;
+    }
+  }
+  slot.info = info || createEmptyFractionInfo();
+  slot.lastValid = slot.controller ? slot.controller.getFraction() : slot.lastValid;
+  handleFractionLayoutChange();
+}
+
+// Toggle d'activació d'un slot (el punt rodó). Tornar-lo ON valida la
+// combinació hipotètica; OFF sempre és legal (zero fraccions actives =
+// cicle gran 1, app de pulsos plans).
+function setSlotActive(slot, nextActive, { persist = true, refresh = true } = {}) {
+  if (!slot) return false;
+  if (nextActive && slot.controller) {
+    const { bigCycle, reducedNums } = wouldBeBigCycle({ forceActiveId: slot.id });
+    if (bigCycle > MAX_LG) {
+      showComboError(slot, reducedNums, bigCycle);
+      return false;
+    }
+  }
+  slot.active = !!nextActive;
+  if (slot.elements?.toggleBtn) {
+    slot.elements.toggleBtn.setAttribute('aria-pressed', slot.active ? 'true' : 'false');
+  }
+  slot.elements?.slotEl?.classList.toggle('fraction-slot--off', !slot.active);
+  if (persist) {
+    saveOpt(slot.activeKey, slot.active ? '1' : '0');
+  }
+  if (refresh) {
+    handleFractionLayoutChange();
+  }
+  return true;
+}
+
+function updateFractionAddButton() {
+  if (!fractionAddButton) return;
+  const nextSlot = fractionSlots.find((slot) => !slot.added);
+  fractionAddButton.style.display = nextSlot ? '' : 'none';
+}
+
+// Afegeix el següent slot pendent (clic al "+"): es mostra actiu i buit.
+function addNextFractionSlot() {
+  const slot = fractionSlots.find((s) => !s.added);
+  if (!slot) return;
+  slot.added = true;
+  slot.elements?.slotEl?.classList.remove('fraction-slot--hidden');
+  setSlotActive(slot, true, { persist: true, refresh: true });
+  updateFractionAddButton();
 }
 
 function refreshFractionUI(options = {}) {
-  if (!fractionEditorController) {
-    currentFractionInfo = createEmptyFractionInfo();
-    return currentFractionInfo;
-  }
-  currentFractionInfo = fractionEditorController.refresh(options);
+  let firstActiveInfo = null;
+  fractionSlots.forEach((slot) => {
+    if (!slot.controller) return;
+    const info = slot.controller.refresh(options);
+    slot.info = info || createEmptyFractionInfo();
+    if (!firstActiveInfo && slot.added && slot.active
+      && isValidFractionPair(slot.controller.getFraction())) {
+      firstActiveInfo = slot.info;
+    }
+  });
+  currentFractionInfo = firstActiveInfo || createEmptyFractionInfo();
   return currentFractionInfo;
 }
 
-function initFractionEditorController() {
-  // F2: l'editor de fraccions passa a mode block i s'allotja directament a
-  // `.middle` (patró App26/App28), que arriba buit del template gràcies a
-  // `noMiddleSlot: true` després de retirar l'editor numèric de pulsos.
-  const host = document.querySelector('.middle');
-  if (!host) return;
-
-  if (fractionEditorController && typeof fractionEditorController.destroy === 'function') {
-    fractionEditorController.destroy();
-  }
-  fractionEditorController = null;
-
-  const controller = createFractionEditor({
+function createSlotFractionEditor(slot, host) {
+  return createFractionEditor({
     mode: 'block',
     host,
     defaults: fractionDefaults,
@@ -473,49 +689,213 @@ function initFractionEditorController() {
     // autoReduce el ghost mai es mostra i només seria codi mort.
     autoReduce: true,
     enableGhost: false,
+    // Rangs del model F3: n ∈ [1,7], d ∈ [1,12]
+    maxNumerator: 7,
+    maxDenominator: 12,
     storage: {
       load: loadOpt,
       save: saveOpt,
       clear: clearOpt,
-      numeratorKey: FRACTION_NUMERATOR_KEY,
-      denominatorKey: FRACTION_DENOMINATOR_KEY
+      numeratorKey: slot.numeratorKey,
+      denominatorKey: slot.denominatorKey
     },
     addRepeatPress,
     applyMenuBackground: applyFractionInfoBackground,
     labels: {
       numerator: {
         placeholder: 'n',
-        ariaUp: 'Incrementar numerador',
-        ariaDown: 'Decrementar numerador'
+        ariaUp: `Incrementar numerador ${slot.label}`,
+        ariaDown: `Decrementar numerador ${slot.label}`
       },
       denominator: {
         placeholder: 'd',
-        ariaUp: 'Incrementar denominador',
-        ariaDown: 'Decrementar denominador'
+        ariaUp: `Incrementar denominador ${slot.label}`,
+        ariaDown: `Decrementar denominador ${slot.label}`
       }
     },
-    onChange: ({ info, cause }) => {
-      currentFractionInfo = info || createEmptyFractionInfo();
-      if (cause !== 'init') {
-        // Abans el canvi de fracció passava per sanitizePulseSeq (que podava
-        // els pulsos no seleccionables i re-renderitzava la línia de temps);
-        // sense l'editor numèric, la poda i el re-render es fan directament.
-        prunePulseMemoryForFraction();
-        renderTimeline();
-      }
-      if (!isUpdating && cause !== 'init') {
-        handleInput();
-      }
-    }
+    onChange: (payload) => handleSlotFractionChange(slot, payload)
+  });
+}
+
+function initFractionSlots() {
+  // F2/F3: la fila de fraccions s'allotja a `.middle` (patró App28), que
+  // arriba buit del template gràcies a `noMiddleSlot: true`.
+  const middle = document.querySelector('.middle');
+  if (!middle) return;
+
+  const row = document.createElement('div');
+  row.className = 'fraction-row';
+  middle.appendChild(row);
+
+  FRACTION_SLOT_DEFS.forEach((def) => {
+    // L'estat "afegit"/actiu es deriva ABANS de crear l'editor: amb
+    // startEmpty l'editor neteja les claus n/d guardades en inicialitzar-se.
+    const storedActive = loadOpt(def.activeKey);
+    const hasStoredValues = loadOpt(def.numeratorKey) != null || loadOpt(def.denominatorKey) != null;
+    const added = def.id === 'f1' || storedActive != null || hasStoredValues;
+    const active = storedActive != null
+      ? storedActive === '1'
+      : (def.defaultActive && added);
+
+    const slotEl = document.createElement('div');
+    slotEl.className = `fraction-slot fraction-slot--${def.id}`;
+    if (!added) slotEl.classList.add('fraction-slot--hidden');
+    if (!active) slotEl.classList.add('fraction-slot--off');
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'fraction-toggle';
+    toggleBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    toggleBtn.setAttribute('aria-label', `Activar o desactivar la fracción ${def.label}`);
+    slotEl.appendChild(toggleBtn);
+
+    const editorHost = document.createElement('div');
+    editorHost.className = 'fraction-slot__editor';
+    slotEl.appendChild(editorHost);
+    row.appendChild(slotEl);
+
+    const slot = {
+      id: def.id,
+      label: def.label,
+      color: def.color,
+      numeratorKey: def.numeratorKey,
+      denominatorKey: def.denominatorKey,
+      activeKey: def.activeKey,
+      controller: null,
+      active,
+      added,
+      info: createEmptyFractionInfo(),
+      lastValid: { numerator: null, denominator: null },
+      elements: { slotEl, toggleBtn, editorHost }
+    };
+    fractionSlots.push(slot);
+
+    slot.controller = createSlotFractionEditor(slot, editorHost);
+
+    toggleBtn.addEventListener('click', () => {
+      setSlotActive(slot, !slot.active);
+    });
+    attachHover(toggleBtn, { text: `Activar o silenciar la fracción ${slot.label}` });
   });
 
-  fractionEditorController = controller;
-  if (controller && controller.elements) {
-    const { numerator, denominator } = controller.elements;
-    numeratorInput = numerator;
-    denominatorInput = denominator;
-  }
+  // Slot fantasma "+": afegeix F2 i després F3; desapareix amb les 3 visibles.
+  fractionAddButton = document.createElement('button');
+  fractionAddButton.type = 'button';
+  fractionAddButton.className = 'fraction-add';
+  fractionAddButton.setAttribute('aria-label', 'Añadir fracción');
+  fractionAddButton.textContent = '+';
+  row.appendChild(fractionAddButton);
+  fractionAddButton.addEventListener('click', addNextFractionSlot);
+  attachHover(fractionAddButton, { text: 'Añadir otra fracción' });
+  updateFractionAddButton();
+
+  lastFirstActiveSignature = firstActiveFractionSignature();
   refreshFractionUI({ reveal: false });
+}
+
+// ─── Pill "Cicles" (m) + Lg calculat ───────────────────────────────────────
+let inputCycles = null;
+let cyclesValue = (() => {
+  const stored = parseIntSafe(loadOpt(CYCLES_KEY));
+  return Number.isFinite(stored) && stored > 0 ? Math.min(stored, MAX_LG) : DEFAULT_CYCLES;
+})();
+
+// Recalcula Lg = cicle gran × m, re-clampa m si el cicle gran ha crescut i
+// actualitza el camp Lg (readonly). Tota la resta de l'app segueix llegint
+// parseIntSafe(inputLg.value) com sempre.
+function recomputeLg({ dispatch = true } = {}) {
+  const bigCycle = computeBigCycle();
+  const mMax = Math.max(1, Math.floor(MAX_LG / bigCycle));
+  if (cyclesValue > mMax) {
+    cyclesValue = mMax;
+    saveOpt(CYCLES_KEY, String(cyclesValue));
+  }
+  if (inputCycles) {
+    inputCycles.max = String(mMax);
+    if (inputCycles.value !== String(cyclesValue)) {
+      inputCycles.value = String(cyclesValue);
+    }
+  }
+  const lg = bigCycle * cyclesValue;
+  if (inputLg.value !== String(lg)) {
+    inputLg.value = String(lg);
+  }
+  if (dispatch) {
+    handleInput();
+  }
+}
+
+function setCycles(value) {
+  const parsed = parseIntSafe(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return;
+  const mMax = Math.max(1, Math.floor(MAX_LG / computeBigCycle()));
+  cyclesValue = Math.min(Math.max(1, parsed), mMax);
+  saveOpt(CYCLES_KEY, String(cyclesValue));
+  recomputeLg();
+}
+
+// Crea la pill "Cicles" clonant l'estructura de la d'Lg (el tema nuzic la
+// vesteix igual) i converteix la d'Lg en display calculat (readonly, sense
+// spinners — vegeu styles.css).
+function initCyclesParam() {
+  const lgParam = document.querySelector('.inputs .param.lg');
+  if (!lgParam || !inputLg) return;
+
+  const cyclesParam = lgParam.cloneNode(true);
+  cyclesParam.classList.remove('lg');
+  cyclesParam.classList.add('cycles');
+  const abbr = cyclesParam.querySelector('.abbr');
+  if (abbr) abbr.textContent = 'Cicles';
+  const unit = cyclesParam.querySelector('.unit');
+  if (unit) {
+    unit.id = 'unitCycles';
+    unit.textContent = 'Cicles';
+  }
+  // index.html esborra els .led després de renderApp; per si de cas:
+  cyclesParam.querySelectorAll('.led').forEach((el) => el.remove());
+
+  const input = cyclesParam.querySelector('input');
+  input.id = 'inputCycles';
+  input.min = '1';
+  input.step = '1';
+  input.value = String(cyclesValue);
+  const upBtn = cyclesParam.querySelector('.spin.up');
+  const downBtn = cyclesParam.querySelector('.spin.down');
+  if (upBtn) {
+    upBtn.id = 'inputCyclesUp';
+    upBtn.setAttribute('aria-label', 'Incrementar Cicles');
+  }
+  if (downBtn) {
+    downBtn.id = 'inputCyclesDown';
+    downBtn.setAttribute('aria-label', 'Decrementar Cicles');
+  }
+
+  lgParam.parentElement.insertBefore(cyclesParam, lgParam);
+  inputCycles = input;
+
+  input.addEventListener('input', () => {
+    const parsed = parseIntSafe(input.value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return; // espera valor complet
+    setCycles(parsed);
+  });
+  input.addEventListener('blur', () => {
+    // Restaura el valor vigent si s'ha deixat el camp buit o invàlid
+    if (input.value !== String(cyclesValue)) input.value = String(cyclesValue);
+  });
+  addRepeatPress(upBtn, () => setCycles(cyclesValue + 1));
+  addRepeatPress(downBtn, () => setCycles(cyclesValue - 1));
+  attachHover(input, { text: 'Número de ciclos completos (Lg = ciclo grande × Cicles)' });
+  bindUnit(input, unit); // mostra "Cicles" en focus, com la resta de pills
+
+  // El camp Lg passa a ser només lectura (valor derivat). El spinner
+  // s'ELIMINA del DOM (no n'hi ha prou amb display:none: el tema nuzic
+  // força els .spin amb !important) — així la pill cau a la variant
+  // "sense spinner" que el tema ja vesteix com a pill buida.
+  inputLg.readOnly = true;
+  inputLg.dataset.auto = '1';
+  if (inputLgUp) inputLgUp.disabled = true;
+  if (inputLgDown) inputLgDown.disabled = true;
+  inputLgUp?.closest('.spinner')?.remove();
 }
 
 // En canviar la fracció, treu de la memòria els pulsos enters que ja no són
@@ -818,21 +1198,30 @@ let visualSyncManager = null;
 
 // Progress is now driven directly from audio callbacks
 
-initFractionEditorController();
+initFractionSlots();
+initCyclesParam();
+// Lg passa a ser un valor CALCULAT (cicle gran × m): primer còmput sense
+// disparar handleInput — el handleInput() inicial de més avall ja renderitza.
+recomputeLg({ dispatch: false });
+
+// El toggle global de "fracciones complejas" s'aplica als TRES editors.
+function applyComplexModeToEditors(enabled) {
+  fractionSlots.forEach((slot) => {
+    if (!slot.controller) return;
+    if (enabled) {
+      slot.controller.setComplexMode();
+    } else {
+      slot.controller.setSimpleMode();
+    }
+  });
+}
 
 // Initialize complex fractions state from localStorage
 function initComplexFractionsState() {
   const stored = localStorage.getItem('enableComplexFractions');
   const enabled = stored === null ? true : stored === 'true'; // Default: true
 
-  if (fractionEditorController) {
-    if (enabled) {
-      fractionEditorController.setComplexMode();
-    } else {
-      fractionEditorController.setSimpleMode();
-    }
-  }
-
+  applyComplexModeToEditors(enabled);
   updateRandomMenuComplexState(enabled);
 }
 
@@ -865,14 +1254,8 @@ function updateRandomMenuComplexState(enabled) {
 window.addEventListener('sharedui:complexfractions', (e) => {
   const enabled = e.detail.value;
 
-  // Aplicar a fraction editor
-  if (fractionEditorController) {
-    if (enabled) {
-      fractionEditorController.setComplexMode();
-    } else {
-      fractionEditorController.setSimpleMode();
-    }
-  }
+  // Aplicar als tres editors de fracció
+  applyComplexModeToEditors(enabled);
 
   // Actualizar estado del toggle de numerador en random menu
   updateRandomMenuComplexState(enabled);
@@ -1050,9 +1433,9 @@ attachHover(tapBtn, { text: 'Tap Tempo' });
 attachHover(resetBtn, { text: 'Reset App' });
 attachHover(notationToggleBtn, { text: 'Mostrar/ocultar partitura' });
 attachHover(randomBtn, { text: 'Aleatorizar parámetros' });
-attachHover(randLgToggle, { text: 'Aleatorizar Lg' });
-attachHover(randLgMin, { text: 'Mínimo Lg' });
-attachHover(randLgMax, { text: 'Máximo Lg' });
+attachHover(randLgToggle, { text: 'Aleatorizar ciclos' });
+attachHover(randLgMin, { text: 'Mínimo de ciclos' });
+attachHover(randLgMax, { text: 'Máximo de ciclos' });
 attachHover(randVToggle, { text: 'Aleatorizar V' });
 attachHover(randVMin, { text: 'Mínimo V' });
 attachHover(randVMax, { text: 'Máximo V' });
@@ -1225,8 +1608,14 @@ loopController.attach();
 if (resetBtn) {
   resetBtn.addEventListener('click', () => {
     pulseMemoryApi.clear();
-    clearOpt(FRACTION_NUMERATOR_KEY);
-    clearOpt(FRACTION_DENOMINATOR_KEY);
+    // F3: torna a l'estat F1-only — fora valors i flags d'actiu dels tres
+    // slots (F2/F3 desapareixen, F1 queda buida) i m torna al valor de fàbrica.
+    fractionSlots.forEach((slot) => {
+      clearOpt(slot.numeratorKey);
+      clearOpt(slot.denominatorKey);
+      clearOpt(slot.activeKey);
+    });
+    clearOpt(CYCLES_KEY);
     sessionStorage.setItem('volumeResetFlag', 'true');
     window.location.reload();
   });
@@ -1270,40 +1659,81 @@ if (tapHelp) {
 
 // --- Aleatorización de parámetros y pulsos ---
 /**
- * Apply random values within the configured ranges and update inputs accordingly.
+ * F3: aleatorització adaptada al model multi-fracció.
+ * - n/d: cada fracció ACTIVA rep valors independents (n∈[1,7], d∈[1,12]);
+ *   si la combinació hipotètica supera MAX_LG es re-tira (màx. 20 intents,
+ *   fallback n=1) — inassolible amb n≤7, però la xarxa de seguretat hi és.
+ * - La fila "Cicles" (ids randLg* conservats) aleatoritza m; Lg es deriva.
+ * - V i Pulsos segueixen passant per randomizeFractional (Lg/n/d
+ *   desactivats: ja s'han gestionat aquí).
  */
 function randomize() {
+  const allowComplex = (() => {
+    const stored = localStorage.getItem('enableComplexFractions');
+    return stored === null ? true : stored === 'true'; // Default: true
+  })();
+
+  if (randomConfig.n?.enabled || randomConfig.d?.enabled) {
+    fractionSlots
+      .filter((slot) => slot.added && slot.active && slot.controller)
+      .forEach((slot) => {
+        const current = slot.controller.getFraction();
+        let chosen = null;
+        for (let attempt = 0; attempt < 20 && !chosen; attempt++) {
+          const candidate = { numerator: current.numerator, denominator: current.denominator };
+          if (randomConfig.n?.enabled) {
+            const [lo, hi] = randomConfig.n.range ?? randomDefaults.n.range;
+            const safeHi = Math.min(7, Math.max(1, hi));
+            const safeLo = Math.min(Math.max(1, lo), safeHi);
+            candidate.numerator = allowComplex ? randomInt(safeLo, safeHi) : 1;
+          }
+          if (randomConfig.d?.enabled) {
+            const [lo, hi] = randomConfig.d.range ?? randomDefaults.d.range;
+            const safeHi = Math.min(12, Math.max(1, hi));
+            const safeLo = Math.min(Math.max(1, lo), safeHi);
+            candidate.denominator = randomInt(safeLo, safeHi);
+          }
+          const { bigCycle } = wouldBeBigCycle({ override: { id: slot.id, fraction: candidate } });
+          if (bigCycle <= MAX_LG) {
+            chosen = candidate;
+          } else if (attempt === 19) {
+            chosen = { numerator: 1, denominator: candidate.denominator ?? current.denominator ?? 1 };
+          }
+        }
+        if (chosen) {
+          slot.controller.setFraction(chosen, { cause: 'randomize' });
+        }
+      });
+  }
+
+  if (randomConfig.Lg?.enabled) {
+    const [lo, hi] = randomConfig.Lg.range ?? randomDefaults.Lg.range;
+    const safeLo = Math.max(1, Math.round(lo));
+    const safeHi = Math.max(safeLo, Math.round(hi));
+    setCycles(randomInt(safeLo, safeHi)); // setCycles ja clampa a mMax
+  }
+
   randomizeFractional({
-    randomConfig,
+    randomConfig: {
+      ...randomConfig,
+      Lg: { enabled: false },
+      n: { enabled: false },
+      d: { enabled: false }
+    },
     randomDefaults,
     inputs: { inputLg, inputV, inputT },
-    fractionEditor: fractionEditorController,
+    // Shim F3: només cal getFraction (pulsos seleccionables segons la
+    // primera fracció activa); setFraction ja no passa per la lib.
+    fractionEditor: { getFraction },
     pulseMemoryApi,
     fractionStore,
     randomCount,
     isIntegerPulseSelectable,
     nearestPulseIndex,
     applyRandomFractionSelection,
-    getAllowComplexFractions: () => {
-      const stored = localStorage.getItem('enableComplexFractions');
-      return stored === null ? true : stored === 'true'; // Default: true
-    },
+    getAllowComplexFractions: () => allowComplex,
     callbacks: {
-      onLgChange: ({ value, input }) => handleInput({ target: input }),
       onVChange: ({ value, input }) => handleInput({ target: input }),
-      onFractionChange: (updates) => {
-        // Fallback si no hay fractionEditor
-        if (!fractionEditorController) {
-          if (updates.numerator != null && numeratorInput) {
-            setValue(numeratorInput, updates.numerator);
-          }
-          if (updates.denominator != null && denominatorInput) {
-            setValue(denominatorInput, updates.denominator);
-          }
-          refreshFractionUI({ reveal: true });
-          handleInput();
-        }
-      },
       onPulsesChange: ({ selected, fractionsApplied }) => {
         syncSelectedFromMemory();
         updatePulseNumbers();
@@ -1465,8 +1895,8 @@ function stepAndDispatch(input, dir){
 }
 addRepeatPress(inputVUp,   () => stepAndDispatch(inputV, +1));
 addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1));
-addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1));
-addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1));
+// F3: Lg és un valor calculat (cicle gran × m) — sense spinners ni edició
+// directa; el control de longitud és la pill "Cicles" (initCyclesParam).
 
 function handleInput(){
   const lg = parseNum(inputLg.value);
