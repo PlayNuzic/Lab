@@ -100,6 +100,14 @@ main > .notation-panel--inline .notation-panel__canvas {
  */
 .pulse { cursor: pointer; }
 .timeline .pulse { pointer-events: auto; }
+
+/* El tema nuzic amaga els dots .pulse i posa els .pulse-number A la línia
+   (top: 50%, z-index: 10), just damunt dels .pulse-hit clicables. Sense
+   això, el número captura el clic i la selecció només funciona als marges.
+   pointer-events: none deixa passar el clic al hit de sota (mateixa x/y). */
+body[data-visual="nuzic"].app4 .timeline .pulse-number {
+  pointer-events: none;
+}
 /* Selected pulses use selection color, except endpoints 0/Lg which must keep Lg color */
 .pulse.selected:not(.zero):not(.lg) { background: var(--selection-color); }
 .pulse.zero,
@@ -376,138 +384,6 @@ main > .notation-panel--inline .notation-panel__canvas {
   font-size: 1rem;
 }
 
-/**
- * Editable pulse sequence container positioned above the timeline.
- */
-#pulseSeq {
-font-size: 3rem;
-display: flex;
-justify-content: flex-start;
-align-items: center;
-gap: 12px;
-width: fit-content;
-max-width: 100%;
-box-sizing: border-box;
-padding: 0 20px;
-margin: 20px auto;
-overflow-x: auto;
-overflow-y: visible;
-position: relative;
-}
-
-#pulseSeq .prefix,
-#pulseSeq .suffix,
-#pulseSeq .open,
-#pulseSeq .suffix-spacer { color: inherit; user-select: none; }
-#pulseSeq .suffix { margin: 0; }
-#pulseSeq .suffix-spacer { margin-right: 12px; }
-#pulseSeq .fraction {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  user-select: none;
-  line-height: 1;
-  vertical-align: middle;
-  min-width: 3.4ch;
-  padding: 0 0.2em;
-  font-size: 0.84em;
-}
-#pulseSeq .fraction-number {
-  min-width: 2.2ch;
-  text-align: center;
-  line-height: 1;
-}
-.fraction-inline-container {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-}
-
-.fraction-editor-wrapper--inline {
-  position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.28em;
-  min-width: 0;
-}
-
-.fraction-editor--inline {
-  position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.28em;
-  z-index: 1;
-}
-
-.fraction-editor--inline .fraction-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 6.8ch;
-  max-width: 200px;
-  min-height: 0.18em;
-  height: 0.18em;
-  background: currentColor;
-  border-radius: 999px;
-  transition: width 0.2s ease;
-}
-
-.fraction-editor--inline .top,
-.fraction-editor--inline .bottom {
-  border: none;
-  padding: 0;
-  display: flex;
-}
-
-.fraction-editor--inline .top {
-  margin-bottom: 0.1em;
-}
-
-.fraction-editor--inline .bottom {
-  margin-top: 0.1em;
-}
-
-.fraction-editor--inline .fraction-field {
-  min-width: 3.6ch;
-}
-
-.fraction-editor--inline input {
-  width: 3.6ch;
-  font-size: 3rem;
-  font-weight: 500;
-  padding-right: 32px;
-}
-
-.fraction-editor-wrapper--inline .spinner {
-  width: 28px;
-}
-
-.fraction-inline-container .fraction-info-bubble {
-  top: 40px;
-  transform: translate(-50%, -100%);
-  z-index: 20;
-  font-weight: 500;
-  background-color: rgba(255, 255, 255, 0.9);
-  color: var(--text-light);
-  border-color: rgba(0, 0, 0, 0.08);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(8px);
-}
-
-body[data-theme='dark'] .fraction-inline-container .fraction-info-bubble {
-  background-color: rgba(40, 40, 40, 0.92);
-  color: var(--text-dark);
-  border-color: rgba(238, 232, 216, 0.2);
-  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.6);
-}
-
 .fraction-ghost {
   position: absolute;
   top: 50%;
@@ -559,80 +435,6 @@ body[data-theme='dark'] .fraction-inline-container .fraction-info-bubble {
   transform: translate(-50%, -50%) scale(1.25);
   visibility: visible;
 }
-#pulseSeq .zero,
-#pulseSeq .lg { color: var(--color-lg); user-select: none; }
-#pulseSeq .edit-wrapper {
-  position: relative;
-  display: inline-flex;
-  align-items: stretch;
-  margin-right: var(--pulse-seq-trailing-offset, 0);
-}
-#pulseSeq .edit {
-  outline: none;
-  white-space: pre;
-  position: relative;
-  display: inline-block;
-  color: transparent;
-  caret-color: var(--pulse-seq-caret-color, var(--line-color));
-  min-height: 1.2em;
-}
-#pulseSeq.editing .edit {
-  color: inherit;
-}
-#pulseSeq .edit.playing { caret-color: transparent; }
-#pulseSeq.editing .edit-display {
-  opacity: 0;
-}
-#pulseSeq .edit-display {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  white-space: pre;
-  display: inline-block;
-  color: inherit;
-  line-height: 1;
-  font: inherit;
-  letter-spacing: inherit;
-  width: 100%;
-  height: 100%;
-  min-height: 100%;
-  min-width: 100%;
-  transition: opacity 0.2s ease;
-}
-#pulseSeq .edit-display .pulse-seq-token {
-  display: inline-block;
-  line-height: 1;
-}
-#pulseSeq .edit-display .pulse-seq-token--active {
-  color: var(--selection-color);
-  text-shadow: 0 0 16px var(--selection-color);
-}
-#pulseSeq .edit-display .pulse-seq-token--fraction {
-  font-size: 0.84em;
-}
-
-/**
- * Pulse sequence highlight overlays following the current playback position.
- */
-#pulseSeqHighlight,
-#pulseSeqHighlight2 {
-position: absolute;
-border-radius: 50%;
-background: var(--selection-color);
-color: var(--selection-color);
-opacity: 0.5;
-pointer-events: none;
-transform: translate(-50%, -50%);
-display: none;
-}
-
-#pulseSeqHighlight.active,
-#pulseSeqHighlight2.active {
-animation: pulseFlash 0.35s ease-out;
-box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
-display: block;
-}
-
 /**
  * Circular indicator for displaying total cycle duration (T value).
  */
@@ -661,12 +463,6 @@ body {
   --unit-label-offset: 0px;
 }
 
-#pulseSeq {
-font-size: 1.7rem;
-gap: 8px;
-padding: 0 12px;
-}
-
 /* Layout adjustments requested for App4 */
 /* 1) Raise inputs section by 25px (from shared 40px to 15) */
 .inputs {
@@ -674,8 +470,8 @@ margin-top: 25px !important;
 gap: 14px;
 }
 
-/* 2) Keep pulse sequence where it is — no changes needed to #pulseSeq */
-/* Compensate inputs shift so #pulseSeq stays in place */
+/* 2) Compensa el desplaçament dels inputs perquè `.middle` (fraction-editor)
+   no es mogui */
 .middle { margin-top: 20px; }
 
 /* 3) Lower circular timeline by 50px */
@@ -687,12 +483,5 @@ margin-top: 50px !important; /* was 20px in shared styles */
   .param .circle .unit {
   top: calc(var(--unit-label-offset, -40px) - 1.8rem);
   }
-
-/* 6) Scale down inline fraction editor for compact layouts */
-.fraction-inline-container {
-  transform: scale(0.5);
-  transform-origin: center center;
-  vertical-align: middle;
-}
 
 }

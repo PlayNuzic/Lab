@@ -48,9 +48,25 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
         1 decimal (abans 2).
       - CSS de pulseSeq/fraction-inline/timeline NO netejat a posta:
         mor a F2/F3/F5.
-- [ ] **F2 — Eliminar editor numèric**: fora buildPulseSeqMarkup,
-      sanitizePulseSeq, spacing, token-map (~1.200 línies de main.js). La
-      selecció per clic a timeline ja n'és independent.
+- [x] **F2 — Eliminar editor numèric** ✅ (codi fet, pendent de commit):
+      main.js 3.028 → 2.238 línies; styles.css 698 → 479. Decisions:
+      - `createPulseSeqController()` es conserva SENSE mount: només
+        `.memory` (pulseMemoryApi, que usa createPulseMemoryLoopController)
+        i `.drag` (drag-select sobre la timeline, independent del mount).
+      - Fraction editor re-allotjat: `mode: 'block'` amb host `.middle`
+        (patró App28); index.html passa a `noMiddleSlot: true` (el flag
+        `inlineFractionSlot` del template mai va estar implementat —
+        `#fractionInlineSlot` no existia al DOM).
+      - El canvi de fracció ja no passa per sanitizePulseSeq: l'onChange
+        crida `prunePulseMemoryForFraction()` (poda ints no seleccionables
+        dins de Lg, mateixa semàntica) + `renderTimeline()` directe.
+      - `updatePulseSeqField` esborrat sense substitut: pulseSeqEntryOrder/
+        Lookup/TokenMap no tenien cap altre consumidor viu (el TokenMap
+        queda com a Map buit al store; highlight-controller i
+        applyFractionSelectionClasses hi estan guardats).
+      - Cap lib compartida tocada (paràmetres pulseSeq* de
+        highlight-controller són opcionals). gamification-adapter intacte
+        (lookups de #pulseSeq/#fractionInlineSlot amb null-guard).
 - [ ] **F3 — 3 fraccions + model Lg**: array de fraccions amb actiu/valors
       persistits (`app4:f1..f3`), pill "Cicles (m)", display Lg calculat,
       validateFractionCombo (cicle ≤ 210, tooltip amb el mcm explicat),
