@@ -221,10 +221,32 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
           escriu `storeKey('sound:<id>')`); restauració a initAudio (lazy,
           cap init d'àudio al load). Defaults del selector = valor RAW
           actual del rol (baseSound/accentSound/cycleSound).
-- [ ] **F5 — Mòdul `libs/app-common/circular-rings.js`** + tests: N anells
+- [x] **F3/F4 addendum — Estètica nuzic de les caixes de fracció +
+      auditoria d'unitats relatives** ✅ (codi fet, pendent de commit;
+      suite 73/1403 verda; smoke CDP a /tmp/app4-fracbox-smoke.mjs +
+      screenshots /tmp/app4-fraction-row*.png vs /tmp/app27-fraction-ref.png,
+      consola neta). Les 3 caixes segueixen el patró App27 (Step 7s + 7s.9):
+      vora 3px del color d'identitat del slot (via --slot-color), fons blanc,
+      números negres Ubuntu 900 clamp(1.75rem,3.8vw,2.7rem) amb !important
+      (guanya el blau de .bottom input i l'opacity 0.5 inline de
+      setSimpleMode), barra com a ::after de .top (insets 17.5%, 4px negre;
+      .top/.fraction-field a width 100% perquè els DOS spinners projectin
+      al mateix x), spinners half-pill FORA de la caixa amb el color del
+      slot (crom H-17 recolorat; hover/active via color-mix), placeholders
+      n/d gris suau, wrapper gap:0 (7s.9a, xarxa de seguretat amb
+      enableGhost:false), gap de la fila clamp(1.5rem,4vw,2.5rem). Prefix
+      body.app4 .fraction-slot per guanyar libs/app-common/styles.css per
+      especificitat (nuzic-theme no té regles de fraction-editor). Auditoria
+      Step 4: tots els font-size a clamp(), px→rem a posicions/mides
+      (cycle-marker/labels/#tIndicator/notation/media 600px — només
+      traducció d'unitats, cap redisseny: mor a F5); px només a vores,
+      ombres, radius i la barra/gap de 4px del crom compartit.
       concèntrics, radi ∝ velocitat (fórmula de dalt), punts/etiquetes
       adaptatius, clic-per-seleccionar, highlight de playback per anell,
       responsiu. App4 el consumeix; es retira timeline lineal.
+      **Requisit afegit (2026-06-12): el botó loop s'ELIMINA i l'app
+      sempre reprodueix en bucle** — fora també l'override CSS
+      transitori del loop i el toggle circular del menú.
 - [ ] **F6 — Partitura multi-fracció**: notation-utils/rhythm-staff amb
       una veu per fracció (Lg sempre múltiple de cada cicle ⇒ MAI tuplets
       incomplets ni remainder pulses — la zona dels 5 fixes històrics

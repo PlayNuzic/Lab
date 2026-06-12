@@ -841,6 +841,7 @@ function initFractionSlots() {
     const toggleBtn = document.createElement('button');
     toggleBtn.type = 'button';
     toggleBtn.className = 'fraction-toggle';
+    toggleBtn.textContent = 'A'; // A d'activar, estètica dels botons del mixer
     toggleBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
     toggleBtn.setAttribute('aria-label', `Activar o desactivar la fracción ${def.label}`);
     slotEl.appendChild(toggleBtn);
@@ -1358,13 +1359,12 @@ function applyComplexModeToEditors(enabled) {
   });
 }
 
-// Initialize complex fractions state from localStorage
+// App4 és una app de fraccions complexes per naturalesa: el numerador
+// sempre és editable. No hi ha toggle d'usuari (showComplexFractions: false
+// al template) i s'ignora qualsevol valor antic de localStorage.
 function initComplexFractionsState() {
-  const stored = localStorage.getItem('enableComplexFractions');
-  const enabled = stored === null ? true : stored === 'true'; // Default: true
-
-  applyComplexModeToEditors(enabled);
-  updateRandomMenuComplexState(enabled);
+  applyComplexModeToEditors(true);
+  updateRandomMenuComplexState(true);
 }
 
 function updateRandomMenuComplexState(enabled) {
@@ -1856,10 +1856,7 @@ if (tapHelp) {
  *   desactivats: ja s'han gestionat aquí).
  */
 function randomize() {
-  const allowComplex = (() => {
-    const stored = localStorage.getItem('enableComplexFractions');
-    return stored === null ? true : stored === 'true'; // Default: true
-  })();
+  const allowComplex = true; // App4: fraccions complexes sempre actives
 
   if (randomConfig.n?.enabled || randomConfig.d?.enabled) {
     fractionSlots

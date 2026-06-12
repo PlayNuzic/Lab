@@ -47,7 +47,7 @@ body[data-visual="nuzic"].app4 .controls:not([data-layout]) .tap + .tap-help {
 }
 
 body {
-  --unit-label-offset: -20px;
+  --unit-label-offset: -1.25rem;
 }
 
 /* ========== MIXER COMPACTE (9 canals) ==========
@@ -70,6 +70,13 @@ body.app4 .mixer-channel {
   width: clamp(5rem, 7vw, 6.5rem);
 }
 
+/* Etiquetes en una sola línia ("Fracció 3 sel." es partia en dues i
+   desalineava la columna respecte de les veïnes). */
+body.app4 .mixer-channel__label {
+  font-size: clamp(0.7rem, 1.3vw, 0.9rem);
+  white-space: nowrap;
+}
+
 body.app4 .mixer-channel__sound {
   min-width: 0;
 }
@@ -78,6 +85,27 @@ body.app4 .mixer-channel__sound .dropdown-toggle {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* El bloc Master+FX també ha de clampar en pantalles petites: el dial
+   dels knobs (COMP/REVB/LIMIT) baixa fins a 1.4rem, i el padding del
+   rack i els gaps es tornen elàstics. Sense això el rack queda rígid
+   (~150px) mentre les columnes de canal sí que s'estrenyen. */
+body.app4 .mixer-rack {
+  padding: 0.5rem clamp(0.4rem, 1.2vw, 1rem) 0.85rem;
+}
+
+body.app4 .mixer-channel--fx {
+  --mix-dial: clamp(1.4rem, 3.5vw, 2.4rem);
+}
+
+body.app4 .mixer-channel__knobs {
+  gap: clamp(0.25rem, 0.8vw, 0.6rem);
+}
+
+body.app4 .mixer-action.mixer-action--fx-toggle {
+  min-width: 0;
+  padding: 0 clamp(0.5rem, 1.5vw, 0.85rem);
 }
 
 /* La bola del fader de cada parella pren el color d'identitat de la seva
@@ -119,7 +147,7 @@ header.top-bar h1 .top-bar-title-button {
   flex: 0 1 auto;
   min-width: 0;
   margin: 0;
-  padding: 0 clamp(12px, 3vw, 28px);
+  padding: 0 clamp(0.75rem, 3vw, 1.75rem);
   background: none;
   border: none;
   color: inherit;
@@ -149,11 +177,11 @@ header.top-bar h1 .top-bar-title-button:active {
 /* LH-09: .top-bar-info-tip i variants viuen a libs/app-common/styles.css. */
 
 main > .notation-panel--inline {
-  margin: clamp(18px, 4vw, 36px) auto 0;
+  margin: clamp(1.125rem, 4vw, 2.25rem) auto 0;
 }
 
 main > .notation-panel--inline .notation-panel__canvas {
-  min-height: 240px;
+  min-height: 15rem;
 }
 
 /**
@@ -287,8 +315,8 @@ body[data-visual="nuzic"].app4 .timeline .pulse-number {
 
 .cycle-marker {
   position: absolute;
-  width: 4px;
-  height: 16px;
+  width: 0.25rem;
+  height: 1rem;
   border-radius: 999px;
   background: var(--line-color);
   transform: translate(-50%, -50%);
@@ -301,7 +329,7 @@ body[data-visual="nuzic"].app4 .timeline .pulse-number {
 }
 
 .cycle-marker.start {
-  height: 16px; /* Igual que marcadores normales - sin barras verticales */
+  height: 1rem; /* Igual que els marcadors normals - sense barres verticals */
   background: var(--color-lg);
   opacity: 1;
 }
@@ -368,7 +396,7 @@ body[data-visual="nuzic"].app4 .timeline .pulse-number {
 .cycle-label {
   position: absolute;
   color: var(--line-color);
-  font-size: 1.1rem;
+  font-size: clamp(0.9rem, 1.8vw, 1.1rem);
   transform: translate(-50%, -50%);
   pointer-events: none;
   transition: color 0.25s ease, transform 0.25s ease;
@@ -394,33 +422,37 @@ body[data-visual="nuzic"].app4 .timeline .pulse-number {
   font-weight: 600;
 }
 
+/* Amb startEmpty els camps comencen buits: els spinners han de quedar
+   visibles igualment perquè són l'única via d'entrada ràpida de valors. */
 .fraction-field--empty .spinner {
   opacity: 1;
   pointer-events: auto;
 }
 
+/* gap: 0 — Step 7s.9a: el ghost (si mai s'activés) és un flex-item que
+   captura el gap i desplaça la caixa. Amb enableGhost: false és una
+   xarxa de seguretat sense efecte. */
 .fraction-editor-wrapper {
   position: relative;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-top: 0px;
+  gap: 0;
+  padding-top: 0;
 }
 
-.fraction-editor {
-  position: relative;
-}
-
+/* Placeholders 'n'/'d' (startEmpty): gris suau, mai negre, mateixa mida
+   que els números perquè la caixa no salti en omplir-se. */
 .fraction-field-placeholder {
   position: absolute;
-  inset: 0 28px 0 0;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 4rem;
+  font-size: clamp(1.75rem, 3.8vw, 2.7rem);
   font-weight: 500;
-  color: var(--line-color);
+  color: var(--nuzic-dark, #43433B);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
@@ -433,36 +465,36 @@ body[data-visual="nuzic"].app4 .timeline .pulse-number {
 }
 
 .timeline.circular .cycle-marker {
-  width: 4px;
-  height: 20px;
+  width: 0.25rem;
+  height: 1.25rem;
 }
 
 .timeline.circular .cycle-marker.start {
-  height: 16px; /* Igual que marcadores normales - sin barras radiales */
+  height: 1rem; /* Igual que els marcadors normals - sense barres radials */
 }
 
 .timeline.circular .cycle-label {
-  font-size: 1rem;
+  font-size: clamp(0.85rem, 1.6vw, 1rem);
 }
 
 /**
  * Circular indicator for displaying total cycle duration (T value).
  */
 #tIndicator {
-position: absolute; /* positioned by JS relative to Lg label */
+position: absolute; /* posicionat per JS relatiu a l'etiqueta Lg */
 display: flex;
 align-items: center;
 justify-content: center;
-width: 40px; /* Reduced from 50px */
-height: 40px; /* Reduced from 50px */
+width: 2.5rem;
+height: 2.5rem;
 border: 2px solid var(--color-t);
 border-radius: 50%;
 color: var(--color-t);
 text-align: center;
 font-weight: 700;
 background: transparent;
-pointer-events: none; /* purely visual */
-font-size: 0.9rem; /* Keep same font size */
+pointer-events: none; /* purament visual */
+font-size: clamp(0.75rem, 1.4vw, 0.9rem);
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -472,12 +504,21 @@ font-size: 0.9rem; /* Keep same font size */
  * ────────────────────────────────────────────────────────────────────────── */
 .fraction-row {
   display: flex;
-  align-items: flex-end; /* les caixes s'alineen per la base; el dot queda dalt */
-  justify-content: center;
-  gap: clamp(1rem, 3vw, 2rem);
+  align-items: flex-end; /* les caixes s'alineen per la base */
+  /* En pantalles amples la fila es limita a max-width i els slots queden
+     agrupats al centre; quan la pantalla s'estreny, la fila ocupa tot
+     l'ample disponible i space-evenly reparteix els slots aprofitant
+     l'espai dels costats — així els spinners (que projecten ~1.75rem
+     fora de cada caixa, Step 7s.5) mai es freguen amb el slot veí. */
+  justify-content: space-evenly;
+  width: 100%;
+  max-width: 34rem;
+  margin: 0 auto;
+  gap: clamp(0.5rem, 2vw, 1.5rem);
 }
 
 .fraction-slot {
+  position: relative; /* ancora el botó M a la cantonada de la caixa */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -489,14 +530,195 @@ font-size: 0.9rem; /* Keep same font size */
 }
 
 /* Colors d'identitat (F1 groc, F2 rosa, F3 blau) */
-.fraction-slot--f1 { --slot-color: var(--nuzic-yellow); }
-.fraction-slot--f2 { --slot-color: var(--nuzic-pink); }
-.fraction-slot--f3 { --slot-color: var(--nuzic-blue); }
+.fraction-slot--f1 { --slot-color: var(--nuzic-yellow, #FFBB33); }
+.fraction-slot--f2 { --slot-color: var(--nuzic-pink, #F28AAD); }
+.fraction-slot--f3 { --slot-color: var(--nuzic-blue, #7BB4CD); }
 
-/* La caixa n/─/d de l'editor rep la vora del color del slot */
-.fraction-slot .fraction-editor {
+/* ── Caixa n/─/d estil App27 (Step 7s + 7s.9), amb la vora del color
+   d'identitat del slot. Prefix body.app4 per guanyar a
+   libs/app-common/styles.css (.fraction-editor input: width 80px,
+   font-size 3rem, color heretat) per especificitat, no per ordre. ── */
+body.app4 .fraction-slot .fraction-editor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;       /* .top/.bottom omplen tota l'amplada interior */
+  justify-content: center;
+  gap: 0.2rem;
+  width: clamp(3.2rem, 7vw, 4.5rem);
+  box-sizing: border-box;
+  padding: 0.5rem 0;          /* només vertical: l'amplada ja és fixa */
   border: 3px solid var(--slot-color);
   border-radius: 0.4rem;
+  background: #fff;
+  color: #000;                /* numerador/denominador negres */
+}
+
+body.app4 .fraction-slot .fraction-editor .top,
+body.app4 .fraction-slot .fraction-editor .bottom {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  width: 100%;                /* full-width: cal perquè els spinners pill
+                                 projectin fora de la vora dreta (7s.9b) */
+  box-sizing: border-box;
+}
+
+/* Barra de la fracció com a pseudo-element (Step 7s.9b), NO border-bottom:
+   el .top i el .fraction-field s'han de mantenir a width 100% perquè el
+   spinner del numerador (App4 té numeradors editables en mode complex)
+   projecti al mateix x que el del denominador. */
+body.app4 .fraction-slot .fraction-editor .top {
+  position: relative;
+  border-bottom: none;
+  padding-bottom: 4px;        /* reserva espai vertical per a la barra */
+}
+
+body.app4 .fraction-slot .fraction-editor .top::after {
+  content: '';
+  position: absolute;
+  left: 17.5%;
+  right: 17.5%;
+  bottom: 0;
+  height: 4px;
+  background: #000;
+  pointer-events: none;
+}
+
+body.app4 .fraction-slot .fraction-editor input {
+  width: 100%;
+  text-align: center;
+  font-size: clamp(1.75rem, 3.8vw, 2.7rem);
+  background: none;
+  border: none;
+  /* `!important` contra .fraction-editor .bottom input (color blau de
+     libs/app-common/styles.css) i contra estats disabled/read-only. */
+  color: #000 !important;
+  font-family: 'Ubuntu', sans-serif;
+  outline: none;
+  font-weight: 900;
+  line-height: 1;
+  padding: 0;
+}
+
+body.app4 .fraction-slot .fraction-editor input:focus {
+  border: none;
+  outline: none;
+}
+
+/* Mode simple (fracciones complejas OFF): setSimpleMode() posa el
+   numerador readonly amb opacity 0.5 INLINE — l'!important el supera
+   (Step 7s.6): número negre ple, mai esvaït. */
+body.app4 .fraction-slot .fraction-editor input:disabled,
+body.app4 .fraction-slot .fraction-editor input:read-only {
+  opacity: 1 !important;
+  cursor: default !important;
+  color: #000 !important;
+}
+
+body.app4 .fraction-slot .fraction-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+body.app4 .fraction-slot .fraction-field input {
+  padding-right: 0;
+}
+
+/* ── Spinner half-pill FORA de la caixa, a la dreta (Step 7s.5; crom
+   portat de libs/app-common/fraction-editor-nuzic.css però amb el color
+   d'identitat del slot en lloc del groc fix). Rodons als extrems
+   exteriors, rectes a la cara interior, gap visible entre les meitats. ── */
+body.app4 .fraction-slot {
+  /* Alçada de cada parella de spinners: elàstica, perquè a pantalles
+     petites les dues parelles càpiguen dins l'alçada de la caixa. */
+  --fr-spin-h: clamp(2.2rem, 5.5vw, 2.8rem);
+  /* Separació vertical entre parelles: creix a mesura que la pantalla
+     s'estreny (a ≥44rem és 0 = centrades al seu camp, com sempre). */
+  --fr-spin-spread: clamp(0rem, calc((44rem - 100vw) * 0.08), 1.4rem);
+}
+
+body.app4 .fraction-slot .fraction-field .spinner {
+  position: absolute;
+  left: calc(100% + 0.45rem);
+  right: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 4px;
+  width: 1.3rem;
+  height: var(--fr-spin-h);
+  background: transparent;
+  overflow: visible;
+  transition: opacity 0.2s ease;
+}
+
+/* El spinner del numerador puja i el del denominador baixa quan la
+   pantalla es fa petita, amb topall al límit superior/inferior de la
+   caixa (el -0.6rem compensa el padding vertical + la vora). */
+body.app4 .fraction-slot .top .fraction-field .spinner {
+  top: max(-0.6rem, calc(50% - var(--fr-spin-h) / 2 - var(--fr-spin-spread)));
+  bottom: auto;
+  transform: none;
+}
+
+body.app4 .fraction-slot .bottom .fraction-field .spinner {
+  top: auto;
+  bottom: max(-0.6rem, calc(50% - var(--fr-spin-h) / 2 - var(--fr-spin-spread)));
+  transform: none;
+}
+
+body.app4 .fraction-slot .fraction-field .spinner .spin {
+  flex: 1 1 50%;
+  width: 100%;
+  height: auto;
+  border: none;
+  background: var(--slot-color);
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.7rem, 1.4vw, 0.8rem);
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+body.app4 .fraction-slot .fraction-field .spinner .spin.up {
+  border-radius: 999px 999px 0 0;
+}
+
+body.app4 .fraction-slot .fraction-field .spinner .spin.down {
+  border-radius: 0 0 999px 999px;
+}
+
+/* Anul·la els triangles ::before de libs/app-common/styles.css i posa
+   els signes +/− com a contingut ::after (mateix patró que el crom H-17). */
+body.app4 .fraction-slot .fraction-field .spinner .spin::before {
+  content: none;
+  border: 0;
+}
+
+body.app4 .fraction-slot .fraction-field .spinner .spin.up::after { content: '+'; }
+body.app4 .fraction-slot .fraction-field .spinner .spin.down::after { content: '−'; }
+
+/* Hover/active: enfosquim el color d'identitat (equivalent dels fixos
+   #e6a82e / #d9991a del crom groc). */
+body.app4 .fraction-slot .fraction-field .spinner .spin:hover {
+  background: color-mix(in srgb, var(--slot-color) 85%, #000);
+}
+
+body.app4 .fraction-slot .fraction-field .spinner .spin:active {
+  background: color-mix(in srgb, var(--slot-color) 72%, #000);
 }
 
 /* Slot desactivat: valors preservats però atenuats */
@@ -505,19 +727,43 @@ font-size: 0.9rem; /* Keep same font size */
 }
 
 /* Dot d'activació: ple = actiu, buit = inactiu */
+/* Botó d'activació "A" amb l'estètica dels botons del mixer: quadrat
+   arrodonit a l'esquerra-baix de la caixa, color d'identitat de la
+   fracció. Lògica visual directa: fracció ACTIVA = botó fort (farcit
+   del color, A blanca); inactiva = atenuat (vora i lletra del color,
+   mig transparent), igual que la caixa que acompanya. */
 .fraction-toggle {
-  width: 0.9rem;
-  height: 0.9rem;
+  position: absolute;
+  /* S'enganxa a la caixa a mesura que la pantalla s'estreny: mateixa
+     corba que els spinners (--fr-spin-spread) però amb el topall a
+     -1.25rem perquè el botó (1.2rem d'ample) mai TREPITGI la caixa:
+     al mínim queda arran de la vora, per fora. */
+  left: calc(-2rem + min(var(--fr-spin-spread, 0rem), 0.75rem));
+  top: 0rem;
+  z-index: 2;
+  width: clamp(1.2rem, 2.4vw, 1.5rem);
+  height: clamp(1.1rem, 2.2vw, 1.35rem);
   padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 2px solid var(--slot-color);
-  border-radius: 50%;
-  background: transparent;
+  border-radius: 0.3rem;
+  background: var(--slot-color);
+  color: #ffffff;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.65rem, 1.2vw, 0.8rem);
+  line-height: 1;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.12s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
 }
 
-.fraction-toggle[aria-pressed="true"] {
-  background: var(--slot-color);
+/* aria-pressed="false" = fracció inactiva → atenuat */
+.fraction-toggle[aria-pressed="false"] {
+  background: var(--nuzic-light, #eee8d8);
+  color: var(--slot-color);
+  opacity: 0.5;
 }
 
 .fraction-toggle:active {
@@ -563,28 +809,28 @@ body.app4 .param.lg .circle input[readonly] {
  */
 @media (max-width: 600px) {
 body {
-  --unit-label-offset: 0px;
+  --unit-label-offset: 0rem;
 }
 
-/* Layout adjustments requested for App4 */
-/* 1) Raise inputs section by 25px (from shared 40px to 15) */
+/* Ajustos de layout específics d'App4 (shifts que clamp() no cobreix) */
+/* 1) Puja la secció d'inputs (del 2.5rem compartit a ~0.9rem) */
 .inputs {
-margin-top: 25px !important;
-gap: 14px;
+margin-top: 1.5625rem !important;
+gap: 0.875rem;
 }
 
 /* 2) Compensa el desplaçament dels inputs perquè `.middle` (fraction-editor)
    no es mogui */
-.middle { margin-top: 20px; }
+.middle { margin-top: 1.25rem; }
 
-/* 3) Lower circular timeline by 50px */
+/* 3) Baixa la timeline circular */
 .timeline-wrapper.circular {
-margin-top: 50px !important; /* was 20px in shared styles */
+margin-top: 3.125rem !important; /* era 1.25rem als estils compartits */
 }
 
-/* 5) Lower unit label by 20px when shown on input focus */
+/* 5) Baixa l'etiqueta d'unitat quan apareix amb el focus de l'input */
   .param .circle .unit {
-  top: calc(var(--unit-label-offset, -40px) - 1.8rem);
+  top: calc(var(--unit-label-offset, -2.5rem) - 1.8rem);
   }
 
 }
