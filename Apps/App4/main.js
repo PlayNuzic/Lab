@@ -10,7 +10,7 @@ import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor, { createEmptyFractionInfo } from '../../libs/app-common/fraction-editor.js';
-import { FRACTION_INLINE_SLOT_ID } from '../../libs/app-common/template.js';
+import { FRACTION_INLINE_SLOT_ID, reorderControls } from '../../libs/app-common/template.js';
 import { randomize as randomizeValues } from '../../libs/random/index.js';
 import createPulseSeqController from '../../libs/pulse-seq/index.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
@@ -125,6 +125,21 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
 // App4-specific elements
 const pulseSeqEl = elements.pulseSeq;
 const fractionInlineSlot = document.getElementById(FRACTION_INLINE_SLOT_ID);
+
+// Ordre nuzic de la fila de controls (Play · Random · Reset; App4 no té
+// bpmParam — V viu com a pill a .inputs). El helper només re-afegeix
+// play/random/reset: el loop i el tap cal re-afegir-los a mà — el loop
+// perquè el mode circular encara en depèn (fins F5), i el tap amb el
+// tap-help perquè App4 conserva el tap tempo. Els overrides de
+// visibilitat/estètica són a styles.css.
+{
+  const nuzicControls = reorderControls();
+  if (nuzicControls && elements.loopBtn) nuzicControls.appendChild(elements.loopBtn);
+  if (nuzicControls && elements.tapBtn) {
+    nuzicControls.appendChild(elements.tapBtn);
+    if (elements.tapHelp) nuzicControls.appendChild(elements.tapHelp);
+  }
+}
 
 function applyFractionInfoBackground(panel) {
   if (!panel) return;
@@ -1509,13 +1524,17 @@ async function handleTapTempo() {
 
     if (result.remaining > 0) {
       tapHelp.textContent = result.remaining === 2 ? '2 clicks más' : '1 click más solamente';
+      // Ancorat al centre del botó tap (offsetParent = .controls, que és
+      // position: relative pel tema nuzic); el CSS centra amb translateX.
+      if (tapBtn) tapHelp.style.left = `${tapBtn.offsetLeft + tapBtn.offsetWidth / 2}px`;
       tapHelp.style.display = 'block';
       return;
     }
 
     tapHelp.style.display = 'none';
     if (Number.isFinite(result.bpm) && result.bpm > 0) {
-      const bpm = Math.round(result.bpm * 100) / 100;
+      // El camp BPM mostra 1 decimal com a màxim
+      const bpm = Math.round(result.bpm * 10) / 10;
       setValue(inputV, bpm);
       handleInput({ target: inputV });
     }

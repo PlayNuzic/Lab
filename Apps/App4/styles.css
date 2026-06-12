@@ -1,25 +1,49 @@
 /* App4 specific overrides */
 
-/* Circular layout - toggles are now siblings, not inside play-row */
-:root {
-  /* Toggle offsets no longer needed - using default absolute positioning */
-  --control-toggles-offset-x: 0px;
-  --control-toggles-offset-y: 0px;
-  --toggle-pulse-offset-x: 0px;
-  --toggle-pulse-offset-y: 1px;
-  --toggle-selected-offset-x: 75px;
-  --toggle-selected-offset-y: 1px;
-  --toggle-cycle-offset-x: 0px;
-  --toggle-cycle-offset-y: 1px;
-  /* Button offsets */
-  --btn-loop-offset-x: 0px;
-  --btn-loop-offset-y: 0px;
-  --btn-random-offset-x: 0px;
-  --btn-random-offset-y: 0px;
-  --btn-reset-offset-x: 0px;
-  --btn-reset-offset-y: 0px;
-  --btn-tap-offset-x: 0px;
-  --btn-tap-offset-y: 0px;
+/* TRANSITORI (fins F5): el tema nuzic amaga .loop a totes les apps, però
+   a App4 el loop encara governa el mode circular i el bucle d'àudio.
+   Es retira quan la representació circular sigui permanent. */
+body[data-visual="nuzic"].app4 .controls:not([data-layout]) .loop {
+  display: flex !important;
+  order: 6;
+  position: static !important;
+  transform: none !important;
+  margin: 0 !important;
+  width: clamp(1.5rem, 3.5vw, 2.25rem) !important;
+  height: clamp(1.5rem, 3.5vw, 2.25rem) !important;
+}
+
+/* Tap tempo a la fila de controls amb l'estètica del botó random:
+   cercle verd #7cd6b3 amb contingut blanc i la mateixa mida.
+   order: 4 = el mateix que .random; com que al DOM el tap va després,
+   queda just a la seva dreta (i abans del reset, order 5). */
+body[data-visual="nuzic"].app4 .controls:not([data-layout]) .tap {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  order: 4;
+  position: static !important;
+  transform: none !important;
+  margin: 0 !important;
+  width: clamp(2rem, 5vw, 3rem) !important;
+  height: clamp(2rem, 5vw, 3rem) !important;
+  border-radius: 50%;
+  background: #7cd6b3;
+  border-color: #7cd6b3;
+  color: #ffffff;
+  opacity: 1;
+  font-size: clamp(0.7rem, 1.5vw, 0.95rem);
+  font-weight: 700;
+}
+
+/* El tap-help ("2 clicks más") cau just sota el botó tap: el JS fixa
+   `left` al centre del botó (handleTapTempo) i aquí es centra amb
+   translateX. La .controls ja és position: relative pel tema nuzic. */
+body[data-visual="nuzic"].app4 .controls:not([data-layout]) .tap + .tap-help {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: auto;
+  transform: translateX(-50%);
 }
 
 body {
@@ -657,11 +681,6 @@ gap: 14px;
 /* 3) Lower circular timeline by 50px */
 .timeline-wrapper.circular {
 margin-top: 50px !important; /* was 20px in shared styles */
-}
-
-/* 4) Align controls inside circular wrapper for compact view */
-.timeline-wrapper.circular > .controls {
-transform: translate(-50%, -50%) !important; /* was -40px */
 }
 
 /* 5) Lower unit label by 20px when shown on input focus */

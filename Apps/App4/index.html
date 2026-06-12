@@ -6,11 +6,12 @@
   <title>Pulsos Fraccionados</title>
   <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
   <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="../../libs/shared-ui/nuzic-theme.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="../../favicon.ico" />
   <link rel="modulepreload" href="./main.js" />
 </head>
-<body class="app4" data-theme="light">
+<body class="app4" data-theme="light" data-visual="nuzic">
   <div id="app-root"></div>
 
   <!-- Tone.js is now loaded lazily after user interaction via tone-loader.js -->
@@ -71,6 +72,10 @@
     document.querySelectorAll('.led').forEach(el => el.remove());
     const inputs = document.querySelector('.inputs');
     if (inputs) inputs.style.left = '0';
+
+    // Etiqueta del paràmetre V → "BPM"
+    const vAbbr = document.querySelector('.param.v .abbr');
+    if (vAbbr) vAbbr.textContent = 'BPM';
 
     const soundGroup = document.querySelector('.sound-group');
     if (soundGroup) {

@@ -1,14 +1,87 @@
-# SESSION_STATE — Auditoria 2026-06-10: TANCADA AL 100% (2026-06-11)
+# SESSION_STATE — Redisseny App4 "Pulsos Fraccionados" (pla aprovat 2026-06-12)
 
-**Cap feina pendent de l'auditoria.** Les 144 troballes estan tancades
-(aplicades, resoltes per decisió documentada, o refutades) — el detall, per
-troballa, és a `docs/audit-report-2026-06-10.md`, i el resum de cada sessió a:
+## Tasca activa: App4 → nuzic + 3 fraccions + cercles concèntrics
 
-- `docs/session-history/2026-06-10-auditoria-completa-i-aplicacio.md`
-- `docs/session-history/2026-06-11-auditoria-mitjanes-completades.md`
-- `docs/session-history/2026-06-11-auditoria-144-completa.md` ← invariants nous AQUÍ
+**Concepte aprovat per l'usuari** (esbós interactiu validat:
+`docs/app4-rings-sketch.html` — obrir al navegador; conté la geometria,
+les regles de radi i la validació exactes que ha de tenir el mòdul final):
 
-## Invariants ràpids per a la pròxima sessió (detall a l'arxiu de dalt)
+- **3 fraccions activables** (F1 groc `--nuzic-yellow`, F2 rosa
+  `--nuzic-pink`, F3 blau `--nuzic-blue`); F1 activa per defecte, F2/F3
+  opcionals amb toggle que conserva valors en desactivar.
+- **Rangs**: n ∈ [1,7], d ∈ [1,12].
+- **Lg deixa de ser input lliure**: Lg = cicle gran × m, on cicle gran =
+  mcm dels numeradors reduïts de les fraccions actives (els denominadors
+  NO hi influeixen), i m = "Cicles" és l'únic control de longitud.
+- **MAX_LG = 210 = mcm(5,6,7)** — el pitjor cas matemàtic amb n≤7. Cap
+  combinació vàlida queda mai bloquejada; la validació "cicle > 210" queda
+  al codi només com a xarxa de seguretat.
+- **Sempre representació circular** (es retira el mode lineal i el toggle):
+  anells concèntrics — cercle base (pols, fix com a referència R₀) + un
+  anell per fracció activa. **Radi ∝ velocitat**: r = R₀·s^k amb s = d/n i
+  k = 0.35; després regla de separació (GAP mínim, ràpids enfora, lents
+  endins) i clamp [Rmin, Rmax].
+- **Densitat adaptativa** (validat al sketch): mida de punt segons espai
+  d'anell, etiquetatge de números mode "rellotge" quan no caben (sempre
+  inicis de cicle en negreta), línies radials de cicle espaiades si n'hi
+  ha > 24.
+- **Editor numèric (pulseSeq) s'elimina**; la selecció de pulsos/fraccions
+  es manté per clic als anells.
+- **Info matemàtica**: botó "ⓘ" amb panell (substitueix el tooltip del
+  títol): Lg, cicle gran (pulsos i s), V i V·d/n per fracció, pulsos
+  fraccionats per cicle, mcm de denominadors (graella mínima), proporció
+  polirítmica reduïda, T.
+
+### Fases (cada fase = commit propi + npm test verd)
+
+- [x] **F1 — Tema nuzic base** ✅ (commit de checkpoint 2026-06-12):
+      data-visual="nuzic" + nuzic-theme.css, reorderControls() (helper
+      H-08) + re-append manual de loop i tap (el helper els descarta).
+      Fila resultant: Play · Random · Tap · Reset · Loop. Decisions:
+      - **Tap es conserva** amb l'estètica del random (cercle verd
+        #7cd6b3, blanc), a la DRETA del random (order: 4 + ordre DOM);
+        tap-help ancorat per JS al centre del botó (offsetLeft dins
+        .controls relative).
+      - **Loop visible** via override transitori a styles.css (marcat
+        "fins F5") — encara governa mode circular + bucle d'àudio.
+      - **Etiqueta V → "BPM"** (index.html) i tap tempo arrodonit a
+        1 decimal (abans 2).
+      - CSS de pulseSeq/fraction-inline/timeline NO netejat a posta:
+        mor a F2/F3/F5.
+- [ ] **F2 — Eliminar editor numèric**: fora buildPulseSeqMarkup,
+      sanitizePulseSeq, spacing, token-map (~1.200 línies de main.js). La
+      selecció per clic a timeline ja n'és independent.
+- [ ] **F3 — 3 fraccions + model Lg**: array de fraccions amb actiu/valors
+      persistits (`app4:f1..f3`), pill "Cicles (m)", display Lg calculat,
+      validateFractionCombo (cicle ≤ 210, tooltip amb el mcm explicat),
+      random menu adaptat (aleatoritza fraccions actives + m; Lg derivat).
+- [ ] **F4 — Àudio polirítmic**: scheduling.voices amb una veu per fracció
+      activa (API setVoices ja existent — App4 té el handler esquelet
+      updateVoiceHandlers mai usat); canals de mixer dinàmics per fracció
+      amb nom/color. SENSE tocar fitxers d'alt risc.
+- [ ] **F5 — Mòdul `libs/app-common/circular-rings.js`** + tests: N anells
+      concèntrics, radi ∝ velocitat (fórmula de dalt), punts/etiquetes
+      adaptatius, clic-per-seleccionar, highlight de playback per anell,
+      responsiu. App4 el consumeix; es retira timeline lineal.
+- [ ] **F6 — Partitura multi-fracció**: notation-utils/rhythm-staff amb
+      una veu per fracció (Lg sempre múltiple de cada cicle ⇒ MAI tuplets
+      incomplets ni remainder pulses — la zona dels 5 fixes històrics
+      desapareix). Decidir aquí: pentagrames apilats vs límit de veus.
+- [ ] **F7 — Panell info "ⓘ"**: estendre formula-renderer.js (compartit,
+      amb tests) amb cicle gran, mcm denominadors, proporció reduïda, etc.
+- [ ] **F8 — Neteja + docs**: auditoria Step 15 de la skill, README App4,
+      MODULES.md (circular-rings), arxiu a docs/session-history/.
+
+### Notes de risc
+
+- F5 és la peça nova gran (geometria + interacció). F6 toca notation-utils
+  (historial delicat) — tests per davant. F4 és baix risc (API existent).
+- App4 NO té tema nuzic actualment; main.js són 3.009 línies (l'editor
+  numèric n'és ~1.200).
+- Les claus de selecció `frac:base:n:d` ja són multi-fracció — el store
+  de fraction-selection.js no necessita refactor estructural.
+
+## Invariants ràpids (de l'auditoria 2026-06-10, TANCADA — detall a docs/session-history/2026-06-11-auditoria-144-completa.md)
 
 - Worklet: epsilons 1e-9 i acumulació += intocables; el per-sample itera
   `_voiceList` (mai el Map). Fitxers d'alt risc → diff + suite + aprovació.

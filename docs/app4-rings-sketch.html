@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<title>App4 — Esbós: 3 fraccions · Lg = cicle gran × m</title>
+<style>
+  :root{
+    --yellow:#FFBB33; --pink:#F28AAD; --blue:#7BB4CD;
+    --dark:#43433B; --light:#eee8d8;
+  }
+  body{
+    font-family:'Ubuntu',system-ui,sans-serif; background:#faf8f2; color:var(--dark);
+    margin:0; display:flex; flex-direction:column; align-items:center; gap:1rem; padding:1.25rem;
+  }
+  h1{font-size:1.15rem; margin:0}
+  .controls{display:flex; gap:1.1rem; align-items:flex-end; flex-wrap:wrap; justify-content:center}
+  .pill{display:flex; flex-direction:column; align-items:center; gap:.2rem; font-weight:700; font-size:.85rem}
+  .pill input[type=number]{
+    width:3.4rem; font-size:1.15rem; font-weight:700; text-align:center;
+    border:2px solid var(--dark); border-radius:.5rem; padding:.2rem; background:#fff;
+  }
+  .pill .computed{
+    width:3.4rem; font-size:1.15rem; font-weight:900; text-align:center;
+    border:2px solid var(--yellow); border-radius:.5rem; padding:.2rem; background:var(--light);
+  }
+  .fracwrap{display:flex; flex-direction:column; align-items:center; gap:.25rem; font-weight:700; font-size:.85rem}
+  .fracwrap.off .frac{opacity:.3}
+  .frac{display:flex; flex-direction:column; align-items:center; border:3px solid; border-radius:.5rem; padding:.25rem .4rem; background:#fff}
+  .frac input{width:2.6rem; text-align:center; font-size:1.1rem; font-weight:900; border:none; outline:none; background:transparent}
+  .frac hr{width:85%; border:none; border-top:3px solid #000; margin:.05rem 0}
+  .fracwrap label{display:flex; align-items:center; gap:.3rem; cursor:pointer}
+  button{font-size:1.1rem; font-weight:700; border:none; border-radius:2rem; padding:.5rem 1.5rem; background:var(--yellow); color:#fff; cursor:pointer}
+  button:hover{filter:brightness(.95)}
+  .ktune{display:flex; align-items:center; gap:.5rem; font-size:.85rem; font-weight:700}
+  #info{
+    font-size:.9rem; line-height:1.6; background:var(--light); border-radius:.5rem;
+    padding:.6rem 1.1rem; max-width:38rem;
+  }
+  svg text{font-family:'Ubuntu',system-ui,sans-serif}
+</style>
+</head>
+<body>
+<h1>App4 — 3 fraccions activables · Lg = cicle gran × m (cicles sempre complets)</h1>
+
+<div class="controls" id="controls">
+  <div class="pill">V (BPM)<input id="v" type="number" min="40" max="240" value="100"></div>
+  <!-- editors de fracció generats per JS -->
+  <div class="pill">Cicles (m)<input id="m" type="number" min="1" max="24" value="2"></div>
+  <div class="pill">Lg (auto)<div class="computed" id="lgOut">—</div></div>
+  <div class="ktune">k<input id="k" type="range" min="0.20" max="0.60" step="0.05" value="0.35"><span id="kVal">0.35</span></div>
+  <button id="play">▶</button>
+</div>
+
+<svg id="stage" width="580" height="580" viewBox="0 0 580 580"></svg>
+<div id="info"></div>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const C = 290, R0 = 155, RMIN = 42, RMAX = 256, GAP = 30;
+// MAX_LG = mcm(5,6,7): el pitjor cicle gran possible amb numeradors ≤ 7.
+// Cap combinació vàlida de 3 fraccions queda mai bloquejada.
+const MAX_LG = 210;
+const $ = id => document.getElementById(id);
+const svg = $('stage'), info = $('info');
+
+const clamp = (x,a,b) => Math.min(b, Math.max(a, x));
+const gcd = (a,b) => b ? gcd(b, a % b) : a;
+const lcm = (a,b) => a / gcd(a,b) * b;
+
+// 3 fraccions amb color d'identitat. n fins a 7 i d fins a 12: la
+// combinació es valida en viu — si el cicle gran (mcm de numeradors
+// reduïts) supera MAX_LG, es mostra l'error i no es dibuixa.
+const FRACTIONS = [
+  { id:'f1', label:'F1', color:'#FFBB33', light:'#ffeecc', on:true,  n:1, d:4 },
+  { id:'f2', label:'F2', color:'#F28AAD', light:'#ffe5ee', on:true,  n:3, d:2 },
+  { id:'f3', label:'F3', color:'#7BB4CD', light:'#e3f0f7', on:false, n:7, d:8 }
+];
+
+let rings = [], lg = 8, bigCycle = 1, playing = false, startT = 0, rafId = 0;
+
+function idealRadius(s, k){ return clamp(R0 * Math.pow(s, k), RMIN, RMAX); }
+
+// Base fix com a referència; la resta s'aparta enfora (ràpids) o endins
+// (lents) fins a respectar el GAP. Generalitzat a N anells.
+function resolveRadii(actives, k){
+  const list = [
+    { id:'base', r:R0, fixed:true },
+    ...actives.map(f => ({ id:f.id, r:idealRadius(f.d / f.n, k) }))
+  ];
+  list.sort((a,b) => (a.r - b.r) || (a.fixed ? -1 : 1));
+  const bi = list.findIndex(x => x.fixed);
+  for (let i = bi + 1; i < list.length; i++) list[i].r = Math.max(list[i].r, list[i-1].r + GAP);
+  for (let i = bi - 1; i >= 0; i--)         list[i].r = Math.min(list[i].r, list[i+1].r - GAP);
+  const out = {};
+  list.forEach(x => out[x.id] = clamp(x.r, RMIN - 14, RMAX));
+  return out;
+}
+
+function el(name, attrs){
+  const e = document.createElementNS(NS, name);
+  for (const [k,v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+
+// ─── controls de fracció generats ───
+const mPill = $('m').parentElement;
+FRACTIONS.forEach(f => {
+  const wrap = document.createElement('div');
+  wrap.className = 'fracwrap' + (f.on ? '' : ' off');
+  wrap.innerHTML = `
+    <label style="color:${f.color}"><input type="checkbox" ${f.on ? 'checked' : ''}> ${f.label}</label>
+    <div class="frac" style="border-color:${f.color}">
+      <input class="num" type="number" min="1" max="7" value="${f.n}">
+      <hr>
+      <input class="den" type="number" min="1" max="12" value="${f.d}">
+    </div>`;
+  wrap.querySelector('input[type=checkbox]').addEventListener('change', e => {
+    f.on = e.target.checked;
+    wrap.classList.toggle('off', !f.on);
+    build();
+  });
+  wrap.querySelector('.num').addEventListener('input', e => { f.n = clamp(+e.target.value || 1, 1, 7); build(); });
+  wrap.querySelector('.den').addEventListener('input', e => { f.d = clamp(+e.target.value || 1, 1, 12); build(); });
+  document.getElementById('controls').insertBefore(wrap, mPill);
+});
+
+function build(){
+  const v = clamp(+$('v').value || 100, 40, 240);
+  const k = +$('k').value;
+  $('kVal').textContent = k.toFixed(2);
+
+  const actives = FRACTIONS.filter(f => f.on);
+
+  // Cicle gran = mcm dels numeradors reduïts (el pols base hi és inclòs:
+  // els denominadors no afecten la coincidència amb els pulsos enters).
+  const reducedNums = actives.map(f => f.n / gcd(f.n, f.d));
+  bigCycle = reducedNums.length ? reducedNums.reduce(lcm) : 1;
+
+  // Validació: combinació impossible si el cicle gran no cap dins MAX_LG.
+  if (bigCycle > MAX_LG){
+    $('lgOut').textContent = '—';
+    svg.innerHTML = '';
+    rings = [];
+    const t1 = el('text', { x:C, y:C - 12, 'font-size':17, 'font-weight':900, fill:'#c0392b', 'text-anchor':'middle' });
+    t1.textContent = `Combinació no permesa`;
+    const t2 = el('text', { x:C, y:C + 14, 'font-size':14, 'font-weight':700, fill:'#43433B', 'text-anchor':'middle' });
+    t2.textContent = `coincidència cada ${bigCycle} pulsos > màxim ${MAX_LG}`;
+    svg.append(t1, t2);
+    info.innerHTML = `<b style="color:#c0392b">Cicle gran = mcm(${reducedNums.join(', ')}) = ${bigCycle} pulsos</b> — ` +
+      `supera el límit de Lg (${MAX_LG}). Canvia un numerador perquè les fraccions coincideixin abans.`;
+    return;
+  }
+
+  // Lg = cicle gran × m, amb m retallat perquè Lg ≤ MAX_LG.
+  const mMax = Math.max(1, Math.floor(MAX_LG / bigCycle));
+  $('m').max = mMax;
+  const m = clamp(+$('m').value || 1, 1, mMax);
+  if (+$('m').value > mMax) $('m').value = mMax;
+  lg = bigCycle * m;
+  $('lgOut').textContent = lg;
+
+  const radii = resolveRadii(actives, k);
+
+  svg.innerHTML = '';
+  rings = [];
+
+  // línies radials als inicis de cicle gran (múltiples de bigCycle);
+  // si hi ha massa cicles (ex. cicle=1 amb Lg gran), no saturem el dibuix
+  const cycleLineStep = bigCycle * Math.ceil((lg / bigCycle) / 24);
+  for (let p = 0; p < lg; p += cycleLineStep){
+    const a = (p / lg) * 2 * Math.PI - Math.PI / 2;
+    svg.appendChild(el('line', {
+      x1: C, y1: C,
+      x2: C + (radii.base + 8) * Math.cos(a), y2: C + (radii.base + 8) * Math.sin(a),
+      stroke:'#43433B', 'stroke-width': p === 0 ? 2 : 1, opacity:.25
+    }));
+  }
+
+  const defs = [
+    { id:'base', r:radii.base, stroke:'#43433B', fill:'#eee8d8', step:1, label:'Pols' },
+    ...actives.map(f => ({
+      id:f.id, r:radii[f.id], stroke:f.color, fill:f.light,
+      step:f.n / f.d, label:`${f.n}/${f.d}`
+    }))
+  ];
+  defs.sort((a,b) => b.r - a.r); // dibuixar de fora cap endins
+
+  for (const ring of defs){
+    svg.appendChild(el('circle', { cx:C, cy:C, r:ring.r, fill:'none', stroke:ring.stroke, 'stroke-width':3, opacity:.85 }));
+    const dots = [];
+    const count = Math.round(lg / ring.step); // sempre exacte: Lg és múltiple del cicle de cada fracció
+    // Mida del punt adaptativa: que no se solapin en anells densos
+    // (ex. 1/12 amb Lg=24 → 288 punts).
+    const spacing = (2 * Math.PI * ring.r) / count;
+    const dotR = clamp(spacing * 0.3, 1.2, ring.id === 'base' ? 7 : 6);
+    for (let i = 0; i < count; i++){
+      const p = i * ring.step;                // posició en pulsos base
+      const a = (p / lg) * 2 * Math.PI - Math.PI / 2;
+      const dot = el('circle', {
+        cx: C + ring.r * Math.cos(a), cy: C + ring.r * Math.sin(a),
+        r: dotR,
+        fill: ring.fill, stroke: ring.stroke, 'stroke-width': clamp(dotR * 0.4, 1, 2.5)
+      });
+      svg.appendChild(dot);
+      dots.push({ el: dot, p, baseR: dotR });
+    }
+    const t = el('text', { x: C + 12, y: C - ring.r + 4, 'font-size':12, 'font-weight':700, fill: ring.stroke });
+    t.textContent = ring.label;
+    svg.appendChild(t);
+    rings.push({ ...ring, dots });
+  }
+
+  // números dels pulsos base, per fora de l'anell base — etiquetatge
+  // adaptatiu: si no hi caben tots, se'n mostra un cada `labelStep`
+  // (com les marques d'un rellotge), sempre amb els inicis de cicle.
+  const numberR = radii.base + 22;
+  const labelSpacing = (2 * Math.PI * numberR) / lg;
+  const labelStep = labelSpacing >= 18 ? 1 : Math.ceil(18 / labelSpacing);
+  for (let i = 0; i < lg; i++){
+    const isCycleStart = i % bigCycle === 0;
+    if (i % labelStep !== 0 && !isCycleStart) continue;
+    const a = (i / lg) * 2 * Math.PI - Math.PI / 2;
+    const t = el('text', {
+      x: C + numberR * Math.cos(a), y: C + numberR * Math.sin(a) + 4,
+      'font-size': labelStep > 1 ? 11 : 13,
+      'font-weight': isCycleStart ? 900 : 400, fill:'#43433B', 'text-anchor':'middle'
+    });
+    t.textContent = i;
+    svg.appendChild(t);
+  }
+
+  // agulla de reproducció
+  const hand = el('line', { x1:C, y1:C, x2:C, y2:C - RMAX - 5, stroke:'#43433B', 'stroke-width':2, opacity:0 });
+  hand.id = 'hand';
+  svg.appendChild(hand);
+
+  // ─── panell info ───
+  const T = lg * 60 / v;
+  let html = `<b>Pols</b>: V=${v} BPM · r=${radii.base.toFixed(0)}px (referència)<br>` +
+    `<b>Cicle gran</b> = ${bigCycle} pulsos (${(bigCycle * 60 / v).toFixed(1)} s) · ` +
+    `<b>Lg</b> = ${bigCycle}×${m} = ${lg} · T total = ${T.toFixed(1)} s`;
+  for (const f of actives){
+    const s = f.d / f.n;
+    html += `<br><b style="color:${f.color}">${f.label} (${f.n}/${f.d})</b>: s=${s.toFixed(2)} → V=${(v * s).toFixed(1)} BPM · ` +
+      `${Math.round(1 / (f.n / f.d) * bigCycle)} pulsos fraccionats per cicle gran · r=${radii[f.id].toFixed(0)}px`;
+  }
+  if (actives.length){
+    const grid = actives.map(f => f.d).reduce(lcm);
+    html += `<br>mcm(d…) = ${grid} (graella mínima per pols)`;
+  }
+  info.innerHTML = html;
+}
+
+function frame(now){
+  const v = clamp(+$('v').value || 100, 40, 240);
+  const T = lg * 60 / v * 1000;
+  const pos = ((now - startT) % T) / T * lg;   // posició en pulsos base
+  const a = (pos / lg) * 2 * Math.PI - Math.PI / 2;
+  const hand = $('hand');
+  hand.setAttribute('opacity', .5);
+  hand.setAttribute('x2', C + (RMAX + 5) * Math.cos(a));
+  hand.setAttribute('y2', C + (RMAX + 5) * Math.sin(a));
+  for (const ring of rings){
+    const idx = Math.floor(pos / ring.step) % ring.dots.length;
+    ring.dots.forEach((d, i) => {
+      const on = i === idx;
+      d.el.setAttribute('r', on ? d.baseR + 4 : d.baseR);
+      d.el.setAttribute('fill', on ? ring.stroke : ring.fill);
+    });
+  }
+  if (playing) rafId = requestAnimationFrame(frame);
+}
+
+$('play').addEventListener('click', () => {
+  playing = !playing;
+  $('play').textContent = playing ? '⏸' : '▶';
+  if (playing){ startT = performance.now(); rafId = requestAnimationFrame(frame); }
+  else {
+    cancelAnimationFrame(rafId);
+    $('hand').setAttribute('opacity', 0);
+    rings.forEach(r => r.dots.forEach(d => { d.el.setAttribute('r', d.baseR); d.el.setAttribute('fill', r.fill); }));
+  }
+});
+
+['v','m','k'].forEach(id => $(id).addEventListener('input', build));
+build();
+</script>
+</body>
+</html>
