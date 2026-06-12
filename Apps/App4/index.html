@@ -7,6 +7,9 @@
   <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
   <link rel="stylesheet" href="../../libs/app-common/styles.css" />
   <link rel="stylesheet" href="../../libs/shared-ui/nuzic-theme.css" />
+  <!-- F5: estil per defecte dels anells concèntrics (abans d'styles.css
+       perquè l'app pugui sobreescriure'l) -->
+  <link rel="stylesheet" href="../../libs/app-common/circular-rings.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="../../favicon.ico" />
   <link rel="modulepreload" href="./main.js" />
@@ -27,6 +30,8 @@
       showNotationToggle: true,
       // App4 és de fraccions complexes per naturalesa: sense toggle
       showComplexFractions: false,
+      // F5: la representació circular és permanent — fora el toggle del menú
+      showCircularTimelineToggle: false,
       // F2: sense editor numèric de pulsos — `.middle` arriba buit i
       // main.js hi munta el fraction-editor en mode block (patró App28).
       noMiddleSlot: true,

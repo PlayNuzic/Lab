@@ -1,0 +1,90 @@
+/* libs/app-common/circular-rings.css
+ *
+ * Estil nuzic per defecte dels anells concèntrics (circular-rings.js).
+ * Cada grup d'anell exposa els colors d'identitat com a variables
+ * (--crings-color / --crings-light), de manera que els estats
+ * selected/active es tematitzen aquí sense conèixer cada fracció.
+ * El consumidor pot limitar l'alçada de l'SVG (max-height) des de
+ * la seva fulla d'estils. */
+
+.crings-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.crings-ring-group {
+  --crings-color: #43433B; /* anell base fosc nuzic */
+  --crings-light: #eee8d8;
+}
+
+.crings-ring {
+  fill: none;
+  stroke: var(--crings-color);
+  stroke-width: 3;
+  opacity: 0.85;
+}
+
+.crings-dot {
+  fill: var(--crings-light);
+  stroke: var(--crings-color);
+  cursor: pointer;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.08s ease-out;
+}
+
+/* Seleccionat: ple del color d'identitat + lleuger engrandiment + glow. */
+.crings-dot--selected {
+  fill: var(--crings-color);
+  transform: scale(1.25);
+  filter: drop-shadow(0 0 3px var(--crings-color));
+}
+
+/* Punt actiu de reproducció: ple + engrandit (toggle barat de classe). */
+.crings-dot--active {
+  fill: var(--crings-color);
+  transform: scale(1.55);
+}
+
+/* No seleccionable (ex. endpoint 0): apagat i sense clic. */
+.crings-dot--nonselectable {
+  opacity: 0.3;
+  pointer-events: none;
+  cursor: default;
+}
+
+/* Etiqueta de l'anell ("Pols", "3/2"...) al capdamunt de cada cercle. */
+.crings-label {
+  fill: var(--crings-color);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Números dels pulsos base, per fora de l'anell base. */
+.crings-number {
+  fill: #43433B;
+  font-weight: 400;
+}
+
+/* Inicis de cicle gran: sempre visibles i en negreta. */
+.crings-number--cycle {
+  font-weight: 900;
+}
+
+/* Línies radials als inicis de cicle gran. */
+.crings-cycle-line {
+  stroke: #43433B;
+  opacity: 0.25;
+}
+
+/* Agulla de reproducció: oculta fins que hi ha highlight. */
+.crings-needle {
+  stroke: #43433B;
+  stroke-width: 2;
+  opacity: 0;
+}
+
+.crings-needle--visible {
+  opacity: 0.5;
+}

@@ -241,12 +241,101 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
       (cycle-marker/labels/#tIndicator/notation/media 600px — només
       traducció d'unitats, cap redisseny: mor a F5); px només a vores,
       ombres, radius i la barra/gap de 4px del crom compartit.
-      concèntrics, radi ∝ velocitat (fórmula de dalt), punts/etiquetes
-      adaptatius, clic-per-seleccionar, highlight de playback per anell,
-      responsiu. App4 el consumeix; es retira timeline lineal.
-      **Requisit afegit (2026-06-12): el botó loop s'ELIMINA i l'app
-      sempre reprodueix en bucle** — fora també l'override CSS
-      transitori del loop i el toggle circular del menú.
+- [x] **F5 — Anells concèntrics** ✅ (F5a mòdul + F5b integració; codi fet,
+      pendent de commit): cercle base (pols) + un anell per fracció activa,
+      radi ∝ velocitat, punts/etiquetes adaptatius, clic-per-seleccionar,
+      highlight de playback per anell. App4 el consumeix; la timeline
+      lineal s'ha retirat. **Requisit afegit (2026-06-12): el botó loop
+      s'ELIMINA i l'app sempre reprodueix en bucle** — fet a F5b (fora
+      també l'override CSS transitori i el toggle circular del menú).
+      Decisions F5a:
+      - NOU `libs/app-common/circular-rings.js` (+ `circular-rings.css` +
+        test, 48 tests; suite 74/1451 verda). Geometria EXACTA de l'esbós
+        (viewBox 580, C=290, R0=155, RMIN=42, RMAX=256, GAP=30, k=0.35
+        configurable); helpers purs exportats per a tests: `idealRadius`,
+        `resolveRadii`, `computeLabelStep`, `computeLabelList`,
+        `computeCycleLineStep`, `dotMetrics`, `RING_GEOMETRY`.
+      - API state-in/events-out: `createCircularRings({ container, k,
+        onDotClick })` → `render({ lg, bigCycle, base, fractions })` /
+        `highlightPosition(pos)` (cache d'elements per anell, només toggle
+        de classes + agulla) / `clearHighlights()` / `getElement()` /
+        `destroy()`. Payload de clic: `{type:'int', index}` o
+        `{type:'fraction', ringId, tickIndex, position, numerator,
+        denominator}`; `selectable:false` → ni clic ni pointer.
+      - Tematització: classes `crings-*` + variables `--crings-color`/
+        `--crings-light` per grup d'anell (estats selected/active al CSS
+        via transform scale, transform-box: fill-box); atributs SVG de
+        presentació com a fallback sense CSS. App4 ha d'enllaçar
+        `libs/app-common/circular-rings.css`.
+      - Punts amb `data-index` (base) / `data-tick-index` (fracció);
+        delegació d'un sol listener de clic a l'SVG (WeakMap de payloads).
+      **Decisions F5b (2026-06-12; main.js 2.865→2.331 línies, styles.css
+      837→584; suite 74/1451 verda; smoke CDP a /tmp/app4-f5b-smoke.mjs +
+      screenshot /tmp/app4-f5b-layout.png, consola neta):**
+      - **#timeline → `.rings-host`**: l'element del template es reconverteix
+        en amfitrió pelat (es treu la CLASSE .timeline perquè cap estil
+        compartit — línia, fons crema nuzic — no s'hi apliqui; cap CSS
+        compartit tocat). createCircularRings hi viu; SVG centrat amb
+        `width: min(100%, 60vh)`. timeline-layout/timeline-renderer ja no
+        s'importen — **timeline-renderer.js queda sense consumidors a tot el
+        repo (App4-only): candidat a esborrar a F8**.
+      - **Endpoint**: el punt 0 de l'anell base és l'ORIGEN del cicle
+        (endpoint, ple del color de l'anell via `.crings-dot--endpoint` a
+        styles.css, no seleccionable). NO existeix punt Lg: amb bucle
+        permanent Lg ≡ 0. L'antiga parella efímera 0/Lg-controla-loop mor.
+      - **Tots els enters 1..Lg-1 són seleccionables**: la regla
+        isIntegerPulseSelectable era un artefacte de la línia (només
+        mostrava la graella d'UNA fracció); fora d'App4 (random passa un
+        predicat `() => true`; prunePulseMemoryForFraction eliminat — els
+        canvis de fracció ja no poden invalidar enters). Sonen per 'accent'.
+      - **Ticks de fracció coincidents amb un pols enter (k·n/d enter, el 0
+        inclòs) NO seleccionables** (atenuats): makeFractionKey exigeix
+        0 < num < d per construcció (el store no pot representar-los) i
+        aquell instant ja se selecciona a l'anell base — s'evita la doble
+        representació del mateix instant. La resta de ticks → clic →
+        createFractionSelectionFromValue(value, { denominator: d,
+        pulsesPerCycle: n }) amb el n/d LITERAL del slot → mateix store →
+        canal fracSelN via selectionChannelForFraction (verificat al motor:
+        0.5→fracSel1, 1/3→fracSel2, enters legacy).
+      - **reconcileFractionSelections** substitueix la detecció d'invàlids
+        del timeline-renderer: seleccions fora de Lg o sense anell actiu
+        (match literal n/d + posició sobre la graella k·n/d) se SUSPENEN a
+        fractionMemory; les suspeses que tornen a tenir anell es restauren.
+      - **Bucle permanent**: loopEnabled eliminat (true inlined a
+        toPlaybackPulseCount/play/setLoop/escalats); botó loop fora del DOM
+        (reorderControls ja no el re-afegeix) + fora l'override CSS
+        "TRANSITORI (fins F5)"; appState + createPulseMemoryLoopController
+        fora; toggle circular i clau `app4:circular` morts
+        (showCircularTimelineToggle: false al renderApp).
+      - **Highlights per posició**: visual-sync (mode complet, creat UN cop)
+        amb un highlightController adaptador — highlightPulse({step,
+        resolution}) → posició = (step/resolution) % Lg →
+        rings.highlightPosition (un punt actiu per anell + agulla);
+        highlightCycle = no-op i cycleConfig ja NO duu onTick (els
+        missatges 'cycle' del worklet només alimenten getVisualState).
+        createCycleVoiceHandler/updateVoiceHandlers/handleVoiceEvent i
+        audio.setVoiceHandler eliminats (el TODO(F5) es resol per posició,
+        no per ticks de veu). **Limitació coneguda**: la quantització
+        visual dels anells NO principals és la resolució d'àudio (lcm del
+        d principal + d de les seleccions) — un anell ràpid sense
+        seleccions (ex. F2=1/12 amb F1=1/2) avança el highlight a salts;
+        l'àudio (veus) és exacte igualment.
+      - **tIndicator eliminat** (era DOM dins #timeline): la info de T
+        passa al panell ⓘ a F7; mentrestant ja viu a la fórmula Lg/V=T/60
+        i al tooltip del títol. #tIndicator i tot el CSS de
+        pulse*/cycle-marker/cycle-label/timeline/remainder fora de
+        styles.css; utils.js només re-exporta solidMenuBackground.
+      - **Random**: els pulsos enters segueixen per memòria (ara tots
+        candidats); l'aleatorització de seleccions FRACCIONADES queda
+        inactiva (applyRandomFractionSelection llegeix store.hitMap, que
+        ja no es pobla — només neteja) — re-implementar sobre la graella
+        d'anells si es vol, anotat per a F8.
+      - gamification-adapter intacte (els seus lookups #pulseSeq/
+        #fractionInlineSlot ja eren null-guarded des de F2); notation panel
+        intacte (llegeix store/memòria, no DOM de timeline).
+      - index.html: enllaça libs/app-common/circular-rings.css ABANS
+        d'styles.css (l'app hi pot sobreescriure, ex. endpoint i font
+        Ubuntu dels textos SVG).
 - [ ] **F6 — Partitura multi-fracció**: notation-utils/rhythm-staff amb
       una veu per fracció (Lg sempre múltiple de cada cicle ⇒ MAI tuplets
       incomplets ni remainder pulses — la zona dels 5 fixes històrics
@@ -289,7 +378,7 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
   (engine.normalizeSilences — mai silencis al final ni adjacents); l'editor
   els mostra com a caselles buides editables; tota mutació del model passa
   per applySequenceMutation.
-- Suite: 73 suites / 1399 tests — `npm test` després de cada batch; commits
+- Suite: 74 suites / 1451 tests — `npm test` després de cada batch; commits
   amb llista explícita de fitxers (sessions paral·leles comparteixen el repo).
 - Verificació CDP: events de confiança, cache desactivada, perfil net, i
   viewport gran (Emulation.setDeviceMetricsOverride) — un clic sota el fold

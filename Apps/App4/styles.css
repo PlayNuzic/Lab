@@ -1,18 +1,5 @@
 /* App4 specific overrides */
 
-/* TRANSITORI (fins F5): el tema nuzic amaga .loop a totes les apps, però
-   a App4 el loop encara governa el mode circular i el bucle d'àudio.
-   Es retira quan la representació circular sigui permanent. */
-body[data-visual="nuzic"].app4 .controls:not([data-layout]) .loop {
-  display: flex !important;
-  order: 6;
-  position: static !important;
-  transform: none !important;
-  margin: 0 !important;
-  width: clamp(1.5rem, 3.5vw, 2.25rem) !important;
-  height: clamp(1.5rem, 3.5vw, 2.25rem) !important;
-}
-
 /* Tap tempo a la fila de controls amb l'estètica del botó random:
    cercle verd #7cd6b3 amb contingut blanc i la mateixa mida.
    order: 4 = el mateix que .random; com que al DOM el tap va després,
@@ -110,7 +97,7 @@ body.app4 .mixer-action.mixer-action--fx-toggle {
 
 /* La bola del fader de cada parella pren el color d'identitat de la seva
    fracció (F1 groc, F2 rosa, F3 blau) — mateix codi de color que les
-   caixes d'edició i, a F5, els anells. Pulso/Seleccionado queden foscos
+   caixes d'edició i els anells. Pulso/Seleccionado queden foscos
    (pols base) i Master verd (com sempre). */
 body.app4 .mixer-channel__slider[data-channel="frac1"]::-webkit-slider-thumb,
 body.app4 .mixer-channel__slider[data-channel="fracSel1"]::-webkit-slider-thumb {
@@ -184,242 +171,35 @@ main > .notation-panel--inline .notation-panel__canvas {
   min-height: 15rem;
 }
 
-/**
- * Timeline pulse overrides to support selection and interactive hit areas.
- */
-.pulse { cursor: pointer; }
-.timeline .pulse { pointer-events: auto; }
-
-/* El tema nuzic amaga els dots .pulse i posa els .pulse-number A la línia
-   (top: 50%, z-index: 10), just damunt dels .pulse-hit clicables. Sense
-   això, el número captura el clic i la selecció només funciona als marges.
-   pointer-events: none deixa passar el clic al hit de sota (mateixa x/y). */
-body[data-visual="nuzic"].app4 .timeline .pulse-number {
-  pointer-events: none;
-}
-/* Selected pulses use selection color, except endpoints 0/Lg which must keep Lg color */
-.pulse.selected:not(.zero):not(.lg) { background: var(--selection-color); }
-.pulse.zero,
-.pulse.lg {
-  color: var(--color-lg);
-  cursor: default;
-  pointer-events: none;
+/* ──────────────────────────────────────────────────────────────────────────
+ * F5: anells concèntrics — l'amfitrió (#timeline reconvertit en .rings-host)
+ * substitueix la timeline lineal. L'SVG és quadrat (viewBox 580×580): amb
+ * width = min(100%, ~60vh) l'alçada queda igualment limitada i el dibuix
+ * omple l'espai vertical entre la fila de fraccions i els controls.
+ * ────────────────────────────────────────────────────────────────────────── */
+body.app4 .rings-host {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: clamp(0.25rem, 1.5vh, 1rem) auto;
 }
 
-/* Non-selectable pulses (based on fraction rules) */
-.pulse.non-selectable {
-  --pulse-scale: 0.5; /* 50% del tamaño normal */
-  opacity: 0.35;
-  cursor: not-allowed;
-  pointer-events: none;
-  filter: grayscale(0.5);
+body.app4 .rings-host .crings-svg {
+  width: min(100%, 60vh);
+  height: auto;
 }
 
-/* Remainder pulses (sobrantes al final cuando Lg % numerator !== 0) */
-.pulse.remainder {
-  --pulse-scale: 0.7;
-  opacity: 0.65;
-  background: linear-gradient(135deg, var(--color-accent) 0%, #ffa500 100%);
-  border: 2px dashed #ffa500;
-  box-shadow: 0 0 6px rgba(255, 165, 0, 0.4);
-  animation: remainder-pulse 2s ease-in-out infinite;
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-@keyframes remainder-pulse {
-  0%, 100% {
-    box-shadow: 0 0 6px rgba(255, 165, 0, 0.4);
-    transform: translate(-50%, -50%) scale(var(--pulse-scale));
-  }
-  50% {
-    box-shadow: 0 0 12px rgba(255, 165, 0, 0.7);
-    transform: translate(-50%, -50%) scale(calc(var(--pulse-scale) * 1.1));
-  }
-}
-
-.pulse-hit {
-  transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
-  --pulse-flash-base-transform: translate(-50%, -50%);
-}
-
-.pulse-hit.selected {
-  background: var(--selection-color);
-  box-shadow: 0 0 16px var(--selection-color);
-  opacity: 0.75;
-}
-
-.pulse-hit.non-selectable {
-  background: transparent;
-  box-shadow: none;
-  opacity: 0.2;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.pulse-hit.remainder {
-  opacity: 0.55;
-  cursor: pointer;
-  pointer-events: auto;
-  background: radial-gradient(circle, rgba(255, 165, 0, 0.15) 0%, transparent 70%);
-}
-.pulse-number.zero,
-.pulse-number.lg {
-  color: var(--color-lg);
-}
-
-.pulse-number.non-selectable {
-  opacity: 0.35;
-  color: var(--line-color);
-  filter: grayscale(0.5);
-}
-
-.pulse-number.remainder {
-  color: #ffa500;
-  font-weight: 600;
-  opacity: 0.75;
-  text-shadow: 0 0 8px rgba(255, 165, 0, 0.5);
-}
-
-.pulse-number.selected:not(.zero):not(.lg) {
-  color: var(--selection-color);
-  text-shadow: 0 0 10px var(--selection-color);
-}
-
-.pulse-number--flash {
-  animation: pulseNumberFlash 0.48s ease;
-}
-
-@keyframes pulseNumberFlash {
-  0% {
-    color: var(--selection-color);
-    text-shadow: 0 0 12px var(--selection-color);
-  }
-  60% {
-    color: var(--selection-color);
-    text-shadow: 0 0 6px var(--selection-color);
-  }
-  100% {
-    color: inherit;
-    text-shadow: none;
-  }
-}
-
-/* Disable transitions when rendering structure changes (Lg, V, Fraction, Tap) */
-.timeline.no-anim .cycle-marker,
-.timeline.no-anim .cycle-label,
-.timeline.no-anim .pulse-hit,
-.timeline.no-anim .fraction-hit {
-  transition: none;
-}
-
-.cycle-marker {
-  position: absolute;
-  width: 0.25rem;
-  height: 1rem;
-  border-radius: 999px;
-  background: var(--line-color);
-  transform: translate(-50%, -50%);
-  --pulse-flash-base-transform: translate(-50%, -50%);
-  pointer-events: auto;
-  cursor: pointer;
-  opacity: 0.8;
-  transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
-  z-index: 6;
-}
-
-.cycle-marker.start {
-  height: 1rem; /* Igual que els marcadors normals - sense barres verticals */
-  background: var(--color-lg);
+/* El punt 0 (origen del cicle) és endpoint: visible i ple del color de
+   l'anell, però no clicable (el mòdul ja li treu el pointer). Guanya la
+   regla genèrica --nonselectable (opacity 0.3) per ordre de càrrega. */
+body.app4 .crings-dot--endpoint {
   opacity: 1;
+  fill: var(--crings-color);
 }
 
-.cycle-marker.selected {
-  background: var(--selection-color);
-  box-shadow: 0 0 12px var(--selection-color);
-  opacity: 1;
-}
-
-.cycle-marker.active {
-  background: var(--selection-color);
-  animation: cycleMarkerFlash var(--pulse-anim-duration, 0.35s) ease-out forwards;
-  opacity: 1;
-}
-
-@keyframes cycleMarkerFlash {
-  0% {
-    box-shadow: 0 0 0px var(--selection-color);
-    transform: var(--pulse-flash-base-transform, translate(-50%, -50%)) scale(1);
-    background: var(--selection-color);
-    opacity: 1;
-  }
-  40% {
-    box-shadow: 0 0 16px var(--selection-color);
-    transform: var(--pulse-flash-base-transform, translate(-50%, -50%)) scale(1.3);
-    background: var(--selection-color);
-    opacity: 1;
-  }
-  80% {
-    box-shadow: 0 0 8px var(--selection-color);
-    transform: var(--pulse-flash-base-transform, translate(-50%, -50%)) scale(1.05);
-    background: var(--selection-color);
-    opacity: 0.6;
-  }
-  100% {
-    box-shadow: 0 0 0px var(--selection-color);
-    transform: var(--pulse-flash-base-transform, translate(-50%, -50%)) scale(1);
-    background: transparent;
-    opacity: 0;
-  }
-}
-
-.fraction-hit {
-  color: var(--selection-color);
-  --pulse-flash-base-transform: translate(-50%, -50%);
-  transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
-}
-
-.fraction-hit.selected {
-  animation: pulseFlash var(--pulse-anim-duration, 0.35s) ease-out;
-  background: var(--selection-color);
-  box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
-  opacity: 0.75;
-}
-
-.fraction-hit.fraction-active {
-  animation: pulseFlash var(--pulse-anim-duration, 0.35s) ease-out;
-  background: var(--selection-color);
-  box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
-  opacity: 0.6;
-}
-
-.cycle-label {
-  position: absolute;
-  color: var(--line-color);
-  font-size: clamp(0.9rem, 1.8vw, 1.1rem);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  transition: color 0.25s ease, transform 0.25s ease;
-}
-
-.cycle-label--integer {
-  color: inherit;
-}
-
-.cycle-label--origin {
-  color: var(--color-lg);
-  font-weight: 600;
-}
-
-.cycle-label.selected {
-  color: var(--selection-color);
-  font-weight: 600;
-  text-shadow: 0 0 10px var(--selection-color);
-}
-
-.cycle-label.active:not(.cycle-label--origin) {
-  color: var(--selection-color);
-  font-weight: 600;
+/* Tipografia Ubuntu per a números i etiquetes dels anells */
+body.app4 .crings-svg text {
+  font-family: 'Ubuntu', system-ui, sans-serif;
 }
 
 /* Amb startEmpty els camps comencen buits: els spinners han de quedar
@@ -462,39 +242,6 @@ body[data-visual="nuzic"].app4 .timeline .pulse-number {
 
 .fraction-field-placeholder--visible {
   opacity: 0.45;
-}
-
-.timeline.circular .cycle-marker {
-  width: 0.25rem;
-  height: 1.25rem;
-}
-
-.timeline.circular .cycle-marker.start {
-  height: 1rem; /* Igual que els marcadors normals - sense barres radials */
-}
-
-.timeline.circular .cycle-label {
-  font-size: clamp(0.85rem, 1.6vw, 1rem);
-}
-
-/**
- * Circular indicator for displaying total cycle duration (T value).
- */
-#tIndicator {
-position: absolute; /* posicionat per JS relatiu a l'etiqueta Lg */
-display: flex;
-align-items: center;
-justify-content: center;
-width: 2.5rem;
-height: 2.5rem;
-border: 2px solid var(--color-t);
-border-radius: 50%;
-color: var(--color-t);
-text-align: center;
-font-weight: 700;
-background: transparent;
-pointer-events: none; /* purament visual */
-font-size: clamp(0.75rem, 1.4vw, 0.9rem);
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -805,7 +552,7 @@ body.app4 .param.lg .circle input[readonly] {
 }
 
 /**
- * Layout adjustments for timeline wrapper and controls on narrow screens.
+ * Layout adjustments on narrow screens.
  */
 @media (max-width: 600px) {
 body {
@@ -823,9 +570,10 @@ gap: 0.875rem;
    no es mogui */
 .middle { margin-top: 1.25rem; }
 
-/* 3) Baixa la timeline circular */
-.timeline-wrapper.circular {
-margin-top: 3.125rem !important; /* era 1.25rem als estils compartits */
+/* 3) Anells: en mòbil l'amplada mana (el min() ja ho resol); només
+   ajustem el respir vertical */
+body.app4 .rings-host {
+  margin: 0.75rem auto;
 }
 
 /* 5) Baixa l'etiqueta d'unitat quan apareix amb el focus de l'input */

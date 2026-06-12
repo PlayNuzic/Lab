@@ -409,6 +409,46 @@ timelineController.updateNumbers();
 
 ---
 
+### circular-rings.js
+
+**Responsabilitat**: Anells concèntrics SVG per a apps multi-fracció (App4 F5): anell base (pols, referència fixa R0=155) + un anell per fracció activa. Geometria aprovada a `docs/app4-rings-sketch.html`.
+
+**API principal**:
+
+```javascript
+createCircularRings({
+  container,            // amfitrió; el mòdul hi crea l'<svg> (viewBox 0 0 580 580)
+  k?,                   // exponent radi ∝ velocitat (default 0.35)
+  onDotClick?           // { type:'int', index } | { type:'fraction', ringId, tickIndex, position, numerator, denominator }
+}) → {
+  render({ lg, bigCycle, base, fractions }),  // state-in: només fraccions ACTIVES
+  highlightPosition(posEnPulsos),             // barat: toggle de classes (cache per anell) + agulla
+  clearHighlights(),
+  getElement(),
+  destroy()
+}
+
+// Helpers purs exportats (unit-testables):
+idealRadius(s, k)            // clamp(R0·s^k, 42, 256), s = d/n
+resolveRadii(actives, k)     // base fixa; ràpids enfora, lents endins, GAP 30
+computeLabelStep(lg)         // etiquetatge "mode rellotge"
+computeLabelList(lg, bigCycle)
+computeCycleLineStep(lg, bigCycle)
+dotMetrics(count, r, isBase) // mida de punt adaptativa (mín 1.2)
+RING_GEOMETRY                // constants de l'esbós
+```
+
+**Característiques**:
+- **Radi ∝ velocitat**: r = R0·s^k amb separació GAP mínima i clamp final
+- **Densitat adaptativa**: punts, números (inicis de cicle sempre en negreta 900) i línies radials espaiades si > 24 cicles
+- **Tematitzable per CSS**: classes `crings-*` + variables `--crings-color`/`--crings-light` per anell; defaults nuzic a `circular-rings.css`
+- **Estats**: `--selected`, `--active`, `--nonselectable` (sense clic), `--endpoint`
+- 48 tests unitaris ✅
+
+**Apps aplicables**: App4 (F5b)
+
+---
+
 ## Changelog
 
 ### 2025-10-08 - App1 Refactoring Completado

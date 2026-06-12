@@ -1,52 +1,40 @@
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
-import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
+import { solidMenuBackground } from './utils.js';
 import { initRandomMenu, randomizeFractional } from '../../libs/random/index.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { createRhythmAudioInitializer, setupAudioDefaults, CHANNEL_TIERS } from '../../libs/app-common/audio-init.js';
-import { fromLgAndTempo, toPlaybackPulseCount, gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
+import { fromLgAndTempo, toPlaybackPulseCount, gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { createLiveTransportPush } from '../../libs/app-common/transport-live-update.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor, { createEmptyFractionInfo } from '../../libs/app-common/fraction-editor.js';
-import { reorderControls } from '../../libs/app-common/template.js';
-import { randomize as randomizeValues } from '../../libs/random/index.js';
+import { reorderControls, NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
 import createPulseSeqController from '../../libs/pulse-seq/index.js';
-import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
 import { parseIntSafe, gcd, lcm, randomInt } from '../../libs/app-common/number-utils.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
-import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
-import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
-import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
 // P-02: imports síncrons només dels mòduls de notació lliures de VexFlow;
 // el renderer (i VexFlow ~1,6MB) es carrega lazy al primer toggle del panell.
 import { createNotationPanelController } from '../../libs/notation/panel.js';
-import { durationValueFromDenominator, buildPulseEvents } from '../../libs/notation/utils.js';
-import { resolveFractionNotation } from '../../libs/notation/fraction-notation.js';
 import { nearestPulseIndex } from '../../libs/pulse-seq/index.js';
-import { createHighlightController } from '../../libs/app-common/highlight-controller.js';
 import { createVisualSyncManager } from '../../libs/app-common/visual-sync.js';
-import { createFractionalTimelineRenderer } from '../../libs/app-common/timeline-renderer.js';
-import { isIntegerPulseSelectable } from '../../libs/app-common/pulse-selectability.js';
+// F5: anells concèntrics — la representació única de l'app (fora timeline)
+import { createCircularRings } from '../../libs/app-common/circular-rings.js';
 import { loadNotation } from '../../libs/notation/lazy.js';
 import { createFormulaRenderer } from '../../libs/app-common/formula-renderer.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
-import { createTIndicator } from '../../libs/app-common/t-indicator.js';
-import { FRACTION_POSITION_EPSILON } from '../../libs/app-common/pulse-selectability.js';
 import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
 import {
   fractionDefaults,
   randomDefaults,
   createFractionSelectionStore,
   createFractionSelectionFromValue,
-  registerFractionLabel as registerFractionLabelInStore,
   fractionValue as computeFractionValue,
   fractionDisplay as formatFractionDisplay,
-  extractFractionInfoFromElement,
-  applyFractionSelectionClasses as applyFractionSelectionClassesModule,
   rebuildFractionSelections as rebuildFractionSelectionsModule,
   setFractionSelected as setFractionSelectedModule,
+  makeFractionKey,
   loadRandomConfig,
   saveRandomConfig,
   applyRandomConfig as applyRandomConfigModule,
@@ -70,67 +58,40 @@ bindSharedSoundEvents({
     cycleSound: 'setCycle'
   }
 });
-// Bind all DOM elements using new utilities
 // Bind all DOM elements using app-specific utilities (no warnings for missing elements)
-const { elements, leds, ledHelpers } = bindAppRhythmElements('app4');
-
-// Create LED managers for Lg, V, T parameters
-const ledManagers = createRhythmLEDManagers(leds);
-
-// State object for shared loop controller
-const appState = {
-  get loopEnabled() { return loopEnabled; },
-  set loopEnabled(v) { loopEnabled = v; }
-};
-
-// Create shared loop controller with pulse memory integration
-const loopController = createPulseMemoryLoopController({
-  audio: () => audio, // H-03: getter lazy — l'engine neix al primer gest,
-  loopBtn: elements.loopBtn,
-  state: appState,
-  ensurePulseMemory,
-  getLg: () => parseInt(inputLg.value),
-  isPlaying: () => isPlaying,
-  onToggle: (enabled) => {
-    // Rebuild visible selection from memory and refresh labels
-    updatePulseNumbers();
-    syncSelectedFromMemory();
-    if (isPlaying) {
-      applySelectionToAudio();
-    }
-    layoutTimeline();
-    // Update totalPulses when loop changes during playback
-    if (isPlaying) {
-      handleInput();
-    }
-  }
-});
+const { elements } = bindAppRhythmElements('app4');
 
 // Extract commonly used elements for backward compatibility
 const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
-        ledLg, ledV, ledT, unitLg, unitV, unitT, formula, timelineWrapper,
-        timeline, playBtn, loopBtn, resetBtn, tapBtn, tapHelp,
-        circularTimelineToggle, selectColor, randomBtn, randomMenu, randLgToggle, randLgMin,
+        unitLg, unitV, unitT, formula, timeline, playBtn, resetBtn, tapBtn, tapHelp,
+        selectColor, randomBtn, randomMenu, randLgToggle, randLgMin,
         randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
-        baseSoundSelect, accentSoundSelect,
-        startSoundSelect, cycleSoundSelect, themeSelect, pulseToggleBtn,
+        themeSelect, pulseToggleBtn,
         selectedToggleBtn, cycleToggleBtn, notationPanel, notationCloseBtn,
         notationContent } = elements;
 
 // Ordre nuzic de la fila de controls (Play · Random · Reset; App4 no té
 // bpmParam — V viu com a pill a .inputs). El helper només re-afegeix
-// play/random/reset: el loop i el tap cal re-afegir-los a mà — el loop
-// perquè el mode circular encara en depèn (fins F5), i el tap amb el
-// tap-help perquè App4 conserva el tap tempo. Els overrides de
-// visibilitat/estètica són a styles.css.
+// play/random/reset: el tap (amb el seu tap-help) es re-afegeix a mà.
+// F5: el botó loop JA NO es re-afegeix — el bucle és permanent i
+// reorderControls el descarta del DOM.
 {
   const nuzicControls = reorderControls();
-  if (nuzicControls && elements.loopBtn) nuzicControls.appendChild(elements.loopBtn);
   if (nuzicControls && elements.tapBtn) {
     nuzicControls.appendChild(elements.tapBtn);
     if (elements.tapHelp) nuzicControls.appendChild(elements.tapHelp);
   }
 }
+
+// ── F5: anells concèntrics ──────────────────────────────────────────────────
+// L'element #timeline del template es reconverteix en amfitrió pelat dels
+// anells: fora la classe .timeline perquè cap estil compartit de línia de
+// temps (línia, fons crema del tema nuzic) no s'hi apliqui.
+timeline.className = 'rings-host';
+const rings = createCircularRings({
+  container: timeline,
+  onDotClick: handleRingDotClick
+});
 
 function applyFractionInfoBackground(panel) {
   if (!panel) return;
@@ -148,23 +109,8 @@ function applyFractionInfoBackground(panel) {
 }
 
 let currentFractionInfo = createEmptyFractionInfo();
-let pulses = [];
-let pulseNumberLabels = [];
-let cycleMarkers = [];
-let cycleLabels = [];
-let lastStructureSignature = {
-  lg: null,
-  numerator: null,
-  denominator: null
-};
-// bars[] eliminado - ya no se usan barras legacy
-let pulseHits = [];
-let cycleMarkerHits = [];
 const fractionStore = createFractionSelectionStore();
 const fractionMemory = new Map();
-let timelineRenderer = null; // Inicializado después de tener timeline DOM
-
-const FRACTION_MARKER_LINEAR_TILT_RAD = Math.PI / 3;
 
 const notationContentEl = notationContent || null;
 let notationPanelController = null;
@@ -243,23 +189,7 @@ function rememberFractionSelectionInMemory(info, { suspended = false } = {}) {
 }
 
 function markFractionSuspended(info) {
-  const payload = normalizeFractionMemoryPayload(info);
-  if (!payload) return;
-  const existing = fractionMemory.get(payload.key) || {};
-  const entry = {
-    key: payload.key,
-    base: Number.isFinite(payload.base) ? payload.base : existing.base,
-    numerator: Number.isFinite(payload.numerator) ? payload.numerator : existing.numerator,
-    denominator: Number.isFinite(payload.denominator) ? payload.denominator : existing.denominator,
-    value: Number.isFinite(payload.value) ? payload.value : existing.value,
-    display: payload.display || existing.display || '',
-    rawLabel: payload.rawLabel || existing.rawLabel || '',
-    cycleIndex: Number.isFinite(payload.cycleIndex) ? payload.cycleIndex : existing.cycleIndex,
-    subdivisionIndex: Number.isFinite(payload.subdivisionIndex) ? payload.subdivisionIndex : existing.subdivisionIndex,
-    pulsesPerCycle: Number.isFinite(payload.pulsesPerCycle) ? payload.pulsesPerCycle : existing.pulsesPerCycle,
-    suspended: true
-  };
-  fractionMemory.set(payload.key, entry);
+  rememberFractionSelectionInMemory(info, { suspended: true });
 }
 
 function syncFractionMemoryWithSelections() {
@@ -278,26 +208,18 @@ function syncFractionMemoryWithSelections() {
   });
 }
 let currentAudioResolution = 1;
-const raf = (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function')
-  ? (cb) => window.requestAnimationFrame(cb)
-  : (cb) => setTimeout(cb, 16);
 
 // F2: l'editor numèric de pulsos s'ha eliminat. El controlador de pulse-seq
 // NO es munta: només se n'aprofita la memòria persistent de pulsos, que és
-// independent del mount. (Sense drag: en aquesta app els pulsos només es
-// seleccionen amb clic, no s'arrosseguen.)
+// independent del mount.
 const pulseSeqController = createPulseSeqController();
 const pulseMemoryApi = pulseSeqController.memory;
 const pulseMemory = pulseMemoryApi.data;
 
-// T indicator setup (App4-specific functionality)
-// T Indicator setup
-const tIndicatorController = inputT ? createTIndicator() : null;
-if (tIndicatorController) {
-  tIndicatorController.element.id = 'tIndicator';
-  tIndicatorController.hide(); // Start hidden
-  timeline.appendChild(tIndicatorController.element);
-}
+// F5: el tIndicator s'ha retirat amb la timeline — la informació de T
+// passarà al panell ⓘ de F7 (mentrestant viu a la fórmula i al tooltip
+// del títol, que ja la mostren).
+
 // App4-specific additional elements
 const randComplexToggle = document.getElementById('randComplexToggle');
 const randNToggle = document.getElementById('randNToggle');
@@ -518,11 +440,15 @@ const MAX_LG = 210;
 const CYCLES_KEY = 'cycles';
 const DEFAULT_CYCLES = 8; // amb cicle gran 1 reprodueix el Lg≈8 de sempre
 
+// Colors d'identitat dels anells (F5): hexes literals — els atributs SVG de
+// presentació no resolen var(); el CSS del mòdul sí que usa les variables
+// --crings-* que reben aquests valors.
 const FRACTION_SLOT_DEFS = [
   {
     id: 'f1',
     label: 'F1',
-    color: 'var(--nuzic-yellow)',
+    ringColor: '#FFBB33',      // --nuzic-yellow
+    ringLightColor: '#ffeecc',
     numeratorKey: FRACTION_NUMERATOR_KEY,   // claus LEGACY app4:n / app4:d
     denominatorKey: FRACTION_DENOMINATOR_KEY,
     activeKey: 'f1on',
@@ -531,7 +457,8 @@ const FRACTION_SLOT_DEFS = [
   {
     id: 'f2',
     label: 'F2',
-    color: 'var(--nuzic-pink)',
+    ringColor: '#F28AAD',      // --nuzic-pink
+    ringLightColor: '#ffe5ee',
     numeratorKey: 'n2',
     denominatorKey: 'd2',
     activeKey: 'f2on',
@@ -540,7 +467,8 @@ const FRACTION_SLOT_DEFS = [
   {
     id: 'f3',
     label: 'F3',
-    color: 'var(--nuzic-blue)',
+    ringColor: '#7BB4CD',      // --nuzic-blue
+    ringLightColor: '#e3f0f7',
     numeratorKey: 'n3',
     denominatorKey: 'd3',
     activeKey: 'f3on',
@@ -548,11 +476,11 @@ const FRACTION_SLOT_DEFS = [
   }
 ];
 
-// Estat viu dels tres slots: { id, color, controller, active, added, ... }
+// Estat viu dels tres slots: { id, controller, active, added, ... }
 const fractionSlots = [];
 let fractionAddButton = null;
 let isRevertingCombo = false; // evita reentrada del pipeline en revertir
-let lastFirstActiveSignature = null;
+let lastActiveFractionsSignature = null;
 
 // Tooltip d'error de combinació (ancorat al slot culpable, auto-hide)
 const comboErrorTooltip = createInfoTooltip({
@@ -576,17 +504,17 @@ function isValidFractionPair(fraction) {
 }
 
 // Primer slot actiu AMB valors vàlids (un slot actiu però buit no compta:
-// no aporta fracció ni al timeline ni al cicle gran).
+// no aporta fracció ni als anells ni al cicle gran).
 function getFirstActiveSlot() {
   return fractionSlots.find((slot) => slot.added && slot.active && slot.controller
     && isValidFractionPair(slot.controller.getFraction())) || null;
 }
 
-// Fracció "principal" per a la resta de l'app: la PRIMERA activa (F1>F2>F3).
-// F4: l'àudio ja és multi-fracció — la principal pel camí de cicle (canal
-// fracN del seu slot via setCycleChannel) i la resta com a veus (setVoices).
-// TODO(F5): la visualització passarà a anells concèntrics multi-fracció;
-// fins llavors timeline/selecció/notació segueixen sobre aquesta única fracció.
+// Fracció "principal" per a l'àudio i la notació: la PRIMERA activa
+// (F1>F2>F3). F4: l'àudio ja és multi-fracció — la principal pel camí de
+// cicle (canal fracN del seu slot via setCycleChannel) i la resta com a
+// veus (setVoices). F5: la visualització ja és multi-fracció (anells);
+// la notació segueix sobre aquesta única fracció fins F6.
 function getFraction() {
   const slot = getFirstActiveSlot();
   if (!slot) return { numerator: null, denominator: null };
@@ -611,10 +539,10 @@ function getActiveFractions() {
 
 // F4b: regla de mapatge selecció fraccionada → slot. Una selecció guarda el
 // n/d LITERAL (sense reduir) de la graella on es va fer: pulsesPerCycle = n
-// del slot i denominator = d del slot (vegeu timeline-renderer, que estampa
-// dataset.pulsesPerCycle als hits). Es compara LITERALMENT amb els slots
-// actius en ordre F1>F2>F3 (una selecció 2/4 NO casa amb un slot que mostra
-// 1/2):
+// del slot i denominator = d del slot (F5: els estampen els clics als
+// anells via createFractionSelectionFromValue). Es compara LITERALMENT amb
+// els slots actius en ordre F1>F2>F3 (una selecció 2/4 NO casa amb un slot
+// que mostra 1/2):
 //   1. pulsesPerCycle i denominator coincideixen → canal fracSelN del slot.
 //   2. pulsesPerCycle desconegut (entrades antigues de memòria) → primer
 //      slot actiu amb el mateix denominator.
@@ -659,24 +587,26 @@ function wouldBeBigCycle({ override = null, forceActiveId = null } = {}) {
   return { bigCycle, reducedNums };
 }
 
-function firstActiveFractionSignature() {
-  const slot = getFirstActiveSlot();
-  if (!slot) return 'none';
-  const { numerator, denominator } = slot.controller.getFraction();
-  return `${numerator ?? '-'}_${denominator ?? '-'}`;
+// F5: la firma inclou TOTES les fraccions actives — qualsevol canvi
+// d'estructura (valors o toggles de qualsevol slot) re-renderitza els
+// anells, no només els canvis de la principal.
+function activeFractionsSignature() {
+  const actives = getActiveFractions();
+  return actives.length
+    ? actives.map((f) => `${f.id}:${f.numerator}/${f.denominator}`).join('|')
+    : 'none';
 }
 
 // Pipeline comú després de qualsevol canvi d'estructura de fraccions
-// (edició de valors, toggle on/off, afegir slot): recalcula Lg i, si la
-// primera fracció activa ha canviat, poda memòria i re-renderitza.
+// (edició de valors, toggle on/off, afegir slot): recalcula Lg i, si el
+// conjunt de fraccions actives ha canviat, re-renderitza els anells.
 function handleFractionLayoutChange() {
   recomputeLg({ dispatch: false });
-  const signature = firstActiveFractionSignature();
-  if (signature !== lastFirstActiveSignature) {
-    lastFirstActiveSignature = signature;
+  const signature = activeFractionsSignature();
+  if (signature !== lastActiveFractionsSignature) {
+    lastActiveFractionsSignature = signature;
     currentFractionInfo = getFirstActiveSlot()?.info || createEmptyFractionInfo();
-    prunePulseMemoryForFraction();
-    renderTimeline();
+    renderRings();
   }
   if (!isUpdating) {
     handleInput();
@@ -854,7 +784,8 @@ function initFractionSlots() {
     const slot = {
       id: def.id,
       label: def.label,
-      color: def.color,
+      ringColor: def.ringColor,
+      ringLightColor: def.ringLightColor,
       numeratorKey: def.numeratorKey,
       denominatorKey: def.denominatorKey,
       activeKey: def.activeKey,
@@ -886,7 +817,7 @@ function initFractionSlots() {
   attachHover(fractionAddButton, { text: 'Añadir otra fracción' });
   updateFractionAddButton();
 
-  lastFirstActiveSignature = firstActiveFractionSignature();
+  lastActiveFractionsSignature = activeFractionsSignature();
   refreshFractionUI({ reveal: false });
 }
 
@@ -995,52 +926,8 @@ function initCyclesParam() {
   inputLgUp?.closest('.spinner')?.remove();
 }
 
-// En canviar la fracció, treu de la memòria els pulsos enters que ja no són
-// seleccionables (mateixa semàntica que la revalidació de l'antic
-// sanitizePulseSeq: només dins de Lg; la memòria més enllà es conserva).
-function prunePulseMemoryForFraction() {
-  const lg = parseIntSafe(inputLg.value);
-  if (!Number.isFinite(lg) || lg <= 0) return;
-  const { numerator, denominator } = getFraction();
-  const limit = Math.min(pulseMemory.length, lg);
-  for (let i = 1; i < limit; i++) {
-    if (pulseMemory[i] && !isIntegerPulseSelectable(i, numerator, denominator, lg)) {
-      pulseMemory[i] = false;
-    }
-  }
-}
-
-// nearestPulseIndex ahora se importa desde libs/pulse-seq/parser.js
-
-// isIntegerPulseSelectable ahora se importa desde libs/app-common/pulse-selectability.js
-// La nueva versión incluye soporte para pulsos sobrantes (remainder) cuando Lg % numerator !== 0
-
-const voiceHighlightHandlers = new Map();
-
 function ensurePulseMemory(size) {
   pulseMemoryApi.ensure(size);
-}
-
-// Clear all persistent pulse selection (memory beyond current Lg too)
-function clearPersistentPulses(){
-  pulseMemoryApi.clear();
-  fractionMemory.clear();
-  try { selectedPulses.clear(); } catch {}
-  /* Keep UI consistent; will be rebuilt by subsequent calls */
-  fractionStore.selectionState.clear();
-  fractionStore.selectedFractionKeys.clear();
-  fractionStore.pulseSelections = [];
-  applyFractionSelectionClasses();
-  renderNotationIfVisible();
-}
-// UI thresholds for number rendering
-const PULSE_NUMBER_HIDE_THRESHOLD = 71;
-const SUBDIVISION_HIDE_THRESHOLD = 41;
-const NUMBER_CIRCLE_OFFSET  = 34;    // px distance from circle to number label
-const MIN_SUBDIVISION_LABEL_SPACING_PX = 40;
-
-function registerFractionLabel(label, info) {
-  registerFractionLabelInStore(fractionStore, label, info);
 }
 
 function fractionValue(base, numerator, denominator) {
@@ -1051,18 +938,10 @@ function fractionDisplay(base, numerator, denominator, override = {}) {
   return formatFractionDisplay(base, numerator, denominator, override);
 }
 
-function getFractionInfoFromElement(el) {
-  return extractFractionInfoFromElement(el, parseIntSafe);
-}
-
-function applyFractionSelectionClasses() {
-  applyFractionSelectionClassesModule(fractionStore, cycleMarkers, cycleLabels);
-}
-
 function rebuildFractionSelections(opts = {}) {
+  // F5: sense marcadors de timeline — el mòdul només reordena el store;
+  // la representació visual la posen els anells al proper renderRings().
   const selections = rebuildFractionSelectionsModule(fractionStore, {
-    cycleMarkers,
-    cycleLabels,
     skipUpdateField: opts.skipUpdateField
   });
   fractionStore.pulseSelections = selections;
@@ -1072,23 +951,20 @@ function rebuildFractionSelections(opts = {}) {
 }
 
 function setFractionSelected(info, shouldSelect) {
-  setFractionSelectedModule(fractionStore, info, shouldSelect, {
-    cycleMarkers,
-    cycleLabels
-  });
+  setFractionSelectedModule(fractionStore, info, shouldSelect, {});
   if (isPlaying && audio) {
     applySelectionToAudio();
   }
-  renderNotationIfVisible();
+  renderRings();
 }
 
 function computeAudioSchedulingState() {
   const lg = parseInt(inputLg.value);
   const v = parseFloat(inputV.value);
   // F4: la primera fracció activa sona pel camí de cicle LEGACY (pre-agenda
-  // + missatges 'cycle' del worklet alineats a la mesura, que també guien
-  // els highlights); la resta d'actives sonen com a VEUS polirítmiques amb
-  // canal de mixer propi. Cada slot surt sempre pel seu canal fracN.
+  // + missatges 'cycle' del worklet alineats a la mesura); la resta
+  // d'actives sonen com a VEUS polirítmiques amb canal de mixer propi.
+  // Cada slot surt sempre pel seu canal fracN.
   const activeFractions = getActiveFractions();
   const firstActive = activeFractions[0] || null;
   const { numerator, denominator } = getFraction();
@@ -1124,15 +1000,18 @@ function computeAudioSchedulingState() {
     resolution = Math.max(1, Math.round(lcm(resolution, Math.max(1, den))));
   });
 
-  const playbackTotal = validLg ? toPlaybackPulseCount(lg, loopEnabled) : null;
+  // F5: bucle permanent — el playback sempre cicla (totalPulses = lg).
+  const playbackTotal = validLg ? toPlaybackPulseCount(lg, true) : null;
   const totalPulses = playbackTotal != null ? playbackTotal : null;
   const interval = validV ? (60 / v) : null;
   const patternBeats = validLg ? lg : null;
 
   const cycleNumerator = hasCycle ? numerator : null;
   const cycleDenominator = hasCycle ? denominator : null;
+  // F5: sense onTick — els highlights ja no van pels missatges 'cycle' del
+  // worklet sinó per la posició del visual-sync (rings.highlightPosition).
   const cycleConfig = hasCycle
-    ? { numerator: cycleNumerator, denominator: cycleDenominator, onTick: highlightCycle }
+    ? { numerator: cycleNumerator, denominator: cycleDenominator }
     : null;
 
   // Canal de mixer de la fracció principal (re-apunta el bus de cicle del
@@ -1141,8 +1020,8 @@ function computeAudioSchedulingState() {
 
   // Veus: una per fracció activa MENYS la primera (que ja és el cicle).
   // n/d en RAW, no reduïts: el període n/d és idèntic, però l'índex de tick
-  // del worklet només mapeja 1:1 amb la graella de subdivisions (cicle ×
-  // denominador) que faran servir els anells de F5 si d és el d original.
+  // del worklet només mapeja 1:1 amb la graella cicle × denominador (la
+  // dels anells) si d és el d original.
   const voices = [];
   if (validLg) {
     activeFractions.slice(1).forEach((fraction) => {
@@ -1275,71 +1154,225 @@ function applySelectionToAudio({ scheduling, instance } = {}) {
   return selection;
 }
 
-// F4: handlers visuals per als ticks de veu del worklet. Les veus són les
-// fraccions actives NO principals i el timeline encara només dibuixa la
-// principal — que s'il·lumina pel camí de cicle legacy (cycleConfig.onTick →
-// highlightCycle, alineat a la mesura pel worklet). Per tant, de moment cap
-// veu registra handler: handleVoiceEvent és un no-op per a totes.
-// TODO(F5): quan hi hagi anells concèntrics, registrar aquí un handler per
-// veu (createCycleVoiceHandler ja reconstrueix cicle/subdivisió des de
-// l'índex de tick) que il·lumini el punt corresponent del seu anell.
-function updateVoiceHandlers({ scheduling } = {}) {
-  voiceHighlightHandlers.clear();
-  if (!scheduling || !Array.isArray(scheduling.voices)) return;
+let isPlaying = false;
+// P-03 (adaptat): últim Lg dibuixat als anells des de handleInput
+let lastRenderedLg = null;
+let isUpdating = false;     // evita bucles de 'input' reentrants
+
+// ───────────────────────────────────────────────────────────────────────────
+// F5: render dels anells concèntrics
+//
+// Decisions (F5b):
+// - El punt 0 de l'anell base és l'ORIGEN del cicle: amb bucle permanent la
+//   posició Lg ÉS la posició 0 — no existeix cap punt Lg separat. Es marca
+//   com a endpoint (estil propi) i NO és seleccionable, com l'antic pols 0.
+// - TOTS els enters 1..Lg-1 són seleccionables: la regla
+//   isIntegerPulseSelectable era un artefacte de la línia de temps (que
+//   només mostrava la graella d'UNA fracció); als anells els enters
+//   pertanyen a l'anell base, independent de les fraccions. Sonen pel canal
+//   global 'accent' com sempre.
+// - Als anells de fracció, els ticks que coincideixen amb un pols enter
+//   (k·n/d enter, el 0 inclòs) NO són seleccionables: el model de selecció
+//   fraccionada (makeFractionKey) exigeix 0 < num < d per construcció, i
+//   aquell instant ja és seleccionable a l'anell base. Es mostren atenuats.
+// ───────────────────────────────────────────────────────────────────────────
+
+// Tick k d'un anell n/d en aritmètica entera: posició k·n/d = base + num/d
+// (num = (k·n) mod d). num === 0 ⇒ el tick coincideix amb un pols enter.
+function fractionTickParts(tickIndex, numerator, denominator) {
+  const raw = tickIndex * numerator;
+  return { base: Math.floor(raw / denominator), num: raw % denominator };
 }
 
-// Reconstrueix { cycleIndex, subdivisionIndex } des de l'índex de tick d'una
-// veu i dispara highlightCycle. Sense consumidors fins F5 (vegeu el TODO de
-// updateVoiceHandlers); es conserva perquè és l'adaptador tick→highlight
-// que faran servir els anells.
-function createCycleVoiceHandler({ numerator, denominator, cycles }) {
-  const totalCycles = Math.max(1, Math.floor(cycles));
-  const epsilon = 1e-6;
-  return ({ index } = {}) => {
-    if (!isPlaying) return;
-    const rawIndex = Number(index);
-    if (!Number.isFinite(rawIndex) || rawIndex < 0) return;
-    const perCycle = Math.max(1, Math.floor(denominator));
-    const cycleIndex = totalCycles > 0
-      ? Math.floor(Math.floor(rawIndex / perCycle) % totalCycles)
-      : Math.floor(rawIndex / perCycle);
-    const subdivisionIndex = ((rawIndex % perCycle) + perCycle) % perCycle;
-    const fractionalStep = numerator * cycleIndex + (numerator / perCycle) * subdivisionIndex;
-    if (Math.abs(fractionalStep - Math.round(fractionalStep)) <= epsilon) {
-      return;
+// Una selecció fraccionada pertany a la graella d'un slot actiu si el seu
+// n/d LITERAL coincideix (mateixa regla que selectionChannelForFraction) i
+// la posició cau en un tick k·n/d de l'anell (base·d + num divisible per n).
+function selectionOnActiveGrid(item, actives) {
+  if (!item) return false;
+  const den = Number(item.denominator);
+  const num = Number(item.numerator);
+  const base = Number(item.base);
+  if (!(Number.isFinite(den) && den > 0 && Number.isFinite(num) && Number.isFinite(base))) {
+    return false;
+  }
+  const ppc = Number.isFinite(item.pulsesPerCycle) && item.pulsesPerCycle > 0
+    ? Number(item.pulsesPerCycle)
+    : null;
+  const slot = actives.find((fraction) => fraction.denominator === den
+    && (ppc == null || fraction.numerator === ppc));
+  if (!slot) return false;
+  return ((base * den + num) % slot.numerator) === 0;
+}
+
+// F5: substitueix la detecció d'invàlids del timeline-renderer — les
+// seleccions que ja no cauen en cap anell actiu (o queden fora de Lg) se
+// SUSPENEN a fractionMemory (no es perden); les suspeses que tornen a tenir
+// anell es restauren. Mateixa semàntica que la memòria de fraccions antiga.
+function reconcileFractionSelections() {
+  const lg = parseIntSafe(inputLg.value);
+  if (!Number.isFinite(lg) || lg <= 0) return;
+  const actives = getActiveFractions();
+  let changed = false;
+  Array.from(fractionStore.selectionState.entries()).forEach(([key, item]) => {
+    const valid = item && Number.isFinite(item.value)
+      && item.value > 0 && item.value < lg
+      && selectionOnActiveGrid(item, actives);
+    if (!valid) {
+      if (item) markFractionSuspended(item);
+      fractionStore.selectionState.delete(key);
+      changed = true;
     }
-    highlightCycle({
-      cycleIndex,
-      subdivisionIndex,
-      numerator,
-      denominator: perCycle,
-      totalCycles,
-      totalSubdivisions: perCycle
-    });
-  };
-}
-
-function handleVoiceEvent(event = {}) {
-  if (!event || !event.id) return;
-  const handler = voiceHighlightHandlers.get(event.id);
-  if (typeof handler === 'function') {
-    handler(event);
+  });
+  fractionMemory.forEach((entry) => {
+    if (!entry || entry.suspended !== true) return;
+    if (!(Number.isFinite(entry.value) && entry.value > 0 && entry.value < lg)) return;
+    if (!selectionOnActiveGrid(entry, actives)) return;
+    const { suspended, ...info } = entry;
+    fractionStore.selectionState.set(entry.key, info);
+    entry.suspended = false;
+    changed = true;
+  });
+  if (changed) {
+    rebuildFractionSelections({ skipUpdateField: true });
   }
 }
-const selectedPulses = new Set();
-let isPlaying = false;
-// P-03: últim Lg renderitzat des de handleInput
-let lastTimelineRenderLg = null;
-let loopEnabled = false;
-let isUpdating = false;     // evita bucles de 'input' reentrants
-let circularTimeline = false;
-let visualSyncHandle = null;
 
-// Controladores de highlighting y visual sync (inicializados después de renderTimeline)
-let highlightController = null;
-let visualSyncManager = null;
+// Re-render complet dels anells a partir de l'estat (Lg, fraccions actives,
+// memòria de pulsos i seleccions fraccionades). És barat (un sol SVG) i és
+// l'única via de refresc visual: selecció, fraccions i Lg hi conflueixen.
+function renderRings() {
+  const lg = parseIntSafe(inputLg.value);
+  if (!Number.isFinite(lg) || lg <= 0) {
+    lastRenderedLg = null;
+    rings.render({ lg: 0 });
+    return;
+  }
+  lastRenderedLg = lg;
+  ensurePulseMemory(lg);
+  reconcileFractionSelections();
 
-// Progress is now driven directly from audio callbacks
+  const actives = getActiveFractions();
+  const bigCycle = computeBigCycle(actives);
+
+  // Anell base: punt 0 = origen (endpoint, no seleccionable), resta segons
+  // memòria persistent.
+  const baseDots = [{ index: 0, selectable: false, isEndpoint: true }];
+  for (let i = 1; i < lg; i++) {
+    baseDots.push({ index: i, selected: i < pulseMemory.length && !!pulseMemory[i] });
+  }
+
+  const fractions = actives.map((fraction) => {
+    const slot = fractionSlots.find((s) => s.id === fraction.id);
+    // Sempre exacte: Lg és múltiple del cicle de cada fracció (model F3).
+    const count = Math.round((lg * fraction.denominator) / fraction.numerator);
+    const dots = [];
+    for (let k = 0; k < count; k++) {
+      const { base, num } = fractionTickParts(k, fraction.numerator, fraction.denominator);
+      if (num === 0) {
+        // Tick coincident amb un pols enter: no seleccionable (decisió F5b).
+        dots.push({ tickIndex: k, position: base, selectable: false });
+        continue;
+      }
+      const key = makeFractionKey(base, num, fraction.denominator);
+      dots.push({
+        tickIndex: k,
+        position: base + num / fraction.denominator,
+        selected: key != null && fractionStore.selectedFractionKeys.has(key)
+      });
+    }
+    return {
+      id: fraction.id,
+      numerator: fraction.numerator,
+      denominator: fraction.denominator,
+      color: slot?.ringColor || '#43433B',
+      lightColor: slot?.ringLightColor || '#eee8d8',
+      dots
+    };
+  });
+
+  rings.render({ lg, bigCycle, base: { label: 'Pulso', dots: baseDots }, fractions });
+  renderNotationIfVisible();
+}
+
+// Clic en un punt dels anells (payload del mòdul circular-rings).
+function handleRingDotClick(info) {
+  if (!info) return;
+  if (info.type === 'int') {
+    const lg = parseIntSafe(inputLg.value);
+    if (!Number.isFinite(lg) || lg <= 0) return;
+    ensurePulseMemory(lg);
+    setPulseSelected(info.index, !pulseMemory[info.index]);
+    return;
+  }
+  if (info.type === 'fraction') {
+    const { base, num } = fractionTickParts(info.tickIndex, info.numerator, info.denominator);
+    if (num === 0) return; // xarxa de seguretat: ticks enters no seleccionables
+    // Constructor canònic del store (key, display, cicle...). pulsesPerCycle
+    // = n del slot: el n/d LITERAL de la graella, que és el que
+    // selectionChannelForFraction compara per enrutar el canal fracSelN.
+    const selection = createFractionSelectionFromValue(base + num / info.denominator, {
+      denominator: info.denominator,
+      pulsesPerCycle: info.numerator
+    });
+    if (!selection) return;
+    setFractionSelected(selection, !fractionStore.selectionState.has(selection.key));
+  }
+}
+
+// Selecció determinista d'un pols enter (1..Lg-1). El 0 és l'origen del
+// cicle i no hi ha punt Lg (bucle permanent: Lg ≡ 0).
+function setPulseSelected(i, shouldSelect) {
+  const lg = parseIntSafe(inputLg.value);
+  if (!Number.isFinite(lg) || lg <= 0) return;
+  if (!Number.isFinite(i) || i <= 0 || i >= lg) return;
+  ensurePulseMemory(lg);
+  pulseMemory[i] = !!shouldSelect;
+
+  if (isPlaying && audio) {
+    applySelectionToAudio();
+  }
+
+  renderRings();
+}
+
+function clearHighlights() {
+  rings.clearHighlights();
+}
+
+// F5: adaptador d'highlights per al visual-sync (mode complet) — payload
+// {step, resolution} del worklet → posició en pulsos = step/resolution,
+// embolcallada amb % Lg (bucle permanent). highlightPosition il·lumina el
+// punt vigent de CADA anell (floor(pos / pas d'anell)) i orienta l'agulla.
+const ringsHighlightController = {
+  highlightPulse(payload = {}) {
+    const lg = parseIntSafe(inputLg.value);
+    if (!Number.isFinite(lg) || lg <= 0) return;
+    const step = Number(payload.step);
+    if (!Number.isFinite(step)) return;
+    const resolution = Number.isFinite(payload.resolution) && payload.resolution > 0
+      ? Math.max(1, Math.round(payload.resolution))
+      : Math.max(1, Math.round(currentAudioResolution || 1));
+    const position = (((step / resolution) % lg) + lg) % lg;
+    rings.highlightPosition(position);
+  },
+  // El cicle ja queda cobert per highlightPosition (cada anell deriva el seu
+  // índex de la mateixa posició); els missatges 'cycle' del worklet no calen.
+  highlightCycle() {},
+  clearAll() {
+    rings.clearHighlights();
+  }
+};
+
+const visualSyncManager = createVisualSyncManager({
+  getAudio: () => audio,
+  getIsPlaying: () => isPlaying,
+  getLoopEnabled: () => true, // F5: bucle permanent
+  highlightController: ringsHighlightController,
+  getNotationRenderer: () => notationRendererController?.getRenderer(),
+  onResolutionChange: (newResolution) => {
+    currentAudioResolution = newResolution;
+  }
+});
 
 initFractionSlots();
 initCyclesParam();
@@ -1402,175 +1435,15 @@ window.addEventListener('sharedui:complexfractions', (e) => {
   // Actualizar estado del toggle de numerador en random menu
   updateRandomMenuComplexState(enabled);
 
-  // Re-renderizar timeline si es necesario
-  renderTimeline();
-});
-
-const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
-  timeline,
-  timelineWrapper,
-  getLg: () => (pulses.length > 0 ? pulses.length - 1 : 0),
-  getPulses: () => pulses,
-  // getBars eliminado - ya no se usan barras legacy
-  getCycleMarkers: () => cycleMarkers,
-  getCycleLabels: () => cycleLabels,
-  getPulseNumberLabels: () => pulseNumberLabels,
-  setPulseNumberLabels: (labels) => { pulseNumberLabels = labels; },
-  computeNumberFontRem,
-  pulseNumberHideThreshold: PULSE_NUMBER_HIDE_THRESHOLD,
-  numberCircleOffset: NUMBER_CIRCLE_OFFSET,
-  isCircularEnabled: () => circularTimeline && loopEnabled,
-  requestAnimationFrame: raf,
-  callbacks: {
-    onAfterCircularLayout: (context) => {
-      const { centerX, centerY, radius, angleForIndex, angleForPosition, cycleMarkers: markerList } = context;
-
-      pulseHits.forEach((hit, idx) => {
-        if (!hit) return;
-        const angle = angleForIndex(idx);
-        const hx = centerX + radius * Math.cos(angle);
-        const hy = centerY + radius * Math.sin(angle);
-        hit.style.left = `${hx}px`;
-        hit.style.top = `${hy}px`;
-        hit.style.transform = 'translate(-50%, -50%)';
-      });
-
-      markerList.forEach((marker) => {
-        if (!marker) return;
-        const key = marker.dataset && marker.dataset.fractionKey;
-        if (!key || !fractionStore.hitMap.has(key)) return;
-        const pos = Number(marker.dataset.position);
-        if (!Number.isFinite(pos)) return;
-        const angle = angleForPosition(pos);
-        const mx = centerX + radius * Math.cos(angle);
-        const my = centerY + radius * Math.sin(angle);
-        const hit = fractionStore.hitMap.get(key);
-        if (hit) {
-          hit.style.left = `${mx}px`;
-          hit.style.top = `${my}px`;
-          hit.style.transformOrigin = '50% 50%';
-          const transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
-          hit.style.transform = transform;
-          hit.style.setProperty('--pulse-flash-base-transform', transform);
-        }
-      });
-
-      restoreCycleLabelDisplay();
-    },
-    onAfterLinearLayout: (context) => {
-      const { percentForIndex, percentForPosition, cycleMarkers: markerList, lg } = context;
-
-      pulseHits.forEach((hit, idx) => {
-        if (!hit) return;
-        const percent = percentForIndex(idx);
-        hit.style.left = `${percent}%`;
-        hit.style.top = '50%';
-        hit.style.transform = 'translate(-50%, -50%)';
-      });
-
-      markerList.forEach((marker) => {
-        if (!marker) return;
-        const key = marker.dataset && marker.dataset.fractionKey;
-        if (!key || !fractionStore.hitMap.has(key)) return;
-        const pos = Number(marker.dataset.position);
-        if (!Number.isFinite(pos)) return;
-        const percent = percentForPosition(pos);
-
-        marker.style.left = `${percent}%`;
-        marker.style.top = '50%';
-        marker.style.transformOrigin = '50% 50%';
-        // En vista lineal no aplicar rotación - mantener marcadores verticales
-        const baseTransform = 'translate(-50%, -50%)';
-        marker.style.transform = baseTransform;
-        marker.style.setProperty('--pulse-flash-base-transform', baseTransform);
-
-        const hit = fractionStore.hitMap.get(key);
-        if (hit) {
-          hit.style.left = `${percent}%`;
-          hit.style.top = '50%';
-          hit.style.transformOrigin = '50% 50%';
-          hit.style.transform = baseTransform;
-          hit.style.setProperty('--pulse-flash-base-transform', baseTransform);
-        }
-      });
-
-      applyCycleLabelCompaction({ lg });
-    }
-  }
+  // Re-renderitzar els anells si cal
+  renderRings();
 });
 
 // Inicializar estado de fracciones complejas después de que todos los componentes estén listos
 initComplexFractionsState();
 
-function getSelectionInfo(target) {
-  if (!target) return null;
-  if (typeof target.dataset.index !== 'undefined') {
-    const idx = parseIntSafe(target.dataset.index);
-    if (Number.isFinite(idx)) {
-      // Validar que el pulso es seleccionable según la fracción activa
-      const lg = parseIntSafe(inputLg.value);
-      const { numerator, denominator } = getFraction();
-      if (!isIntegerPulseSelectable(idx, numerator, denominator, lg)) {
-        return null; // Bloquear pulsos no seleccionables
-      }
-      const key = `pulse:${idx}`;
-      return { type: 'int', index: idx, selectionKey: key, key };
-    }
-  }
-  if (target.dataset.fractionKey) {
-    const info = getFractionInfoFromElement(target);
-    if (info) {
-      const selectionKey = `fraction:${info.key}`;
-      return { ...info, selectionKey };
-    }
-  }
-  return null;
-}
-
-function isSelectionActive(info) {
-  if (!info) return false;
-  if (info.type === 'fraction') {
-    return fractionStore.selectionState.has(info.key);
-  }
-  if (info.type === 'int') {
-    const lg = parseIntSafe(inputLg.value);
-    if (!Number.isFinite(lg)) return false;
-    if (info.index === 0 || info.index === lg) {
-      return loopEnabled;
-    }
-    ensurePulseMemory(Math.max(info.index, lg));
-    return !!pulseMemory[info.index];
-  }
-  return false;
-}
-
-function applySelectionInfo(info, shouldSelect) {
-  if (!info) return;
-  if (info.type === 'fraction') {
-    setFractionSelected(info, shouldSelect);
-  } else if (info.type === 'int') {
-    setPulseSelected(info.index, shouldSelect);
-  }
-}
-
-function toggleSelectionInfo(info) {
-  if (!info) return;
-  const active = isSelectionActive(info);
-  applySelectionInfo(info, !active);
-}
-
-function attachSelectionListeners(el) {
-  if (!el) return;
-  el.addEventListener('click', (ev) => {
-    const info = getSelectionInfo(ev.currentTarget);
-    if (!info) return;
-    toggleSelectionInfo(info);
-  });
-}
 // Hovers for LEDs and controls
-// LEDs ahora indican los campos editables; el apagado se recalcula
 attachHover(playBtn, { text: 'Play / Stop' });
-attachHover(loopBtn, { text: 'Loop' });
 attachHover(tapBtn, { text: 'Tap Tempo' });
 attachHover(resetBtn, { text: 'Reset App' });
 attachHover(notationToggleBtn, { text: 'Mostrar/ocultar partitura' });
@@ -1767,32 +1640,6 @@ selectColor.addEventListener('input', e => {
   saveOpt('color', e.target.value);
 });
 
-updatePulseNumbers();
-
-circularTimelineToggle.checked = (() => {
-  const stored = loadOpt('circular');
-  return stored == null ? true : stored === '1';
-})();
-circularTimeline = circularTimelineToggle.checked;
-// T Indicator initialization
-if (tIndicatorController) {
-  const tValue = parseNum(inputT?.value ?? '') || '';
-  tIndicatorController.updateText(tValue);
-  if (tValue) {
-    tIndicatorController.show();
-  }
-}
-
-circularTimelineToggle?.addEventListener('change', e => {
-  circularTimeline = e.target.checked;
-  saveOpt('circular', e.target.checked ? '1' : '0');
-  layoutTimeline();
-});
-layoutTimeline();
-
-// Initialize loop controller with shared component
-loopController.attach();
-
 if (resetBtn) {
   resetBtn.addEventListener('click', () => {
     pulseMemoryApi.clear();
@@ -1854,6 +1701,9 @@ if (tapHelp) {
  * - La fila "Cicles" (ids randLg* conservats) aleatoritza m; Lg es deriva.
  * - V i Pulsos segueixen passant per randomizeFractional (Lg/n/d
  *   desactivats: ja s'han gestionat aquí).
+ * - F5: els pulsos aleatoris operen sobre pulseMemory (tots els enters
+ *   1..Lg-1 són candidats); les seleccions fraccionades es netegen — la
+ *   aleatorització fraccionada per anell queda per a una fase posterior.
  */
 function randomize() {
   const allowComplex = true; // App4: fraccions complexes sempre actives
@@ -1907,24 +1757,22 @@ function randomize() {
     },
     randomDefaults,
     inputs: { inputLg, inputV, inputT },
-    // Shim F3: només cal getFraction (pulsos seleccionables segons la
-    // primera fracció activa); setFraction ja no passa per la lib.
+    // Shim F3: només cal getFraction; setFraction ja no passa per la lib.
     fractionEditor: { getFraction },
     pulseMemoryApi,
     fractionStore,
     randomCount,
-    isIntegerPulseSelectable,
+    // F5: tots els enters 1..Lg-1 són seleccionables (cap gating per fracció).
+    isIntegerPulseSelectable: () => true,
     nearestPulseIndex,
     applyRandomFractionSelection,
     getAllowComplexFractions: () => allowComplex,
     callbacks: {
       onVChange: ({ value, input }) => handleInput({ target: input }),
-      onPulsesChange: ({ selected, fractionsApplied }) => {
-        syncSelectedFromMemory();
-        updatePulseNumbers();
-        layoutTimeline({ silent: true });
+      onPulsesChange: () => {
         rebuildFractionSelections();
-        if (fractionsApplied && isPlaying) {
+        renderRings();
+        if (isPlaying && audio) {
           applySelectionToAudio();
         }
       },
@@ -1937,8 +1785,6 @@ initRandomMenu(randomBtn, randomMenu, randomize);
 
 // All sound dropdowns (including cycleSoundSelect) are initialized by header.js via initHeader()
 // No app-specific initialization needed
-
-// Preview on sound change handled by shared header
 
 // Create standardized audio initializer that avoids AudioContext warnings
 const _baseInitAudio = createRhythmAudioInitializer({
@@ -1985,15 +1831,12 @@ async function initAudio() {
       });
     }
 
-    // Apply App4-specific configurations after initialization
-    if (typeof audio.setVoiceHandler === 'function') {
-      audio.setVoiceHandler(handleVoiceEvent);
-    }
     // Replicar l'estat dels toggles fets abans que el motor existís (H-11):
     // re-dispara els onChange, que ara sí troben `audio`.
     audioToggleManager.applyTo();
+    // F5: bucle permanent
     if (typeof audio.setLoop === 'function') {
-      audio.setLoop(loopEnabled);
+      audio.setLoop(true);
     }
     const savedMute = loadOpt('mute');
     if (savedMute === '1' && typeof audio.setMute === 'function') {
@@ -2092,7 +1935,7 @@ if (titleButton) {
 
 
 
-// Unified spinner behavior for number inputs (V, Lg)
+// Unified spinner behavior for number inputs (V)
 function stepAndDispatch(input, dir){
   if (!input) return;
   if (dir > 0) input.stepUp(); else input.stepDown();
@@ -2113,42 +1956,25 @@ function handleInput(){
 
   refreshFractionUI({ reveal: true });
 
-  let indicatorValue = '';
   if (hasLg && hasV) {
     const timing = fromLgAndTempo(lg, v);
     if (timing && timing.duration != null) {
       const rounded = Math.round(timing.duration * 100) / 100;
       if (inputT) setValue(inputT, rounded);
-      indicatorValue = rounded;
-    }
-  } else if (inputT) {
-    indicatorValue = parseNum(inputT.value);
-  }
-
-  // Update T indicator
-  if (tIndicatorController) {
-    tIndicatorController.updateText(indicatorValue);
-    if (indicatorValue) {
-      tIndicatorController.show();
-    } else {
-      tIndicatorController.hide();
     }
   }
 
-  // Ensure memory capacity always (preserve selections when Lg crece manualmente)
+  // Ensure memory capacity always (preserve selections when Lg crece)
   if (hasLg) {
     ensurePulseMemory(lg);
   }
 
   updateFormula();
-  // P-03: mateix guard que App2 — handleInput és només Lg/V/T i el
-  // timeline només depèn de Lg (els canvis de fracció re-rendericen
-  // pels seus propis camins).
-  if (lg !== lastTimelineRenderLg || !timeline.childElementCount) {
-    lastTimelineRenderLg = Number.isFinite(lg) && lg > 0 ? lg : null;
-    renderTimeline();
+  // P-03 (adaptat): handleInput és només Lg/V/T i els anells només depenen
+  // d'Lg (els canvis de fracció i de selecció re-rendericen pels seus camins).
+  if (lg !== lastRenderedLg) {
+    renderRings();
   }
-  updateAutoIndicator();
 
   // A-13: push en viu col·lapsat (250ms trailing) — el bloc empeny veus,
   // resolució i transport junts; diferir-lo sencer manté la coherència
@@ -2183,10 +2009,9 @@ const liveTransportPush = createLiveTransportPush({
       : [];
 
     if (Number.isFinite(normalizedLg) && normalizedLg > 0 && effectiveResolution > 1) {
+      // F5: bucle permanent — mai cal el +1 de l'últim pols.
       const scaledBase = normalizedLg * effectiveResolution;
-      effectiveTotal = loopEnabled
-        ? Math.max(1, Math.round(scaledBase))
-        : Math.max(1, Math.round(scaledBase + 1));
+      effectiveTotal = Math.max(1, Math.round(scaledBase));
       if (Number.isFinite(effectivePatternBeats)) {
         effectivePatternBeats = Math.max(1, Math.round(effectivePatternBeats * effectiveResolution));
       }
@@ -2211,7 +2036,6 @@ const liveTransportPush = createLiveTransportPush({
     if (typeof audio.setCycleChannel === 'function') {
       audio.setCycleChannel(scheduling.cycleChannel || 'subdivision');
     }
-    updateVoiceHandlers({ scheduling: { ...scheduling, voices: effectiveVoices } });
     if (typeof audio.setVoices === 'function') {
       audio.setVoices(effectiveVoices);
     }
@@ -2263,314 +2087,6 @@ function updateFormula(){
 
 }
 
-// Rebuild selectedPulses (visible set) from pulseMemory and current Lg, then apply DOM classes
-function syncSelectedFromMemory() {
-  const lg = parseInt(inputLg.value);
-  if (isNaN(lg) || lg <= 0) return;
-
-  selectedPulses.clear();
-
-  // 1) Persistència: només índexs interns (1..lg-1)
-  const maxIdx = Math.min(lg - 1, pulseMemory.length - 1);
-  for (let i = 1; i <= maxIdx; i++) {
-    if (pulseMemory[i]) selectedPulses.add(i);
-  }
-
-  // 2) Extrems: efímers (derivats del loop)
-  if (loopEnabled) {
-    selectedPulses.add(0);
-    selectedPulses.add(lg);
-  }
-
-  // Aplica al DOM
-  const lgIndex = pulses.length > 0 ? pulses.length - 1 : null;
-
-  pulses.forEach((p, idx) => {
-    if (!p) return;
-    p.classList.toggle('selected', selectedPulses.has(idx));
-  });
-  pulseHits.forEach((hit, idx) => {
-    if (!hit) return;
-    const isEndpoint = lgIndex != null && (idx === 0 || idx === lgIndex);
-    const pulseIsLocked = hit.classList.contains('non-selectable');
-    const shouldHighlight = selectedPulses.has(idx) && !isEndpoint && !pulseIsLocked;
-    hit.classList.toggle('selected', shouldHighlight);
-  });
-  pulseNumberLabels.forEach((label) => {
-    if (!label) return;
-    const idx = parseIntSafe(label.dataset.index);
-    if (!Number.isFinite(idx)) return;
-    const isEndpoint = lgIndex != null && (idx === 0 || idx === lgIndex);
-    const pulseIsLocked = !isEndpoint && Boolean(pulses[idx]?.classList.contains('non-selectable'));
-    label.classList.toggle('selected', selectedPulses.has(idx) && !isEndpoint);
-    label.classList.toggle('non-selectable', pulseIsLocked);
-  });
-  applyFractionSelectionClasses();
-  renderNotationIfVisible();
-}
-
-// Deterministically set selection state for index i, respecting 0/Lg pairing when loopEnabled
-function setPulseSelected(i, shouldSelect) {
-  const lg = parseInt(inputLg.value);
-  if (isNaN(lg) || lg < 0) return;
-  ensurePulseMemory(Math.max(i, lg));
-
-  if (i === 0 || i === lg) {
-    // Extrems: controlen loopEnabled (estat efímer)
-    loopEnabled = !!shouldSelect;
-    loopBtn.classList.toggle('active', loopEnabled);
-  } else {
-    pulseMemory[i] = shouldSelect;
-  }
-
-  updatePulseNumbers();
-  syncSelectedFromMemory();
-
-  if (isPlaying && audio) {
-    applySelectionToAudio();
-    if (typeof audio.setLoop === 'function') {
-      audio.setLoop(loopEnabled);
-    }
-  }
-
-  layoutTimeline({ silent: true });
-  renderNotationIfVisible();
-}
-
-
-function clearHighlights() {
-  highlightController?.clearAll?.();
-  if (highlightController) {
-    return;
-  }
-
-  pulses.forEach(p => p.classList.remove('active'));
-  cycleMarkers.forEach(m => m.classList.remove('active'));
-  cycleLabels.forEach(l => l.classList.remove('active'));
-  pulseNumberLabels.forEach(label => label.classList.remove('pulse-number--flash'));
-
-  if (fractionStore) {
-    fractionStore.lastFractionHighlightKey = null;
-    fractionStore.lastHighlightType = null;
-    fractionStore.lastHighlightIntIndex = null;
-    fractionStore.lastHighlightFractionKey = null;
-    fractionStore.lastHighlightFractionNodes = { key: null, marker: null, hit: null, token: null };
-  }
-}
-
-// Inicializar controladores de highlighting y visual sync
-function initHighlightingControllers() {
-  if (visualSyncManager) {
-    visualSyncManager.stop();
-    visualSyncManager = null;
-  }
-
-  highlightController = createHighlightController({
-    getPulses: () => pulses,
-    getCycleMarkers: () => cycleMarkers,
-    getPulseNumberLabels: () => pulseNumberLabels,
-    getPulseAnimationDuration: resolvePulseAnimationDuration,
-    fractionStore,
-    epsilon: FRACTION_POSITION_EPSILON,
-    highlightFractionMarkers: false
-  });
-
-  visualSyncManager = createVisualSyncManager({
-    getAudio: () => audio,
-    getIsPlaying: () => isPlaying,
-    getLoopEnabled: () => loopEnabled,
-    highlightController,
-    getNotationRenderer: () => notationRendererController?.getRenderer(),
-    getPulses: () => pulses,
-    onResolutionChange: (newResolution) => {
-      currentAudioResolution = newResolution;
-    }
-  });
-}
-
-function initTimelineRenderer() {
-  if (!timeline) return;
-
-  timelineRenderer = createFractionalTimelineRenderer({
-    timeline,
-    getLg: () => parseIntSafe(inputLg.value),
-    getFraction,
-    fractionStore,
-    fractionMemory,
-    computeHitSizePx,
-    computeNumberFontRem,
-    computeSubdivisionFontRem,
-    attachSelectionListeners,
-    isIntegerPulseSelectable,
-    fractionValue,
-    fractionDisplay,
-    registerFractionLabel,
-    markFractionSuspended,
-    rememberFractionSelectionInMemory,
-    constants: {
-      SUBDIVISION_HIDE_THRESHOLD,
-      PULSE_NUMBER_HIDE_THRESHOLD
-    }
-  });
-}
-
-function renderTimeline() {
-  // Disable transitions during render to prevent animation when changing inputs
-  timeline.classList.add('no-anim');
-
-  if (highlightController) {
-    highlightController.clearAll();
-  }
-
-  // Inicializar renderer si no existe
-  if (!timelineRenderer) {
-    initTimelineRenderer();
-  }
-
-  if (!timelineRenderer) {
-    // Fallback si no hay renderer disponible
-    pulseNumberLabels = [];
-    pulses = [];
-    pulseHits = [];
-    cycleMarkers = [];
-    cycleMarkerHits = [];
-    cycleLabels = [];
-    // Re-enable transitions even in fallback case
-    requestAnimationFrame(() => {
-      timeline.classList.remove('no-anim');
-    });
-    return;
-  }
-
-  // Renderizar usando el módulo
-  const result = timelineRenderer.render();
-
-  // Actualizar referencias globales
-  pulses = result.pulses;
-  pulseHits = result.pulseHits;
-  cycleMarkers = result.cycleMarkers;
-  cycleMarkerHits = result.cycleMarkerHits;
-  cycleLabels = result.cycleLabels;
-  pulseNumberLabels = result.pulseNumberLabels;
-
-  // Actualizar lastStructureSignature
-  lastStructureSignature = timelineRenderer.getLastStructureSignature();
-
-  // Gestionar cambios de memoria de fracciones
-  if (result.memoryChanges) {
-    const { invalidCount, restoredFraction } = result.memoryChanges;
-    if (invalidCount > 0 || restoredFraction) {
-      rebuildFractionSelections({ skipUpdateField: true });
-    }
-  }
-
-  updatePulseNumbers();
-  layoutTimeline({ silent: true });
-  syncSelectedFromMemory();
-  applyFractionSelectionClasses();
-  clearHighlights();
-  renderNotationIfVisible();
-
-  // Reinicializar controladores de highlighting después del render
-  initHighlightingControllers();
-
-  if (isPlaying) {
-    // Si estamos en reproducción activa, reiniciar el loop de sync visual
-    // para que el cursor de notación y los highlights sigan avanzando.
-    syncVisualState();
-    startVisualSync();
-  }
-
-  // Re-enable transitions after render completes
-  requestAnimationFrame(() => {
-    timeline.classList.remove('no-anim');
-  });
-}
-
-function restoreCycleLabelDisplay() {
-  cycleLabels.forEach(label => {
-    if (!label) return;
-    const full = label.dataset.fullText;
-    if (typeof full === 'string') {
-      label.textContent = full;
-    }
-    label.classList.remove('cycle-label--compact');
-  });
-}
-
-function applyCycleLabelCompaction({ lg }) {
-  if (!timeline || !Array.isArray(cycleLabels)) return;
-  if (!Number.isFinite(lg) || lg <= 0) {
-    restoreCycleLabelDisplay();
-    return;
-  }
-  const width = timeline.clientWidth || timeline.getBoundingClientRect().width;
-  if (!Number.isFinite(width) || width <= 0) {
-    restoreCycleLabelDisplay();
-    return;
-  }
-
-  const sorted = [...cycleLabels].filter(Boolean).sort((a, b) => {
-    const aPos = Number(a.dataset.position);
-    const bPos = Number(b.dataset.position);
-    if (!Number.isFinite(aPos) && !Number.isFinite(bPos)) return 0;
-    if (!Number.isFinite(aPos)) return 1;
-    if (!Number.isFinite(bPos)) return -1;
-    return aPos - bPos;
-  });
-
-  sorted.forEach((label, idx) => {
-    const full = typeof label.dataset.fullText === 'string' ? label.dataset.fullText : label.textContent;
-    const compact = label.dataset.compactText;
-    let useCompact = false;
-
-    if (label.dataset.isDecimal === '1' && typeof compact === 'string') {
-      const currentPos = Number(label.dataset.position);
-      if (Number.isFinite(currentPos)) {
-        const currentPx = (currentPos / lg) * width;
-
-        const prevLabel = sorted[idx - 1];
-        let prevPx = null;
-        if (prevLabel) {
-          const prevPos = Number(prevLabel.dataset.position);
-          if (Number.isFinite(prevPos)) {
-            prevPx = (prevPos / lg) * width;
-          }
-        }
-
-        const nextLabel = sorted[idx + 1];
-        let nextPx = null;
-        if (nextLabel) {
-          const nextPos = Number(nextLabel.dataset.position);
-          if (Number.isFinite(nextPos)) {
-            nextPx = (nextPos / lg) * width;
-          }
-        }
-
-        if ((prevPx != null && currentPx - prevPx < MIN_SUBDIVISION_LABEL_SPACING_PX)
-          || (nextPx != null && nextPx - currentPx < MIN_SUBDIVISION_LABEL_SPACING_PX)) {
-          useCompact = true;
-        }
-      }
-    }
-
-    if (useCompact) {
-      label.textContent = compact;
-      label.classList.add('cycle-label--compact');
-    } else {
-      label.textContent = full || '';
-      label.classList.remove('cycle-label--compact');
-    }
-  });
-}
-
-function updateAutoIndicator(){
-  // Los LEDs encendidos son los campos editables; el apagado se recalcula
-  ledLg?.classList.toggle('on', inputLg.dataset.auto !== '1');
-  ledV?.classList.toggle('on', inputV.dataset.auto !== '1');
-  ledT?.classList.toggle('on', (inputT?.dataset?.auto) !== '1');
-}
-
 function handlePlaybackStop(audioInstance) {
   const iconPlay = playBtn?.querySelector('.icon-play');
   const iconStop = playBtn?.querySelector('.icon-stop');
@@ -2606,10 +2122,6 @@ async function startPlayback(providedAudio) {
   audioInstance.stop();
   clearHighlights();
 
-  // Sound selection is already applied by initAudio() from dataset.value
-  // and by bindSharedSoundEvents from sharedui:sound events
-  // No need to override here
-
   const scheduling = computeAudioSchedulingState();
   if (scheduling.interval == null || scheduling.totalPulses == null) {
     return false;
@@ -2637,12 +2149,9 @@ async function startPlayback(providedAudio) {
     : [];
 
   if (Number.isFinite(normalizedLg) && normalizedLg > 0 && effectiveResolution > 1) {
+    // F5: bucle permanent — totalPulses = lg escalat (sense +1 d'endpoint).
     const scaledBase = normalizedLg * effectiveResolution;
-    if (loopEnabled) {
-      effectiveTotal = Math.max(1, Math.round(scaledBase));
-    } else {
-      effectiveTotal = Math.max(1, Math.round(scaledBase + 1));
-    }
+    effectiveTotal = Math.max(1, Math.round(scaledBase));
     if (Number.isFinite(scheduling.interval)) {
       effectiveInterval = scheduling.interval / effectiveResolution;
     }
@@ -2670,7 +2179,6 @@ async function startPlayback(providedAudio) {
   if (typeof audioInstance.setCycleChannel === 'function') {
     audioInstance.setCycleChannel(scheduling.cycleChannel || 'subdivision');
   }
-  updateVoiceHandlers({ scheduling: { ...scheduling, voices } });
   if (typeof audioInstance.setVoices === 'function') {
     audioInstance.setVoices(voices);
   }
@@ -2690,8 +2198,9 @@ async function startPlayback(providedAudio) {
   }
   playOptions.baseResolution = effectiveResolution;
 
+  // F5: bucle permanent
   if (typeof audioInstance.setLoop === 'function') {
-    audioInstance.setLoop(loopEnabled);
+    audioInstance.setLoop(true);
   }
 
   const selectionValuesForAudio = selectionForAudio.audio ?? selectionForAudio.combined;
@@ -2705,7 +2214,7 @@ async function startPlayback(providedAudio) {
     effectiveTotal,
     effectiveInterval,
     selectionPayload,
-    loopEnabled,
+    true, // F5: loop sempre actiu
     null,
     onFinish,
     playOptions
@@ -2740,59 +2249,17 @@ playBtn.addEventListener('click', async () => {
   } catch {}
 });
 
-function highlightCycle(payload = {}) {
-  if (highlightController) {
-    highlightController.highlightCycle(payload);
-  }
-}
-
-function resolvePulseAnimationDuration({ resolution } = {}) {
-  const bpm = parseNum(inputV?.value);
-  if (!(Number.isFinite(bpm) && bpm > 0)) {
-    return null;
-  }
-  const baseResolution = Number.isFinite(resolution) && resolution > 0
-    ? Math.max(1, Math.round(resolution))
-    : Math.max(1, Math.round(currentAudioResolution || 1));
-  if (!Number.isFinite(baseResolution) || baseResolution <= 0) {
-    return null;
-  }
-  const intervalMs = (60 / (bpm * baseResolution)) * 1000;
-  return Math.max(60, Math.min(intervalMs, 420));
-}
-
 function stopVisualSync() {
-  if (visualSyncManager) {
-    visualSyncManager.stop();
-  }
-  // Mantener compatibilidad con código legacy
-  if (visualSyncHandle != null) {
-    cancelAnimationFrame(visualSyncHandle);
-    visualSyncHandle = null;
-  }
-  highlightController?.clearAll();
+  visualSyncManager.stop();
+  rings.clearHighlights();
 }
 
 function syncVisualState() {
-  if (visualSyncManager) {
-    visualSyncManager.syncVisualState();
-  }
+  visualSyncManager.syncVisualState();
 }
 
 function startVisualSync() {
-  if (visualSyncManager) {
-    visualSyncManager.start();
-  } else {
-    // Fallback legacy
-    stopVisualSync();
-    const step = () => {
-      visualSyncHandle = null;
-      if (!isPlaying || !audio) return;
-      syncVisualState();
-      visualSyncHandle = requestAnimationFrame(step);
-    };
-    visualSyncHandle = requestAnimationFrame(step);
-  }
+  visualSyncManager.start();
 }
 
 const menu = document.querySelector('.menu');

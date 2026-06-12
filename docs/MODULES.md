@@ -47,6 +47,7 @@ import { createSchedulingBridge } from '../../libs/app-common/audio.js';
 import { bindRhythmElements } from '../../libs/app-common/dom.js';
 import { createGridEditor } from '../../libs/matrix-seq/index.js';
 import { createMusicalGrid } from '../../libs/musical-grid/index.js';
+import { createCircularRings } from '../../libs/app-common/circular-rings.js'; // + circular-rings.css
 
 // Notació
 import { createRhythmStaff } from '../../libs/notation/index.js';
