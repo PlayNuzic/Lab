@@ -370,6 +370,32 @@ export function createNotationSystem({
     built.forEach((b) => formatter.joinVoices([b.voice]));
     formatter.format(allVoices, innerWidth - FORMAT_PADDING);
 
+    // ── Posicionament per TEMPS (robust) ──
+    // El formatter compartit alinea per tick, però amb fraccions denses de
+    // ratio no-2ⁿ (5/11, 7/10, 7/11) els ticks enters sobre RESOLUTION=2¹⁴
+    // s'arrodoneixen i CORROMPEN les posicions de TOTES les veus (és un
+    // formatter compartit: una veu dolenta col·lapsa el sistema sencer). Per
+    // garantir alineació i monotonia SEMPRE, sobreescrivim la x de cada nota
+    // pel seu TEMPS: una nota a l'instant t (polsos) va a
+    // startX + (t/Lg)·amplada útil. Com que totes les veus comparteixen
+    // startX (mateixa clau), amplada i Lg, els cops simultanis queden a la
+    // mateixa columna i cada veu és estrictament monotònica (cap tuplet
+    // d'amplada negativa). Independent dels ticks de VexFlow.
+    built.forEach((b, i) => {
+      const stave = staves[i];
+      const startX = typeof stave.getNoteStartX === 'function' ? stave.getNoteStartX() : HORIZONTAL_MARGIN;
+      const endX = HORIZONTAL_MARGIN + innerWidth - FORMAT_PADDING;
+      const usable = Math.max(1, endX - startX);
+      b.notes.forEach((entry) => {
+        const note = entry.note;
+        if (typeof note.getAbsoluteX !== 'function' || typeof note.setXShift !== 'function') return;
+        const t = Math.max(0, Math.min(lg, Number(entry.time) || 0));
+        const targetX = startX + (lg > 0 ? (t / lg) * usable : 0);
+        const curShift = typeof note.getXShift === 'function' ? note.getXShift() : 0;
+        note.setXShift(curShift + (targetX - note.getAbsoluteX()));
+      });
+    });
+
     // Acolorir notes ABANS de dibuixar la veu (la veu aplica l'estil de cada
     // tickable). Es respecten silencis: també prenen el color (com rhythm-staff).
     built.forEach((b) => {
@@ -470,18 +496,15 @@ export function createNotationSystem({
       };
     });
 
-    // Amplada de contingut per al càlcul del cursor per temps: de la primera
-    // nota (pols 0) a l'última columna. Es deriva de les marques del base.
-    const baseLayout = layoutStaves.find((s) => s.isBase) || layoutStaves[0];
-    let contentStartX = baseLayout ? baseLayout.noteStartX : HORIZONTAL_MARGIN;
-    let contentEndX = innerWidth + HORIZONTAL_MARGIN;
-    if (baseLayout && baseLayout.marks.length) {
-      const xs = baseLayout.marks.map((m) => m.x).filter((x) => Number.isFinite(x));
-      if (xs.length) {
-        contentStartX = Math.min(...xs);
-        contentEndX = Math.max(...xs);
-      }
-    }
+    // Amplada de contingut per al cursor: EXACTAMENT la mateixa fórmula que
+    // posiciona les notes per temps (startX + (t/Lg)·usable, span 0..Lg). Així
+    // el cursor a la posició `pos` cau sobre la nota d'aquell instant a tots
+    // els pentagrames. (NO derivar de les marques: aquestes només van de 0 a
+    // Lg−1 i comprimirien el cursor respecte de les notes.)
+    const baseStave = staves[0];
+    const contentStartX = (baseStave && typeof baseStave.getNoteStartX === 'function')
+      ? baseStave.getNoteStartX() : HORIZONTAL_MARGIN;
+    const contentEndX = HORIZONTAL_MARGIN + innerWidth - FORMAT_PADDING;
 
     lastLayout = {
       lg,
