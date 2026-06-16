@@ -299,6 +299,17 @@ notationPanelController = createNotationPanelController({
   }
 });
 
+// Tancar el "full" en fer clic FORA de la pàgina blanca (el backdrop), a més
+// de la clau de sol. Els clics dins del full (.notation-panel__dialog) no
+// tanquen (serveixen per seleccionar notes).
+if (notationPanel) {
+  notationPanel.addEventListener('click', (event) => {
+    if (!event.target.closest('.notation-panel__dialog')) {
+      notationPanelController.close();
+    }
+  });
+}
+
 // Canals registrats al motor (TimelineAudio constructor);
 // setupAudioDefaults dins initAudio() els personalitza.
 const globalMixer = getMixer();

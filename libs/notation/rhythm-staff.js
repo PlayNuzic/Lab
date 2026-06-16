@@ -447,7 +447,12 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       // F6 (App4): color d'identitat opcional de la fracció. Sense color →
       // negre de sempre (App2/App5 i qualsevol altre consumidor intactes).
       // S'aplica a notes/silencis/plicas + tuplets + beams.
-      color = null
+      color = null,
+      // F6 (App4): amplada interior del pentagrama imposada des de fora.
+      // Quan diversos pentagrames apilats la comparteixen, la primera (i
+      // l'última) nota queden ALINEADES verticalment entre ells. Sense valor
+      // → s'autocalcula (comportament històric, App2/App5 intactes).
+      staveWidth = null
     } = state;
 
     const glyphColor = typeof color === 'string' && color.trim() ? color.trim() : null;
@@ -861,7 +866,11 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     const subdivisionCount = Number(fractionGrid?.subdivisions?.length) || 0;
     const entryCount = entryList.length;
     const widthBase = Math.max(0, lgCount, subdivisionCount, entryCount);
-    const innerStaveWidth = Math.max(320, widthBase * 56);
+    // Amplada imposada (staveWidth) per alinear primeres/últimes notes entre
+    // pentagrames apilats; si no, autocalculada com sempre.
+    const innerStaveWidth = (Number.isFinite(staveWidth) && staveWidth > 0)
+      ? Math.max(320, Math.round(staveWidth))
+      : Math.max(320, widthBase * 56);
     const totalWidth = innerStaveWidth + HORIZONTAL_MARGIN * 2;
 
     if (!renderer) {

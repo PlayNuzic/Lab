@@ -335,6 +335,15 @@ export function createNotationRenderer({
     const desiredIds = states.map((state) => state.staffId);
     const desiredSet = new Set(desiredIds);
 
+    // Amplada compartida per a TOTS els pentagrames: la del que té més
+    // events (≈ 56px per event, com el càlcul intern de rhythm-staff). Així
+    // la primera i l'última nota queden alineades verticalment entre files.
+    const maxEvents = states.reduce(
+      (m, s) => Math.max(m, Array.isArray(s.events) ? s.events.length : 0),
+      0
+    );
+    const sharedStaveWidth = Math.max(320, maxEvents * 56);
+
     // 1. Destruir els pentagrames que ja no es volen.
     Array.from(staves.keys()).forEach((staffId) => {
       if (!desiredSet.has(staffId)) removeStaff(staffId);
@@ -367,6 +376,7 @@ export function createNotationRenderer({
         rhythm: state.events,
         color: state.color,
         pulseFilter: state.pulseFilter,
+        staveWidth: sharedStaveWidth,
         isPlaying
       });
     });

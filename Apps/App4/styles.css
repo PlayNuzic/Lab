@@ -192,10 +192,56 @@ main > .notation-panel--inline .notation-panel__canvas {
 body.app4 .notation-panel__canvas {
   display: flex;
   flex-direction: column;
-  gap: clamp(0.5rem, 2vw, 1.25rem);
+  /* pentagrames més junts verticalment */
+  gap: clamp(0.1rem, 0.6vw, 0.4rem);
   overflow-y: auto;
-  /* alçada acotada perquè 4 pentagrames facin scroll en pantalles baixes */
-  max-height: min(70vh, 40rem);
+}
+
+/* ── Vista partitura com a "full" que tapa inputs/fraccions/gràfic ──
+   En obrir-se, el panell (inline) passa a overlay absolut sobre <main>
+   (el header queda accessible: la clau de sol el tanca). El .dialog és el
+   full blanc centrat amb ombra. */
+body.app4 main { position: relative; }
+
+body.app4 .notation-panel--inline.notation-panel--open {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  box-sizing: border-box;
+  background: var(--bg-light, #faf8f2);
+}
+
+body[data-theme='dark'].app4 .notation-panel--inline.notation-panel--open {
+  background: var(--bg-dark, #2a2a26);
+}
+
+body.app4 .notation-panel--open .notation-panel__dialog {
+  width: 100%;
+  max-width: 56rem;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 1rem 3rem rgba(67, 67, 59, 0.25);
+  padding: clamp(1rem, 3vw, 2rem);
+  box-sizing: border-box;
+}
+
+body.app4 .notation-panel--open .notation-panel__canvas {
+  max-height: none; /* el full creix; el scroll el porta l'overlay */
+}
+
+/* Els controls (volum · play · random · tap · reset · loop) queden VISIBLES
+   i clicables damunt del full mentre la partitura és oberta — així es pot
+   reproduir i veure el cursor avançar pels pentagrames. */
+body.app4 main:has(.notation-panel--open) .controls {
+  position: relative;
+  z-index: 60;
 }
 
 body.app4 .notation-staff {
