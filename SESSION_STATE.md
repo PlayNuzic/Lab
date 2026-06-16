@@ -410,8 +410,27 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
         - Pentagrames més junts (gap canvas reduït).
         - 1a/última nota alineades entre pentagrames via `staveWidth`
           compartit (nou param additiu a rhythm-staff; renderer = màx events).
-- [ ] **F6.scroll — Scroll horitzontal únic + cops simultanis alineats**
-      (PLA APROVAT, pendent d'implementar):
+- [~] **F6.scroll — Scroll horitzontal únic + cops simultanis alineats**
+      (EN CURS 2026-06-16):
+      **Viabilitat de ticks VERIFICADA** (script /tmp/app4-tick-feasibility.mjs):
+      - El pentagrama BASE "Pulso" és l'ÀNCORA: cada fracció cau sobre un pols
+        enter cada `n` polsos (n≤7) i la base té nota a CADA enter → amb un
+        formatter compartit aquestes marques comparteixen tick i queden
+        bloquejades. No cal que les fraccions coincideixin entre elles
+        (p. ex. 2-contra-3 només comparteix el pols 0).
+      - Factor de tick comú D = mcm(denominadors) ≤ 30 fins i tot al pitjor
+        cas (5/2+6/5+7/3, cicle 210). VexFlow ho representa exacte (Fraction).
+      - Sempre hi ha àncores universals: pols 0 + fronteres de cicle gran + Lg.
+      **Enfocament REVISAT** (menys risc que extreure de rhythm-staff):
+      com que App4 té model net (Lg múltiple del cicle de cada fracció → MAI
+      remainder pulses ni tuplets incomplets), es fa un **mòdul NOU**
+      (`libs/notation/notation-system.js`) que reutilitza els helpers
+      compartits (`buildPulseEvents`, `resolveFractionNotation`) i renderitza
+      el sistema (un SVG, N pentagrames, UN formatter). **rhythm-staff NO es
+      toca** → App2/App5 garantidament intactes. renderer.js (App4) usa el
+      sistema per la via multi-fracció; la via single (getFraction) segueix
+      amb rhythm-staff.
+      Pendent (sub-passos, abans com 3a-3f):
       Problema: ara cada pentagrama és un SVG amb formatter PROPI → VexFlow
       espaia per criteri musical, no per temps absolut, i un cop a temps t no
       cau a la mateixa x entre pentagrames. El `staveWidth` compartit només
