@@ -401,6 +401,47 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
         - Bombolles nuzificades (acotat `body.app4`): `.fraction-info-bubble`
           (cream/dark, Ubuntu, clamp, vora; combo-error vora vermella),
           `.hover-tip` (pastilla fosca), `.validation-warning` (groc nuzic).
+      - **Retocs post-revisió 3 (2026-06-16) — vista "full" (commit b4f0797):**
+        - Partitura = overlay absolut sobre `<main>` (tapa inputs/fraccions/
+          anells); header amb la clau de sol accessible per tancar.
+        - Controls visibles damunt del full (z-index via
+          `main:has(.notation-panel--open) .controls`).
+        - Clic fora de la pàgina blanca tanca (a més de la clau de sol).
+        - Pentagrames més junts (gap canvas reduït).
+        - 1a/última nota alineades entre pentagrames via `staveWidth`
+          compartit (nou param additiu a rhythm-staff; renderer = màx events).
+- [ ] **F6.scroll — Scroll horitzontal únic + cops simultanis alineats**
+      (PLA APROVAT, pendent d'implementar):
+      Problema: ara cada pentagrama és un SVG amb formatter PROPI → VexFlow
+      espaia per criteri musical, no per temps absolut, i un cop a temps t no
+      cau a la mateixa x entre pentagrames. El `staveWidth` compartit només
+      alinea 1a/última nota, no els cops intermedis.
+      Solució: patró natiu VexFlow de SISTEMA — **UN sol SVG amb N
+      pentagrames (Y creixent) i UN formatter compartit** que els alinea per
+      tick (temps). Llavors el scroll horitzontal és únic per a tot el sistema
+      i un sol playhead vertical el travessa.
+      Fases:
+      - 3a: extreure de rhythm-staff un helper reutilitzable
+        `buildStaveContent(state)` (events→StaveNotes + tuplets + beams +
+        color + posició de silencis); el render d'una sola pista el segueix
+        usant → App2/App5 INTACTES (verificar tests + visual).
+      - 3b: nou render de sistema (un Renderer/SVG, N Stave a Y creixent, un
+        Voice per pista, `Formatter.joinVoices` per veu + `format(totes, W)`
+        → alineació cross-stave per tick). Color per pista.
+      - 3c: scroll horitzontal únic al contenidor (treure overflow per-pista).
+      - 3d: UN playhead vertical que travessa tot el sistema (posició per
+        temps, ara consistent entre pistes).
+      - 3e: clics per delegació a l'SVG únic (data-staff-id + data-pulse →
+        canal fracSelN correcte / pols base).
+      - 3f: renderer.js usa el sistema en lloc d'N rhythm-staff; cursor des de
+        visual-sync. Verificar: npm test, captura headless (cops simultanis
+        alineats: F1=1/2+base, F1=3/2+F2=2/3 → punts de cicle compartit
+        alineats), scroll únic, un playhead, clics als canals correctes,
+        App2/App5 sense canvis.
+      Riscos: les veus han de tenir el MATEIX total de ticks i resolució
+      consistent perquè els punts compartits comparteixin tick; tuplets ben
+      expressats; re-cablejat de color/clic/cursor; fontsReady es manté.
+      Esforç alt (millor agent focalitzat o pas a pas amb verificació).
 - [ ] **F7 — Panell info "ⓘ"**: estendre formula-renderer.js (compartit,
       amb tests) amb cicle gran, mcm denominadors, proporció reduïda, etc.
 - [ ] **F8 — Neteja + docs**: auditoria Step 15 de la skill, README App4,
