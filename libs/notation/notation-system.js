@@ -32,7 +32,7 @@ import { resolveFractionNotation } from './fraction-notation.js';
 
 // Constants geomètriques (rem→px via càlcul a fora; aquí píxels SVG interns).
 const HORIZONTAL_MARGIN = 18;     // marge esquerre/dret de cada pentagrama
-const TOP_MARGIN = 28;            // marge superior del primer pentagrama
+const TOP_MARGIN = 40;            // marge superior del primer pentagrama (headroom per a l'etiqueta)
 const STAVE_SPACING = 96;         // separació vertical entre pentagrames apilats
 const PX_PER_EVENT = 56;          // amplada per event (mateix criteri que rhythm-staff)
 const MIN_INNER_WIDTH = 320;      // amplada interior mínima
@@ -354,8 +354,10 @@ export function createNotationSystem({
         context.save();
         if (typeof context.setFont === 'function') context.setFont('Ubuntu, system-ui, sans-serif', 13, 'bold');
         if (typeof context.setFillStyle === 'function') context.setFillStyle(color);
-        // y = una mica per sobre de la línia superior del pentagrama.
-        const labelY = (b.stave.getYForLine ? b.stave.getYForLine(0) : b.stave.getY()) - 6;
+        // y ben per sobre de la línia superior, FORA de la zona de la clau de
+        // sol (que s'enfila ~18px sobre la primera línia) perquè no s'hi xoqui.
+        const topLineY = (b.stave.getYForLine ? b.stave.getYForLine(0) : b.stave.getY());
+        const labelY = topLineY - 20;
         context.fillText(label, HORIZONTAL_MARGIN, labelY);
         context.restore();
       });
