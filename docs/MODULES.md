@@ -50,7 +50,8 @@ import { createMusicalGrid } from '../../libs/musical-grid/index.js';
 import { createCircularRings } from '../../libs/app-common/circular-rings.js'; // + circular-rings.css
 
 // Notació
-import { createRhythmStaff } from '../../libs/notation/index.js';
+import { createRhythmStaff } from '../../libs/notation/index.js';   // 1 pentagrama (App2/App5)
+import { createNotationSystem } from '../../libs/notation/notation-system.js'; // N pentagrames apilats, 1 SVG/formatter (App4)
 
 // Seqüències
 import { createPulseSeqController } from '../../libs/pulse-seq/index.js';
