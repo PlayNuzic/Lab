@@ -430,6 +430,26 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
       n 1-7 × d 1-12, m=4 i m=8): 0 casos dolents; les comunes mantenen els
       tuplets. Les 3 exòtiques renderitzen aproximades (sense claudàtor) però
       sense petar. Arnès CDP a /tmp/cdp-*.mjs (Log.enable és la clau).
+      **VERIFICAT i FUNCIONANT (2026-06-16):**
+      - La guarda no n'hi havia prou: amb 5/11 actiu el formatter COMPARTIT
+        corrompia TOTES les veus (sistema sencer col·lapsat, no només
+        l'exòtica). Solució definitiva: **posicionament de notes per TEMPS**
+        (commit b997b8a) — `note.setXShift` a startX+(t/Lg)·amplada útil
+        després del format; alineació i monotonia garantides per a TOTES les
+        fraccions, sense dependre dels ticks de VexFlow.
+      - **Playhead**: el cursor usa la MATEIXA fórmula que les notes
+        (contentStartX + (pos/Lg)·contentWidth, span 0..Lg) → cau sobre la
+        nota de cada instant; autoscroll del .notation-panel__canvas el
+        segueix. Verificat amb Chrome (proporcional pos 0→74 fins vora dreta).
+      - **Etiquetes** (Pulso/n-d) pujades a topLine−20 + TOP_MARGIN 40 (fora
+        de la clau de sol). Commit 0d8a024.
+      - Usuari confirma: render i playhead funcionen molt bé.
+      **Bugs de partitura pendents (en curs):**
+      - Clic a una nota TANCA el full en lloc de seleccionar: la selecció
+        re-renderitza i desvincula la nota clicada del DOM → el handler
+        "clic-fora" (App4) rep un e.target desvinculat → closest() = null →
+        tanca. Fix: el handler només tanca si `e.target === notationPanel`
+        (backdrop directe), no per closest (que falla amb nodes desvinculats).
       ---- història de la verificació de viabilitat ----
       **Viabilitat de ticks VERIFICADA** (script docs/app4-tick-feasibility.mjs):
       - El pentagrama BASE "Pulso" és l'ÀNCORA: cada fracció cau sobre un pols

@@ -299,12 +299,17 @@ notationPanelController = createNotationPanelController({
   }
 });
 
-// Tancar el "full" en fer clic FORA de la pàgina blanca (el backdrop), a més
-// de la clau de sol. Els clics dins del full (.notation-panel__dialog) no
-// tanquen (serveixen per seleccionar notes).
+// Tancar el "full" en fer clic al BACKDROP (l'àrea de l'overlay fora de la
+// pàgina blanca), a més de la clau de sol. Es comprova `event.target ===
+// notationPanel` (el backdrop és el propi <section> de l'overlay) en lloc de
+// `closest('.notation-panel__dialog')`: en clicar una NOTA, la selecció
+// re-renderitza i DESVINCULA del DOM la nota clicada, així que quan el clic
+// bombolleja fins aquí `event.target` ja no té avantpassats i `closest()`
+// retornaria null → tancava el full per error. Amb `=== notationPanel` només
+// tanca el clic directe al backdrop (mai un clic a una nota o a la pàgina).
 if (notationPanel) {
   notationPanel.addEventListener('click', (event) => {
-    if (!event.target.closest('.notation-panel__dialog')) {
+    if (event.target === notationPanel) {
       notationPanelController.close();
     }
   });
