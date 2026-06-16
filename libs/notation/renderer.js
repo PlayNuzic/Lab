@@ -1,4 +1,5 @@
 import { createRhythmStaff } from './rhythm-staff.js';
+import { createNotationSystem } from './notation-system.js';
 import { durationValueFromDenominator, buildPulseEvents } from './utils.js';
 import { resolveFractionNotation } from './fraction-notation.js';
 
@@ -6,17 +7,22 @@ import { resolveFractionNotation } from './fraction-notation.js';
  * Factory function to create a notation renderer controller for App4.
  * Encapsulates all logic for building, rendering, and interacting with VexFlow notation.
  *
- * F6: la notació d'App4 passa a ser MULTI-FRACCIÓ. En comptes d'una sola veu
- * sobre un pentagrama, s'orquestren N renders independents de createRhythmStaff
- * apilats verticalment: un pentagrama base "Pols" (enters, en fosc) + un
- * pentagrama per fracció ACTIVA, cadascun amb el color d'identitat de la seva
- * fracció (F1 groc, F2 rosa, F3 blau) i la SEVA (n,d). Així cada fracció es
- * llegeix neta encara amb tuplets incommensurables (3 vs 5 vs 7) i la lògica
- * fràgil de remainder/tuplet d'una sola fracció de rhythm-staff queda
- * INTACTA — només s'invoca N vegades.
+ * F6.scroll: la notació MULTI-FRACCIÓ d'App4 passa a un SISTEMA de pentagrames
+ * apilats dins d'UN SOL SVG amb UN SOL Formatter (libs/notation/notation-system.js).
+ * El Formatter compartit alinea els cops simultanis per TEMPS (els TickContext
+ * indexats per tick són compartits entre pentagrames) → scroll horitzontal únic
+ * i un sol playhead vertical que travessa tot el sistema. Substitueix
+ * l'orquestració F6 de N renders independents de createRhythmStaff (un SVG i un
+ * formatter per pentagrama → cops NO alineats i N scrolls).
+ *
+ * El pentagrama base "Pulso" (enters, en fosc) és l'ÀNCORA; un pentagrama per
+ * fracció ACTIVA amb el color del seu slot (F1 groc, F2 rosa, F3 blau) i la SEVA
+ * (n,d). Model net d'App4 (Lg múltiple del cicle de cada fracció) → tuplets
+ * uniformes per cicle, mai remainder.
  *
  * Si `getActiveFractions` NO es passa, es manté el comportament d'una sola
- * fracció via `getFraction()` (back-compat per a qualsevol consumidor antic).
+ * fracció via `getFraction()` amb createRhythmStaff (back-compat App2/App5 i
+ * qualsevol consumidor antic — rhythm-staff queda INTACTE).
  *
  * @param {Object} config - Configuration object
  * @param {HTMLElement} config.notationContentEl - Container element for notation rendering
@@ -43,12 +49,18 @@ export function createNotationRenderer({
   onPulseSelected,
   onFractionSelected
 }) {
-  // F6: una llista de pentagrames (un controller de createRhythmStaff per
-  // entrada) en lloc d'un sol renderer. Clau = id estable del pentagrama
-  // ('base' o l'id del slot de la fracció). Cada entrada té el seu sub-div
-  // dins notationContentEl (amb etiqueta HTML acolorida) i el seu controller.
-  const staves = new Map(); // staffId -> { wrapper, host, labelEl, controller, fraction }
   const hasMultiFraction = typeof getActiveFractions === 'function';
+
+  // Back-compat (single, sense getActiveFractions): una llista de pentagrames
+  // (un controller de createRhythmStaff per entrada). Clau = id estable. Cada
+  // entrada té el seu sub-div dins notationContentEl + el seu controller.
+  // NOMÉS s'usa al camí single; el camí multi-fracció usa el sistema (un SVG).
+  const staves = new Map(); // staffId -> { wrapper, host, labelEl, controller, fraction }
+
+  // F6.scroll: en multi-fracció, UN sol sistema de pentagrames (un SVG, un
+  // Formatter). Es crea lazy al primer render i s'allotja directament a
+  // notationContentEl (sense sub-divs per pentagrama).
+  let notationSystem = null;
 
   /**
    * Infers the notation denominator from Lg and current fraction.
@@ -172,6 +184,11 @@ export function createNotationRenderer({
     return {
       lg: lgValue,
       fraction: normalizedFraction,
+      // numerator/denominator plans per al sistema de pentagrames (F6.scroll):
+      // la graella de subdivisions i el tuplet per cicle es deriven d'aquí.
+      numerator: fractionNumeratorValue,
+      denominator: fractionDenominatorValue,
+      isBase: false,
       events,
       positions,
       selectedIndices,
@@ -203,6 +220,9 @@ export function createNotationRenderer({
     return {
       lg: lgValue,
       fraction: null,
+      numerator: 1,
+      denominator: 1,
+      isBase: true,
       events,
       positions,
       selectedIndices,
@@ -312,9 +332,42 @@ export function createNotationRenderer({
   }
 
   /**
+   * F6.scroll: crea (lazy) el sistema de pentagrames (un SVG, un Formatter).
+   * El sistema posseeix la seva pròpia delegació de clic i el seu cursor; les
+   * seleccions disparen un re-render de la notació via els callbacks embolcallats.
+   */
+  function ensureNotationSystem() {
+    if (notationSystem) return notationSystem;
+    notationSystem = createNotationSystem({
+      container: notationContentEl,
+      // Embolcalls: criden el callback d'App4 i després re-renderitzen la
+      // notació (com feia l'antic handleClick amb renderIfVisible({force:true})).
+      onPulseSelected: (pulseValue) => {
+        const lgValue = getLg();
+        if (!Number.isFinite(lgValue) || lgValue <= 0) return;
+        if (pulseValue <= 0 || pulseValue >= lgValue) return;
+        pulseMemoryApi.ensure(lgValue);
+        const pulseMemory = pulseMemoryApi.data;
+        const shouldSelect = !pulseMemory[pulseValue];
+        onPulseSelected(pulseValue, shouldSelect);
+        renderIfVisible({ force: true });
+      },
+      onFractionSelected: (info, shouldSelect) => {
+        onFractionSelected(info, shouldSelect);
+        renderIfVisible({ force: true });
+      },
+      createFractionSelectionFromValue,
+      fractionStore
+    });
+    return notationSystem;
+  }
+
+  /**
    * Renders notation if the panel is open (or force=true).
-   * Diffeja la llista de pentagrames vius vs la desitjada: crea els nous,
-   * destrueix els que ja no hi són i reordena el DOM a l'ordre desitjat.
+   *
+   * Multi-fracció (F6.scroll): UN sistema de pentagrames (un SVG, un Formatter
+   * compartit → cops simultanis alineats per temps, scroll/playhead únics).
+   * Single (back-compat): orquestració de createRhythmStaff (rhythm-staff INTACTE).
    */
   function renderIfVisible({ force = false, isPlaying = false } = {}) {
     if (!notationContentEl) return;
@@ -323,9 +376,31 @@ export function createNotationRenderer({
 
     const states = buildNotationRenderStates();
 
+    // ── Camí MULTI-FRACCIÓ: sistema de pentagrames (un SVG) ──
+    if (hasMultiFraction) {
+      const system = ensureNotationSystem();
+      if (!states || !states.length) {
+        system.render({ lg: 0, staves: [] }); // Lg invàlid → SVG buit + cursor amagat
+        return;
+      }
+      const systemStaves = states.map((state) => ({
+        id: state.staffId,
+        label: state.label || '',
+        color: state.color || null,
+        numerator: state.numerator,
+        denominator: state.denominator,
+        events: state.events,
+        selectedIndices: state.selectedIndices,
+        isBase: !!state.isBase
+      }));
+      system.render({ lg: states[0].lg, staves: systemStaves });
+      // El cursor es reposiciona dins de system.render (resetCursor); si estem
+      // reproduint, visual-sync el continuarà movent per temps.
+      return;
+    }
+
+    // ── Camí SINGLE (back-compat): createRhythmStaff per pentagrama ──
     if (!states || !states.length) {
-      // Lg invàlid: buida tots els pentagrames existents (en deixa l'esquelet
-      // perquè el proper render vàlid els reompli sense recrear el DOM).
       staves.forEach((entry) => {
         try { entry.controller.render({ lg: 0, rhythm: [], isPlaying }); } catch {}
       });
@@ -334,26 +409,18 @@ export function createNotationRenderer({
 
     const desiredIds = states.map((state) => state.staffId);
     const desiredSet = new Set(desiredIds);
-
-    // Amplada compartida per a TOTS els pentagrames: la del que té més
-    // events (≈ 56px per event, com el càlcul intern de rhythm-staff). Així
-    // la primera i l'última nota queden alineades verticalment entre files.
     const maxEvents = states.reduce(
       (m, s) => Math.max(m, Array.isArray(s.events) ? s.events.length : 0),
       0
     );
     const sharedStaveWidth = Math.max(320, maxEvents * 56);
 
-    // 1. Destruir els pentagrames que ja no es volen.
     Array.from(staves.keys()).forEach((staffId) => {
       if (!desiredSet.has(staffId)) removeStaff(staffId);
     });
 
-    // 2. Crear/actualitzar i renderitzar cada pentagrama desitjat.
     states.forEach((state) => {
       const entry = ensureStaff(state.staffId);
-      // Etiqueta HTML acolorida (la (n,d) o "Pulso"). Color d'identitat al
-      // text + a una pastilla; sense color = fosc per defecte.
       if (entry.labelEl) {
         entry.labelEl.textContent = state.label || '';
         entry.labelEl.style.display = state.label ? '' : 'none';
@@ -381,40 +448,52 @@ export function createNotationRenderer({
       });
     });
 
-    // 3. Reordenar el DOM perquè coincideixi amb desiredIds (ordre F1>F2>F3).
     desiredIds.forEach((staffId) => {
       const entry = staves.get(staffId);
       if (entry && entry.wrapper) {
-        notationContentEl.appendChild(entry.wrapper); // re-append = mou al final
+        notationContentEl.appendChild(entry.wrapper);
       }
     });
   }
 
   /**
-   * Propaga el cursor de playback a TOTS els pentagrames (cada controller
-   * converteix la posició en el seu propi índex de pols).
+   * Cursor de playback. Multi-fracció: UN cursor que travessa el sistema, mogut
+   * per TEMPS. Single: fan-out a cada controller de rhythm-staff.
    */
   function updateCursor(currentPulse = 0, isPlaying = false) {
+    if (hasMultiFraction) {
+      if (notationSystem) {
+        try { notationSystem.updateCursor(currentPulse, isPlaying); } catch {}
+      }
+      return;
+    }
     staves.forEach((entry) => {
       try { entry.controller.updateCursor(currentPulse, isPlaying); } catch {}
     });
   }
 
   function resetCursor() {
+    if (hasMultiFraction) {
+      if (notationSystem) {
+        try { notationSystem.resetCursor(); } catch {}
+      }
+      return;
+    }
     staves.forEach((entry) => {
       try { entry.controller.resetCursor(); } catch {}
     });
   }
 
   /**
-   * Handles click events on the notation panel (delegat). Determina a quin
-   * pentagrama (i quina fracció) pertany el clic via el sub-div pare, i
-   * enruta la selecció a la (n,d) correcta.
+   * Clic per al camí SINGLE (back-compat). En multi-fracció, el sistema gestiona
+   * la seva pròpia delegació de clic; aquest listener NO s'hi afegeix.
+   * Determina a quin pentagrama (i quina fracció) pertany el clic via el sub-div
+   * pare i enruta la selecció a la (n,d) correcta.
    */
   function handleClick(event) {
     if (!notationPanelController || !notationPanelController.isOpen) return;
-    const target = event.target instanceof Element ? event.target : null;
-    if (!target) return;
+    const target = event && event.target;
+    if (!target || typeof target.closest !== 'function') return;
     const noteEl = target.closest('[data-pulse-index]');
     if (!noteEl) return;
     if (noteEl.dataset.nonSelectable === 'true') return;
@@ -424,12 +503,10 @@ export function createNotationRenderer({
     if (!Number.isFinite(lgValue) || lgValue <= 0) return;
     if (pulseValue <= 0 || pulseValue >= lgValue) return;
 
-    // Quin pentagrama? El sub-div .notation-staff que conté el node.
     const staffEl = target.closest('.notation-staff');
     const staffId = staffEl?.dataset.staffId || null;
     const staffEntry = staffId ? staves.get(staffId) : null;
 
-    // Selecció fraccionada ja existent (té selectionKey): toggle directe.
     const selectionKey = noteEl.dataset.selectionKey;
     if (selectionKey) {
       const info = fractionStore.selectionState.get(selectionKey);
@@ -441,8 +518,6 @@ export function createNotationRenderer({
       return;
     }
 
-    // Pols enter: sempre va al canal base (memòria de pulsos), independentment
-    // del pentagrama on s'ha clicat (els enters pertanyen al pols base).
     if (Number.isInteger(pulseValue)) {
       pulseMemoryApi.ensure(lgValue);
       const pulseMemory = pulseMemoryApi.data;
@@ -451,8 +526,6 @@ export function createNotationRenderer({
       return;
     }
 
-    // Tick fraccionat nou: la (n,d) ve del pentagrama clicat (multi-fracció)
-    // o de getFraction() (back-compat / pentagrama base sense fracció pròpia).
     const fraction = staffEntry?.fraction
       || (typeof getFraction === 'function' ? getFraction() : null);
     const denominator = Number(fraction?.denominator);
@@ -470,17 +543,18 @@ export function createNotationRenderer({
     onFractionSelected(nextSelection, !currentlySelected);
   }
 
-  // Setup event listener (delegació única a tot el contenidor de notació).
-  if (notationContentEl) {
+  // El listener de clic per delegació NOMÉS s'afegeix al camí single; en
+  // multi-fracció el sistema té el seu propi listener sobre el mateix SVG.
+  if (notationContentEl && !hasMultiFraction) {
     notationContentEl.addEventListener('click', handleClick);
   }
 
   return {
     render: renderIfVisible,
-    // getRenderer() retorna el primer controller (compat amb crides que
-    // n'esperen un de sol); per al cursor multi-pentagrama, visual-sync ha
-    // d'usar updateCursor/resetCursor d'aquest mateix objecte.
+    // getRenderer(): en single retorna el primer controller (compat); en
+    // multi-fracció retorna el sistema (té updateCursor/resetCursor).
     getRenderer: () => {
+      if (hasMultiFraction) return notationSystem;
       const first = staves.values().next();
       return first.done ? null : first.value.controller;
     },
@@ -489,8 +563,12 @@ export function createNotationRenderer({
     // Exposat per a tests i diagnòstic.
     buildNotationRenderStates,
     destroy: () => {
-      if (notationContentEl) {
+      if (notationContentEl && !hasMultiFraction) {
         notationContentEl.removeEventListener('click', handleClick);
+      }
+      if (notationSystem) {
+        try { notationSystem.destroy(); } catch {}
+        notationSystem = null;
       }
       Array.from(staves.keys()).forEach((staffId) => removeStaff(staffId));
     }

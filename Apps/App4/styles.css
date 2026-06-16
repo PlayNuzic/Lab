@@ -184,17 +184,33 @@ main > .notation-panel--inline .notation-panel__canvas {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
- * F6: notació multi-fracció — pentagrames apilats. El canvas passa a ser una
- * columna vertical de .notation-staff (base "Pulso" + un per fracció activa);
- * fins a 3 fraccions + base poden no cabre → scroll vertical. Cada
- * pentagrama conserva el seu scroll horitzontal propi (tuplets llargs).
+ * F6.scroll: notació multi-fracció = UN SOL SVG (sistema de pentagrames amb un
+ * Formatter compartit → cops simultanis alineats per temps). El canvas és
+ * l'amfitrió de l'SVG i porta el SCROLL HORITZONTAL ÚNIC de tot el sistema;
+ * l'SVG conserva la seva amplada natural (prou ampla per al pentagrama més
+ * dens). Un sol playhead vertical el travessa. (Substitueix la columna de
+ * sub-divs .notation-staff de F6 — ja no es creen al camí multi-fracció.)
  * ────────────────────────────────────────────────────────────────────────── */
 body.app4 .notation-panel__canvas {
-  display: flex;
-  flex-direction: column;
-  /* pentagrames més junts verticalment */
-  gap: clamp(0.1rem, 0.6vw, 0.4rem);
-  overflow-y: auto;
+  /* scroll horitzontal únic per a tot el sistema */
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* posició de referència per al cursor absolut del sistema */
+  position: relative;
+}
+
+/* L'SVG del sistema manté la seva amplada intrínseca (no s'encongeix al
+   contenidor): així el scroll horitzontal del canvas el recorre sencer. */
+body.app4 .notation-panel__canvas > svg {
+  display: block;
+  flex: none;
+  max-width: none;
+}
+
+/* El cursor del sistema (una línia vertical que travessa tots els pentagrames)
+   reaprofita .notation-playback-cursor; .notation-system-cursor és l'àncora. */
+body.app4 .notation-system-cursor {
+  background: var(--selection-color, #F97C39);
 }
 
 /* ── Vista partitura com a "full" que tapa inputs/fraccions/gràfic ──
@@ -244,41 +260,10 @@ body.app4 main:has(.notation-panel--open) .controls {
   z-index: 60;
 }
 
-body.app4 .notation-staff {
-  position: relative;
-  display: block;
-  width: 100%;
-  /* franja esquerra amb el color d'identitat de la fracció (var fixada per JS) */
-  border-left: 4px solid var(--notation-staff-color, transparent);
-  padding-left: clamp(0.4rem, 1.5vw, 0.75rem);
-}
-
-/* Etiqueta (n/d o "Pulso"): pastilla petita amb el color d'identitat. */
-body.app4 .notation-staff__label {
-  display: inline-block;
-  font-family: 'Ubuntu', system-ui, sans-serif;
-  font-weight: 700;
-  font-size: clamp(0.85rem, 2.2vw, 1.05rem);
-  line-height: 1;
-  padding: 0.15rem 0.45rem;
-  margin-bottom: 0.15rem;
-  border: 2px solid currentColor;
-  border-radius: 0.6rem;
-  /* color per defecte (base "Pulso", sense color d'identitat) = text fosc */
-  color: var(--text-light, #43433B);
-}
-
-body[data-theme='dark'] .notation-staff__label {
-  color: var(--text-dark, #EEE8D8);
-}
-
-/* El sub-amfitrió de l'SVG conserva el scroll horitzontal individual. */
-body.app4 .notation-staff__host {
-  position: relative;
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-}
+/* F6.scroll: les etiquetes de pentagrama (Pulso / n/d) ara són text SVG dins
+   del sistema (no HTML), acolorides amb la identitat del slot — vegeu
+   notation-system.js. Les regles .notation-staff* de F6 (sub-divs apilats) han
+   quedat sense ús al camí multi-fracció i s'han retirat. */
 
 /* ──────────────────────────────────────────────────────────────────────────
  * F5: anells concèntrics — l'amfitrió (#timeline reconvertit en .rings-host)

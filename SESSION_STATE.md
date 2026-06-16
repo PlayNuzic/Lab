@@ -410,9 +410,28 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
         - Pentagrames més junts (gap canvas reduït).
         - 1a/última nota alineades entre pentagrames via `staveWidth`
           compartit (nou param additiu a rhythm-staff; renderer = màx events).
-- [~] **F6.scroll — Scroll horitzontal únic + cops simultanis alineats**
-      (EN CURS 2026-06-16):
-      **Viabilitat de ticks VERIFICADA** (script /tmp/app4-tick-feasibility.mjs):
+- [x] **F6.scroll — Scroll horitzontal únic + cops simultanis alineats**
+      ✅ (codi fet, pendent de verificació visual de l'usuari; suite 76/1473):
+      **Mòdul `libs/notation/notation-system.js`** (un SVG, N pentagrames, UN
+      Formatter compartit → cops simultanis alineats per tick; scroll
+      horitzontal únic; un playhead que travessa el sistema). rhythm-staff
+      INTACTE (App2/App5 segurs). renderer.js usa el sistema a la via
+      multi-fracció.
+      **BUG trobat i mitigat (depurat amb Chrome real via CDP — el jsdom de
+      l'agent NO el detectava perquè no fa layout SVG):** el formatter
+      compartit indexa TickContext per ticks ENTERS sobre RESOLUTION=2¹⁴ (no
+      divisible per 11/10) → els tuplets densos de ratio no-2ⁿ (**5/11, 7/10,
+      7/11**) queden amb notes DESORDENADES en x → `Tuplet.draw` emet `<rect>`
+      d'amplada negativa (errors de consola + render brut). Els errors arriben
+      pel domini **Log** de CDP, no per console (per això l'agent els va
+      perdre). **Decisió de l'usuari: guarda + acceptar aprox. a les
+      exòtiques.** Fix: `isMonotonic(notes)` a notation-system.js salta el
+      tuplet/beam si les notes no van esquerra→dreta. Escombrat CDP (totes les
+      n 1-7 × d 1-12, m=4 i m=8): 0 casos dolents; les comunes mantenen els
+      tuplets. Les 3 exòtiques renderitzen aproximades (sense claudàtor) però
+      sense petar. Arnès CDP a /tmp/cdp-*.mjs (Log.enable és la clau).
+      ---- història de la verificació de viabilitat ----
+      **Viabilitat de ticks VERIFICADA** (script docs/app4-tick-feasibility.mjs):
       - El pentagrama BASE "Pulso" és l'ÀNCORA: cada fracció cau sobre un pols
         enter cada `n` polsos (n≤7) i la base té nota a CADA enter → amb un
         formatter compartit aquestes marques comparteixen tick i queden

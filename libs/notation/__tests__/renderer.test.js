@@ -1,16 +1,15 @@
 /**
  * @jest-environment jsdom
  *
- * F6: orquestració multi-fracció de createNotationRenderer (App4). Es mocka
- * rhythm-staff (que arrossega VexFlow) per a poder provar en jsdom la lògica
- * pura: partició de seleccions per fracció, estat del pentagrama base "Pulso",
- * back-compat d'una sola fracció i el cicle de vida (crear/destruir/reordenar)
- * dels pentagrames.
+ * F6.scroll: orquestració de createNotationRenderer (App4). Es mocken rhythm-staff
+ * (back-compat single) i notation-system (multi-fracció), que arrosseguen VexFlow,
+ * per a poder provar en jsdom la lògica pura: partició de seleccions per fracció,
+ * estat del pentagrama base "Pulso", back-compat d'una sola fracció, i el cicle de
+ * vida del SISTEMA de pentagrames (un SVG, un Formatter) al camí multi-fracció.
  */
 import { jest } from '@jest/globals';
 
-// Cada controller mockejat enregistra les seves crides perquè els tests les
-// inspeccionin (l'últim render, els destroy, l'ordre dels hosts al DOM).
+// Controllers mockejats de rhythm-staff (camí SINGLE back-compat).
 const createdControllers = [];
 const createRhythmStaffMock = jest.fn(({ container }) => {
   const controller = {
@@ -29,9 +28,37 @@ const createRhythmStaffMock = jest.fn(({ container }) => {
   return controller;
 });
 
+// Sistema mockejat (camí MULTI-FRACCIÓ): UN sol per renderer; enregistra els
+// renders (amb les staves mapejades), el cursor i el destroy.
+const createdSystems = [];
+const createNotationSystemMock = jest.fn((config) => {
+  const system = {
+    config,
+    lastRender: null,
+    renderCalls: [],
+    cursorCalls: [],
+    resetCalls: 0,
+    destroyed: false,
+    render(state) { this.lastRender = state; this.renderCalls.push(state); },
+    updateCursor(pos, playing) { this.cursorCalls.push([pos, playing]); },
+    clearCursor() {},
+    resetCursor() { this.resetCalls += 1; },
+    destroy() { this.destroyed = true; },
+    getElement: () => null,
+    getLayout: () => ({ lg: 0, staves: [] })
+  };
+  createdSystems.push(system);
+  return system;
+});
+
 jest.unstable_mockModule('../rhythm-staff.js', () => ({
   createRhythmStaff: createRhythmStaffMock,
   default: createRhythmStaffMock
+}));
+
+jest.unstable_mockModule('../notation-system.js', () => ({
+  createNotationSystem: createNotationSystemMock,
+  default: createNotationSystemMock
 }));
 
 const { createNotationRenderer } = await import('../renderer.js');
@@ -83,7 +110,9 @@ function setup({ activeFractions, getFraction, selections = [], selectedInts = [
 
 beforeEach(() => {
   createdControllers.length = 0;
+  createdSystems.length = 0;
   createRhythmStaffMock.mockClear();
+  createNotationSystemMock.mockClear();
   document.body.innerHTML = '';
 });
 
@@ -200,62 +229,62 @@ describe('buildNotationRenderStates (back-compat single)', () => {
   });
 });
 
-// ─── Cicle de vida dels pentagrames ──────────────────────────────────────────
+// ─── Camí multi-fracció: SISTEMA de pentagrames (F6.scroll) ───────────────────
 
-describe('cicle de vida dels pentagrames', () => {
-  test('render crea un controller per pentagrama desitjat', () => {
-    let actives = [{ id: 'f1', numerator: 1, denominator: 2, color: '#FFBB33' }];
+describe('sistema de pentagrames (multi-fracció)', () => {
+  test('render crea UN sol sistema i li passa base + fraccions com a staves', () => {
+    const actives = [{ id: 'f1', numerator: 1, denominator: 2, color: '#FFBB33' }];
     const { controller, notationContentEl } = setup({ activeFractions: () => actives });
     controller.render({ force: true });
-    // base + f1
-    expect(createdControllers).toHaveLength(2);
-    expect(notationContentEl.querySelectorAll('.notation-staff').length).toBe(2);
+    // UN sistema (no N controllers de rhythm-staff).
+    expect(createdSystems).toHaveLength(1);
+    expect(createRhythmStaffMock).not.toHaveBeenCalled();
+    // El sistema s'allotja directament a notationContentEl (cap sub-div .notation-staff).
+    expect(notationContentEl.querySelectorAll('.notation-staff').length).toBe(0);
+    const sys = createdSystems[0];
+    const render = sys.lastRender;
+    expect(render.staves.map((s) => s.id)).toEqual(['base', 'f1']);
+    expect(render.lg).toBeGreaterThan(0);
   });
 
-  test('afegir una fracció crea un nou pentagrama sense destruir els existents', () => {
+  test('re-render (afegir fracció) reutilitza el MATEIX sistema', () => {
     let actives = [{ id: 'f1', numerator: 1, denominator: 2, color: '#FFBB33' }];
-    const { controller, notationContentEl } = setup({ activeFractions: () => actives });
+    const { controller } = setup({ activeFractions: () => actives });
     controller.render({ force: true });
-    const initialCount = createdControllers.length; // 2
-
     actives = [...actives, { id: 'f2', numerator: 2, denominator: 3, color: '#F28AAD' }];
     controller.render({ force: true });
-
-    expect(createdControllers.length).toBe(initialCount + 1); // +1 (f2)
-    expect(createdControllers.some((c) => c.destroyed)).toBe(false);
-    expect(notationContentEl.querySelectorAll('.notation-staff').length).toBe(3);
+    // Cap sistema nou: es reutilitza (render torna a cridar-se amb 3 staves).
+    expect(createdSystems).toHaveLength(1);
+    const sys = createdSystems[0];
+    expect(sys.lastRender.staves.map((s) => s.id)).toEqual(['base', 'f1', 'f2']);
   });
 
-  test('desactivar una fracció destrueix el seu pentagrama i el treu del DOM', () => {
-    let actives = [
-      { id: 'f1', numerator: 1, denominator: 2, color: '#FFBB33' },
-      { id: 'f2', numerator: 2, denominator: 3, color: '#F28AAD' }
-    ];
-    const { controller, notationContentEl } = setup({ activeFractions: () => actives });
+  test('les staves passades al sistema duen numerator/denominator/isBase i color', () => {
+    const actives = [{ id: 'f1', numerator: 3, denominator: 2, color: '#FFBB33' }];
+    const { controller } = setup({ activeFractions: () => actives });
     controller.render({ force: true });
-    expect(notationContentEl.querySelectorAll('.notation-staff').length).toBe(3);
-
-    actives = actives.slice(0, 1); // treu f2
-    controller.render({ force: true });
-
-    expect(notationContentEl.querySelectorAll('[data-staff-id="f2"]').length).toBe(0);
-    expect(notationContentEl.querySelectorAll('.notation-staff').length).toBe(2);
+    const { staves } = createdSystems[0].lastRender;
+    const base = staves.find((s) => s.id === 'base');
+    const f1 = staves.find((s) => s.id === 'f1');
+    expect(base.isBase).toBe(true);
+    expect(base.color).toBeNull();
+    expect(f1.isBase).toBe(false);
+    expect(f1.numerator).toBe(3);
+    expect(f1.denominator).toBe(2);
+    expect(f1.color).toBe('#FFBB33');
   });
 
-  test('els pentagrames queden en l\'ordre base → F1 → F2 → F3 al DOM', () => {
-    const actives = [
-      { id: 'f1', numerator: 1, denominator: 2, color: '#FFBB33' },
-      { id: 'f2', numerator: 2, denominator: 3, color: '#F28AAD' },
-      { id: 'f3', numerator: 1, denominator: 4, color: '#7BB4CD' }
-    ];
-    const { controller, notationContentEl } = setup({ activeFractions: () => actives });
+  test('Lg invàlid → render del sistema amb lg 0 i staves buides', () => {
+    const { controller } = setup({
+      lg: 0,
+      activeFractions: () => [{ id: 'f1', numerator: 1, denominator: 2 }]
+    });
     controller.render({ force: true });
-    const order = Array.from(notationContentEl.querySelectorAll('.notation-staff'))
-      .map((el) => el.dataset.staffId);
-    expect(order).toEqual(['base', 'f1', 'f2', 'f3']);
+    expect(createdSystems).toHaveLength(1);
+    expect(createdSystems[0].lastRender).toEqual({ lg: 0, staves: [] });
   });
 
-  test('updateCursor i resetCursor fan fan-out a tots els pentagrames', () => {
+  test('updateCursor i resetCursor deleguen al sistema (un sol cursor)', () => {
     const actives = [
       { id: 'f1', numerator: 1, denominator: 2, color: '#FFBB33' },
       { id: 'f2', numerator: 2, denominator: 3, color: '#F28AAD' }
@@ -264,21 +293,73 @@ describe('cicle de vida dels pentagrames', () => {
     controller.render({ force: true });
     controller.updateCursor(2, true);
     controller.resetCursor();
-    // base + f1 + f2 = 3 controllers
-    expect(createdControllers).toHaveLength(3);
-    createdControllers.forEach((c) => {
-      expect(c.cursorCalls).toContainEqual([2, true]);
-      expect(c.resetCalls).toBeGreaterThanOrEqual(1);
-    });
+    const sys = createdSystems[0];
+    expect(sys.cursorCalls).toContainEqual([2, true]);
+    expect(sys.resetCalls).toBeGreaterThanOrEqual(1);
   });
 
-  test('el color es passa a cada render de pentagrama de fracció', () => {
-    const actives = [{ id: 'f1', numerator: 3, denominator: 2, color: '#FFBB33' }];
+  test('getRenderer() retorna el sistema en multi-fracció', () => {
+    const actives = [{ id: 'f1', numerator: 1, denominator: 2, color: '#FFBB33' }];
     const { controller } = setup({ activeFractions: () => actives });
     controller.render({ force: true });
-    const colored = createdControllers.find((c) => c.lastRender && c.lastRender.color === '#FFBB33');
-    expect(colored).toBeTruthy();
-    const base = createdControllers.find((c) => c.lastRender && c.lastRender.color == null);
-    expect(base).toBeTruthy();
+    expect(controller.getRenderer()).toBe(createdSystems[0]);
+  });
+
+  test('el sistema rep els callbacks de selecció (onPulseSelected/onFractionSelected/store)', () => {
+    const actives = [{ id: 'f1', numerator: 1, denominator: 2, color: '#FFBB33' }];
+    const { controller } = setup({ activeFractions: () => actives });
+    controller.render({ force: true });
+    const cfg = createdSystems[0].config;
+    expect(typeof cfg.onPulseSelected).toBe('function');
+    expect(typeof cfg.onFractionSelected).toBe('function');
+    expect(typeof cfg.createFractionSelectionFromValue).toBe('function');
+    expect(cfg.fractionStore).toBeTruthy();
+  });
+
+  test('destroy destrueix el sistema', () => {
+    const actives = [{ id: 'f1', numerator: 1, denominator: 2, color: '#FFBB33' }];
+    const { controller } = setup({ activeFractions: () => actives });
+    controller.render({ force: true });
+    controller.destroy();
+    expect(createdSystems[0].destroyed).toBe(true);
+  });
+});
+
+// ─── Back-compat single: createRhythmStaff (rhythm-staff INTACTE) ─────────────
+
+describe('cicle de vida single (createRhythmStaff)', () => {
+  function setupSingle({ getFraction, lg = 12 } = {}) {
+    const notationContentEl = document.createElement('div');
+    document.body.appendChild(notationContentEl);
+    const controller = createNotationRenderer({
+      notationContentEl,
+      notationPanelController: makePanel(true),
+      getFraction: getFraction || (() => ({ numerator: 2, denominator: 3 })),
+      // getActiveFractions OMÈS → camí single
+      getLg: () => lg,
+      fractionStore: makeStore([]),
+      pulseMemoryApi: makePulseMemoryApi([]),
+      createFractionSelectionFromValue: jest.fn(),
+      onPulseSelected: jest.fn(),
+      onFractionSelected: jest.fn()
+    });
+    return { controller, notationContentEl };
+  }
+
+  test('render crea un controller de rhythm-staff (NO el sistema)', () => {
+    const { controller, notationContentEl } = setupSingle();
+    controller.render({ force: true });
+    expect(createdSystems).toHaveLength(0);
+    expect(createdControllers).toHaveLength(1);
+    expect(notationContentEl.querySelectorAll('.notation-staff').length).toBe(1);
+  });
+
+  test('updateCursor/resetCursor fan fan-out al controller de rhythm-staff', () => {
+    const { controller } = setupSingle();
+    controller.render({ force: true });
+    controller.updateCursor(2, true);
+    controller.resetCursor();
+    expect(createdControllers[0].cursorCalls).toContainEqual([2, true]);
+    expect(createdControllers[0].resetCalls).toBeGreaterThanOrEqual(1);
   });
 });
