@@ -313,7 +313,9 @@ export function createCircularRings({ container, k = DEFAULT_K, onDotClick = nul
           step,
           // Sempre exacte per disseny: Lg és múltiple del cicle de cada fracció.
           count: Math.round(currentLg / step),
-          label: `${f.numerator}/${f.denominator}`,
+          // Etiqueta opcional: si el consumidor en passa una (fins i tot ''),
+          // es respecta; si no, per defecte n/d. App4 passa '' (sense etiqueta).
+          label: f.label != null ? f.label : `${f.numerator}/${f.denominator}`,
           dotsInfo: f.dots || [],
           numerator: f.numerator, denominator: f.denominator
         };
@@ -378,13 +380,17 @@ export function createCircularRings({ container, k = DEFAULT_K, onDotClick = nul
         dots.push(dot);
       }
 
-      const label = svgEl('text', {
-        x: C + 12, y: C - ring.r + 4,
-        'font-size': 12, 'font-weight': 700, fill: ring.color
-      });
-      label.classList.add('crings-label');
-      label.textContent = ring.label;
-      group.appendChild(label);
+      // L'etiqueta de l'anell és opcional: amb label buit/null no es crea el
+      // text (p. ex. App4 amaga la del cercle base — els números ja l'aclareixen).
+      if (ring.label) {
+        const label = svgEl('text', {
+          x: C + 12, y: C - ring.r + 4,
+          'font-size': 12, 'font-weight': 700, fill: ring.color
+        });
+        label.classList.add('crings-label');
+        label.textContent = ring.label;
+        group.appendChild(label);
+      }
 
       svg.appendChild(group);
       ringCaches.push({ id: ring.id, step: ring.step, count: ring.count, dots, lastActive: null });

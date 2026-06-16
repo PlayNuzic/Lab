@@ -443,8 +443,14 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       positions = [],
       rhythm,
       pulseFilter: overridePulseFilter,
-      isPlaying = false
+      isPlaying = false,
+      // F6 (App4): color d'identitat opcional de la fracció. Sense color →
+      // negre de sempre (App2/App5 i qualsevol altre consumidor intactes).
+      // S'aplica a notes/silencis/plicas + tuplets + beams.
+      color = null
     } = state;
+
+    const glyphColor = typeof color === 'string' && color.trim() ? color.trim() : null;
 
     const events = normalizeEvents(rhythm || state);
     const tuplets = normalizeTuplets(rhythm || state);
@@ -898,6 +904,19 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       entry.renderIndex = index;
     });
 
+    // F6: recoloració opcional de les notes amb el color d'identitat de la
+    // fracció. Es respecta les notes invisibles (showBaseLayer/ghost), que
+    // ja porten fillStyle/strokeStyle 'transparent'.
+    if (glyphColor) {
+      entries.forEach((entry) => {
+        const note = entry?.note;
+        if (!note || typeof note.setStyle !== 'function') return;
+        const currentFill = note.getStyle?.()?.fillStyle;
+        if (currentFill === 'transparent') return; // no tocar notes ocultes
+        note.setStyle({ fillStyle: glyphColor, strokeStyle: glyphColor });
+      });
+    }
+
     // Crear tuplets y beams ANTES de crear el voice
     // para que VexFlow sepa que las notas tienen beam y no dibuje flags
     const renderedTuplets = [];
@@ -1117,12 +1136,26 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
 
     // Ahora dibujar tuplets y beams
     renderedTuplets.forEach((tuplet) => {
-      tuplet.setContext(context).draw();
+      tuplet.setContext(context);
+      // F6: el claudàtor/ratio del tuplet també pren el color de la fracció.
+      // Tuplet.draw() usa el fill/stroke vigent del context; drawWithStyle()
+      // l'embolcalla amb save/applyStyle/restore (mateix patró de StaveNote).
+      if (glyphColor && typeof tuplet.setStyle === 'function' && typeof tuplet.drawWithStyle === 'function') {
+        tuplet.setStyle({ fillStyle: glyphColor, strokeStyle: glyphColor });
+        tuplet.drawWithStyle();
+      } else {
+        tuplet.draw();
+      }
     });
 
     tupletBeams.forEach((beam) => {
       beam.setContext(context);
-      beam.draw();
+      if (glyphColor && typeof beam.setStyle === 'function' && typeof beam.drawWithStyle === 'function') {
+        beam.setStyle({ fillStyle: glyphColor, strokeStyle: glyphColor });
+        beam.drawWithStyle();
+      } else {
+        beam.draw();
+      }
     });
 
     entries.forEach((entry, index) => {

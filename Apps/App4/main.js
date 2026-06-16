@@ -258,11 +258,14 @@ let notationLoadRequested = false;
 function ensureNotationRenderer() {
   if (notationLoadRequested || !notationContentEl) return;
   notationLoadRequested = true;
-  loadNotation().then((mod) => {
+  loadNotation().then(async (mod) => {
     notationRendererController = mod.createNotationRenderer({
       notationContentEl,
       notationPanelController,
       getFraction,
+      // F6: notació multi-fracció — un pentagrama base "Pulso" + un per
+      // fracció activa, acolorit amb el color d'identitat del seu slot.
+      getActiveFractions: getActiveFractionsForNotation,
       getLg: () => parseInt(inputLg.value, 10),
       fractionStore,
       pulseMemoryApi,
@@ -270,6 +273,14 @@ function ensureNotationRenderer() {
       onPulseSelected: setPulseSelected,
       onFractionSelected: setFractionSelected
     });
+    // CRÍTIC: esperar que les fonts de música de VexFlow estiguin
+    // carregades ABANS del primer render. Sense això, el primer dibuix usa
+    // mètriques de font equivocades i les pliques surten separades del cap
+    // (es corregia sol al primer re-render per interacció). fontsReady és un
+    // Promise.allSettled; si ja està resolt, l'await és instantani.
+    if (mod.fontsReady && typeof mod.fontsReady.then === 'function') {
+      try { await mod.fontsReady; } catch {}
+    }
     renderNotationIfVisible({ force: true });
   }).catch((err) => {
     notationLoadRequested = false; // reintentable al següent toggle
@@ -439,6 +450,8 @@ applyRandomConfig();
 const MAX_LG = 210;
 const CYCLES_KEY = 'cycles';
 const DEFAULT_CYCLES = 8; // amb cicle gran 1 reprodueix el Lg≈8 de sempre
+const BPM_KEY = 'bpm';
+const DEFAULT_BPM = 90; // sense V el play no arrencava (interval null)
 
 // Colors d'identitat dels anells (F5): hexes literals — els atributs SVG de
 // presentació no resolen var(); el CSS del mòdul sí que usa les variables
@@ -479,6 +492,7 @@ const FRACTION_SLOT_DEFS = [
 // Estat viu dels tres slots: { id, controller, active, added, ... }
 const fractionSlots = [];
 let fractionAddButton = null;
+let fractionRemoveButton = null;
 let isRevertingCombo = false; // evita reentrada del pipeline en revertir
 let lastActiveFractionsSignature = null;
 
@@ -535,6 +549,22 @@ function getActiveFractions() {
       denominator,
       reducedNumerator: numerator / gcd(numerator, denominator)
     }));
+}
+
+// F6: les fraccions actives amb el color d'identitat del seu slot, per a la
+// notació multi-fracció (un pentagrama acolorit per fracció). Els altres
+// consumidors de getActiveFractions (àudio, anells) no necessiten el color.
+function getActiveFractionsForNotation() {
+  return getActiveFractions().map((fraction) => {
+    const slot = fractionSlots.find((s) => s.id === fraction.id);
+    return {
+      id: fraction.id,
+      numerator: fraction.numerator,
+      denominator: fraction.denominator,
+      color: slot?.ringColor || null,
+      lightColor: slot?.ringLightColor || null
+    };
+  });
 }
 
 // F4b: regla de mapatge selecció fraccionada → slot. Una selecció guarda el
@@ -647,9 +677,11 @@ function handleSlotFractionChange(slot, { info, cause }) {
   handleFractionLayoutChange();
 }
 
-// Toggle d'activació d'un slot (el punt rodó). Tornar-lo ON valida la
-// combinació hipotètica; OFF sempre és legal (zero fraccions actives =
-// cicle gran 1, app de pulsos plans).
+// Botó "A" d'un slot. Model "treure/afegir" (sense estat atenuat
+// intermedi): una fracció és VISIBLE (added ≡ active) o NO HI ÉS. Clicar
+// "A" en una fracció visible la TREU del tot; es torna a afegir amb el "+"
+// (que en recupera els valors, conservats al controller). Afegir valida la
+// combinació; treure sempre és legal (zero fraccions = cicle gran 1).
 /* El mixer només mostra els canals (metrònom + sel.) de les fraccions
    ACTIVES: un data-attribute per slot al body governa la visibilitat
    per CSS — funciona encara que el menú del mixer es creï més tard. */
@@ -670,14 +702,16 @@ function setSlotActive(slot, nextActive, { persist = true, refresh = true } = {}
     }
   }
   slot.active = !!nextActive;
+  slot.added = !!nextActive; // visible ⇔ actiu (model treure/afegir)
   if (slot.elements?.toggleBtn) {
     slot.elements.toggleBtn.setAttribute('aria-pressed', slot.active ? 'true' : 'false');
   }
-  slot.elements?.slotEl?.classList.toggle('fraction-slot--off', !slot.active);
+  // Desactivar = desaparèixer del tot (no atenuat); activar = mostrar.
+  slot.elements?.slotEl?.classList.toggle('fraction-slot--hidden', !slot.active);
   if (!slot.active) {
-    // En desactivar la fracció es netegen els mute/solo dels seus dos
-    // canals: un solo "fantasma" en un canal ja ocult callaria la resta
-    // del mixer sense cap pista visible del perquè.
+    // En treure la fracció es netegen els mute/solo dels seus dos canals:
+    // un solo "fantasma" en un canal ja ocult callaria la resta del mixer
+    // sense cap pista visible del perquè.
     try {
       const mixer = getMixer();
       [fractionChannelForSlot(slot.id), fractionSelectedChannelForSlot(slot.id)]
@@ -688,6 +722,7 @@ function setSlotActive(slot, nextActive, { persist = true, refresh = true } = {}
     } catch {}
   }
   syncMixerChannelVisibility();
+  updateFractionAddButton(); // "+" reapareix en treure, s'amaga en omplir
   if (persist) {
     saveOpt(slot.activeKey, slot.active ? '1' : '0');
   }
@@ -697,20 +732,30 @@ function setSlotActive(slot, nextActive, { persist = true, refresh = true } = {}
   return true;
 }
 
+// Estat del control +/−: "+" inactiu si ja hi ha les 3 fraccions; "−"
+// inactiu si no en queda cap (zero fraccions = pulsos plans, legal).
 function updateFractionAddButton() {
-  if (!fractionAddButton) return;
-  const nextSlot = fractionSlots.find((slot) => !slot.added);
-  fractionAddButton.style.display = nextSlot ? '' : 'none';
+  const canAdd = fractionSlots.some((slot) => !slot.added);
+  const canRemove = fractionSlots.some((slot) => slot.added);
+  if (fractionAddButton) fractionAddButton.disabled = !canAdd;
+  if (fractionRemoveButton) fractionRemoveButton.disabled = !canRemove;
 }
 
-// Afegeix el següent slot pendent (clic al "+"): es mostra actiu i buit.
+// Afegeix el següent slot pendent (clic al "+"): el mostra i l'activa
+// (setSlotActive ja gestiona added/--hidden i en recupera els valors,
+// que el controller conserva entre amagar i tornar a mostrar).
 function addNextFractionSlot() {
   const slot = fractionSlots.find((s) => !s.added);
   if (!slot) return;
-  slot.added = true;
-  slot.elements?.slotEl?.classList.remove('fraction-slot--hidden');
   setSlotActive(slot, true, { persist: true, refresh: true });
-  updateFractionAddButton();
+}
+
+// Treu l'última fracció visible (clic al "−"). El conjunt mostrat és sempre
+// un prefix [F1,F2,F3], així que "l'última" és el slot afegit d'índex més alt.
+function removeLastFractionSlot() {
+  const slot = [...fractionSlots].reverse().find((s) => s.added);
+  if (!slot) return;
+  setSlotActive(slot, false, { persist: true, refresh: true });
 }
 
 function refreshFractionUI(options = {}) {
@@ -780,25 +825,24 @@ function initFractionSlots() {
   FRACTION_SLOT_DEFS.forEach((def) => {
     // L'estat "afegit"/actiu es deriva ABANS de crear l'editor: amb
     // startEmpty l'editor neteja les claus n/d guardades en inicialitzar-se.
+    // Model treure/afegir: una fracció és visible (added ≡ active) o no hi és.
+    //  - '1' → visible; '0' → treta explícitament (encara que tingui valors);
+    //  - null (primera càrrega / legacy) → f1 i les que tinguin valors desats.
     const storedActive = loadOpt(def.activeKey);
     const hasStoredValues = loadOpt(def.numeratorKey) != null || loadOpt(def.denominatorKey) != null;
-    const added = def.id === 'f1' || storedActive != null || hasStoredValues;
-    const active = storedActive != null
-      ? storedActive === '1'
-      : (def.defaultActive && added);
+    let shown;
+    if (storedActive === '1') shown = true;
+    else if (storedActive === '0') shown = false;
+    else shown = def.defaultActive || hasStoredValues;
+    const added = shown;
+    const active = shown;
 
     const slotEl = document.createElement('div');
     slotEl.className = `fraction-slot fraction-slot--${def.id}`;
-    if (!added) slotEl.classList.add('fraction-slot--hidden');
-    if (!active) slotEl.classList.add('fraction-slot--off');
+    if (!shown) slotEl.classList.add('fraction-slot--hidden');
 
-    const toggleBtn = document.createElement('button');
-    toggleBtn.type = 'button';
-    toggleBtn.className = 'fraction-toggle';
-    toggleBtn.textContent = 'A'; // A d'activar, estètica dels botons del mixer
-    toggleBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
-    toggleBtn.setAttribute('aria-label', `Activar o desactivar la fracción ${def.label}`);
-    slotEl.appendChild(toggleBtn);
+    // Sense botó "A" per slot: afegir/treure es fa amb el control +/− global.
+    const toggleBtn = null;
 
     const editorHost = document.createElement('div');
     editorHost.className = 'fraction-slot__editor';
@@ -823,22 +867,31 @@ function initFractionSlots() {
     fractionSlots.push(slot);
 
     slot.controller = createSlotFractionEditor(slot, editorHost);
-
-    toggleBtn.addEventListener('click', () => {
-      setSlotActive(slot, !slot.active);
-    });
-    attachHover(toggleBtn, { text: `Activar o silenciar la fracción ${slot.label}` });
   });
 
-  // Slot fantasma "+": afegeix F2 i després F3; desapareix amb les 3 visibles.
+  // Control +/− global, fixat a la dreta de la fila: "+" (meitat superior)
+  // afegeix la fracció següent; "−" (meitat inferior) treu l'última.
+  const addRemove = document.createElement('div');
+  addRemove.className = 'fraction-addremove';
+
   fractionAddButton = document.createElement('button');
   fractionAddButton.type = 'button';
   fractionAddButton.className = 'fraction-add';
   fractionAddButton.setAttribute('aria-label', 'Añadir fracción');
   fractionAddButton.textContent = '+';
-  row.appendChild(fractionAddButton);
   fractionAddButton.addEventListener('click', addNextFractionSlot);
   attachHover(fractionAddButton, { text: 'Añadir otra fracción' });
+
+  fractionRemoveButton = document.createElement('button');
+  fractionRemoveButton.type = 'button';
+  fractionRemoveButton.className = 'fraction-remove';
+  fractionRemoveButton.setAttribute('aria-label', 'Quitar fracción');
+  fractionRemoveButton.textContent = '−';
+  fractionRemoveButton.addEventListener('click', removeLastFractionSlot);
+  attachHover(fractionRemoveButton, { text: 'Quitar la última fracción' });
+
+  addRemove.append(fractionAddButton, fractionRemoveButton);
+  row.appendChild(addRemove);
   updateFractionAddButton();
   syncMixerChannelVisibility();
 
@@ -1311,11 +1364,14 @@ function renderRings() {
       denominator: fraction.denominator,
       color: slot?.ringColor || '#43433B',
       lightColor: slot?.ringLightColor || '#eee8d8',
+      label: '', // sense etiqueta de text a l'anell (les caixes ja mostren n/d)
       dots
     };
   });
 
-  rings.render({ lg, bigCycle, base: { label: 'Pulso', dots: baseDots }, fractions });
+  // Cercle base sense etiqueta de text: els números al voltant ja indiquen
+  // que és la graella de polsos (l'usuari va demanar treure el "Pulso").
+  rings.render({ lg, bigCycle, base: { label: '', dots: baseDots }, fractions });
   renderNotationIfVisible();
 }
 
@@ -1393,7 +1449,11 @@ const visualSyncManager = createVisualSyncManager({
   getIsPlaying: () => isPlaying,
   getLoopEnabled: () => true, // F5: bucle permanent
   highlightController: ringsHighlightController,
-  getNotationRenderer: () => notationRendererController?.getRenderer(),
+  // F6: el controller de notació exposa updateCursor/resetCursor que ARA
+  // fan fan-out a TOTS els pentagrames apilats (base + una per fracció).
+  // Es retorna el controller sencer (abans el primer sub-renderer): així el
+  // cursor avança alhora a tots els pentagrames durant el playback.
+  getNotationRenderer: () => notationRendererController,
   onResolutionChange: (newResolution) => {
     currentAudioResolution = newResolution;
   }
@@ -1676,6 +1736,7 @@ if (resetBtn) {
       clearOpt(slot.activeKey);
     });
     clearOpt(CYCLES_KEY);
+    clearOpt(BPM_KEY); // torna a DEFAULT_BPM (90) a la propera càrrega
     sessionStorage.setItem('volumeResetFlag', 'true');
     window.location.reload();
   });
@@ -1895,6 +1956,22 @@ bindUnit(inputV, unitV);
 bindUnit(inputT, unitT);
 
 [inputLg, inputV].forEach(el => el.addEventListener('input', handleInput));
+
+// BPM persistent: es desa a cada canvi (també des de tap/random via setValue)
+// i el reset el neteja perquè la propera càrrega torni al default.
+inputV.addEventListener('input', () => {
+  const v = parseNum(inputV.value);
+  if (!isNaN(v) && v > 0) saveOpt(BPM_KEY, String(v));
+});
+
+// V per defecte (o el darrer desat) ABANS del handleInput inicial: sense
+// valor, computeAudioSchedulingState retorna interval=null i el play no
+// arrencava fins que el random/tap omplien V.
+if (inputV && !String(inputV.value).trim()) {
+  const storedBpm = parseNum(loadOpt(BPM_KEY));
+  inputV.value = String(Number.isFinite(storedBpm) && storedBpm > 0 ? storedBpm : DEFAULT_BPM);
+}
+
 handleInput();
 
 
@@ -2125,10 +2202,10 @@ function handlePlaybackStop(audioInstance) {
     try { audioInstance.stop(); } catch {}
   }
 
-  // Resetear cursor de notación
-  const renderer = notationRendererController?.getRenderer();
-  if (renderer && typeof renderer.resetCursor === 'function') {
-    renderer.resetCursor();
+  // F6: resetear el cursor de notació a TOTS els pentagrames apilats
+  // (el controller fa fan-out de resetCursor).
+  if (notationRendererController && typeof notationRendererController.resetCursor === 'function') {
+    notationRendererController.resetCursor();
   }
   currentAudioResolution = 1;
 }

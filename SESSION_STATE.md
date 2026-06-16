@@ -336,10 +336,71 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
       - index.html: enllaça libs/app-common/circular-rings.css ABANS
         d'styles.css (l'app hi pot sobreescriure, ex. endpoint i font
         Ubuntu dels textos SVG).
-- [ ] **F6 — Partitura multi-fracció**: notation-utils/rhythm-staff amb
-      una veu per fracció (Lg sempre múltiple de cada cicle ⇒ MAI tuplets
-      incomplets ni remainder pulses — la zona dels 5 fixes històrics
-      desapareix). Decidir aquí: pentagrames apilats vs límit de veus.
+- [x] **F6 — Partitura multi-fracció** ✅ (codi fet, pendent de commit i de
+      VERIFICACIÓ VISUAL al navegador; suite 75/1463 verda). Decisió de
+      l'usuari: **pentagrames APILATS, un per fracció, acolorits** (NO veus
+      superposades en un sol pentagrama). Arquitectura de mínim risc:
+      - `libs/notation/renderer.js` orquestra N renders INDEPENDENTS de
+        `createRhythmStaff` (un per pentagrama) en sub-divs apilats dins
+        del canvas: pentagrama base "Pulso" (enters, fosc) + un per fracció
+        activa amb el color del seu slot. La lògica fràgil de remainder/
+        tuplet d'una sola fracció a rhythm-staff queda INTACTA (s'invoca N
+        cops). Cicle de vida amb diffing (crea/destrueix/reordena segons
+        fraccions actives).
+      - Nou param opcional `getActiveFractions` al renderer; sense ell →
+        fallback a `getFraction()` (retrocompat App2/App5/altres).
+        `getActiveFractionsForNotation()` a App4 afegeix el color (ringColor)
+        del slot.
+      - `rhythm-staff.js`: param opcional `color` (default null = negre de
+        sempre, App2/App5 INTACTES). Acoloreix notes/silencis/plicas +
+        tuplets/beams via setStyle/drawWithStyle amb feature-detection;
+        respecta notes transparents (showBaseLayer).
+      - Enters seleccionats: apareixen al base I a cada pentagrama de
+        fracció (decisió documentada al test). Clics ruten a la (n,d) de
+        cada pentagrama → canal fracSelN correcte (F4b). Cursor de playback:
+        fan-out a tots els pentagrames.
+      - +1 suite `libs/notation/__tests__/renderer.test.js` (14 tests:
+        estats multi-fracció, retrocompat single, diffing de cicle de vida,
+        fan-out cursor, pas de color).
+      - CSS: `.notation-panel__canvas` flex-column amb scroll vertical;
+        `.notation-staff` amb franja esquerra del color + etiqueta pastilla.
+      - PENDENT: captura headless (l'agent va caure per error de socket
+        abans de la verificació visual; puppeteer no instal·lat localment)
+        → l'usuari ho revisa al navegador.
+      - **Retocs post-revisió (2026-06-16)**:
+        - Silencis al pentagrama base: `buildBaseStaffState` passa
+          `numerator: 1` a buildPulseEvents (cada enter = posició de
+          graella → silenci si no seleccionat; abans només emetia els
+          enters seleccionats).
+        - **BPM 90 per defecte** (DEFAULT_BPM, clau `app4:bpm`): sense V
+          inicial computeAudioSchedulingState retornava interval=null i el
+          play NO arrencava fins fer random/tap. S'inicialitza abans del
+          handleInput inicial, es desa a cada canvi i el reset el neteja.
+        - Etiqueta "Pulso" del cercle BASE treta (rings: `label: ''`);
+          circular-rings.js omet `.crings-label` quan és buida.
+        - **Model treure/afegir** (canvi a F3): desactivar una fracció amb
+          "A" la TREU del tot (added≡active; `--hidden`, no atenuada); el
+          "+" la torna a afegir amb els valors (el controller els conserva).
+          Fora `.fraction-slot--off` i l'estat aria-pressed=false del botó.
+          Càrrega: storedActive '0' = treta encara que tingui valors.
+      - **Retocs post-revisió 2 (2026-06-16, captures):**
+        - El bug de notació era 100% **font-no-carregada al 1r render**
+          (confirmat per captures: pliques separades al principi, perfecte
+          després d'interactuar). Fix: `ensureNotationRenderer` espera
+          `mod.fontsReady` abans del primer render. App23/App24 ja ho feien
+          (gate `fontsReady.then`) — verificat, sense bug.
+        - Layout fraccions reescrit: fora botons "A"; **control +/− global**
+          fixat a la dreta (`.fraction-addremove`: "+" dalt afegeix, "−"
+          baix treu l'última; "+" disabled amb 3, "−" amb 0). Fraccions
+          centrades com a grup (`justify-content: center`). `min-height` a
+          `.fraction-row` perquè el +/− no pugi amb 0 fraccions. Gap
+          `clamp(1rem,5vw,3rem)` (reserva espai d'spinners, s'estreny en
+          pantalla petita sincronitzat amb `--fr-spin-spread`).
+        - Etiquetes d'anell de fracció també tretes (`label: ''`;
+          circular-rings respecta `f.label != null`).
+        - Bombolles nuzificades (acotat `body.app4`): `.fraction-info-bubble`
+          (cream/dark, Ubuntu, clamp, vora; combo-error vora vermella),
+          `.hover-tip` (pastilla fosca), `.validation-warning` (groc nuzic).
 - [ ] **F7 — Panell info "ⓘ"**: estendre formula-renderer.js (compartit,
       amb tests) amb cicle gran, mcm denominadors, proporció reduïda, etc.
 - [ ] **F8 — Neteja + docs**: auditoria Step 15 de la skill, README App4,

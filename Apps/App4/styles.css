@@ -184,6 +184,57 @@ main > .notation-panel--inline .notation-panel__canvas {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
+ * F6: notació multi-fracció — pentagrames apilats. El canvas passa a ser una
+ * columna vertical de .notation-staff (base "Pulso" + un per fracció activa);
+ * fins a 3 fraccions + base poden no cabre → scroll vertical. Cada
+ * pentagrama conserva el seu scroll horitzontal propi (tuplets llargs).
+ * ────────────────────────────────────────────────────────────────────────── */
+body.app4 .notation-panel__canvas {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 2vw, 1.25rem);
+  overflow-y: auto;
+  /* alçada acotada perquè 4 pentagrames facin scroll en pantalles baixes */
+  max-height: min(70vh, 40rem);
+}
+
+body.app4 .notation-staff {
+  position: relative;
+  display: block;
+  width: 100%;
+  /* franja esquerra amb el color d'identitat de la fracció (var fixada per JS) */
+  border-left: 4px solid var(--notation-staff-color, transparent);
+  padding-left: clamp(0.4rem, 1.5vw, 0.75rem);
+}
+
+/* Etiqueta (n/d o "Pulso"): pastilla petita amb el color d'identitat. */
+body.app4 .notation-staff__label {
+  display: inline-block;
+  font-family: 'Ubuntu', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.85rem, 2.2vw, 1.05rem);
+  line-height: 1;
+  padding: 0.15rem 0.45rem;
+  margin-bottom: 0.15rem;
+  border: 2px solid currentColor;
+  border-radius: 0.6rem;
+  /* color per defecte (base "Pulso", sense color d'identitat) = text fosc */
+  color: var(--text-light, #43433B);
+}
+
+body[data-theme='dark'] .notation-staff__label {
+  color: var(--text-dark, #EEE8D8);
+}
+
+/* El sub-amfitrió de l'SVG conserva el scroll horitzontal individual. */
+body.app4 .notation-staff__host {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
  * F5: anells concèntrics — l'amfitrió (#timeline reconvertit en .rings-host)
  * substitueix la timeline lineal. L'SVG és quadrat (viewBox 580×580): amb
  * width = min(100%, ~60vh) l'alçada queda igualment limitada i el dibuix
@@ -262,18 +313,134 @@ body.app4 .crings-svg text {
  * l'editor; el color d'identitat viu a --slot-color per slot.
  * ────────────────────────────────────────────────────────────────────────── */
 .fraction-row {
+  position: relative; /* ancora el control +/− a la dreta */
   display: flex;
-  align-items: flex-end; /* les caixes s'alineen per la base */
-  /* En pantalles amples la fila es limita a max-width i els slots queden
-     agrupats al centre; quan la pantalla s'estreny, la fila ocupa tot
-     l'ample disponible i space-evenly reparteix els slots aprofitant
-     l'espai dels costats — així els spinners (que projecten ~1.75rem
-     fora de cada caixa, Step 7s.5) mai es freguen amb el slot veí. */
-  justify-content: space-evenly;
+  align-items: center; /* les caixes i el +/− s'alineen pel centre vertical */
+  /* Les fraccions visibles es centren com a grup; el control +/− queda
+     fixat a la dreta (absolute, fora del flux). Amb 1 fracció queda
+     centrada i el +/− a la vora dreta; amb 2-3, el grup centrat. */
+  justify-content: center;
   width: 100%;
   max-width: 34rem;
   margin: 0 auto;
-  gap: clamp(0.5rem, 2vw, 1.5rem);
+  /* min-height = alçada d'una caixa: així, amb 0 fraccions, la fila no
+     col·lapsa i el control +/− (centrat vertical) NO puja cap a la pastilla
+     de BPM. */
+  min-height: clamp(5rem, 11vw, 7rem);
+  /* Gap generós que reserva l'espai dels spinners (projecten ~1.75rem a la
+     dreta de cada caixa) i només s'estreny en pantalles petites, on els
+     spinners ja se separen verticalment (--fr-spin-spread). */
+  gap: clamp(1rem, 5vw, 3rem);
+  /* espai a la dreta perquè el grup centrat no trepitgi el control +/− */
+  padding-right: clamp(2.5rem, 6vw, 3.5rem);
+  box-sizing: border-box;
+}
+
+/* Control +/− global, fixat a la dreta i centrat verticalment. Rectangle
+   únic dividit: "+" (meitat superior) afegeix, "−" (meitat inferior) treu. */
+.fraction-addremove {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  width: clamp(1.9rem, 4.5vw, 2.6rem);
+  height: clamp(3.6rem, 8vw, 5rem);
+  border: 2px solid var(--nuzic-dark, #43433B);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--nuzic-light, #eee8d8);
+}
+
+.fraction-add,
+.fraction-remove {
+  flex: 1 1 50%;
+  min-height: 0;
+  border: none;
+  background: transparent;
+  color: var(--nuzic-dark, #43433B);
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1rem, 2.6vw, 1.6rem);
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+/* Separador entre les dues meitats */
+.fraction-add {
+  border-bottom: 1px solid var(--nuzic-dark, #43433B);
+}
+
+.fraction-add:hover:not(:disabled),
+.fraction-remove:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.fraction-add:active:not(:disabled),
+.fraction-remove:active:not(:disabled) {
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.fraction-add:disabled,
+.fraction-remove:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ───────── Bombolles / tooltips nuzic (acotat a App4) ─────────
+   Estètica nuzic: fons cream, text fosc, Ubuntu, cantonades suaus i
+   mides relatives. La POSICIÓ la calcula info-tooltip.js (ancorada a
+   l'element, auto-hide en scroll/resize); aquí només l'aparença. */
+body.app4 .fraction-info-bubble {
+  width: auto;
+  max-width: min(22rem, 85vw);
+  padding: clamp(0.5rem, 1.5vw, 0.85rem) clamp(0.85rem, 2.5vw, 1.25rem);
+  border-radius: 0.9rem;
+  border: 2px solid var(--nuzic-dark, #43433B);
+  background: var(--nuzic-light, #eee8d8);
+  color: var(--nuzic-dark, #43433B);
+  font-family: 'Ubuntu', system-ui, sans-serif;
+  font-size: clamp(0.85rem, 1.8vw, 1.05rem);
+  font-weight: 600;
+  line-height: 1.35;
+  box-shadow: 0 0.5rem 1.25rem rgba(67, 67, 59, 0.22);
+}
+
+body.app4[data-theme='dark'] .fraction-info-bubble {
+  background: var(--nuzic-dark, #43433B);
+  color: var(--nuzic-light, #eee8d8);
+  border-color: var(--nuzic-light, #eee8d8);
+}
+
+/* Error de combinació (cicle gran > 210): vora vermella nuzic d'avís. */
+body.app4 .fraction-info-bubble.fraction-combo-tip {
+  border-color: var(--nuzic-red, #e76f68);
+}
+
+/* Tooltips de control (attachHover): pastilla fosca nuzic. */
+body.app4 .hover-tip {
+  background: var(--nuzic-dark, #43433B);
+  color: var(--nuzic-light, #eee8d8);
+  font-family: 'Ubuntu', system-ui, sans-serif;
+  font-size: clamp(0.7rem, 1.4vw, 0.85rem);
+  font-weight: 600;
+  padding: clamp(0.25rem, 0.8vw, 0.4rem) clamp(0.5rem, 1.5vw, 0.7rem);
+  border-radius: 0.5rem;
+}
+
+/* Avís de validació: groc nuzic (no el vermell cridaner per defecte). */
+body.app4 .hover-tip.validation-warning {
+  background: var(--nuzic-yellow, #FFBB33);
+  color: var(--nuzic-dark, #43433B);
+  border-radius: 0.5rem;
+  font-family: 'Ubuntu', system-ui, sans-serif;
+  font-weight: 600;
+  box-shadow: 0 0.25rem 0.75rem rgba(67, 67, 59, 0.2);
 }
 
 .fraction-slot {
@@ -478,80 +645,6 @@ body.app4 .fraction-slot .fraction-field .spinner .spin:hover {
 
 body.app4 .fraction-slot .fraction-field .spinner .spin:active {
   background: color-mix(in srgb, var(--slot-color) 72%, #000);
-}
-
-/* Slot desactivat: valors preservats però atenuats */
-.fraction-slot--off .fraction-editor {
-  opacity: 0.35;
-}
-
-/* Dot d'activació: ple = actiu, buit = inactiu */
-/* Botó d'activació "A" amb l'estètica dels botons del mixer: quadrat
-   arrodonit a l'esquerra-baix de la caixa, color d'identitat de la
-   fracció. Lògica visual directa: fracció ACTIVA = botó fort (farcit
-   del color, A blanca); inactiva = atenuat (vora i lletra del color,
-   mig transparent), igual que la caixa que acompanya. */
-.fraction-toggle {
-  position: absolute;
-  /* S'enganxa a la caixa a mesura que la pantalla s'estreny: mateixa
-     corba que els spinners (--fr-spin-spread) però amb el topall a
-     -1.25rem perquè el botó (1.2rem d'ample) mai TREPITGI la caixa:
-     al mínim queda arran de la vora, per fora. */
-  left: calc(-2rem + min(var(--fr-spin-spread, 0rem), 0.75rem));
-  top: 0rem;
-  z-index: 2;
-  width: clamp(1.2rem, 2.4vw, 1.5rem);
-  height: clamp(1.1rem, 2.2vw, 1.35rem);
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--slot-color);
-  border-radius: 0.3rem;
-  background: var(--slot-color);
-  color: #ffffff;
-  font-family: 'Ubuntu', sans-serif;
-  font-weight: 700;
-  font-size: clamp(0.65rem, 1.2vw, 0.8rem);
-  line-height: 1;
-  cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
-}
-
-/* aria-pressed="false" = fracció inactiva → atenuat */
-.fraction-toggle[aria-pressed="false"] {
-  background: var(--nuzic-light, #eee8d8);
-  color: var(--slot-color);
-  opacity: 0.5;
-}
-
-.fraction-toggle:active {
-  transform: scale(0.9);
-}
-
-/* Slot fantasma "+": mateixes proporcions que una caixa d'editor,
-   vora discontínua i creu gran al centre */
-.fraction-add {
-  width: clamp(3.2rem, 7vw, 4.5rem);
-  height: clamp(5rem, 11vw, 7rem);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px dashed color-mix(in srgb, var(--nuzic-dark) 40%, transparent);
-  border-radius: 0.4rem;
-  background: transparent;
-  color: color-mix(in srgb, var(--nuzic-dark) 55%, transparent);
-  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
-}
-
-.fraction-add:hover {
-  border-color: var(--nuzic-dark);
-  color: var(--nuzic-dark);
-  background: color-mix(in srgb, var(--nuzic-light) 60%, transparent);
 }
 
 /* Pill Lg com a display calculat (Lg = cicle gran × m): fons "només
