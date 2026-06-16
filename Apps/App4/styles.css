@@ -314,26 +314,54 @@ body.app4 .crings-svg text {
  * ────────────────────────────────────────────────────────────────────────── */
 .fraction-row {
   position: relative; /* ancora el control +/− a la dreta */
-  display: flex;
-  align-items: center; /* les caixes i el +/− s'alineen pel centre vertical */
-  /* Les fraccions visibles es centren com a grup; el control +/− queda
-     fixat a la dreta (absolute, fora del flux). Amb 1 fracció queda
-     centrada i el +/− a la vora dreta; amb 2-3, el grup centrat. */
-  justify-content: center;
+  /* Amplada igualada a la franja de pastilles (.inputs) via JS
+     (setupFractionRowWidthSync fixa max-width); centrada igual. */
   width: 100%;
-  max-width: 34rem;
   margin: 0 auto;
   /* min-height = alçada d'una caixa: així, amb 0 fraccions, la fila no
      col·lapsa i el control +/− (centrat vertical) NO puja cap a la pastilla
      de BPM. */
   min-height: clamp(5rem, 11vw, 7rem);
-  /* Gap generós que reserva l'espai dels spinners (projecten ~1.75rem a la
-     dreta de cada caixa) i només s'estreny en pantalles petites, on els
-     spinners ja se separen verticalment (--fr-spin-spread). */
-  gap: clamp(1rem, 5vw, 3rem);
-  /* espai a la dreta perquè el grup centrat no trepitgi el control +/− */
-  padding-right: clamp(2.5rem, 6vw, 3.5rem);
+  /* espai a la dreta reservat per al control +/− (absolute) */
+  padding-right: clamp(2.75rem, 6vw, 3.75rem);
   box-sizing: border-box;
+}
+
+/* Viewport amb scroll horitzontal de les fraccions; el +/− queda FORA
+   (fill directe de .fraction-row), així no s'arrossega amb el scroll. */
+.fraction-scroll {
+  width: 100%;
+  height: 100%;
+  min-height: clamp(5rem, 11vw, 7rem);
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  align-items: center;
+}
+
+/* Grup de fraccions: centrat quan caben (min-width:100% + margin auto),
+   amb amplada de contingut (max-content) quan no — llavors .fraction-scroll
+   activa el scroll en lloc d'encongir-les. */
+.fraction-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  min-width: 100%;
+  /* marge lateral relatiu (no `auto`): deixa una mica d'aire als costats i
+     `justify-content: center` centra els slots dins del grup. */
+  margin: 0 1.5rem;
+  /* Separació generosa entre fraccions; no baixa de 2rem (espai dels
+     spinners) — per sota, el grup desborda i apareix scroll. */
+  gap: clamp(2rem, 5vw, 3rem);
+  box-sizing: border-box;
+  padding: 0 0.25rem;
+}
+
+/* Les caixes no s'encongeixen: mantenen la seva mida i, si no caben,
+   scroll (vegeu .fraction-scroll). */
+.fraction-slot {
+  flex: 0 0 auto;
 }
 
 /* Control +/− global, fixat a la dreta i centrat verticalment. Rectangle
@@ -561,12 +589,12 @@ body.app4 .fraction-slot .fraction-field input {
    d'identitat del slot en lloc del groc fix). Rodons als extrems
    exteriors, rectes a la cara interior, gap visible entre les meitats. ── */
 body.app4 .fraction-slot {
-  /* Alçada de cada parella de spinners: elàstica, perquè a pantalles
-     petites les dues parelles càpiguen dins l'alçada de la caixa. */
+  /* Alçada de cada parella de spinners. */
   --fr-spin-h: clamp(2.2rem, 5.5vw, 2.8rem);
-  /* Separació vertical entre parelles: creix a mesura que la pantalla
-     s'estreny (a ≥44rem és 0 = centrades al seu camp, com sempre). */
-  --fr-spin-spread: clamp(0rem, calc((44rem - 100vw) * 0.08), 1.4rem);
+  /* Spread vertical = 0: amb el gap mínim (2rem) i el scroll horitzontal,
+     els spinners sempre tenen prou espai a la dreta i queden centrats al
+     seu camp (ja no cal separar-los verticalment en pantalla petita). */
+  --fr-spin-spread: 0rem;
 }
 
 body.app4 .fraction-slot .fraction-field .spinner {

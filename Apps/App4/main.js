@@ -784,6 +784,9 @@ function createSlotFractionEditor(slot, host) {
     // autoReduce el ghost mai es mostra i només seria codi mort.
     autoReduce: true,
     enableGhost: false,
+    // App4 té 3 editors alhora i els anells/panell ⓘ ja expliquen la
+    // matemàtica: la bombolla persistent "Fracción simple" seria soroll.
+    enableSimpleFractionTooltip: false,
     // Rangs del model F3: n ∈ [1,7], d ∈ [1,12]
     maxNumerator: 7,
     maxDenominator: 12,
@@ -822,6 +825,16 @@ function initFractionSlots() {
   row.className = 'fraction-row';
   middle.appendChild(row);
 
+  // Viewport amb scroll horitzontal (el +/− queda FORA, fix a la dreta) +
+  // grup centrat de fraccions. Quan, en pantalla petita, les fraccions ja
+  // no caben amb la seva mida mínima, apareix scroll en lloc d'encongir-les.
+  const fractionScroll = document.createElement('div');
+  fractionScroll.className = 'fraction-scroll';
+  const fractionGroup = document.createElement('div');
+  fractionGroup.className = 'fraction-group';
+  fractionScroll.appendChild(fractionGroup);
+  row.appendChild(fractionScroll);
+
   FRACTION_SLOT_DEFS.forEach((def) => {
     // L'estat "afegit"/actiu es deriva ABANS de crear l'editor: amb
     // startEmpty l'editor neteja les claus n/d guardades en inicialitzar-se.
@@ -847,7 +860,7 @@ function initFractionSlots() {
     const editorHost = document.createElement('div');
     editorHost.className = 'fraction-slot__editor';
     slotEl.appendChild(editorHost);
-    row.appendChild(slotEl);
+    fractionGroup.appendChild(slotEl);
 
     const slot = {
       id: def.id,
@@ -895,8 +908,44 @@ function initFractionSlots() {
   updateFractionAddButton();
   syncMixerChannelVisibility();
 
+  // La fila de fraccions iguala l'amplada de la franja de pastilles
+  // (.inputs: Cicles · Lg · BPM) que té a sobre, mesurant l'abast real dels
+  // seus fills (de la pastilla més a l'esquerra a la més a la dreta) i
+  // centrant-la igual. Així queden alineades i el +/− cau a la vora dreta.
+  setupFractionRowWidthSync(row);
+
   lastActiveFractionsSignature = activeFractionsSignature();
   refreshFractionUI({ reveal: false });
+}
+
+function setupFractionRowWidthSync(row) {
+  const inputs = document.querySelector('.inputs');
+  if (!inputs || !row) return;
+
+  const sync = () => {
+    const children = Array.from(inputs.children)
+      .filter((el) => el.offsetParent !== null);
+    if (!children.length) return;
+    let min = Infinity;
+    let max = -Infinity;
+    children.forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0) return;
+      min = Math.min(min, r.left);
+      max = Math.max(max, r.right);
+    });
+    const width = max - min;
+    if (Number.isFinite(width) && width > 0) {
+      row.style.maxWidth = `${Math.round(width)}px`;
+    }
+  };
+
+  sync();
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => sync());
+    ro.observe(inputs);
+  }
+  window.addEventListener('resize', sync);
 }
 
 // ─── Pill "Cicles" (m) + Lg calculat ───────────────────────────────────────

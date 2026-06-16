@@ -110,7 +110,12 @@ export function createFractionEditor({
   // Opt-out de la ghost-fraction (DOM + animació de reducció). Apps que
   // no auto-redueixen mai (ex. App26 amb numerador fixat a 1) poden
   // passar `enableGhost: false` per evitar crear el DOM mort.
-  enableGhost = true
+  enableGhost = true,
+  // Opt-out de la bombolla persistent "Fracción simple" (n=1 o d=1). Apps
+  // amb múltiples editors alhora (ex. App4: 3 fraccions) la troben sorollosa
+  // — passen `enableSimpleFractionTooltip: false`. Per defecte activa
+  // (App26-31 la mantenen com a feedback pedagògic).
+  enableSimpleFractionTooltip = true
 } = {}) {
   const safeHost = host ?? null;
   if (!safeHost) return null;
@@ -302,6 +307,11 @@ export function createFractionEditor({
    * Always shows tooltip for 1/1 (pulse equivalent) regardless of autoReduce setting
    */
   function updateSimpleFractionTooltip() {
+    // Opt-out (ex. App4): mai mostrar la bombolla persistent de fracció simple.
+    if (!enableSimpleFractionTooltip) {
+      hideSimpleFractionTooltip();
+      return;
+    }
     const n = currentValues.numerator;
     const d = currentValues.denominator;
     const isPulseEquivalent = n === 1 && d === 1;
