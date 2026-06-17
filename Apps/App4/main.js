@@ -80,6 +80,17 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
     nuzicControls.appendChild(elements.tapBtn);
     if (elements.tapHelp) nuzicControls.appendChild(elements.tapHelp);
   }
+  // El toggle de partitura viu amb la resta de botons (dreta del tap, esquerra
+  // del reset) amb l'estètica de control nuzic, no al top-bar. Es desa la classe
+  // `notation-ctrl`; l'ordre visual el fixa el CSS (order:4, DOM després del tap
+  // → play · random · tap · notació · reset). El controller del panell el
+  // segueix referenciant per id.
+  const notationCtrlBtn = document.getElementById(NOTATION_TOGGLE_BTN_ID);
+  if (nuzicControls && notationCtrlBtn) {
+    notationCtrlBtn.classList.remove('top-bar-notation-button');
+    notationCtrlBtn.classList.add('notation-ctrl');
+    nuzicControls.appendChild(notationCtrlBtn);
+  }
 }
 
 // ── F5: anells concèntrics ──────────────────────────────────────────────────

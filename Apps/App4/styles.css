@@ -33,6 +33,41 @@ body[data-visual="nuzic"].app4 .controls:not([data-layout]) .tap + .tap-help {
   transform: translateX(-50%);
 }
 
+/* Toggle de partitura a la fila de controls amb l'estètica del tap/random:
+   cercle teal #7cd6b3 amb la clau de sol blanca, mateixa mida. order:4 (com
+   tap/random) i, com que al DOM va just després del tap, queda a la seva dreta
+   i abans del reset (order 5): play · random · tap · partitura · reset. */
+body[data-visual="nuzic"].app4 .controls:not([data-layout]) .notation-ctrl {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  order: 4;
+  position: static !important;
+  transform: none !important;
+  margin: 0 !important;
+  padding: 0;
+  width: clamp(2rem, 5vw, 3rem) !important;
+  height: clamp(2rem, 5vw, 3rem) !important;
+  border-radius: 50%;
+  background: #7cd6b3;
+  border: 2px solid #7cd6b3;
+  color: #ffffff;
+  opacity: 1;
+  cursor: pointer;
+}
+
+body[data-visual="nuzic"].app4 .controls:not([data-layout]) .notation-ctrl .top-bar-notation-button__icon {
+  width: 66%;
+  height: 66%;
+  fill: #ffffff;
+}
+
+/* Partitura oberta: glow coherent amb play.active (el controller posa
+   aria-pressed="true" i la classe --active en obrir). */
+body[data-visual="nuzic"].app4 .controls:not([data-layout]) .notation-ctrl[aria-pressed="true"] {
+  box-shadow: 0 0 10px #7cd6b3;
+}
+
 body {
   --unit-label-offset: -1.25rem;
 }
