@@ -1,0 +1,11 @@
+{
+  "step": 4,
+  "done": [
+    "Tarjeta de App4 añadida en la landing principal",
+    "Motor de audio preparado con canales Pulso/Seleccionados/Master y menús de sonido",
+    "Controles Lg, fracción n/d y V con spinners y persistencia local",
+    "Editor de pulsos fraccionados con validaciones y orden estable"
+  ],
+  "next": "Iteración 5 — Timeline y selección de pulsos",
+  "notes": "El motor responde a los parámetros almacenados y el editor de pulsos guarda estado; falta renderizar el timeline y la interacción de selección."
+}

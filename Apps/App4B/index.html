@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulsos Fraccionados (original)</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="../../favicon.ico" />
+  <link rel="modulepreload" href="./main.js" />
+</head>
+<body class="app4b" data-theme="light">
+  <div id="app-root"></div>
+
+  <!-- Tone.js is now loaded lazily after user interaction via tone-loader.js -->
+
+  <!-- Tu app -->
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Pulsos Fraccionados (original)',
+      showNotationToggle: true,
+      pulseSequence: true,
+      inlineFractionSlot: true,
+      showSelectColor: true,
+      showPulseToggle: true,
+      showSelectedToggle: true,
+      showGamificationToggle: false,
+      showCycleToggle: true,
+      showP1Toggle: true,
+      showWakeLockToggle: true,
+      hideT: true,
+      randomMenuContent: `
+        <label>
+          <input type="checkbox" id="randLgToggle" name="randLgToggle" aria-label="Aleatorizar Lg" />
+          <span aria-hidden="true">Lg</span>
+          <input id="randLgMin" name="randLgMin" type="number" placeholder="Min" aria-label="Valor mínimo de Lg" />
+          <input id="randLgMax" name="randLgMax" type="number" placeholder="Max" aria-label="Valor máximo de Lg" />
+        </label>
+        <label>
+          <input type="checkbox" id="randVToggle" name="randVToggle" aria-label="Aleatorizar V" />
+          <span aria-hidden="true">V</span>
+          <input id="randVMin" name="randVMin" type="number" placeholder="Min" aria-label="Valor mínimo de V" />
+          <input id="randVMax" name="randVMax" type="number" placeholder="Max" aria-label="Valor máximo de V" />
+        </label>
+        <label>
+          <input type="checkbox" id="randNToggle" name="randNToggle" aria-label="Aleatorizar numerador" />
+          <span aria-hidden="true">n</span>
+          <input id="randNMin" name="randNMin" type="number" min="1" placeholder="Min" aria-label="Valor mínimo de n" />
+          <input id="randNMax" name="randNMax" type="number" min="1" placeholder="Max" aria-label="Valor máximo de n" />
+        </label>
+        <label>
+          <input type="checkbox" id="randDToggle" name="randDToggle" aria-label="Aleatorizar denominador" />
+          <span aria-hidden="true">d</span>
+          <input id="randDMin" name="randDMin" type="number" min="1" placeholder="Min" aria-label="Valor mínimo de d" />
+          <input id="randDMax" name="randDMax" type="number" min="1" placeholder="Max" aria-label="Valor máximo de d" />
+        </label>
+        <label>
+          <input type="checkbox" id="randPulsesToggle" name="randPulsesToggle" aria-label="Aleatorizar pulsos" />
+          <span aria-hidden="true">Pulsos</span>
+          <input id="randomCount" name="randomCount" type="number" min="0" placeholder="Random" aria-label="Número aleatorio de pulsos" />
+        </label>
+      `
+    });
+
+    // Pequeños ajustes de layout
+    document.querySelectorAll('.led').forEach(el => el.remove());
+    const inputs = document.querySelector('.inputs');
+    if (inputs) inputs.style.left = '0';
+
+    const soundGroup = document.querySelector('.sound-group');
+    if (soundGroup) {
+      const labels = soundGroup.querySelectorAll('p');
+      const startLabel = labels?.[1];
+      if (startLabel) startLabel.textContent = 'Pulso';
+
+      const cycleTitle = document.createElement('p');
+      cycleTitle.textContent = 'Subdivisión';
+      soundGroup.appendChild(cycleTitle);
+
+      const cycleRow = document.createElement('div');
+      cycleRow.className = 'preview-row';
+
+      const hiddenLabel = document.createElement('label');
+      hiddenLabel.setAttribute('for', 'cycleSoundSelect');
+      hiddenLabel.style.display = 'none';
+      cycleRow.appendChild(hiddenLabel);
+
+      const slot = document.createElement('div');
+      slot.id = 'cycleSoundSelect';
+      cycleRow.appendChild(slot);
+
+      soundGroup.appendChild(cycleRow);
+    }
+
+    initHeader();
+    import('./main.js');
+  </script>
+
+  <!-- Rendimiento Audio (menú flotante) -->
+  <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
+
+</body>
+</html>

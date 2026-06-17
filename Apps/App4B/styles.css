@@ -1,0 +1,679 @@
+/* App4 specific overrides */
+
+/* Circular layout - toggles are now siblings, not inside play-row */
+:root {
+  /* Toggle offsets no longer needed - using default absolute positioning */
+  --control-toggles-offset-x: 0px;
+  --control-toggles-offset-y: 0px;
+  --toggle-pulse-offset-x: 0px;
+  --toggle-pulse-offset-y: 1px;
+  --toggle-selected-offset-x: 75px;
+  --toggle-selected-offset-y: 1px;
+  --toggle-cycle-offset-x: 0px;
+  --toggle-cycle-offset-y: 1px;
+  /* Button offsets */
+  --btn-loop-offset-x: 0px;
+  --btn-loop-offset-y: 0px;
+  --btn-random-offset-x: 0px;
+  --btn-random-offset-y: 0px;
+  --btn-reset-offset-x: 0px;
+  --btn-reset-offset-y: 0px;
+  --btn-tap-offset-x: 0px;
+  --btn-tap-offset-y: 0px;
+}
+
+body {
+  --unit-label-offset: -20px;
+}
+
+header.top-bar h1 {
+  gap: 0.75rem;
+}
+
+header.top-bar h1 .top-bar-title-button {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0 clamp(12px, 3vw, 28px);
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: color 0.2s ease, transform 0.12s ease, text-shadow 0.25s ease;
+  text-align: center;
+}
+
+header.top-bar h1 .top-bar-title-button:hover {
+  text-shadow: 0 0 6px var(--selection-color);
+}
+
+header.top-bar h1 .top-bar-title-button:focus-visible {
+  outline: 2px solid var(--selection-color);
+  outline-offset: 4px;
+}
+
+header.top-bar h1 .top-bar-title-button:active {
+  transform: scale(0.96);
+  color: var(--selection-color);
+  text-shadow: 0 0 10px var(--selection-color);
+}
+
+/* LH-09: .top-bar-info-tip i variants viuen a libs/app-common/styles.css. */
+
+main > .notation-panel--inline {
+  margin: clamp(18px, 4vw, 36px) auto 0;
+}
+
+main > .notation-panel--inline .notation-panel__canvas {
+  min-height: 240px;
+}
+
+/**
+ * Timeline pulse overrides to support selection and interactive hit areas.
+ */
+.pulse { cursor: pointer; }
+.timeline .pulse { pointer-events: auto; }
+/* Selected pulses use selection color, except endpoints 0/Lg which must keep Lg color */
+.pulse.selected:not(.zero):not(.lg) { background: var(--selection-color); }
+.pulse.zero,
+.pulse.lg {
+  color: var(--color-lg);
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Non-selectable pulses (based on fraction rules) */
+.pulse.non-selectable {
+  --pulse-scale: 0.5; /* 50% del tamaño normal */
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.5);
+}
+
+/* Remainder pulses (sobrantes al final cuando Lg % numerator !== 0) */
+.pulse.remainder {
+  --pulse-scale: 0.7;
+  opacity: 0.65;
+  background: linear-gradient(135deg, var(--color-accent) 0%, #ffa500 100%);
+  border: 2px dashed #ffa500;
+  box-shadow: 0 0 6px rgba(255, 165, 0, 0.4);
+  animation: remainder-pulse 2s ease-in-out infinite;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+@keyframes remainder-pulse {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(255, 165, 0, 0.4);
+    transform: translate(-50%, -50%) scale(var(--pulse-scale));
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(255, 165, 0, 0.7);
+    transform: translate(-50%, -50%) scale(calc(var(--pulse-scale) * 1.1));
+  }
+}
+
+.pulse-hit {
+  transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+  --pulse-flash-base-transform: translate(-50%, -50%);
+}
+
+.pulse-hit.selected {
+  background: var(--selection-color);
+  box-shadow: 0 0 16px var(--selection-color);
+  opacity: 0.75;
+}
+
+.pulse-hit.non-selectable {
+  background: transparent;
+  box-shadow: none;
+  opacity: 0.2;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pulse-hit.remainder {
+  opacity: 0.55;
+  cursor: pointer;
+  pointer-events: auto;
+  background: radial-gradient(circle, rgba(255, 165, 0, 0.15) 0%, transparent 70%);
+}
+.pulse-number.zero,
+.pulse-number.lg {
+  color: var(--color-lg);
+}
+
+.pulse-number.non-selectable {
+  opacity: 0.35;
+  color: var(--line-color);
+  filter: grayscale(0.5);
+}
+
+.pulse-number.remainder {
+  color: #ffa500;
+  font-weight: 600;
+  opacity: 0.75;
+  text-shadow: 0 0 8px rgba(255, 165, 0, 0.5);
+}
+
+.pulse-number.selected:not(.zero):not(.lg) {
+  color: var(--selection-color);
+  text-shadow: 0 0 10px var(--selection-color);
+}
+
+.pulse-number--flash {
+  animation: pulseNumberFlash 0.48s ease;
+}
+
+@keyframes pulseNumberFlash {
+  0% {
+    color: var(--selection-color);
+    text-shadow: 0 0 12px var(--selection-color);
+  }
+  60% {
+    color: var(--selection-color);
+    text-shadow: 0 0 6px var(--selection-color);
+  }
+  100% {
+    color: inherit;
+    text-shadow: none;
+  }
+}
+
+/* Disable transitions when rendering structure changes (Lg, V, Fraction, Tap) */
+.timeline.no-anim .cycle-marker,
+.timeline.no-anim .cycle-label,
+.timeline.no-anim .pulse-hit,
+.timeline.no-anim .fraction-hit {
+  transition: none;
+}
+
+.cycle-marker {
+  position: absolute;
+  width: 4px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--line-color);
+  transform: translate(-50%, -50%);
+  --pulse-flash-base-transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+  z-index: 6;
+}
+
+.cycle-marker.start {
+  height: 16px; /* Igual que marcadores normales - sin barras verticales */
+  background: var(--color-lg);
+  opacity: 1;
+}
+
+.cycle-marker.selected {
+  background: var(--selection-color);
+  box-shadow: 0 0 12px var(--selection-color);
+  opacity: 1;
+}
+
+.cycle-marker.active {
+  background: var(--selection-color);
+  animation: cycleMarkerFlash var(--pulse-anim-duration, 0.35s) ease-out forwards;
+  opacity: 1;
+}
+
+@keyframes cycleMarkerFlash {
+  0% {
+    box-shadow: 0 0 0px var(--selection-color);
+    transform: var(--pulse-flash-base-transform, translate(-50%, -50%)) scale(1);
+    background: var(--selection-color);
+    opacity: 1;
+  }
+  40% {
+    box-shadow: 0 0 16px var(--selection-color);
+    transform: var(--pulse-flash-base-transform, translate(-50%, -50%)) scale(1.3);
+    background: var(--selection-color);
+    opacity: 1;
+  }
+  80% {
+    box-shadow: 0 0 8px var(--selection-color);
+    transform: var(--pulse-flash-base-transform, translate(-50%, -50%)) scale(1.05);
+    background: var(--selection-color);
+    opacity: 0.6;
+  }
+  100% {
+    box-shadow: 0 0 0px var(--selection-color);
+    transform: var(--pulse-flash-base-transform, translate(-50%, -50%)) scale(1);
+    background: transparent;
+    opacity: 0;
+  }
+}
+
+.fraction-hit {
+  color: var(--selection-color);
+  --pulse-flash-base-transform: translate(-50%, -50%);
+  transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+}
+
+.fraction-hit.selected {
+  animation: pulseFlash var(--pulse-anim-duration, 0.35s) ease-out;
+  background: var(--selection-color);
+  box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
+  opacity: 0.75;
+}
+
+.fraction-hit.fraction-active {
+  animation: pulseFlash var(--pulse-anim-duration, 0.35s) ease-out;
+  background: var(--selection-color);
+  box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
+  opacity: 0.6;
+}
+
+.cycle-label {
+  position: absolute;
+  color: var(--line-color);
+  font-size: 1.1rem;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: color 0.25s ease, transform 0.25s ease;
+}
+
+.cycle-label--integer {
+  color: inherit;
+}
+
+.cycle-label--origin {
+  color: var(--color-lg);
+  font-weight: 600;
+}
+
+.cycle-label.selected {
+  color: var(--selection-color);
+  font-weight: 600;
+  text-shadow: 0 0 10px var(--selection-color);
+}
+
+.cycle-label.active:not(.cycle-label--origin) {
+  color: var(--selection-color);
+  font-weight: 600;
+}
+
+.fraction-field--empty .spinner {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.fraction-editor-wrapper {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0px;
+}
+
+.fraction-editor {
+  position: relative;
+}
+
+.fraction-field-placeholder {
+  position: absolute;
+  inset: 0 28px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  font-weight: 500;
+  color: var(--line-color);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  text-transform: lowercase;
+  letter-spacing: 0.05em;
+}
+
+.fraction-field-placeholder--visible {
+  opacity: 0.45;
+}
+
+.timeline.circular .cycle-marker {
+  width: 4px;
+  height: 20px;
+}
+
+.timeline.circular .cycle-marker.start {
+  height: 16px; /* Igual que marcadores normales - sin barras radiales */
+}
+
+.timeline.circular .cycle-label {
+  font-size: 1rem;
+}
+
+/**
+ * Editable pulse sequence container positioned above the timeline.
+ */
+#pulseSeq {
+font-size: 3rem;
+display: flex;
+justify-content: flex-start;
+align-items: center;
+gap: 12px;
+width: fit-content;
+max-width: 100%;
+box-sizing: border-box;
+padding: 0 20px;
+margin: 20px auto;
+overflow-x: auto;
+overflow-y: visible;
+position: relative;
+}
+
+#pulseSeq .prefix,
+#pulseSeq .suffix,
+#pulseSeq .open,
+#pulseSeq .suffix-spacer { color: inherit; user-select: none; }
+#pulseSeq .suffix { margin: 0; }
+#pulseSeq .suffix-spacer { margin-right: 12px; }
+#pulseSeq .fraction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  user-select: none;
+  line-height: 1;
+  vertical-align: middle;
+  min-width: 3.4ch;
+  padding: 0 0.2em;
+  font-size: 0.84em;
+}
+#pulseSeq .fraction-number {
+  min-width: 2.2ch;
+  text-align: center;
+  line-height: 1;
+}
+.fraction-inline-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.fraction-editor-wrapper--inline {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28em;
+  min-width: 0;
+}
+
+.fraction-editor--inline {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28em;
+  z-index: 1;
+}
+
+.fraction-editor--inline .fraction-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 6.8ch;
+  max-width: 200px;
+  min-height: 0.18em;
+  height: 0.18em;
+  background: currentColor;
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+
+.fraction-editor--inline .top,
+.fraction-editor--inline .bottom {
+  border: none;
+  padding: 0;
+  display: flex;
+}
+
+.fraction-editor--inline .top {
+  margin-bottom: 0.1em;
+}
+
+.fraction-editor--inline .bottom {
+  margin-top: 0.1em;
+}
+
+.fraction-editor--inline .fraction-field {
+  min-width: 3.6ch;
+}
+
+.fraction-editor--inline input {
+  width: 3.6ch;
+  font-size: 3rem;
+  font-weight: 500;
+  padding-right: 32px;
+}
+
+.fraction-editor-wrapper--inline .spinner {
+  width: 28px;
+}
+
+.fraction-inline-container .fraction-info-bubble {
+  top: 40px;
+  transform: translate(-50%, -100%);
+  z-index: 20;
+  font-weight: 500;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: var(--text-light);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+}
+
+body[data-theme='dark'] .fraction-inline-container .fraction-info-bubble {
+  background-color: rgba(40, 40, 40, 0.92);
+  color: var(--text-dark);
+  border-color: rgba(238, 232, 216, 0.2);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.6);
+}
+
+.fraction-ghost {
+  position: absolute;
+  top: 50%;
+  left: 10%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--line-color);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.9);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  visibility: hidden;
+  z-index: 0;
+}
+
+.fraction-ghost__numerator,
+.fraction-ghost__denominator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.fraction-ghost__number {
+  font-size: 2.6rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.fraction-ghost__bar {
+  width: 58px;
+  height: 4px;
+  background: currentColor;
+  margin: 6px 0;
+  opacity: 0.5;
+  border-radius: 999px;
+}
+
+.fraction-ghost--hidden {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.9);
+  visibility: hidden;
+}
+
+.fraction-ghost--visible {
+  opacity: 0.4;
+  transform: translate(-50%, -50%) scale(1.25);
+  visibility: visible;
+}
+#pulseSeq .zero,
+#pulseSeq .lg { color: var(--color-lg); user-select: none; }
+#pulseSeq .edit-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  margin-right: var(--pulse-seq-trailing-offset, 0);
+}
+#pulseSeq .edit {
+  outline: none;
+  white-space: pre;
+  position: relative;
+  display: inline-block;
+  color: transparent;
+  caret-color: var(--pulse-seq-caret-color, var(--line-color));
+  min-height: 1.2em;
+}
+#pulseSeq.editing .edit {
+  color: inherit;
+}
+#pulseSeq .edit.playing { caret-color: transparent; }
+#pulseSeq.editing .edit-display {
+  opacity: 0;
+}
+#pulseSeq .edit-display {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  white-space: pre;
+  display: inline-block;
+  color: inherit;
+  line-height: 1;
+  font: inherit;
+  letter-spacing: inherit;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  min-width: 100%;
+  transition: opacity 0.2s ease;
+}
+#pulseSeq .edit-display .pulse-seq-token {
+  display: inline-block;
+  line-height: 1;
+}
+#pulseSeq .edit-display .pulse-seq-token--active {
+  color: var(--selection-color);
+  text-shadow: 0 0 16px var(--selection-color);
+}
+#pulseSeq .edit-display .pulse-seq-token--fraction {
+  font-size: 0.84em;
+}
+
+/**
+ * Pulse sequence highlight overlays following the current playback position.
+ */
+#pulseSeqHighlight,
+#pulseSeqHighlight2 {
+position: absolute;
+border-radius: 50%;
+background: var(--selection-color);
+color: var(--selection-color);
+opacity: 0.5;
+pointer-events: none;
+transform: translate(-50%, -50%);
+display: none;
+}
+
+#pulseSeqHighlight.active,
+#pulseSeqHighlight2.active {
+animation: pulseFlash 0.35s ease-out;
+box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
+display: block;
+}
+
+/**
+ * Circular indicator for displaying total cycle duration (T value).
+ */
+#tIndicator {
+position: absolute; /* positioned by JS relative to Lg label */
+display: flex;
+align-items: center;
+justify-content: center;
+width: 40px; /* Reduced from 50px */
+height: 40px; /* Reduced from 50px */
+border: 2px solid var(--color-t);
+border-radius: 50%;
+color: var(--color-t);
+text-align: center;
+font-weight: 700;
+background: transparent;
+pointer-events: none; /* purely visual */
+font-size: 0.9rem; /* Keep same font size */
+}
+
+/**
+ * Layout adjustments for timeline wrapper and controls on narrow screens.
+ */
+@media (max-width: 600px) {
+body {
+  --unit-label-offset: 0px;
+}
+
+#pulseSeq {
+font-size: 1.7rem;
+gap: 8px;
+padding: 0 12px;
+}
+
+/* Layout adjustments requested for App4 */
+/* 1) Raise inputs section by 25px (from shared 40px to 15) */
+.inputs {
+margin-top: 25px !important;
+gap: 14px;
+}
+
+/* 2) Keep pulse sequence where it is — no changes needed to #pulseSeq */
+/* Compensate inputs shift so #pulseSeq stays in place */
+.middle { margin-top: 20px; }
+
+/* 3) Lower circular timeline by 50px */
+.timeline-wrapper.circular {
+margin-top: 50px !important; /* was 20px in shared styles */
+}
+
+/* 4) Align controls inside circular wrapper for compact view */
+.timeline-wrapper.circular > .controls {
+transform: translate(-50%, -50%) !important; /* was -40px */
+}
+
+/* 5) Lower unit label by 20px when shown on input focus */
+  .param .circle .unit {
+  top: calc(var(--unit-label-offset, -40px) - 1.8rem);
+  }
+
+/* 6) Scale down inline fraction editor for compact layouts */
+.fraction-inline-container {
+  transform: scale(0.5);
+  transform-origin: center center;
+  vertical-align: middle;
+}
+
+}
