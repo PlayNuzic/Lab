@@ -20,7 +20,11 @@ export const randomDefaults = {
   V: { enabled: true, range: [40, 320] },
   T: { enabled: true, range: [0.1, 20] },
   Pulses: { enabled: true, count: '' },
-  // Rangs del model F3: n ∈ [1,7], d ∈ [1,12]
+  // Rangs del model F3: n ∈ [1,7], d ∈ [1,12]. enabled:true — random també
+  // sorteja el n/d de les fraccions DISPONIBLES (els slots actius que mostren
+  // n/d; els inactius no es toquen, vegeu el filtre slot.added && slot.active a
+  // randomize()). Després del sorteig, el Lg es recalcula i la selecció es
+  // regenera sobre la graella nova, així que tot queda coherent.
   n: { enabled: true, range: [1, 7] },
   d: { enabled: true, range: [1, 12] }
 };

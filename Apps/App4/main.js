@@ -38,8 +38,7 @@ import {
   loadRandomConfig,
   saveRandomConfig,
   applyRandomConfig as applyRandomConfigModule,
-  updateRandomConfig as updateRandomConfigModule,
-  applyRandomFractionSelection
+  updateRandomConfig as updateRandomConfigModule
 } from './fraction-selection.js';
 // Using local header controls for App2 (no shared init)
 
@@ -1852,10 +1851,78 @@ if (tapHelp) {
  * - La fila "Cicles" (ids randLg* conservats) aleatoritza m; Lg es deriva.
  * - V i Pulsos segueixen passant per randomizeFractional (Lg/n/d
  *   desactivats: ja s'han gestionat aquí).
- * - F5: els pulsos aleatoris operen sobre pulseMemory (tots els enters
- *   1..Lg-1 són candidats); les seleccions fraccionades es netegen — la
- *   aleatorització fraccionada per anell queda per a una fase posterior.
+ * - Els pulsos aleatoris encenen punts a l'atzar sobre TOTS els anells: enters
+ *   1..Lg-1 a pulseMemory (via randomizeFractional) + ticks de subdivisió de
+ *   cada fracció activa (via applyRandomRingFractionSelection).
  */
+// Tria un subconjunt aleatori d'un pool segons el comptador del menú "Pulsos":
+// buit → densitat 0.5; enter N>0 → N ítems sense repetir; altrament → res.
+function pickRandomSubset(pool, rawCount) {
+  const trimmed = typeof rawCount === 'string' ? rawCount.trim() : '';
+  const out = [];
+  const n = trimmed === '' ? NaN : Number.parseInt(trimmed, 10);
+  if (trimmed === '' || Number.isNaN(n)) {
+    pool.forEach((item) => { if (Math.random() < 0.5) out.push(item); });
+    return out;
+  }
+  if (n <= 0) return out;
+  const copy = [...pool];
+  const target = Math.min(n, copy.length);
+  while (out.length < target && copy.length) {
+    out.push(copy.splice(Math.floor(Math.random() * copy.length), 1)[0]);
+  }
+  return out;
+}
+
+// Selecció aleatòria de ticks FRACCIONATS sobre la graella dels anells actius
+// (substitueix l'antiga applyRandomFractionSelection basada en el hitMap de DOM
+// de l'App4 lineal, inexistent als anells). El store ja ve netejat per
+// randomizeFractional; aquí l'omplim amb seleccions construïdes EXACTAMENT com
+// les d'un clic d'anell (createFractionSelectionFromValue) perquè comparteixin
+// clau i sincronitzin amb anells, partitura i àudio. rebuildFractionSelections
+// (a onPulsesChange) normalitza després.
+function applyRandomRingFractionSelection(store, { lg, randomCountValue } = {}) {
+  if (!store || !store.selectionState) return false;
+  store.selectionState.clear();
+  if (!Number.isFinite(lg) || lg <= 0) return false;
+  const actives = getActiveFractions();
+  if (!actives.length) return false;
+  const candidates = [];
+  const seen = new Set();
+  actives.forEach((fraction) => {
+    const count = Math.round((lg * fraction.denominator) / fraction.numerator);
+    for (let k = 0; k < count; k++) {
+      const { base, num } = fractionTickParts(k, fraction.numerator, fraction.denominator);
+      if (num === 0) continue; // tick coincident amb enter → no és fraccionat
+      const selection = createFractionSelectionFromValue(base + num / fraction.denominator, {
+        denominator: fraction.denominator,
+        pulsesPerCycle: fraction.numerator
+      });
+      if (!selection || seen.has(selection.key)) continue;
+      if (selection.value <= 0 || selection.value >= lg) continue;
+      seen.add(selection.key);
+      candidates.push(selection);
+    }
+  });
+  if (!candidates.length) return false;
+  const chosen = pickRandomSubset(candidates, randomCountValue);
+  chosen.forEach((sel) => {
+    store.selectionState.set(sel.key, {
+      base: sel.base,
+      numerator: sel.numerator,
+      denominator: sel.denominator,
+      value: sel.value,
+      display: sel.display,
+      key: sel.key,
+      cycleIndex: sel.cycleIndex,
+      subdivisionIndex: sel.subdivisionIndex,
+      pulsesPerCycle: sel.pulsesPerCycle,
+      rawLabel: sel.display
+    });
+  });
+  return chosen.length > 0;
+}
+
 function randomize() {
   const allowComplex = true; // App4: fraccions complexes sempre actives
 
@@ -1916,7 +1983,7 @@ function randomize() {
     // F5: tots els enters 1..Lg-1 són seleccionables (cap gating per fracció).
     isIntegerPulseSelectable: () => true,
     nearestPulseIndex,
-    applyRandomFractionSelection,
+    applyRandomFractionSelection: applyRandomRingFractionSelection,
     getAllowComplexFractions: () => allowComplex,
     callbacks: {
       onVChange: ({ value, input }) => handleInput({ target: input }),
