@@ -15,6 +15,11 @@ VexFlow-based SVG rhythm staff rendering and musical notation helpers.
   un sol playhead. Les notes es posicionen per TEMPS (`setXShift`), no pels
   ticks de VexFlow (que es corrompen amb tuplets densos no-2ⁿ: 5/11, 7/10,
   7/11). Reutilitza `buildPulseEvents` + `resolveFractionNotation`.
+  **Clic = nota més propera per posició REAL del glyph al DOM**: `handleClick`
+  NO confia en `event.target` (l'SVG té `pointer-events:none` i, amb `setXShift`,
+  l'únic `<rect>` clicable de VexFlow queda desalineat ~67px del cap → el clic
+  queia 1-2 posicions enllà). Mesura el `.vf-notehead` de cada nota (pentagrama
+  per Y, glyph per X) i despatxa amb els `data-*` de l'element triat.
 - `drawInterval()` — Single/double staff intervals (iS/iH modes)
 - `resolveFractionNotation()`, `isSimpleFraction()` — Fraction helpers
 - `buildPulseEvents()` — Builds pulse events for staff rendering

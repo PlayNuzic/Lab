@@ -26,8 +26,9 @@ i es visualitza com un anell amb el seu radi segons la velocitat.
   (pols, referència R₀ fixa) + un anell per fracció activa. **Radi ∝
   velocitat**: `r = R₀·(d/n)^0.35`, després separació mínima (GAP) i clamp.
   Densitat adaptativa (mida de punt, etiquetatge "rellotge", línies de cicle).
-- **Selecció per CLIC als anells** (no hi ha editor de text): enters al cercle
-  base, ticks fraccionats a cada anell de fracció.
+- **Selecció per CLIC** (no hi ha editor de text): als anells (enters al cercle
+  base, ticks fraccionats a cada anell de fracció) o a la partitura — totes dues
+  vies escriuen el MATEIX estat (vegeu §Partitura per al hit-test del clic).
 
 ## Estat / selecció
 
@@ -38,6 +39,19 @@ i es visualitza com un anell amb el seu radi segons la velocitat.
 - Persistència `app4:*`: `n`/`d` (F1, claus LEGACY), `n2`/`d2`, `n3`/`d3`,
   `f1on`/`f2on`/`f3on`, `cycles`, `bpm`, `random`, `sound:<canal>`, theme,
   mute, color, toggles.
+
+## Random
+
+- `randomize()` + `randomizeFractional` (libs/random). Toggles al menú:
+  Lg/V/n/d/Pulsos.
+- **Selecció (Pulsos)**: encén punts a l'atzar sobre TOTS els anells — enters
+  (`pulseMemory`) + ticks de subdivisió de cada fracció activa
+  (`applyRandomRingFractionSelection`, que els construeix com un clic d'anell →
+  clau idèntica, sincronitzen amb anells/partitura/àudio). L'antic camí basat en
+  el `hitMap` de DOM de l'App4 lineal ja no existeix als anells.
+- **Fraccions (n/d)**: sorteja el n/d dels slots ACTIUS (enabled per defecte;
+  filtre `slot.added && slot.active`; els inactius no es toquen). Després el Lg
+  es recalcula i la selecció es regenera sobre la graella nova.
 
 ## Àudio polirítmic (libs/sound, additiu — worklet intacte)
 
@@ -56,9 +70,22 @@ i es visualitza com un anell amb el seu radi segons la velocitat.
   activa) en **UN SOL SVG amb UN Formatter compartit** → cops simultanis
   alineats, scroll horitzontal únic, un playhead que travessa el sistema.
   Les notes es posicionen per **temps** (`setXShift`), no pels ticks de
-  VexFlow (que es corrompen amb tuplets densos exòtics 5/11, 7/10, 7/11). El
-  panell s'obre com a **"full"** que tapa inputs/fraccions/anells; clic al
-  backdrop o a la clau de sol el tanca; els controls queden visibles a sobre.
+  VexFlow (que es corrompen amb tuplets densos exòtics 5/11, 7/10, 7/11).
+- **Clic = selecció per posició REAL del glyph**: `handleClick` NO depèn de quin
+  element rep el clic del navegador (l'SVG té `pointer-events:none` i, amb el
+  `setXShift`, l'únic `<rect>` clicable intern de VexFlow queda desalineat ~67px
+  del cap → el clic queia 1-2 posicions enllà). Calcula la nota més propera per
+  la posició REAL del `.vf-notehead` al DOM (pentagrama per Y, glyph per X) i
+  despatxa amb els `data-*` del propi element.
+- El **toggle de partitura** viu a la fila `.controls` (classe `notation-ctrl`,
+  cercle teal entre tap i reset), NO al top-bar. El panell s'obre com a **"full"**
+  que tapa inputs/fraccions/anells; clic al backdrop o al toggle el tanca; els
+  controls queden visibles a sobre.
+- **Exportació PNG** (`notation-export-btn`, cantonada dreta superior del full):
+  rasteritza l'SVG a `<canvas>` 2x i descarrega. CAL incrustar la font **Bravura**
+  (data-URI woff2 de VexFlow, import lazy) com a `@font-face` dins l'SVG abans de
+  rasteritzar; sense això els caps surten com a **rectangles** ("tofu") perquè
+  l'SVG-com-a-imatge no veu les fonts de la pàgina.
 - `rhythm-staff.js` (via single fraction) queda per a App2/App5 — NO es toca.
 
 ## Dependencies
@@ -69,8 +96,9 @@ circular-rings/visual-sync) + `libs/notation/` + `libs/shared-ui/` + `libs/sound
 ## Notes per a Claude
 
 - Redisseny complet documentat a `SESSION_STATE.md` (fases F1–F6 + F6.scroll
-  fetes; F7 panell ⓘ i F8 neteja/docs pendents) i a l'esbós
-  `docs/app4-rings-sketch.html`.
-- Arnès de depuració de partitura amb Chrome real (CDP) a `/tmp/cdp-*.mjs`:
-  `Log.enable` és imprescindible (els errors de `<rect>` SVG no surten per
-  console). El jsdom NO fa layout SVG → no detecta aquests bugs.
+  fetes; després: fixos de random/clic, botó de partitura a controls, export
+  PNG; F7 panell ⓘ pendent) i a l'esbós `docs/app4-rings-sketch.html`.
+- Arnès de depuració de partitura amb Chrome real (CDP, sense puppeteer): script
+  `/tmp/cdp.mjs` (WebSocket cru) + scripts ad-hoc. `Log.enable` és imprescindible
+  (els errors de `<rect>` SVG no surten per console); per al clic/posicions cal
+  mesurar geometria REAL al DOM (jsdom NO fa layout SVG → no detecta aquests bugs).

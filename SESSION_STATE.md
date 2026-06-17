@@ -444,12 +444,27 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
       - **Etiquetes** (Pulso/n-d) pujades a topLine−20 + TOP_MARGIN 40 (fora
         de la clau de sol). Commit 0d8a024.
       - Usuari confirma: render i playhead funcionen molt bé.
-      **Bugs de partitura pendents (en curs):**
-      - Clic a una nota TANCA el full en lloc de seleccionar: la selecció
-        re-renderitza i desvincula la nota clicada del DOM → el handler
-        "clic-fora" (App4) rep un e.target desvinculat → closest() = null →
-        tanca. Fix: el handler només tanca si `e.target === notationPanel`
-        (backdrop directe), no per closest (que falla amb nodes desvinculats).
+      **Bugs i millores de partitura RESOLTS (post-F6.scroll, 2026-06-17):**
+      - Clic a nota TANCAVA el full: el handler "clic-fora" rebia un e.target
+        desvinculat (re-render) → closest()=null → tancava. Fix: només tanca si
+        `e.target === notationPanel` (backdrop directe). Commit 8038daa.
+      - Clic seleccionava una nota 1-2 posicions enllà: l'SVG té
+        `pointer-events:none` i, amb `setXShift`, l'únic `<rect>` clicable de
+        VexFlow queda desalineat ~67px del cap visible. Fix: `handleClick` calcula
+        la nota més propera per la posició REAL del `.vf-notehead` al DOM
+        (pentagrama per Y, glyph per X) i despatxa amb els data-*. Commit a83f91e.
+      - Random no sincronitzava: només seleccionava enters (el camí fraccionat
+        depenia del `hitMap` de DOM de l'App4 lineal, inexistent als anells). Fix:
+        `applyRandomRingFractionSelection` (enters + ticks de subdivisió de les
+        fraccions actives, construïts com un clic d'anell) + sorteig de n/d dels
+        slots actius (enabled per defecte). Commit 02de8a1.
+      - Botó de partitura mogut del top-bar a la fila `.controls` (entre tap i
+        reset, estètica nuzic teal). Commit 72138e0.
+      - Exportació PNG (botó cantonada dreta superior del full): rasteritza l'SVG
+        a `<canvas>` 2x amb la font **Bravura** incrustada (`@font-face` data-URI
+        woff2 de VexFlow) — sense incrustar-la els caps surten com a rectangles
+        ("tofu") perquè l'SVG-com-a-imatge no veu les fonts de la pàgina. Una lib
+        de PDF no ho hauria evitat. Commit f1871d4.
       ---- història de la verificació de viabilitat ----
       **Viabilitat de ticks VERIFICADA** (script docs/app4-tick-feasibility.mjs):
       - El pentagrama BASE "Pulso" és l'ÀNCORA: cada fracció cau sobre un pols
