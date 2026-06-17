@@ -566,7 +566,7 @@ applyRandomConfig();
 // ───────────────────────────────────────────────────────────────────────────
 const MAX_LG = 210;
 const CYCLES_KEY = 'cycles';
-const DEFAULT_CYCLES = 8; // amb cicle gran 1 reprodueix el Lg≈8 de sempre
+const DEFAULT_CYCLES = 3; // estat de fàbrica: cicle gran 1 (F1 buida) → Lg=3
 const BPM_KEY = 'bpm';
 const DEFAULT_BPM = 90; // sense V el play no arrencava (interval null)
 
