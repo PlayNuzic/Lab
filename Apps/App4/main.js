@@ -325,6 +325,97 @@ if (notationPanel) {
   });
 }
 
+// Exporta la partitura a PNG sense dependències. Clau: VexFlow dibuixa els caps
+// de nota com a <text> amb la font Bravura (carregada via FontFace a la pàgina);
+// en rasteritzar un SVG com a imatge, el navegador NO veu les fonts de la pàgina
+// → glyphs "tofu" (rectangles). Per evitar-ho, INCRUSTEM la font (Bravura ja és
+// un data-URI woff2 dins VexFlow) com a @font-face dins l'SVG abans de rasteritzar.
+// El cursor de playback és un <div> germà → no s'inclou.
+let bravuraDataUri = null;
+async function exportScoreToPng() {
+  const svg = notationContentEl?.querySelector('svg');
+  if (!svg) return;
+  if (bravuraDataUri == null) {
+    try {
+      const mod = await import('../../libs/vendor/vexflow/src/fonts/bravura.js');
+      bravuraDataUri = mod.Bravura || '';
+    } catch (err) {
+      bravuraDataUri = '';
+      console.warn('No s\'ha pogut carregar la font Bravura per a l\'exportació', err);
+    }
+  }
+  const w = Number(svg.getAttribute('width')) || svg.getBoundingClientRect().width || 1000;
+  const h = Number(svg.getAttribute('height')) || svg.getBoundingClientRect().height || 300;
+
+  const clone = svg.cloneNode(true);
+  clone.removeAttribute('style'); // fora l'ombra/filtre de pantalla
+  clone.setAttribute('width', String(w));
+  clone.setAttribute('height', String(h));
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  // @font-face amb la Bravura incrustada (data-URI) → glyphs reals, no rectangles.
+  if (bravuraDataUri) {
+    const styleEl = document.createElementNS(SVGNS, 'style');
+    styleEl.textContent = `@font-face{font-family:'Bravura';src:url(${bravuraDataUri}) format('woff2');font-display:block;}`;
+    clone.insertBefore(styleEl, clone.firstChild);
+  }
+  // Fons blanc (l'SVG de pantalla és transparent).
+  const bg = document.createElementNS(SVGNS, 'rect');
+  bg.setAttribute('x', '0'); bg.setAttribute('y', '0');
+  bg.setAttribute('width', String(w)); bg.setAttribute('height', String(h));
+  bg.setAttribute('fill', '#ffffff');
+  clone.insertBefore(bg, clone.firstChild);
+
+  const xml = '<?xml version="1.0" encoding="UTF-8"?>' + new XMLSerializer().serializeToString(clone);
+  const svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+
+  const img = new Image();
+  img.onload = () => {
+    const scale = Math.max(1, Math.min(2, 5000 / w)); // 2x nítid, amb sostre d'amplada
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(w * scale);
+    canvas.height = Math.round(h * scale);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const a = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = 'pulsos-fraccionados.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }, 'image/png');
+  };
+  img.onerror = (err) => console.warn('No s\'ha pogut rasteritzar la partitura', err);
+  img.src = svgUrl;
+}
+
+// Botó d'exportació a la cantonada dreta superior del full de partitura.
+if (notationPanel) {
+  const dialog = notationPanel.querySelector('.notation-panel__dialog');
+  if (dialog && !dialog.querySelector('.notation-export-btn')) {
+    const exportBtn = document.createElement('button');
+    exportBtn.type = 'button';
+    exportBtn.id = 'notationExportBtn';
+    exportBtn.className = 'notation-export-btn';
+    exportBtn.setAttribute('aria-label', 'Exportar partitura a PNG');
+    exportBtn.innerHTML = `<svg class="notation-export-btn__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <rect x="3.5" y="2.5" width="12" height="15.5" rx="1.6" stroke="currentColor" stroke-width="1.7"/>
+      <rect x="8.5" y="6" width="12" height="15.5" rx="1.6" fill="#43433b" stroke="currentColor" stroke-width="1.7"/>
+      <text x="14.5" y="15.5" text-anchor="middle" font-size="5.2" font-weight="800" fill="currentColor" font-family="Ubuntu, system-ui, sans-serif">PNG</text>
+    </svg>`;
+    exportBtn.addEventListener('click', exportScoreToPng);
+    attachHover(exportBtn, { text: 'Exportar a PNG' });
+    dialog.appendChild(exportBtn);
+  }
+}
+
 // Canals registrats al motor (TimelineAudio constructor);
 // setupAudioDefaults dins initAudio() els personalitza.
 const globalMixer = getMixer();

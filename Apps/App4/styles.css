@@ -273,6 +273,7 @@ body[data-theme='dark'].app4 .notation-panel--inline.notation-panel--open {
 }
 
 body.app4 .notation-panel--open .notation-panel__dialog {
+  position: relative; /* àncora del botó PDF (cantonada dreta superior) */
   width: 100%;
   max-width: 56rem;
   margin: 0 auto;
@@ -282,6 +283,37 @@ body.app4 .notation-panel--open .notation-panel__dialog {
   padding: clamp(1rem, 3vw, 2rem);
   box-sizing: border-box;
 }
+
+/* Botó d'exportació a PDF — quadrat fosc arrodonit a la cantonada dreta
+   superior del full, l'estètica de l'adjunt (fons #43433b, icona clara). */
+body.app4 .notation-export-btn {
+  position: absolute;
+  top: clamp(0.6rem, 2vw, 1.1rem);
+  right: clamp(0.6rem, 2vw, 1.1rem);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(2.4rem, 5vw, 3rem);
+  height: clamp(2.4rem, 5vw, 3rem);
+  padding: 0;
+  border: none;
+  border-radius: 0.85rem;
+  background: #43433b;
+  color: #eee8d8;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(67, 67, 59, 0.25);
+  transition: transform 0.12s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+body.app4 .notation-export-btn:hover {
+  background: #35352f;
+  box-shadow: 0 6px 16px rgba(67, 67, 59, 0.35);
+}
+
+body.app4 .notation-export-btn:active { transform: scale(0.94); }
+
+body.app4 .notation-export-btn__icon { width: 60%; height: 60%; display: block; }
 
 body.app4 .notation-panel--open .notation-panel__canvas {
   max-height: none; /* el full creix; el scroll el porta l'overlay */
