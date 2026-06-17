@@ -573,49 +573,91 @@ export function createNotationSystem({
     }
   }
 
-  // ── Clic (delegació única a l'SVG) ─────────────────────────────────────────
+  // ── Clic per posició REAL del glyph (robust) ───────────────────────────────
+  // NO confiem en quin element rep el clic del navegador: l'SVG té
+  // pointer-events:none i, amb el posicionament per temps (setXShift), l'únic
+  // element que el navegador considera clicable (un <rect> intern de VexFlow)
+  // queda desalineat del cap VISIBLE → el clic queia 1-2 posicions enllà. En
+  // comptes d'això calculem nosaltres la nota més propera a partir de la posició
+  // REAL del seu glyph al DOM (`.vf-notehead`, present també als silencis), ja
+  // assentada en temps de clic: (1) pentagrama més proper en Y, (2) glyph més
+  // proper en X dins d'aquell pentagrama. Les dades de selecció surten dels
+  // data-* del propi element (sempre correctes; el bug era el hit-test, no les
+  // dades).
+  function glyphCenter(el) {
+    const g = (el && typeof el.querySelector === 'function' && el.querySelector('.vf-notehead')) || el;
+    const r = g.getBoundingClientRect();
+    return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, ok: r.width > 0 || r.height > 0 };
+  }
+
   function handleClick(event) {
-    const target = event && event.target;
-    // El grup SVG de la nota porta els data-* (openGroup amb l'id de l'element).
-    if (!target || typeof target.closest !== 'function') return;
-    const noteEl = target.closest('[data-staff-id]');
-    if (!noteEl) return;
-    if (noteEl.dataset.nonSelectable === 'true') return;
+    if (!lastLayout || !(lastLayout.lg > 0)) return;
+    const svg = container.querySelector('svg');
+    if (!svg || typeof svg.querySelectorAll !== 'function') return;
+    const els = Array.from(svg.querySelectorAll('[data-staff-id]'))
+      .filter((el) => el.dataset && el.dataset.nonSelectable !== 'true');
+    if (!els.length) return;
 
-    // 1. Selecció fraccionada ja existent (té selectionKey): toggle directe.
-    const selectionKey = noteEl.dataset.selectionKey;
-    if (selectionKey && fractionStore && fractionStore.selectionState) {
-      const info = fractionStore.selectionState.get(selectionKey);
+    const x = event.clientX;
+    const y = event.clientY;
+    const items = [];
+    for (const el of els) {
+      const c = glyphCenter(el);
+      if (!c.ok) continue;
+      items.push({ el, staffId: el.dataset.staffId, cx: c.cx, cy: c.cy });
+    }
+    if (!items.length) return;
+
+    // (1) Pentagrama més proper en Y (centre vertical mitjà de cada pentagrama).
+    const staffStats = new Map();
+    items.forEach((it) => {
+      const a = staffStats.get(it.staffId) || { sum: 0, n: 0 };
+      a.sum += it.cy; a.n += 1; staffStats.set(it.staffId, a);
+    });
+    let staffId = null;
+    let bestDy = Infinity;
+    staffStats.forEach((a, id) => {
+      const dy = Math.abs(a.sum / a.n - y);
+      if (dy < bestDy) { bestDy = dy; staffId = id; }
+    });
+
+    // (2) Glyph més proper en X dins del pentagrama triat.
+    let best = null;
+    let bestDx = Infinity;
+    for (const it of items) {
+      if (it.staffId !== staffId) continue;
+      const dx = Math.abs(it.cx - x);
+      if (dx < bestDx) { bestDx = dx; best = it.el; }
+    }
+    if (!best) return;
+
+    const lg = lastLayout.lg;
+    const ds = best.dataset;
+
+    // (3a) Selecció fraccionada ja existent (té selectionKey): toggle directe.
+    if (ds.selectionKey && fractionStore && fractionStore.selectionState) {
+      const info = fractionStore.selectionState.get(ds.selectionKey);
       if (info && typeof onFractionSelected === 'function') {
-        const currentlySelected = fractionStore.selectionState.has(selectionKey);
-        onFractionSelected(info, !currentlySelected);
+        onFractionSelected(info, !fractionStore.selectionState.has(ds.selectionKey));
       }
       return;
     }
-
-    // 2. Pols enter: ruta al canal base (memòria de pulsos).
-    if (noteEl.dataset.pulse != null) {
-      const pulseValue = Number.parseFloat(noteEl.dataset.pulse);
-      if (!Number.isFinite(pulseValue) || pulseValue <= 0) return;
-      if (lastLayout.lg > 0 && pulseValue >= lastLayout.lg) return;
-      if (typeof onPulseSelected === 'function') {
-        // shouldSelect el decideix App4 segons la memòria; aquí proposem toggle
-        // a partir de l'estat visual (data-selected no s'usa: App4 ho recalcula).
-        onPulseSelected(pulseValue, true);
-      }
+    // (3b) Pols enter: ruta al canal base (memòria de pulsos).
+    if (ds.pulse != null) {
+      const pulseValue = Number.parseFloat(ds.pulse);
+      if (!Number.isFinite(pulseValue) || pulseValue <= 0 || pulseValue >= lg) return;
+      if (typeof onPulseSelected === 'function') onPulseSelected(pulseValue, true);
       return;
     }
-
-    // 3. Tick fraccionat nou: la (n,d) ve del propi grup (data-num/den).
-    if (noteEl.dataset.fractionValue != null && typeof createFractionSelectionFromValue === 'function') {
-      const value = Number.parseFloat(noteEl.dataset.fractionValue);
-      const denominator = Number.parseInt(noteEl.dataset.den, 10);
-      const numerator = Number.parseInt(noteEl.dataset.num, 10);
-      if (!Number.isFinite(value) || !Number.isFinite(denominator) || denominator <= 0) return;
+    // (3c) Tick fraccionat nou: la (n,d) ve dels data-* del propi glyph.
+    if (ds.fractionValue != null && typeof createFractionSelectionFromValue === 'function') {
+      const denominator = Number.parseInt(ds.den, 10);
+      if (!Number.isFinite(denominator) || denominator <= 0) return;
+      const numerator = Number.parseInt(ds.num, 10);
       const pulsesPerCycle = Number.isFinite(numerator) && numerator > 0 ? numerator : null;
-      const nextSelection = createFractionSelectionFromValue(value, { denominator, pulsesPerCycle });
+      const nextSelection = createFractionSelectionFromValue(Number.parseFloat(ds.fractionValue), { denominator, pulsesPerCycle });
       if (!nextSelection) return;
-      if (lastLayout.lg > 0 && (nextSelection.value <= 0 || nextSelection.value >= lastLayout.lg)) return;
+      if (nextSelection.value <= 0 || nextSelection.value >= lg) return;
       const currentlySelected = !!(fractionStore && fractionStore.selectionState
         && fractionStore.selectionState.has(nextSelection.key));
       if (typeof onFractionSelected === 'function') onFractionSelected(nextSelection, !currentlySelected);
