@@ -186,10 +186,26 @@ function refreshInfoPanelIfOpen() {
   }
 }
 
+// Centra el panell sobre el cercle (rings-host) perquè el TAPI, deixant
+// visibles i clicables els inputs i la fracció de sobre.
+function positionInfoPanelOverRings() {
+  const host = document.querySelector('.rings-host');
+  if (!host || !infoPanelEl) return;
+  const r = host.getBoundingClientRect();
+  if (r.width === 0) return;
+  infoPanelEl.style.left = `${r.left + r.width / 2}px`;
+  infoPanelEl.style.top = `${r.top + r.height / 2}px`;
+}
+
 function setInfoPanelOpen(open) {
   if (!infoPanelEl) return;
-  if (open) infoPanelEl.innerHTML = buildInfoPanelHtml();
-  infoPanelEl.hidden = !open;
+  if (open) {
+    infoPanelEl.innerHTML = buildInfoPanelHtml();
+    infoPanelEl.hidden = false;
+    positionInfoPanelOverRings();
+  } else {
+    infoPanelEl.hidden = true;
+  }
   document.getElementById('infoBtn')?.classList.toggle('active', open);
 }
 
@@ -200,12 +216,15 @@ function toggleInfoPanel() {
     infoPanelEl.className = 'info-panel';
     infoPanelEl.hidden = true;
     (document.querySelector('main') || document.body).appendChild(infoPanelEl);
-    // Tancar en clicar FORA del panell (i no al botó ∑). pointerdown al
-    // document; ignora clics dins del panell o sobre el botó.
+    // Tancar en clicar FORA del panell; NO es tanca si es toca el botó ∑, els
+    // inputs (Pulsos/Ciclos/BPM) o l'editor de fracció (.middle) — així es pot
+    // editar i veure el recàlcul en viu sense perdre el panell.
     document.addEventListener('pointerdown', (e) => {
       if (infoPanelEl.hidden) return;
       const btn = document.getElementById('infoBtn');
-      if (infoPanelEl.contains(e.target) || (btn && (e.target === btn || btn.contains(e.target)))) return;
+      if (infoPanelEl.contains(e.target)) return;
+      if (btn && (e.target === btn || btn.contains(e.target))) return;
+      if (e.target.closest && e.target.closest('.inputs, .middle')) return;
       setInfoPanelOpen(false);
     });
   }

@@ -519,6 +519,9 @@ body.app4 .crings-svg text {
    mides relatives. La POSICIÓ la calcula info-tooltip.js (ancorada a
    l'element, auto-hide en scroll/resize); aquí només l'aparença. */
 body.app4 .fraction-info-bubble {
+  /* No ha de bloquejar clics: és informativa i, sense top-bar, cau sobre els
+     inputs de dalt (el base la deixa a pointer-events: auto). */
+  pointer-events: none;
   width: auto;
   max-width: min(22rem, 85vw);
   padding: clamp(0.5rem, 1.5vw, 0.85rem) clamp(0.85rem, 2.5vw, 1.25rem);

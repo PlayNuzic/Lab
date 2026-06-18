@@ -114,8 +114,10 @@ i es visualitza com un anell amb el seu radi segons la velocitat.
   tests): general (Pulsos, Ciclos, cicle gran, durada T=Lg·60/V, mcm denom),
   taula per fracció (velocitat **V·d/n**, pulsos fracc/cicle = cicle gran·d/n) i
   **proporció polirítmica reduïda** incloent el pols (ex. 6:8:9). Recàlcul en viu
-  (via handleInput) mentre està obert. Es tanca clicant FORA del panell
-  (pointerdown al document, ignorant clics dins o sobre el botó ∑).
+  (via handleInput) mentre està obert. **Centrat sobre el cercle** (tapa els
+  anells; `positionInfoPanelOverRings` el posa al centre de `.rings-host`). Es
+  tanca clicant FORA, PERÒ NO si es toca el botó ∑, els inputs (`.inputs`) o la
+  fracció (`.middle`) — així s'edita i es veu el recàlcul sense perdre el panell.
 - **Exportació PNG** (`notation-export-btn`, cantonada dreta superior del full):
   rasteritza l'SVG a `<canvas>` 2x i descarrega. CAL incrustar la font **Bravura**
   (data-URI woff2 de VexFlow, import lazy) com a `@font-face` dins l'SVG abans de
