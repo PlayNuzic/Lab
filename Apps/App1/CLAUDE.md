@@ -29,7 +29,14 @@ randomització i tap resync.
     El tema nuzic els pinta com a barra cream amb ticks. Els **endpoints** (pols
     0 i Lg): s'amaga la `.bar` vertical que creava circular-timeline.js i els
     ticks ::before/::after es fan **dobles+gruixuts** (`||`, estil `cycle-end`
-    d'App9/11/12/15) — override scoped a `.app1` a `styles.css`.
+    d'App9/11/12/15) — override scoped a `.app1` a `styles.css`. L'**últim pols**
+    (Lg) es mostra com a `·` (cycle-end). **Font dels números capat** a Lg=16
+    (`computeNumberFontRem(Math.max(lg,16))`): a Lg petit no creix més (els ticks
+    no sobresurten); a Lg>16 s'encongeix natural.
+- **Polsos que sonen**: SEMPRE Lg (0..Lg-1); el pols final Lg (el `·`) NO sona
+  (marca el tancament), igual en lineal i en loop. `playbackTotal = lg` a
+  startPlayback/liveTransportPush/scheduleTapResync (abans el lineal usava
+  `toPlaybackPulseCount`, que fa Lg+1 → sonava un pols de més).
   - **Circular** (loop ON): donut cream estil App17. Els números els posa el mòdul
     compartit `circular-timeline-ring.js` (`renderCircularRingNumbers`): Lg punts
     (0..Lg-1; el Lg coincideix amb el 0 al cim), via trigonometria. Es crida dins

@@ -4,7 +4,7 @@ import { solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu, mergeRandomConfig } from '../../libs/random/index.js';
 import { toRange, parseNum, formatSec, randomInt } from '../../libs/app-common/number-utils.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
-import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
+import { fromLgAndTempo } from '../../libs/app-common/subdivision.js';
 import { createLiveTransportPush } from '../../libs/app-common/transport-live-update.js';
 import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
@@ -88,7 +88,10 @@ const timelineController = createCircularTimeline({
   timeline,
   timelineWrapper,
   getPulses: () => pulses,
-  getNumberFontSize: (lg) => computeNumberFontRem(lg)
+  // Cap el font dels números al valor de Lg=16 ("encaix perfecte"): per a Lg
+  // més petits no creix més (evita que els ticks ::before/::after sobresurtin
+  // del cream); per a Lg>16 segueix encongint-se de manera natural.
+  getNumberFontSize: (lg) => computeNumberFontRem(Math.max(lg, 16))
 });
 
 function cancelTapResync() {
@@ -107,9 +110,8 @@ function scheduleTapResync(bpm) {
   if (stepIndex == null) return;
 
   const lg = parseInt(inputLg.value, 10);
-  const totalPulses = Number.isFinite(lg) && lg > 0
-    ? toPlaybackPulseCount(lg, loopEnabled)
-    : null;
+  // Sonen Lg polsos (0..Lg-1); el pols final Lg (el `·`) no sona.
+  const totalPulses = Number.isFinite(lg) && lg > 0 ? lg : null;
   if (!Number.isFinite(totalPulses) || totalPulses <= 0) return;
   if (!Number.isFinite(bpm) || bpm <= 0) return;
 
@@ -412,7 +414,7 @@ const liveTransportPush = createLiveTransportPush({
     const validLg = Number.isFinite(lgNow) && lgNow > 0;
     const validV = Number.isFinite(vNow) && vNow >= 30 && vNow <= 240;
     if (!validLg && !validV) return;
-    const playbackTotal = validLg ? toPlaybackPulseCount(lgNow, loopEnabled) : null;
+    const playbackTotal = validLg ? lgNow : null;  // Lg polsos; el `·` final no sona
     audio.updateTransport({
       align: 'nextPulse',
       totalPulses: playbackTotal != null ? playbackTotal : undefined,
@@ -529,7 +531,9 @@ async function startPlayback(providedAudio) {
     return false;
   }
   const interval = timing.interval;
-  const playbackTotal = toPlaybackPulseCount(lg, loopEnabled);
+  // El pols final (Lg, el `·`) NO sona — marca el tancament. Sonen Lg polsos
+  // (0..Lg-1), igual en lineal i en loop (que cicla). Abans el lineal feia Lg+1.
+  const playbackTotal = lg;
   if (playbackTotal == null) {
     return false;
   }
