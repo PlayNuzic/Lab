@@ -128,9 +128,16 @@ function scheduleTapResync(bpm) {
   }, delayMs);
 }
 
+// Preference storage for App1. DEFINIT ABANS del bloc random perquè
+// `loadRandomConfig()` (cridat tot seguit) necessita `loadOpt`; si es declarava
+// després, la crida queia a la TDZ del const i el try/catch tornava {} → el
+// random config desat MAI es carregava (persistència trencada).
+const preferenceStorage = createPreferenceStorage({ prefix: 'app1', separator: ':' });
+const { load: loadOpt, save: saveOpt } = preferenceStorage;
+
 const randomDefaults = {
-  Lg: { enabled: true, range: [2, 30] },
-  V: { enabled: true, range: [40, 320] },
+  Lg: { enabled: true, range: [2, 16] },
+  V: { enabled: true, range: [40, 200] },
   T: { enabled: true, range: [0.1, 20] }
 };
 
@@ -206,11 +213,7 @@ attachHover(randTMax, { text: 'Máximo T' });
 
 initRandomMenu(randomBtn, randomMenu, randomize);
 
-// Create preference storage for App1
-const preferenceStorage = createPreferenceStorage({ prefix: 'app1', separator: ':' });
-const { load: loadOpt, save: saveOpt } = preferenceStorage;
-
-// Register factory reset handler
+// Register factory reset handler (preferenceStorage es crea abans del bloc random)
 registerFactoryReset({ storage: preferenceStorage });
 
 // Setup theme synchronization
@@ -600,24 +603,40 @@ playBtn.addEventListener('click', async () => {
 // randomInt now imported from number-utils.js
 
 function randomize() {
-  if (randLgToggle?.checked) {
-    const [lo, hi] = toRange(randLgMin.value, randLgMax.value, randomDefaults.Lg.range);
-    const v = randomInt(lo, hi);
-    setValue(inputLg, v);
-    handleInput({ target: inputLg });
-  }
-  if (randVToggle?.checked) {
-    const [lo, hi] = toRange(randVMin.value, randVMax.value, randomDefaults.V.range);
-    const v = randomInt(lo, hi);
-    setValue(inputV, v);
-    handleInput({ target: inputV });
-  }
-  if (randTToggle?.checked) {
-    const [lo, hi] = toRange(randTMin.value, randTMax.value, randomDefaults.T.range);
-    const val = lo + Math.random() * Math.max(0, hi - lo);
-    setValue(inputT, val.toFixed(2));
-    handleInput({ target: inputT });
-  }
+  const lgOn = !!randLgToggle?.checked;
+  const vOn  = !!randVToggle?.checked;
+  const tOn  = !!randTToggle?.checked;
+
+  // La fórmula Lg/V = T/60 té 2 graus de llibertat: 2 conductors + 1 derivat.
+  // El derivat és el primer camp NO marcat (es manté lligat als altres); si
+  // estan tots marcats, derivem T (la durada, contínua i no acotada). Així el
+  // random respecta SEMPRE els rangs dels conductors (p.ex. Lg dins [2,16]).
+  const derived = !lgOn ? 'Lg' : !vOn ? 'V' : !tOn ? 'T' : 'T';
+
+  const randomizers = {
+    Lg: () => {
+      const [lo, hi] = toRange(randLgMin.value, randLgMax.value, randomDefaults.Lg.range);
+      setValue(inputLg, randomInt(lo, hi));
+    },
+    V: () => {
+      const [lo, hi] = toRange(randVMin.value, randVMax.value, randomDefaults.V.range);
+      setValue(inputV, randomInt(lo, hi));
+    },
+    T: () => {
+      const [lo, hi] = toRange(randTMin.value, randTMax.value, randomDefaults.T.range);
+      setValue(inputT, (lo + Math.random() * Math.max(0, hi - lo)).toFixed(2));
+    }
+  };
+  const enabled = { Lg: lgOn, V: vOn, T: tOn };
+
+  // Randomitza els conductors marcats; marca'ls com els dos últims editats
+  // perquè el solver derivi el camp restant de manera coherent.
+  ['Lg', 'V', 'T'].forEach((k) => {
+    if (k === derived) return;
+    if (enabled[k]) randomizers[k]();
+    solver.touch(k);
+  });
+  handleInput();  // el solver recalcula el derivat + render + transport
 }
 
 const menu = document.querySelector('.menu');

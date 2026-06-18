@@ -14,6 +14,12 @@ body {
   margin-top: 40px;
 }
 
+/* Mida de les etiquetes (abbr) dels inputs Lg/V/T. `.app1` puja l'specificity
+   per sobre de la regla base del nuzic-theme (.param:has(.circle>input) .abbr). */
+body[data-visual="nuzic"].app1 .param:has(.circle > input) .abbr {
+  font-size: clamp(0.75rem, 2vw, 1.6rem) !important;
+}
+
 /* Botó loop a la fila de controls (nuzic l'amaga per defecte). A l'App1 el
    loop "doblega" la línia en cercle (donut), per això el fem visible. Va a la
    DRETA de random amb la MATEIXA estètica (cercle verd #7cd6b3, icona blanca):

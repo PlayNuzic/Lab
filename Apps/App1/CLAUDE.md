@@ -63,8 +63,18 @@ randomització i tap resync.
 5. `computeResyncDelay` + `scheduleTapResync` → realinear tap tempo amb l'estat visual
 
 ## State
-- localStorage `app1:*` (prefix) + clau `random`: rangs Lg/V/T i toggles del menú
+- localStorage `app1:*` (prefix) + clau `random`: rangs Lg/V/T i toggles del menú.
+  Defaults: Lg [2,16], V [40,200], T [0.1,20]. Es desa a cada `change` i es
+  carrega a l'init. ⚠️ `preferenceStorage` (loadOpt/saveOpt) es declara ABANS del
+  bloc random: `loadRandomConfig()` el necessita; si es declarava després, queia
+  a la TDZ del const i la persistència no carregava (sempre defaults).
 - Flags locals: `isPlaying`, `loopEnabled`, `circularTimeline`, `tapResyncTimeout`
+
+## Random (fórmula de 2 graus de llibertat)
+`randomize()` randomitza els 2 conductors marcats i el solver deriva el tercer
+(el primer camp NO marcat; tots marcats → deriva **T**, la durada contínua). Així
+els rangs dels conductors es respecten (p.ex. Lg sempre dins [2,16]); abans
+l'ordre Lg→V→T derivava Lg i el treia de rang (Lg=27…).
 
 ## Dependencies
 `libs/app-common/` (audio.js, audio-init.js, audio-schedule.js, dom.js,
