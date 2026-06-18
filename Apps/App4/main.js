@@ -13,6 +13,7 @@ import createFractionEditor, { createEmptyFractionInfo } from '../../libs/app-co
 import { reorderControls, NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
 import createPulseSeqController from '../../libs/pulse-seq/index.js';
 import { parseIntSafe, gcd, lcm, randomInt } from '../../libs/app-common/number-utils.js';
+import { computePolyrhythmInfo } from '../../libs/app-common/polyrhythm-info.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 // P-02: imports síncrons només dels mòduls de notació lliures de VexFlow;
 // el renderer (i VexFlow ~1,6MB) es carrega lazy al primer toggle del panell.
@@ -129,30 +130,60 @@ const rings = createCircularRings({
 // ── Panell info (∑): matemàtica de la combinació ──────────────────────────
 let infoPanelEl = null;
 
+// Formata un nombre: enters tal qual, decimals a 2 xifres (sense zeros finals).
+function fmtNum(x) {
+  if (!Number.isFinite(x)) return '–';
+  return Number.isInteger(x) ? String(x) : (Math.round(x * 100) / 100).toString();
+}
+
 function buildInfoPanelHtml() {
-  const lg = parseIntSafe(inputLg?.value);
-  const cycles = inputCycles ? parseIntSafe(inputCycles.value) : null;
-  const actives = getActiveFractions();
-  const bigCycle = computeBigCycle(actives);
-  const dens = actives.map((f) => f.denominator);
-  const lcmDen = dens.length ? dens.reduce((a, b) => lcm(a, b), 1) : 1;
-  const fracRows = actives.length
-    ? actives.map((f) => {
-        const g = gcd(f.numerator, f.denominator);
-        const reduced = g > 1 ? ` → ${f.numerator / g}/${f.denominator / g}` : '';
-        return `<li><strong>${f.numerator}/${f.denominator}</strong>${reduced}</li>`;
-      }).join('')
-    : '<li class="info-panel__empty">cap fracció activa</li>';
+  const info = computePolyrhythmInfo({
+    lg: parseIntSafe(inputLg?.value),
+    v: parseFloat(inputV?.value),
+    fractions: getActiveFractions()
+  });
+
+  const general = `
+    <dl class="info-panel__dl">
+      <div><dt>Pulsos (Lg)</dt><dd>${fmtNum(info.lg)}</dd></div>
+      <div><dt>Ciclos</dt><dd>${info.cycles ?? '–'}</dd></div>
+      <div><dt>Ciclo grande = mcm(numeradores)</dt><dd>${info.bigCycle} pulsos</dd></div>
+      <div><dt>Duración (T)</dt><dd>${info.durationSec != null ? `${fmtNum(info.durationSec)} s` : '–'}</dd></div>
+      <div><dt>mcm(denominadores)</dt><dd>${info.lcmDenominators}</dd></div>
+    </dl>`;
+
+  const fracTable = info.fractions.length
+    ? `<table class="info-panel__table">
+         <thead><tr><th>Fracción</th><th>Velocidad</th><th>Pulsos·frac/ciclo</th></tr></thead>
+         <tbody>${info.fractions.map((f) => {
+           const reduced = f.reducible ? ` <span class="info-panel__reduced">(${f.reducedNumerator}/${f.reducedDenominator})</span>` : '';
+           return `<tr>
+             <td><strong>${f.numerator}/${f.denominator}</strong>${reduced}</td>
+             <td>${f.velocity != null ? `${fmtNum(f.velocity)} BPM` : '–'}</td>
+             <td>${fmtNum(f.pulsesPerCycle)}</td>
+           </tr>`;
+         }).join('')}</tbody>
+       </table>`
+    : '<p class="info-panel__empty">Ninguna fracción activa</p>';
+
+  const ratio = `<div class="info-panel__ratio">
+      <span class="info-panel__ratio-label">Proporción (pulso : fracciones)</span>
+      <span class="info-panel__ratio-value">${info.ratio.join(' : ')}</span>
+    </div>`;
+
   return `
-    <h3>∑ Matemàtica</h3>
-    <dl>
-      <div><dt>Lg (polsos)</dt><dd>${Number.isFinite(lg) ? lg : '–'}</dd></div>
-      <div><dt>Cicles (m)</dt><dd>${Number.isFinite(cycles) ? cycles : '–'}</dd></div>
-      <div><dt>Cicle gran = mcm(numeradors)</dt><dd>${bigCycle}</dd></div>
-      <div><dt>mcm(denominadors)</dt><dd>${lcmDen}</dd></div>
-    </dl>
-    <p class="info-panel__sub">Fraccions actives</p>
-    <ul>${fracRows}</ul>`;
+    <h3>∑ Matemática</h3>
+    ${general}
+    <p class="info-panel__sub">Por fracción (velocidad = V·d/n)</p>
+    ${fracTable}
+    ${ratio}`;
+}
+
+// Recalcula el panell si està obert (canvis de fraccions / Pulsos / BPM).
+function refreshInfoPanelIfOpen() {
+  if (infoPanelEl && !infoPanelEl.hidden) {
+    infoPanelEl.innerHTML = buildInfoPanelHtml();
+  }
 }
 
 function toggleInfoPanel() {
@@ -2396,6 +2427,10 @@ function handleInput(){
   if (isPlaying && audio) {
     liveTransportPush.schedule();
   }
+
+  // Recàlcul en viu del panell ∑ si està obert (Lg, BPM i fraccions hi arriben
+  // via recomputeLg → handleInput).
+  refreshInfoPanelIfOpen();
 }
 
 // A-13: cos del push en viu d'App4 — llegeix l'estat fresc en disparar-se.

@@ -54,8 +54,12 @@ de commit"). Després s'hi ha afegit:
 - **Targeta launcher**: "Pulsos Fraccionados" → "**Metrónomo Fracción**".
 - **abbr de tots els inputs**: `clamp(0.75rem, 2vw, 1.6rem)` (com la nova App1).
 
-Pendent: **F7 versió completa** (panell matemàtic ric via formula-renderer) i
-**F8** (neteja + README + arxiu). Vegeu sota.
+- **F7 — panell ∑ complet** ✅: mòdul pur `polyrhythm-info.js` (amb tests) +
+  panell centrat amb general · taula per fracció (velocitat V·d/n) · proporció
+  reduïda (ex. 6:8:9), recàlcul en viu.
+
+Pendent: només **F8** (neteja Step 15 + README usuari + MODULES.md + arxiu a
+session-history). Vegeu sota.
 
 ### Fases (cada fase = commit propi + npm test verd)
 
@@ -554,15 +558,18 @@ Pendent: **F7 versió completa** (panell matemàtic ric via formula-renderer) i
       consistent perquè els punts compartits comparteixin tick; tuplets ben
       expressats; re-cablejat de color/clic/cursor; fontsReady es manté.
       Esforç alt (millor agent focalitzat o pas a pas amb verificació).
-- [~] **F7 — Panell info (∑)**: FET el botó ∑ a `.controls` (esquerra del reset,
-      estètica del reset) + `#infoPanel` (pastilla flotant nuzic) amb la
-      matemàtica BÀSICA: Pulsos (Lg), Ciclos (m), cicle gran = mcm(numeradors),
-      mcm(denominadors), fraccions actives (n/d + reduït). Commit 2b6d2d6.
-      Icona: no hi ha símbol Unicode oficial de "matemàtiques" → ∑ (triat per
-      l'usuari). PENDENT (versió completa): estendre `formula-renderer.js`
-      (compartit, amb tests) amb V i V·d/n per fracció, pulsos fraccionats per
-      cicle, proporció polirítmica reduïda, T; i reposicionar el panell perquè
-      no tapi els controls.
+- [x] **F7 — Panell info (∑)** ✅: botó ∑ a `.controls` (esquerra del reset,
+      estètica del reset) + `#infoPanel` (overlay flotant nuzic CENTRAT, no tapa
+      els controls). Matemàtica via mòdul pur **`libs/app-common/polyrhythm-info.js`**
+      (`computePolyrhythmInfo`, amb tests):
+      - General: Pulsos (Lg), Ciclos (m), cicle gran = mcm(numeradors), durada
+        T = Lg·60/V, mcm(denominadors).
+      - Per fracció: velocitat **V·d/n** (coherent amb el radi dels anells),
+        pulsos fraccionats/cicle = cicle gran·d/n, reduïda si gcd>1.
+      - Proporció polirítmica reduïda INCLOENT el pols (1 : d/n : …) → enters
+        (ex.: pols+3/4+2/3 → 6:8:9).
+      - Recàlcul EN VIU mentre està obert (via handleInput). Icona ∑ (no hi ha
+        símbol Unicode oficial de "matemàtiques"; triat per l'usuari).
 - [ ] **F8 — Neteja + docs**: auditoria Step 15 de la skill, README App4
       (usuari), MODULES.md (circular-rings, circular-timeline-ring), arxiu a
       docs/session-history/.

@@ -109,8 +109,12 @@ i es visualitza com un anell amb el seu radi segons la velocitat.
   mou a `.controls` (`relocateSoundWrapperForNuzic`).
 - **Botó info (∑)** a `.controls`, a l'esquerra del reset i amb la seva estètica
   (cercle fosc; `.info-ctrl`, order:5, insertBefore reset). Obre `#infoPanel`
-  (pastilla flotant nuzic) amb la matemàtica: Lg, cicles, cicle gran =
-  mcm(numeradors), mcm(denominadors), fraccions actives (n/d + reduït).
+  (overlay nuzic CENTRAT, no tapa els controls). La matemàtica la calcula el
+  mòdul pur `libs/app-common/polyrhythm-info.js` (`computePolyrhythmInfo`, amb
+  tests): general (Pulsos, Ciclos, cicle gran, durada T=Lg·60/V, mcm denom),
+  taula per fracció (velocitat **V·d/n**, pulsos fracc/cicle = cicle gran·d/n) i
+  **proporció polirítmica reduïda** incloent el pols (ex. 6:8:9). Recàlcul en viu
+  (via handleInput) mentre està obert.
 - **Exportació PNG** (`notation-export-btn`, cantonada dreta superior del full):
   rasteritza l'SVG a `<canvas>` 2x i descarrega. CAL incrustar la font **Bravura**
   (data-URI woff2 de VexFlow, import lazy) com a `@font-face` dins l'SVG abans de
@@ -128,8 +132,8 @@ circular-rings/visual-sync) + `libs/notation/` + `libs/shared-ui/` + `libs/sound
 - Redisseny complet documentat a `SESSION_STATE.md` (F1–F6.scroll fetes i
   committejades; després: App4B, millores d'anells + cercle base crema, random
   de n/d, top-bar fora, model Pulsos/Ciclos, targeta "Metrónomo Fracción").
-  **F7**: botó ∑ + panell info amb la matemàtica BÀSICA fet; versió completa
-  (formula-renderer ric) pendent. **F8** (neteja + README) pendent. Esbós de
+  **F7** (botó ∑ + panell matemàtic complet via `polyrhythm-info.js`) FET.
+  **F8** (neteja Step 15 + README usuari + MODULES.md + arxiu) pendent. Esbós de
   geometria: `docs/app4-rings-sketch.html`.
 - Arnès de depuració de partitura amb Chrome real (CDP, sense puppeteer): script
   `/tmp/cdp.mjs` (WebSocket cru) + scripts ad-hoc. `Log.enable` és imprescindible
