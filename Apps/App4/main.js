@@ -1173,68 +1173,71 @@ function setCycles(value) {
   recomputeLg();
 }
 
-// Crea la pill "Cicles" clonant l'estructura de la d'Lg (el tema nuzic la
-// vesteix igual) i converteix la d'Lg en display calculat (readonly, sense
-// spinners — vegeu styles.css).
+// Model Pulsos/Ciclos. El pill editable mostra els PULSOS (Lg) i el visor mostra
+// els CICLES complets (m = Lg / cicle gran = quantes vegades coincideixen totes
+// les fraccions amb el pols). Per preservar `inputLg.value === Lg` (que tota
+// l'app llegeix), NO intercanviem els valors dels elements: l'element Lg passa a
+// ser el pill EDITABLE "Pulsos" (manté .value=Lg) i un clon readonly fa de visor
+// "Ciclos" (inputCycles, .value=m). recomputeLg ja escriu Lg a inputLg i m a
+// inputCycles, així que no cal tocar-lo.
 function initCyclesParam() {
   const lgParam = document.querySelector('.inputs .param.lg');
   if (!lgParam || !inputLg) return;
 
+  // ── Visor "Ciclos" (readonly, sense spinner) — clon de l'Lg per heretar pill ──
   const cyclesParam = lgParam.cloneNode(true);
   cyclesParam.classList.remove('lg');
   cyclesParam.classList.add('cycles');
   const abbr = cyclesParam.querySelector('.abbr');
-  if (abbr) abbr.textContent = 'Cicles';
+  if (abbr) abbr.textContent = 'Ciclos';
   const unit = cyclesParam.querySelector('.unit');
   if (unit) {
     unit.id = 'unitCycles';
-    unit.textContent = 'Cicles';
+    unit.textContent = 'Ciclos';
   }
-  // index.html esborra els .led després de renderApp; per si de cas:
   cyclesParam.querySelectorAll('.led').forEach((el) => el.remove());
+  const cInput = cyclesParam.querySelector('input');
+  cInput.id = 'inputCycles';
+  cInput.readOnly = true;
+  cInput.dataset.auto = '1';
+  cInput.value = String(cyclesValue);
+  // Visor sense spinner (el tema el vesteix com a pill buida).
+  cyclesParam.querySelector('.spinner')?.remove();
+  // Ordre: Pulsos (Lg) · Ciclos · BPM → inserim el visor DESPRÉS de l'Lg.
+  lgParam.parentElement.insertBefore(cyclesParam, lgParam.nextSibling);
+  inputCycles = cInput;
+  attachHover(cInput, { text: 'Ciclos completos: cuántas veces coinciden todas las fracciones con el pulso' });
 
-  const input = cyclesParam.querySelector('input');
-  input.id = 'inputCycles';
-  input.min = '1';
-  input.step = '1';
-  input.value = String(cyclesValue);
-  const upBtn = cyclesParam.querySelector('.spin.up');
-  const downBtn = cyclesParam.querySelector('.spin.down');
-  if (upBtn) {
-    upBtn.id = 'inputCyclesUp';
-    upBtn.setAttribute('aria-label', 'Incrementar Cicles');
-  }
-  if (downBtn) {
-    downBtn.id = 'inputCyclesDown';
-    downBtn.setAttribute('aria-label', 'Decrementar Cicles');
-  }
-
-  lgParam.parentElement.insertBefore(cyclesParam, lgParam);
-  inputCycles = input;
-
-  input.addEventListener('input', () => {
-    const parsed = parseIntSafe(input.value);
-    if (!Number.isFinite(parsed) || parsed <= 0) return; // espera valor complet
-    setCycles(parsed);
+  // ── Pill editable "Pulsos" (= l'antic camp Lg, .value = Lg = pulsos) ──
+  const lgAbbr = lgParam.querySelector('.abbr');
+  if (lgAbbr) lgAbbr.textContent = 'Pulsos';
+  if (unitLg) unitLg.textContent = 'Pulsos';
+  inputLg.readOnly = false;
+  delete inputLg.dataset.auto;
+  // Escriure pulsos → m = round(pulsos / cicle gran) (els cicles han de ser
+  // complets); recomputeLg ajusta Lg al múltiple més proper.
+  inputLg.addEventListener('input', () => {
+    const parsed = parseIntSafe(inputLg.value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return; // espera valor vàlid
+    const bc = computeBigCycle();
+    setCycles(Math.max(1, Math.round(parsed / Math.max(1, bc))));
   });
-  input.addEventListener('blur', () => {
-    // Restaura el valor vigent si s'ha deixat el camp buit o invàlid
-    if (input.value !== String(cyclesValue)) input.value = String(cyclesValue);
+  inputLg.addEventListener('blur', () => {
+    const lg = computeBigCycle() * cyclesValue;
+    if (inputLg.value !== String(lg)) inputLg.value = String(lg);
   });
-  addRepeatPress(upBtn, () => setCycles(cyclesValue + 1));
-  addRepeatPress(downBtn, () => setCycles(cyclesValue - 1));
-  attachHover(input, { text: 'Número de ciclos completos (Lg = ciclo grande × Cicles)' });
-  bindUnit(input, unit); // mostra "Cicles" en focus, com la resta de pills
-
-  // El camp Lg passa a ser només lectura (valor derivat). El spinner
-  // s'ELIMINA del DOM (no n'hi ha prou amb display:none: el tema nuzic
-  // força els .spin amb !important) — així la pill cau a la variant
-  // "sense spinner" que el tema ja vesteix com a pill buida.
-  inputLg.readOnly = true;
-  inputLg.dataset.auto = '1';
-  if (inputLgUp) inputLgUp.disabled = true;
-  if (inputLgDown) inputLgDown.disabled = true;
-  inputLgUp?.closest('.spinner')?.remove();
+  // El +/- afegeix/treu un CICLE complet (Lg salta de cicle gran en cicle gran).
+  if (inputLgUp) {
+    inputLgUp.disabled = false;
+    inputLgUp.setAttribute('aria-label', 'Más pulsos (un ciclo)');
+    addRepeatPress(inputLgUp, () => setCycles(cyclesValue + 1));
+  }
+  if (inputLgDown) {
+    inputLgDown.disabled = false;
+    inputLgDown.setAttribute('aria-label', 'Menos pulsos (un ciclo)');
+    addRepeatPress(inputLgDown, () => setCycles(cyclesValue - 1));
+  }
+  attachHover(inputLg, { text: 'Número de pulsos (Lg). Cada paso añade/quita un ciclo completo.' });
 }
 
 function ensurePulseMemory(size) {

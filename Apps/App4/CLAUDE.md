@@ -12,11 +12,20 @@ i es visualitza com un anell amb el seu radi segons la velocitat.
 - **3 slots de fracció** (`fractionSlots[]`): F1 groc, F2 rosa, F3 blau.
   F1 visible per defecte; el control **+/−** global afegeix/treu fraccions
   (added ≡ active: una fracció és visible o no hi és). Rangs n∈[1,7], d∈[1,12].
-- **Lg NO és lliure**: `Lg = cicle gran × m`, on cicle gran = mcm dels
-  numeradors REDUÏTS de les fraccions actives (els denominadors no hi
-  influeixen), i `m` és la pastilla **"Cicles"**. Lg és un display CALCULAT
-  (readonly). `MAX_LG = 210 = mcm(5,6,7)`; `validateFractionCombo` rebutja
-  combinacions amb cicle > 210 (xarxa de seguretat, inassolible amb n≤7).
+- **Pulsos / Ciclos** (`Lg = cicle gran × m`): cicle gran = mcm dels numeradors
+  REDUÏTS de les fraccions actives (els denominadors no hi influeixen).
+  - **Pulsos** (pill EDITABLE, = `inputLg`, `.value === Lg`): el nombre de
+    pulsos. El +/- afegeix/treu un CICLE complet (Lg salta de cicle gran en
+    cicle gran); escriure ajusta `m = round(pulsos / cicle gran)`.
+  - **Ciclos** (visor READONLY, = `inputCycles`, `.value === m`): cicles
+    complets = quantes vegades coincideixen totes les fraccions amb el pols
+    (= `Lg / cicle gran`). Depèn de les fraccions (via el cicle gran).
+  - Implementació: per preservar `inputLg.value === Lg` (que tota l'app
+    llegeix), NO s'intercanvien valors entre elements — l'element Lg passa a ser
+    el pill editable "Pulsos" i un clon readonly fa de visor "Ciclos" (m).
+    `recomputeLg` ja escriu Lg a `inputLg` i m a `inputCycles`.
+  - `MAX_LG = 210 = mcm(5,6,7)`; `validateFractionCombo` rebutja combinacions
+    amb cicle > 210 (xarxa de seguretat, inassolible amb n≤7).
 - **BPM per defecte 90** (`app4:bpm`); sense V el play no arrenca.
 - **Bucle permanent** (no hi ha botó loop): la reproducció sempre cicla.
 

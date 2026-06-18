@@ -818,6 +818,12 @@ body[data-visual="nuzic"].app4 header.top-bar {
   display: none !important;
 }
 
+/* Mida de les etiquetes (abbr) de tots els inputs (Pulsos/Ciclos/BPM), com a
+   la nova App1. `.app4` puja l'specificity per sobre de la regla base nuzic. */
+body[data-visual="nuzic"].app4 .param:has(.circle > input) .abbr {
+  font-size: clamp(0.75rem, 2vw, 1.6rem) !important;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    T4: cercle de pulsos (anell base) en CREMA com el fons de les timelines.
    La banda passa a --nuzic-yellow-light; punts i números a fosc per contrast.
