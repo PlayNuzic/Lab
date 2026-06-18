@@ -13,3 +13,38 @@ body {
 .formula {
   margin-top: 40px;
 }
+
+/* Botó loop a la fila de controls (nuzic l'amaga per defecte). A l'App1 el
+   loop "doblega" la línia en cercle (donut), per això el fem visible. Va a la
+   DRETA de random amb la MATEIXA estètica (cercle verd #7cd6b3, icona blanca):
+   order:5 → entre random (4) i reset (5); com que al DOM el loop va abans del
+   reset, queda just a l'esquerra d'aquest. Anul·lem el position/transform que
+   la regla base de .loop posa per a un altre layout. */
+body[data-visual="nuzic"].app1 .controls:not([data-layout]) .loop {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  order: 5;
+  position: static !important;
+  transform: none !important;
+  margin: 0 !important;
+  width: clamp(2rem, 5vw, 3rem) !important;
+  height: clamp(2rem, 5vw, 3rem) !important;
+  border-radius: 50%;
+  background: #7cd6b3 !important;
+  border-color: #7cd6b3 !important;
+  color: #ffffff !important;
+  opacity: 1;
+}
+
+body[data-visual="nuzic"].app1 .controls:not([data-layout]) .loop svg {
+  fill: #ffffff !important;
+}
+
+/* Loop actiu (línia doblegada en cercle): glow verd, com play.active */
+body[data-visual="nuzic"].app1 .controls:not([data-layout]) .loop.active {
+  background: #7cd6b3 !important;
+  border-color: #7cd6b3 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 10px #7cd6b3;
+}

@@ -17,6 +17,7 @@ import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.
 import { createTotalLengthDisplay } from '../../libs/app-common/total-length-display.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { renderCircularRingNumbers } from '../../libs/app-common/circular-timeline-ring.js';
 
 // ============================================
 // CONSTANTS
@@ -159,122 +160,16 @@ function renderEmptyTimeline() {
 }
 
 /**
- * Render pulse numbers on the circular timeline — positioned on the cream
- * ring (midway between the outer yellow edge and the inner white disc).
- * We place them via trigonometry on the .timeline's own bounding box after
- * layout (rAF) so the positions track the actual rendered size.
+ * Render pulse numbers on the circular timeline — el donut i la geometria viuen
+ * al mòdul compartit `circular-timeline-ring.js` (reutilitzat per App1 en mode
+ * loop). App17 hi posa el seu detall propi: el superíndex de mòdul `i¹`.
+ * `numberEls` es manté com a estat viu per al highlight de playback.
  */
 function renderPulseNumbers() {
   if (!timeline || pulsosCompas === null) return;
-
-  // Remove existing numbers
-  timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
-
-  const n = pulsosCompas;
-  // Create elements first so they are in DOM before measuring.
-  numberEls = [];
-  for (let i = 0; i < n; i++) {
-    const el = document.createElement('div');
-    el.className = 'pulse-number';
-    el.dataset.index = String(i);
-    // Wrapper intern: el `.pulse-number` continua rotat radialment (per
-    // alinear els ticks `::before/::after`), però el text d'aquest span
-    // es contra-rota per quedar sempre dret (mira cap avall, com el 0).
-    el.innerHTML = `<span class="pulse-number__text">${i}<sup>1</sup></span>`;
-    if (i === 0) el.classList.add('cycle-start');
-    timeline.appendChild(el);
-    numberEls.push(el);
-  }
-
-  // Position after layout.
-  requestAnimationFrame(() => {
-    const rect = timeline.getBoundingClientRect();
-    if (rect.width === 0) return;
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
-    const fullRadius = Math.min(rect.width, rect.height) / 2;
-
-    // Ring geometry — all values are relative to fullRadius.
-    //
-    // INNER/OUTER_R_RATIO: the painted cream donut edges (kept in sync
-    //   with the radial-gradient in styles.css: 40% → 100%).
-    //   EDGE_INSET shaves a couple of pixels off each edge so the tick's
-    //   rounded line cap does not cross the boundary.
-    // CENTER_R_RATIO: midpoint between the two edges — geometric center
-    //   of the ring, where the numbers sit visually centered.
-    const INNER_R_RATIO = 0.40;
-    const OUTER_R_RATIO = 1.00;
-    const EDGE_INSET_PX = 3;
-    const CENTER_R_RATIO = (INNER_R_RATIO + OUTER_R_RATIO) / 2;  // 0.70
-    const ringRadius = fullRadius * CENTER_R_RATIO;
-    // Dynamic font-size: scales with circle radius and pulse density.
-    // Floor 9 (enlloc de 11) deixa que els nombres es comprimeixin més en
-    // cercles petits — necessari quan el wrapper.circular cau al floor del
-    // seu propi clamp (16rem = 256px → fullRadius ~115px).
-    const fontPx = Math.max(
-      9,
-      Math.min(24, (fullRadius * 0.20) / Math.sqrt(n / 4))
-    );
-    // Radial distances from the number's center to each donut edge,
-    // shaved by EDGE_INSET_PX so the tick's tip sits just inside the edge
-    // and doesn't paint over the donut boundary.
-    const outerSpan = (OUTER_R_RATIO * fullRadius - ringRadius) - EDGE_INSET_PX;
-    const innerSpan = (ringRadius - INNER_R_RATIO * fullRadius) - EDGE_INSET_PX;
-    const halfFont = fontPx / 2;
-    // "Usable" slots: from the text edge to the donut edge on each side.
-    //   slotOuter = outerSpan − halfFont   (room past the top of the text)
-    //   slotInner = innerSpan − halfFont   (room past the bottom of the text)
-    // Each tick occupies: gap + tickLength, together filling its slot.
-    //   gap_before + tickLength = slotOuter   → gap_before = slotOuter − L
-    //   gap_after  + tickLength = slotInner   → gap_after  = slotInner  − L
-    // Ticks are the same length on both sides (user requested symmetric
-    // ticks), so L is driven by the *smaller* slot. Outer is typically
-    // smaller because CENTER_R_RATIO=0.79 puts the number closer to the
-    // outer edge than the inner one.
-    // Minimum breathing space between the text and the tick.
-    const MIN_TEXT_GAP = 3;
-    const slotOuter = Math.max(0, outerSpan - halfFont - MIN_TEXT_GAP);
-    const slotInner = Math.max(0, innerSpan - halfFont - MIN_TEXT_GAP);
-    // Symmetric tick length, sized to the smaller slot so it fits both
-    // sides, then scaled down so ticks don't feel too long. Each tick's
-    // inner end sits near the text; the extra room on either side goes
-    // into `gap_*` below, which offsets the tick away from the number.
-    const TICK_SCALE = 0.5;
-    const tickLength = Math.max(3, Math.min(slotOuter, slotInner) * TICK_SCALE);
-    // Gap from the text edge to the tick's near end.
-    // The tick's far end sits on the donut edge by construction.
-    const gapBefore = MIN_TEXT_GAP + Math.max(0, slotOuter - tickLength);
-    const gapAfter = MIN_TEXT_GAP + Math.max(0, slotInner - tickLength);
-
-    numberEls.forEach((el, i) => {
-      const angle = (i / n) * 2 * Math.PI - Math.PI / 2;  // pulse 0 at top
-      const x = cx + ringRadius * Math.cos(angle);
-      const y = cy + ringRadius * Math.sin(angle);
-      // Rotate each pulse-number so it follows the ring tangent (perpendicular
-      // to the radius pointing outward). Also translate(-50%,-50%) to center
-      // the element over its (x,y) point. setProperty+important defeats the
-      // base nuzic-theme rule `.timeline .pulse-number { top:50% !important;
-      // transform: translate(-50%,-50%) !important }`.
-      const rotDeg = ((angle + Math.PI / 2) * 180) / Math.PI;
-      el.style.setProperty('left', `${x}px`, 'important');
-      el.style.setProperty('top', `${y}px`, 'important');
-      el.style.setProperty(
-        'transform',
-        `translate(-50%, -50%) rotate(${rotDeg}deg)`,
-        'important'
-      );
-      el.style.setProperty('font-size', `${fontPx}px`, 'important');
-      // Feed CSS custom props used by the ::before/::after tick pseudo-elements.
-      // Same length on both ticks, asymmetric gaps so each tip lands on
-      // its respective donut edge.
-      el.style.setProperty('--pulse-tick-length', `${tickLength}px`);
-      el.style.setProperty('--pulse-tick-gap-before', `${gapBefore}px`);
-      el.style.setProperty('--pulse-tick-gap-after', `${gapAfter}px`);
-      // Contra-rotació pel text intern: la caixa pare està rotada per
-      // alinear els ticks; el `.pulse-number__text` torna a 0° absolut
-      // perquè el número visualment quedi dret (sempre mira cap avall).
-      el.style.setProperty('--pulse-number-counter-rot', `${-rotDeg}deg`);
-    });
+  numberEls = renderCircularRingNumbers(timeline, {
+    count: pulsosCompas,
+    label: (i) => `${i}<sup>1</sup>`
   });
 }
 

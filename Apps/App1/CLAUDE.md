@@ -20,17 +20,25 @@ randomització i tap resync.
 - `handleInput` només fa `solver.touch(id)` + `solver.resolve(valors)` i escriu el
   resultat. La resta (àudio, timeline, formula, liveTransportPush) intacta.
 
-## Timeline (nuzic)
-- `createCircularTimeline()` (compartit amb App16) renderitza punts + números.
-- El tema nuzic **amaga els punts** i mostra **números de pols** (barra cream amb
-  ticks). `circular-timeline.js` crida `updateNumbers()` DINS de `render()`, però
-  llavors `getPulses()` encara és l'array antic → en mode lineal els números no es
-  generaven. App1 (com App16) crida `timelineController.updateNumbers()` DESPRÉS
-  del render, amb `pulses` ja fresc. **Mode lineal: OK.**
-- **Mode circular (loop): PENDENT.** El donut cream viu a `Apps/App17/styles.css`
-  (no compartit) i el posicionament de números de `circular-timeline.js` no
-  encaixa amb l'anell (no contra-rota, offset radial). Cal portar l'enfocament
-  d'App17 ("Módulo Temporal - Círculo": donut + números per trigonometria).
+## Timeline (nuzic) — lineal + circular en loop
+- `createCircularTimeline()` (compartit amb App16) renderitza punts (amagats per
+  nuzic) + classes `.circular`. Els **números** els gestiona `refreshTimelineNumbers`:
+  - **Lineal** (per defecte): `timelineController.updateNumbers()` DESPRÉS del
+    render (cal: `circular-timeline.js` el crida DINS de `render()` quan
+    `getPulses()` encara és l'array antic → no es generaven; patró d'App16).
+    El tema nuzic els pinta com a barra cream amb ticks.
+  - **Circular** (loop ON): donut cream estil App17. Els números els posa el mòdul
+    compartit `circular-timeline-ring.js` (`renderCircularRingNumbers`): Lg punts
+    (0..Lg-1; el Lg coincideix amb el 0 al cim), via trigonometria. Es crida dins
+    d'un rAF perquè guanyi al rAF intern d'`applyCircularLayout`.
+- **Donut compartit**: el CSS (`.timeline.circular` etc.) viu a
+  `libs/shared-ui/nuzic-theme.css` i la geometria a `circular-timeline-ring.js`,
+  reutilitzats per **App17** ("Módulo Temporal - Círculo") i App1. Abans tot
+  vivia a `Apps/App17/styles.css`; unificat en aquesta tanda.
+- **Botó loop**: nuzic l'amaga per defecte (`.controls .loop { display:none }`);
+  App1 el mostra (override a `styles.css`, a la dreta de random, estètica verda).
+  El loop "doblega" la línia en cercle. `circularTimeline` (toggle dev) és `true`
+  per defecte, així loop ON ⇒ donut.
 
 ## Flow
 1. `bindAppRhythmElements('app1')` → elements (els LEDs s'eliminen a l'index.html)

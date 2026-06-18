@@ -9,6 +9,7 @@ import { createLiveTransportPush } from '../../libs/app-common/transport-live-up
 import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createFormulaSolver } from '../../libs/app-common/formula-solver.js';
+import { renderCircularRingNumbers } from '../../libs/app-common/circular-timeline-ring.js';
 import { createSimpleVisualSync } from '../../libs/app-common/visual-sync.js';
 import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
 import { createCircularTimeline } from '../../libs/app-common/circular-timeline.js';
@@ -444,18 +445,9 @@ function renderTimeline(){
     return;
   }
 
-  pulses = timelineController.render(lg, {
-    isCircular: loopEnabled && circularTimeline,
-    silent: true
-  });
-
-  // circular-timeline.js crida updateNumbers() DINS de render(), però en mode
-  // lineal ho fa abans que aquesta assignació acabi → getPulses() encara
-  // retorna l'array antic i els números no es generen (sota el tema nuzic, que
-  // amaga els punts, la timeline quedava buida). El tornem a cridar amb
-  // `pulses` ja fresc — mateix patró que App16. En circular ja s'autorepara
-  // via el rAF intern del layout.
-  timelineController.updateNumbers();
+  const isCircular = loopEnabled && circularTimeline;
+  pulses = timelineController.render(lg, { isCircular, silent: true });
+  refreshTimelineNumbers(isCircular);
 
   // Re-enable transitions after render completes
   requestAnimationFrame(() => {
@@ -466,9 +458,27 @@ function renderTimeline(){
 function animateTimelineCircle(isCircular, opts = {}){
   const silent = !!opts.silent;
   timelineController.setCircular(isCircular, { silent });
+  // El canvi de mode (loop / circular) no passa per renderTimeline → refresquem
+  // els números aquí també perquè el donut (circular) o la barra (lineal)
+  // quedin ben etiquetats.
+  refreshTimelineNumbers(isCircular);
 }
 
-// showNumber, removeNumber, updateNumbers now handled by timelineController
+// Números de la timeline segons el mode. Lineal: els genera circular-timeline.js
+// (cal cridar updateNumbers amb `pulses` ja fresc, vegeu renderTimeline).
+// Circular (loop): donut nuzic estil App17 via mòdul compartit — Lg punts
+// (0..Lg-1; el Lg coincideix amb el 0 al cim). El rAF assegura que els nostres
+// números s'escriuen DESPRÉS del rAF intern d'applyCircularLayout (que pintaria
+// els seus propis números solapats) i així guanyen.
+function refreshTimelineNumbers(isCircular){
+  const lg = parseInt(inputLg.value);
+  if (!Number.isFinite(lg) || lg <= 0) return;
+  if (isCircular) {
+    requestAnimationFrame(() => renderCircularRingNumbers(timeline, { count: lg }));
+  } else {
+    timelineController.updateNumbers();
+  }
+}
 
 async function startPlayback(providedAudio) {
   const lg = parseInt(inputLg.value);
