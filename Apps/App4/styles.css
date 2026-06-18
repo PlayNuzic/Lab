@@ -828,7 +828,10 @@ body[data-visual="nuzic"].app4 .crings-ring-group[data-ring-id="base"] {
   --crings-color: var(--nuzic-yellow-light, #ffeecc) !important; /* banda crema */
   --crings-light: #43433B !important;                            /* punts foscos */
 }
-body[data-visual="nuzic"].app4 .crings-ring-group[data-ring-id="base"] .crings-number {
+/* Els números s'afegeixen directament al <svg> (no dins del grup base), així
+   que cal apuntar-los a nivell de .crings-svg. Mateix fosc que els punts, per
+   contrast sobre la banda crema. */
+body[data-visual="nuzic"].app4 .crings-svg .crings-number {
   fill: #43433B; /* números foscos sobre la banda crema */
 }
 
