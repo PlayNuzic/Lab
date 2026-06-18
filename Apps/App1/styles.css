@@ -48,3 +48,29 @@ body[data-visual="nuzic"].app1 .controls:not([data-layout]) .loop.active {
   color: #ffffff !important;
   box-shadow: 0 0 10px #7cd6b3;
 }
+
+/* Endpoints de la timeline lineal (pols 0 i Lg). circular-timeline.js crea una
+   `.bar` vertical que travessa el número; l'amaguem. En el seu lloc, els ticks
+   ::before/::after dels endpoints es dibuixen DOBLES i gruixuts (`||` via
+   box-shadow, mateix patró que `.cycle-end` del nuzic-theme i que App9/11/12/15)
+   a dalt I a baix dels dos extrems. */
+body[data-visual="nuzic"].app1 .timeline .bar {
+  display: none !important;
+}
+
+body[data-visual="nuzic"].app1 .timeline .pulse-number.endpoint::before,
+body[data-visual="nuzic"].app1 .timeline .pulse-number.endpoint::after {
+  width: 2.5px !important;
+  opacity: 1 !important;
+  background: var(--nuzic-dark) !important;
+  box-shadow: 5px 0 0 0 var(--nuzic-dark) !important;
+  transform: translateX(calc(-50% - 2.5px)) !important;
+}
+
+/* Dark mode: el fons de la timeline és cream als dos modes, així que el traç
+   es manté fosc (hardcode per defugir el flip de tokens). */
+body[data-visual="nuzic"][data-theme="dark"].app1 .timeline .pulse-number.endpoint::before,
+body[data-visual="nuzic"][data-theme="dark"].app1 .timeline .pulse-number.endpoint::after {
+  background: #43433b !important;
+  box-shadow: 5px 0 0 0 #43433b !important;
+}

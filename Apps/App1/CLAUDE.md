@@ -26,7 +26,10 @@ randomització i tap resync.
   - **Lineal** (per defecte): `timelineController.updateNumbers()` DESPRÉS del
     render (cal: `circular-timeline.js` el crida DINS de `render()` quan
     `getPulses()` encara és l'array antic → no es generaven; patró d'App16).
-    El tema nuzic els pinta com a barra cream amb ticks.
+    El tema nuzic els pinta com a barra cream amb ticks. Els **endpoints** (pols
+    0 i Lg): s'amaga la `.bar` vertical que creava circular-timeline.js i els
+    ticks ::before/::after es fan **dobles+gruixuts** (`||`, estil `cycle-end`
+    d'App9/11/12/15) — override scoped a `.app1` a `styles.css`.
   - **Circular** (loop ON): donut cream estil App17. Els números els posa el mòdul
     compartit `circular-timeline-ring.js` (`renderCircularRingNumbers`): Lg punts
     (0..Lg-1; el Lg coincideix amb el 0 al cim), via trigonometria. Es crida dins
