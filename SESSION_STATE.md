@@ -32,7 +32,7 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
   fraccionats per cicle, mcm de denominadors (graella mínima), proporció
   polirítmica reduïda, T.
 
-### ESTAT 2026-06-18 (tot committejat; suite 78 suites / 1496 tests)
+### ESTAT 2026-06-18 (tot committejat; suite 79 suites / 1502 tests)
 
 El redisseny F1–F6.scroll està **fet i committejat** (ja no hi ha res "pendent
 de commit"). Després s'hi ha afegit:
@@ -57,6 +57,13 @@ de commit"). Després s'hi ha afegit:
 - **F7 — panell ∑ complet** ✅: mòdul pur `polyrhythm-info.js` (amb tests) +
   panell centrat amb general · taula per fracció (velocitat V·d/n) · proporció
   reduïda (ex. 6:8:9), recàlcul en viu.
+- **Layout responsive (pantalles petites/verticals)** ✅: fila de fraccions
+  governada per CSS (no JS; fora `setupFractionRowWidthSync`), `.fraction-group
+  { margin: 0 }` + `gap ≥ 1.85rem` → 3 fraccions sense scroll a ~375px; anells
+  `46vh` en `@media (max-height: 680px)`; controls una mica més amunt. **Inputs
+  Pulsos·Ciclos·BPM en UNA fila** en estret (commit 899ccc2): `column-gap:
+  clamp(0.5rem,2.5vw,1.5rem)` + input pastilla `width: clamp(2.4rem,6vw,4.5rem)`
+  amb `.app4`+!important (verificat 1 fila a 360/390/412px).
 
 Pendent: només **F8** (neteja Step 15 + README usuari + MODULES.md + arxiu a
 session-history). Vegeu sota.
@@ -571,8 +578,9 @@ session-history). Vegeu sota.
       - Recàlcul EN VIU mentre està obert (via handleInput). Icona ∑ (no hi ha
         símbol Unicode oficial de "matemàtiques"; triat per l'usuari).
 - [ ] **F8 — Neteja + docs**: auditoria Step 15 de la skill, README App4
-      (usuari), MODULES.md (circular-rings, circular-timeline-ring), arxiu a
-      docs/session-history/.
+      (usuari), MODULES.md (circular-rings, circular-timeline-ring,
+      formula-solver, polyrhythm-info), candidat a esborrar timeline-renderer.js
+      (sense consumidors des de F5b), arxiu a docs/session-history/.
 
 ### Notes de risc
 
@@ -607,7 +615,7 @@ session-history). Vegeu sota.
   (engine.normalizeSilences — mai silencis al final ni adjacents); l'editor
   els mostra com a caselles buides editables; tota mutació del model passa
   per applySequenceMutation.
-- Suite: 78 suites / 1496 tests — `npm test` després de cada batch; commits
+- Suite: 79 suites / 1502 tests — `npm test` després de cada batch; commits
   amb llista explícita de fitxers (sessions paral·leles comparteixen el repo).
 - Verificació CDP: events de confiança, cache desactivada, perfil net, i
   viewport gran (Emulation.setDeviceMetricsOverride) — un clic sota el fold
