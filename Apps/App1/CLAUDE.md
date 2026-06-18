@@ -79,8 +79,8 @@ l'ordre Lg→V→T derivava Lg i el treia de rang (Lg=27…).
 ## Dependencies
 `libs/app-common/` (audio.js, audio-init.js, audio-schedule.js, dom.js,
 **formula-solver.js**, random-menu.js, range.js, subdivision.js, utils.js,
-number-utils.js, visual-sync.js, simple-highlight-controller.js,
-circular-timeline.js), `libs/shared-ui/` (header, hover, nuzic-theme.css),
+number-utils.js, visual-sync.js, circular-timeline.js,
+**circular-timeline-ring.js**), `libs/shared-ui/` (header, hover, nuzic-theme.css),
 `libs/sound/index.js`
 
 ## Tests

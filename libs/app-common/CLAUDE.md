@@ -1,7 +1,7 @@
 # App-Common — Context for Claude
 
 ## Role
-Middleware layer between UI and TimelineAudio. 50 modules. Everything reusable across apps lives here.
+Middleware layer between UI and TimelineAudio. 54 modules. Everything reusable across apps lives here.
 
 ## Modules by Function
 
@@ -38,6 +38,12 @@ Middleware layer between UI and TimelineAudio. 50 modules. Everything reusable a
 **Rhythm & Notation:**
 - `pulse-selectability.js` — Pulse 0 and Lg are NOT directly selectable. Epsilon: `1e-6`
 
+**Polirítmia i geometria circular (redisseny App4/App1, 2026-06):**
+- `circular-rings.js` (+ `.css`) — `createCircularRings`: anells concèntrics polirítmics (App4). Cercle base (pols) + un anell per fracció; radi ∝ velocitat. State-in/events-out (`render`/`highlightPosition`/`onDotClick`). Helpers purs exportats per als tests (`idealRadius`, `resolveRadii`, `RING_GEOMETRY`, `saturatedAccent`…).
+- `circular-timeline-ring.js` — `renderCircularRingNumbers`: posiciona els números del donut circular per trigonometria (App1 en loop + App17). Comparteix el CSS `.timeline.circular` de `shared-ui/nuzic-theme.css`.
+- `formula-solver.js` — `createFormulaSolver`: resol Lg/V = T/60 amb el model "els dos últims editats manen" (recència); `touch`/`resolve` (App1).
+- `polyrhythm-info.js` — `computePolyrhythmInfo`: cicle gran (mcm dels numeradors reduïts), velocitats V·d/n, pulsos fracc/cicle i proporció polirítmica reduïda incloent el pols (panell ∑ d'App4). Mòdul pur, amb tests.
+
 ## MOVED to Sub-Packages (do NOT duplicate)
 - pulse-seq → `libs/pulse-seq/`
 - notation → `libs/notation/`
@@ -49,4 +55,4 @@ Middleware layer between UI and TimelineAudio. 50 modules. Everything reusable a
 - Audio init order — MELODIC apps: (1) load Tone.js, (2) wait user interaction, (3) Tone.start(). RHYTHM apps (A-08): gest → TimelineAudio natiu directe (context propi a 44100; Tone NO es carrega — el playback rítmic és worklet+BufferSource+GainNode i el mixer és només estat)
 
 ## Tests
-27+ suites in `__tests__/`: audio, audio-schedule, audio-toggles, fraction-editor, loop-resize, subdivision, tap-resync, simple-visual-sync, plus dedicated unit tests.
+38 suites in `__tests__/`: audio, audio-schedule, audio-toggles, fraction-editor, loop-resize, subdivision, tap-resync, simple-visual-sync, circular-rings, formula-solver, polyrhythm-info, plus dedicated unit tests.

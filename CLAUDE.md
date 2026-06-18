@@ -2,7 +2,7 @@
 
 ## Identity
 Monorepo for rhythmic/temporal music apps (Nuzic method). ES2022 modules, no build step, runs directly in browser.
-~70% shared code in `libs/`, individual apps in `Apps/`. 73 test suites, 1380+ tests.
+~70% shared code in `libs/`, individual apps in `Apps/`. 79 test suites, 1502 tests.
 
 ## Session Management (MANDATORY)
 - If `SESSION_STATE.md` exists at root → **READ IT FIRST** before any edit. It contains working features that must not break.
@@ -61,7 +61,7 @@ const audio = await initAudio();
 
 ## Reference Documentation (consult on demand, not loaded automatically)
 - `LAB_SYSTEM_RULES.md` — Complete technical rules for timing, audio, loop, mixer (12KB+)
-- `MODULES.md` — Full module index with import patterns
+- `docs/MODULES.md` — Full module index with import patterns
 - `docs/agents-context.md` — Detailed skill/agent documentation
 
 ## Commands

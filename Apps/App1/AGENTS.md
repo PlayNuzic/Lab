@@ -1,44 +1,63 @@
 ## Propòsit
-- Visualitzar la fórmula temporal (Lg, V, T) i recalcular automàticament el tercer
-  paràmetre segons el mode manual/auto.
-- Sincronitzar el timeline lineal/circular amb `TimelineAudio` i el mixer global.
-- Exposar un laboratori ràpid per provar randomització i resynchronització de tap.
+- Visualitzar la fórmula temporal **Lg/V = T/60** amb tres camps (Lg, V, T) i
+  derivar-ne el tercer automàticament. Tema nuzic.
+- Sincronitzar la timeline (lineal; circular en loop) amb `TimelineAudio` i el
+  mixer global. Laboratori ràpid de randomització i resync de tap.
+
+> Detall complet a `Apps/App1/CLAUDE.md`. L'App1 original (sistema manual/auto amb
+> LEDs clicables) es conserva CONGELADA a **App1B** — no es toca.
 
 ## Flux principal
-1. `bindAppRhythmElements('app1')` retorna `elements`, `leds` i `ledHelpers` per a
-   tots els controls. `createRhythmLEDManagers` governa els LEDs auto/manual.
+1. `bindAppRhythmElements('app1')` retorna `elements` (els LEDs s'han eliminat de
+   l'index.html; NO hi ha `createRhythmLEDManagers`). `reorderControls()` munta la
+   fila nuzic; el botó **loop** es fa visible (override a styles.css) perquè
+   "doblega" la línia en cercle.
 2. `createSchedulingBridge` + `bindSharedSoundEvents` connecten els events
-   `sharedui:*` (mute, so base/accent/start) procedents de la capçalera.
-3. `createRhythmAudioInitializer` prepara `TimelineAudio` lazy; `startPlayback`
-   i `stopPlayback` en fan ús i sincronitzen loop/mute.
-4. `mergeRandomConfig` + `initRandomMenu` gestionen la configuració persistent del
-   menú aleatori (`randomDefaults` + `toRange`).
-5. `computeResyncDelay` i `scheduleTapResync` reallineen el tap tempo usant
-   `audio.getVisualState()` i `toPlaybackPulseCount`.
-6. `syncLEDsWithInputs` manté coherència entre inputs manual/auto i lògica de
-   `manualHistory` (mantenir dos camps manuals actius).
+   `sharedui:*` (mute, so base/accent/start) de la capçalera.
+3. `createRhythmAudioInitializer` prepara `TimelineAudio` lazy; `startPlayback` /
+   `stopPlayback` sincronitzen loop/mute. `playbackTotal = lg` (no Lg+1).
+4. **Auto-tercer "els dos últims editats manen"**: NO hi ha mode manual/auto ni
+   bloquejos — els tres camps sempre són editables. `formula-solver.js`
+   (`createFormulaSolver`) recorda els dos camps tocats més recentment i recalcula
+   el tercer. `handleInput` només fa `solver.touch(id)` + `solver.resolve(valors)`.
+5. `mergeRandomConfig` + `initRandomMenu` gestionen la config persistent del menú
+   aleatori (clau `random`). `randomize()` randomitza els 2 conductors marcats i el
+   solver deriva el tercer (el primer NO marcat; tots marcats → deriva T). ⚠️
+   `preferenceStorage` es declara ABANS del bloc random (si no, TDZ → persistència
+   sempre a defaults).
+6. `computeResyncDelay` + `scheduleTapResync` reallineen el tap tempo amb
+   `audio.getVisualState()`.
+
+## Timeline i highlight
+- `createCircularTimeline()` (compartit amb App16) renderitza punts + classes;
+  els números els gestiona `refreshTimelineNumbers(isCircular)`:
+  - **Lineal**: `timelineController.updateNumbers()` després del render; endpoints
+    (0 i Lg) amb ticks dobles+gruixuts (`||`); l'últim pols Lg com a `·`.
+  - **Circular** (loop ON): donut cream; els números via
+    `circular-timeline-ring.js` (`renderCircularRingNumbers`, trigonometria),
+    CSS `.timeline.circular` compartit a `shared-ui/nuzic-theme.css` (App17 + App1).
+- **Highlight de playback**: `visualSync.onStep → highlightStep(step)` pinta el
+  `.pulse-number` actiu (lineal `.active` sobre `data-index`; circular
+  `.active`/`.active-zero` sobre `step % Lg`). NO s'usa
+  `simple-highlight-controller` (pintava dots) — substituït per `visual-sync.js`.
 
 ## Estat i emmagatzematge
-- `localStorage` clau `random` desa rangs Lg/V/T i toggles del menú aleatori.
-- `manualHistory`, `autoTarget` i `pulses` són estructures locals per evitar
-  inconsistències entre UI i càlcul automàtic.
-- Flags locals: `isPlaying`, `loopEnabled`, `circularTimeline`, `pendingMute` i
-  `tapResyncTimeout`.
+- `localStorage` `app1:*` + clau `random` (rangs Lg/V/T i toggles). Defaults
+  Lg [2,16], V [40,200], T [0.1,20].
+- Flags locals: `isPlaying`, `loopEnabled`, `circularTimeline`, `tapResyncTimeout`.
 
 ## Dependències compartides
 - `libs/app-common/` (`audio.js`, `audio-init.js`, `audio-schedule.js`, `dom.js`,
-  `led-manager.js`, `random-menu.js`, `range.js`, `subdivision.js`, `utils.js`,
-  `number-utils.js`, `simple-visual-sync.js`, `simple-highlight-controller.js`,
-  `circular-timeline.js`).
-- `libs/shared-ui/hover.js` per tooltips.
-- `libs/sound/index.js` indirectament via `createRhythmAudioInitializer`.
+  **`formula-solver.js`**, `random-menu.js`, `range.js`, `subdivision.js`,
+  `utils.js`, `number-utils.js`, `visual-sync.js`, `circular-timeline.js`,
+  **`circular-timeline-ring.js`**).
+- `libs/shared-ui/` (header, hover, nuzic-theme.css), `libs/sound/index.js`.
 
 ## Controllers creats
-- **timelineController**: `createCircularTimeline()` - Gestiona rendering timeline circular/linear
-- **highlightController**: `createSimpleHighlightController()` - Highlighting de pulsos amb loop
-- **visualSync**: `createSimpleVisualSync()` - Sincronització visual amb requestAnimationFrame
-- **numberFormatter**: Funcions `parseNum()` i `formatSec()` per parseo/format de números
+- **timelineController**: `createCircularTimeline()` — render lineal/circular.
+- **visualSync**: `createSimpleVisualSync()` — sync visual amb requestAnimationFrame.
+- **numberFormatter**: `parseNum()` / `formatSec()` per parseig/format.
 
 ## Tests
-No hi ha suite específica d'App1; confia en les proves dels mòduls compartits.
-Abans de fer commit executa `npm test` a l'arrel.
+`libs/app-common/__tests__/formula-solver.test.js` cobreix la lògica de la fórmula
+i la recència. La resta via mòduls compartits. `npm test` abans de fer commit.

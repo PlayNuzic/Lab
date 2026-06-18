@@ -1,172 +1,78 @@
-# App4 · Pulsos Fraccionados
+# App4 · Metrónomo Fracción
 
-App4 explora la generación de secuencias de pulsos fraccionarios sobre la timeline compartida del Lab. Permite fijar un número de pulsos (`Lg`), una velocidad (`V`) y una fracción personalizada (`n/d`) que se proyecta tanto en el grid lineal como en la vista circular. Toda la interacción está pensada para ratón y pantallas táctiles mediante _drag_, _long press_ y accesos rápidos desde teclado.
+Eina de **polirítmia**: superposa fins a **3 fraccions** (n/d) sobre un pols base
+i les representa com a **anells concèntrics**. Cada fracció és una veu pròpia, amb
+el seu color i el seu radi segons la velocitat. Pensada per a ratolí i tàctil.
 
-## Flujo general de la UI
+## Què fa
 
-1. El `template` común (`renderApp`) genera la cabecera compartida, los selectores de sonido y el área de edición (`pulseSeq`).
-2. Al arrancar se aplican los `led` y unidades (`unitLg`, `unitV`, `unitT`) para guiar la edición de parámetros.
-3. El editor de fracciones (`inlineFractionSlot`) expone campos `n` y `d` con placeholders fantasma que ayudan a visualizar la fracción incluso cuando los inputs están vacíos.
-4. El menú aleatorio (`randomMenu`) puede habilitar rangos independientes para Lg, V, número de pulsos aleatorios y fracciones completas con la opción "Permitir fracciones complejas".
-5. Cada cambio re-calcula el layout (`layoutTimeline`) y sincroniza la vista circular/lineal, incluidos los números de pulso (`updatePulseNumbers`).
-6. Los hits fraccionarios comparten el mismo layout polar que los marcadores (`cycle-marker`), de modo que la animación queda tangente al círculo en la vista circular.
+- **Pols base** (cercle exterior, en crema) marca la pulsació de referència.
+- Cada **fracció n/d** afegeix un anell: com més ràpida (d/n gran), més enfora.
+  - F1 groc · F2 rosa · F3 blau. n ∈ [1,7], d ∈ [1,12].
+- Quan totes les fraccions i el pols **coincideixen** al principi es tanca un
+  **cicle complet**; l'app et diu quants n'hi caben (vegeu Pulsos/Ciclos).
 
-## Audio y sincronización
+## Com s'usa
 
-- `createSchedulingBridge` escucha `sharedui:scheduling` desde la cabecera y aplica _lookAhead_ / _updateInterval_ tan pronto como `TimelineAudio` está disponible.
-- `bindSharedSoundEvents` enruta eventos `sharedui:sound` para actualizar `setBase`, `setAccent` y `setStart` en el motor de audio.
-- `initAudio()` instancia `TimelineAudio`, espera a `ready()`, registra el canal `accent` en el mixer y sincroniza _loop_, _pulse_ y _cycle_ según el estado actual de la UI.
-- El menú de rendimiento (`performance-audio-menu.js`) queda inyectado en `index.html` para comprobar la latencia real del motor.
-- `initSoundDropdown` reutiliza el dropdown compartido que llama a `ensureAudio()` y pre-escucha el sample al cambiarlo.
-- `createHighlightController` + `createVisualSyncManager` gobiernan ahora el _highlight_ de pulsos enteros, fracciones y ciclos; la app deja de mantener duplicados locales y reutiliza la duración animada basada en el BPM/resolución.
-- **Sincronización de notación**: El cursor de la partitura se sincroniza automáticamente durante playback mediante `visual-sync.js`, que obtiene el `notationRenderer` dinámicamente vía getter function (`getNotationRenderer: () => notationRenderer`).
+- **Afegir / treure fraccions**: el control **+ / −** a la dreta de les caixes
+  (fins a 3; el "+" es desactiva amb 3 fraccions, el "−" amb 0).
+- **Editar una fracció**: escriu n (a dalt) i d (a baix) a la caixa, o fes servir
+  els seus spinners.
+- **Pulsos / Ciclos** (pastilles de dalt):
+  - **Pulsos** (editable) = nombre total de pulsos (Lg). El seu spinner salta de
+    **cicle complet en cicle complet**.
+  - **Ciclos** (només lectura) = quantes vegades coincideixen totes les fraccions
+    amb el pols (= Pulsos ÷ cicle gran). Depèn de les fraccions actives.
+- **BPM**: velocitat del pols base (per defecte 90).
+- **Seleccionar pulsos**: fes **clic** sobre els punts d'un anell (els enters al
+  cercle base; les subdivisions a cada anell de fracció) o sobre la **partitura**.
+  Els pulsos seleccionats sonen amb el so del seu canal.
+- **Play** reprodueix **sempre en bucle**.
 
-## Estructura de datos
+## Botons de la fila de controls
 
-- `pulseMemory` conserva las selecciones activas por índice y se restablece al aplicar aleatoriedad en Pulsos.
-- Las fracciones se almacenan con `persistFractionField` en `localStorage` (`app4:n`, `app4:d`).
-- La configuración del menú aleatorio se serializa en `app4:random` y utiliza los helpers compartidos de `random-config` para normalizar los límites.
-- El estado del tema, color de selección y toggles de audio se guarda con `storeKey()` bajo el prefijo `app4:`.
+- **Play · Random · Tap · Partitura · ∑ · Reset**.
+- **Random** 🎲: sorteja Lg, V, n/d de les fraccions actives i una selecció de
+  pulsos. El menú (clic dret / tecla Menú) ajusta els rangs.
+- **Tap**: marca el tempo donant 3 tocs.
+- **Partitura** 🎼: obre una vista de pentagrames apilats (un per fracció + el
+  pols base), amb cops simultanis alineats i un cursor durant la reproducció.
+  Inclou **exportació a PNG**.
+- **∑**: obre el panell amb la **matemàtica** de la combinació:
+  - cicle gran (mcm dels numeradors), Ciclos, durada T = Lg·60/V, mcm dels
+    denominadors;
+  - per fracció: velocitat **V·d/n**, pulsos fraccionats per cicle;
+  - **proporció polirítmica reduïda** incloent el pols (p. ex. pols + 3/4 + 2/3 →
+    **6 : 8 : 9**).
+  Es recalcula en viu mentre edites; es tanca clicant fora.
+- **Mixer** (long-press al mute o tecla Menú): un canal per a cada fracció i la
+  seva selecció, cadascun amb el seu **selector d'instrument**.
 
-## Importes relevantes
+## Per a desenvolupadors
 
-| Módulo | Propósito |
+Sense build: ES2022 directe al navegador. Lògica a `main.js`; estat de selecció a
+`fraction-selection.js`. Mòduls compartits clau:
+
+| Mòdul | Propòsit |
 | --- | --- |
-| `../../libs/app-common/audio.js` | `createSchedulingBridge` y `bindSharedSoundEvents` (scheduling global + eventos de sonido). |
-| `../../libs/app-common/random-menu.js` | Animación y persistencia del menú aleatorio. |
-| `../../libs/app-common/mixer-menu.js` | Entrada al mixer global: long-press al Play, clic dret/tecla Menú (U-04) i events `nuzic:mixer:*`. |
-| `../../libs/app-common/subdivision.js` | Conversión entre Lg/V/T y grid para pintar la timeline. |
-| `../../libs/sound/index.js` | Motor `TimelineAudio`, mixer global y utilidades `ensureAudio`, `setBase`, `setAccent`, `setStart`. |
-| `../../libs/shared-ui/performance-audio-menu.js` | Menú flotante que expone _lookAhead_ y _updateInterval_ efectivos. |
-| `../../libs/app-common/pulse-seq-parser.js` | Parseo y validación de tokens del campo de secuencia de pulsos. |
-| `../../libs/app-common/pulse-seq-state.js` | Gestión de estado de pulseSeq (pulseMemory + fractionStore). |
-| `../../libs/app-common/pulse-seq-editor.js` | Editor de secuencia con navegación por gaps y eventos de teclado. |
-| `../../libs/app-common/highlight-controller.js` | Sistema de highlighting para pulsos enteros, fracciones y ciclos. |
-| `../../libs/app-common/visual-sync.js` | Loop de sincronización visual con requestAnimationFrame para highlighting y cursor de notación. |
-| `../../libs/app-common/timeline-renderer.js` | Renderizado modular de timeline con soporte de fracciones, pulsos, ciclos y memoria. |
-| `../../libs/app-common/random-fractional.js` | Lógica de randomización de fracciones y pulsos extraída de main.js. |
-| `../../libs/app-common/notation-renderer.js` | Controlador completo de notación musical con VexFlow (render, clicks, estado). |
-| `../../libs/app-common/formula-renderer.js` | Generador de fórmulas musicales HTML (Lg·d/n, V base, V fracción, T). |
-| `../../libs/app-common/info-tooltip.js` | Tooltip flotante con auto-hide en scroll/resize y posicionamiento relativo. |
-| `../../libs/app-common/t-indicator.js` | Indicador T simplificado con control de texto y visibilidad (sin auto-posicionamiento). |
+| `../../libs/app-common/circular-rings.js` (+ `.css`) | Anells concèntrics: cercle base + un anell per fracció, radi ∝ velocitat, clic per seleccionar. |
+| `../../libs/app-common/polyrhythm-info.js` | `computePolyrhythmInfo`: cicle gran, velocitats, pulsos/cicle i proporció reduïda (panell ∑). |
+| `../../libs/notation/notation-system.js` | Sistema de N pentagrames apilats en 1 SVG amb 1 formatter (cops alineats, scroll i playhead únics). |
+| `../../libs/app-common/fraction-editor.js` | Editor de cada caixa n/d (mode `block`). |
+| `../../libs/app-common/visual-sync.js` | Highlight de playback per posició sobre els anells. |
+| `../../libs/sound/index.js` | `TimelineAudio`: cicle base + veus polirítmiques (`setVoices`), mixer i `setChannelSound`. |
 
-## Atajos y gestos
-
-- **Click / tap**: alterna la selección del pulso bajo el cursor.
-- **Arrastre** sobre `pulseSeq`: activa/desactiva múltiples pulsos en bloque.
-- **Shift + Click**: invierte el estado del rango entre la última selección y el pulso actual.
-- **Long press** sobre el botón de mute: abre el mixer global (canales `pulse`, `subdivision`, `accent`).
+L'App4 lineal original (pulseSeq + LEDs + timeline) es conserva CONGELADA a
+**App4B**. L'arquitectura detallada és a `Apps/App4/CLAUDE.md` i el redisseny
+complet a `SESSION_STATE.md`.
 
 ## Tests
 
-App4 comparte la suite de Jest común (24 test suites, 280 tests). Después de instalar dependencias con `./setup.sh`, ejecuta:
-
 ```bash
-npm test
+npm test                                          # tota la suite (79 suites)
+npm test -- --testPathPattern="polyrhythm-info"   # matemàtica polirítmica
+npm test -- --testPathPattern="circular-rings"    # geometria dels anells
 ```
 
-Esto cubre tanto los módulos compartidos (`libs/app-common`, `libs/sound`) como los _helpers_ utilizados por la app.
-
-**Tests relevantes para App4**:
-- `libs/app-common/__tests__/notation-utils.test.js` - Construcción de eventos de notación (Oct 2025)
-- `libs/app-common/__tests__/subdivision.test.js` - Cálculos temporales
-- `libs/app-common/__tests__/fraction-editor.test.js` - Editor de fracciones
-- `libs/app-common/__tests__/pulse-seq.test.js` - Secuenciador de pulsos
-- `libs/app-common/__tests__/audio.test.js` - Bridges de scheduling
-
-## Historial de cambios significativos
-
-### 2025-10-08: Mejoras en `notation-utils.js` - Sistema de Notación Rítmica
-- **5 fixes consecutivos** aplicados al módulo compartido `libs/app-common/notation-utils.js`
-- **Objetivo**: Renderizado correcto de partituras con VexFlow para fracciones con tuplets y pulsos remainder
-- **Fixes aplicados**:
-  1. Inclusión del pulso Lg y protección del pulso 0 (d7d174b)
-  2. Exclusión del pulso Lg - reversión del punto 1 (488f114)
-  3. Inclusión de TODOS los múltiplos del numerador (3280dfe)
-  4. Pulsos remainder siempre como negras (996b3cf)
-  5. Protección contra sobrescritura por fractionalSelections (2d83386)
-- **Impacto**: Notación musical más precisa en App2 y App4
-- **Tests**: 280 tests pasando en `notation-utils.test.js`
-
-### 2025-10-07: Refactorización FASE 5 - Timeline Renderer Modular
-- **Cambio**: Extracción de `renderTimeline()` completo a módulo reutilizable
-- **Módulo creado**: `libs/app-common/timeline-renderer.js` (640 líneas)
-- **Reducción**: main.js de 3574 → 3308 líneas (266 líneas, 7.4%)
-- **Funciones extraídas**: 8 funciones principales de renderizado
-- **Validación**: ✅ Todos los tests manuales pasaron exitosamente
-  - Diferentes valores de Lg (2-10, 16-32, 64+)
-  - Fracciones simples y complejas (1/2, 3/5, 5/7)
-  - Memoria de fracciones al cambiar Lg
-  - Clicks en pulsos y fracciones
-  - Highlighting durante playback con cursor sincronizado
-
-### 2025-10-07: FASE 7 - Extracción Notation Renderer
-- **Cambio**: Toda la lógica de notación musical extraída a módulo reutilizable
-- **Módulo creado**: `libs/app-common/notation-renderer.js` (225 líneas)
-- **Funciones extraídas**:
-  - `buildNotationRenderState()` - Construcción de estado para VexFlow
-  - `renderIfVisible()` - Renderizado condicional de partitura
-  - `handleClick()` - Gestión de clicks en notación
-  - `inferNotationDenominator()` - Cálculo de denominador de notación
-- **Reducción**: main.js de 3296 → 3152 líneas (144 líneas, 4.4%)
-- **Total acumulado**: 1073 líneas reducidas desde inicio (25.4% del original 4225)
-- **Integración**: Factory pattern con callbacks para setPulseSelected y setFractionSelected
-- **Validación**: Pendiente tests manuales de clicks y cursor sincronizado
-
-### 2025-10-07: FASE 6 - UX Mejora "Activar fracciones complejas"
-- **Cambio**: Migración del checkbox "Permitir fracciones complejas" del menú random a opciones globales
-- **Implementación**:
-  - Checkbox añadido en `libs/shared-ui/header.js` y `libs/app-common/template.js`
-  - Persistencia en `localStorage.enableComplexFractions` (default: `false`)
-  - Métodos `setSimpleMode()`/`setComplexMode()` en `fraction-editor.js`
-  - Placeholder dinámico: `1/d` (modo simple) vs `n/d` (modo complejo)
-  - Módulo `libs/app-common/random-fractional.js` creado (234 líneas)
-  - Función `randomize()` reemplazada en main.js con factory pattern
-  - Limpieza de `allowComplex` en `fraction-selection.js`
-- **Reducción**: main.js de 3308 → 3296 líneas (12 líneas adicionales)
-- **Total acumulado**: 929 líneas reducidas desde inicio (22% del original)
-- **UX**: Cuando está desactivado, el numerador queda fijado en "1" (no editable, spinners deshabilitados)
-
-### 2025-10-07: Fix cursor de notación sincronizado
-- **Problema**: El cursor de la partitura no se movía durante playback.
-- **Causa**: `visual-sync.js` esperaba `getNotationRenderer` como función getter, pero `main.js` lo pasaba como objeto directo.
-- **Solución**: Línea 2788 - Cambio de `notationRenderer` a `getNotationRenderer: () => notationRenderer`.
-- **Resultado**: El cursor ahora se sincroniza correctamente con el audio, moviéndose por la partitura durante la reproducción.
-
-### 2025-10-08: Refactorización FASE 8 - Fórmulas y Tooltips ✅
-- **Cambio**: Extracción de lógica de fórmulas musicales y tooltips a módulos reutilizables
-- **Módulos creados**:
-  - `libs/app-common/formula-renderer.js` (181 líneas) - Factory function con formatters personalizables
-  - `libs/app-common/info-tooltip.js` (147 líneas) - Tooltip flotante con auto-hide
-- **Reducción**: main.js de 3152 → 3035 líneas (117 líneas, 3.7%)
-- **Funciones extraídas**:
-  - `buildFormulaFragment()` - Generación de fórmulas HTML
-  - `formatNumberValue()`, `formatInteger()`, `formatBpmValue()` - Formatters
-  - `ensureTitleInfoTip()`, `showTitleInfoTip()`, `hideTitleInfoTip()` - Tooltip lifecycle
-- **API limpia**: `createFormulaRenderer()` y `createInfoTooltip()` con factory pattern
-- **Validación**: ✅ Tooltip funciona correctamente con auto-hide en scroll/resize
-- **Total acumulado**: 1190 líneas reducidas desde inicio (28.2% del original 4225)
-
-### 2025-10-08: Refactorización FASE 9 - T Indicator Simplificado ✅
-- **Cambio**: Extracción de T Indicator a módulo simple sin lógica de posicionamiento automático
-- **Módulo creado**:
-  - `libs/app-common/t-indicator.js` (91 líneas) - Factory function con formateo a 1 decimal
-- **Reducción neta**: main.js de 3035 → 2977 líneas (58 líneas, 1.9%)
-  - Eliminadas: 67 líneas de código complejo (funciones + constantes + listeners)
-  - Añadidas: 9 líneas de integración con controller
-- **Funciones eliminadas**:
-  - `updateTIndicatorText()` - Reemplazada por `tIndicatorController.updateText()`
-  - `updateTIndicatorPosition()` - Eliminada (posicionamiento ahora vía CSS)
-  - `scheduleTIndicatorReveal()` - Eliminada (control simplificado con show/hide)
-  - `T_INDICATOR_TRANSITION_DELAY` constante
-  - `tIndicatorRevealHandle` variable
-- **Simplificaciones**:
-  - Eliminado parámetro `tIndicator` de `createFractionalTimelineRenderer()`
-  - Eliminada preservación de tIndicator en timeline.innerHTML (timeline-renderer.js)
-  - Eliminado event listener de resize para tIndicator
-  - Posicionamiento ahora controlado por CSS de la app
-- **API limpia**: `createTIndicator()` con métodos `updateText()`, `show()`, `hide()`
-- **Fixes aplicados**:
-  - Commit ad380b3: Reemplazada última llamada a updateTIndicatorText() en handleInput()
-  - Commit 3af0eb8: Eliminado parámetro tIndicator de createFractionalTimelineRenderer
-- **Total acumulado**: 1248 líneas reducidas desde inicio (29.5% del original 4225)
+La partitura (`notation-system`) es verifica amb Chrome real (CDP); jsdom no fa
+layout SVG.
