@@ -8,7 +8,7 @@ import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subd
 import { createLiveTransportPush } from '../../libs/app-common/transport-live-update.js';
 import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
-import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
+import { createFormulaSolver } from '../../libs/app-common/formula-solver.js';
 import { createSimpleVisualSync } from '../../libs/app-common/visual-sync.js';
 import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
 import { createCircularTimeline } from '../../libs/app-common/circular-timeline.js';
@@ -33,14 +33,14 @@ bindSharedSoundEvents({
 });
 // Bind all DOM elements using new utilities
 // Bind all DOM elements using app-specific utilities (App1 has all elements)
-const { elements, leds, ledHelpers } = bindAppRhythmElements('app1');
+const { elements } = bindAppRhythmElements('app1');
 
-// Create LED managers for Lg, V, T parameters
-const ledManagers = createRhythmLEDManagers(leds);
+// Resol la 3a incògnita de Lg/V = T/60 (model "els dos últims editats manen").
+const solver = createFormulaSolver();
 
 // Extract commonly used elements for backward compatibility
 const { inputLg, inputV, inputT, inputTUp, inputTDown, inputVUp, inputVDown,
-        inputLgUp, inputLgDown, ledLg, ledV, ledT, unitLg, unitV, unitT,
+        inputLgUp, inputLgDown, unitLg, unitV, unitT,
         formula, timelineWrapper, timeline, playBtn, loopBtn, resetBtn,
         tapBtn, tapHelp, circularTimelineToggle, themeSelect, selectColor, baseSoundSelect,
         startSoundSelect, randomBtn, randomMenu, randLgToggle, randLgMin, randLgMax,
@@ -54,9 +54,6 @@ let isPlaying = false;
 let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let circularTimeline = false;
-let autoTarget = null;               // 'Lg' | 'V' | 'T' | null
-// Track manual selection recency (oldest -> newest among the two manual LEDs)
-let manualHistory = [];
 let tapResyncTimeout = null;
 
 // Highlight controller for pulse visualization
@@ -174,11 +171,8 @@ applyRandomConfig(randomConfig);
   randTToggle, randTMin, randTMax
 ].forEach(el => el?.addEventListener('change', updateRandomConfig));
 
-// Hovers for LEDs and controls
-// LEDs ahora indican los campos editables; el apagado se recalcula
-attachHover(ledLg, { text: 'Entrada manual de "Lg"' });
-attachHover(ledV, { text: 'Entrada manual de "V"' });
-attachHover(ledT, { text: 'Entrada manual de "T"' });
+// Hovers for controls (els LEDs s'han eliminat: els tres camps són sempre
+// editables i el tercer es deriva sol).
 attachHover(playBtn, { text: 'Play / Stop' });
 attachHover(loopBtn, { text: 'Loop' });
 attachHover(tapBtn, { text: 'Tap Tempo' });
@@ -195,93 +189,6 @@ attachHover(randTMin, { text: 'Mínimo T' });
 attachHover(randTMax, { text: 'Máximo T' });
 
 initRandomMenu(randomBtn, randomMenu, randomize);
-
-// Helper: current manual keys from DOM (those whose LED should be ON)
-function getManualKeys(){
-  const keys = [];
-  if (inputLg.dataset.auto !== '1') keys.push('Lg');
-  if (inputV.dataset.auto !== '1') keys.push('V');
-  if (inputT.dataset.auto !== '1') keys.push('T');
-  return keys;
-}
-
-// Keep manualHistory consistent with current DOM state while preserving existing order when possible
-function syncManualHistory(){
-  const manual = new Set(getManualKeys());
-  // Keep only still-manual keys, preserving order
-  manualHistory = manualHistory.filter(k => manual.has(k));
-  // Add any missing manual keys at the end (treated as most-recent without better info)
-  ['Lg','V','T'].forEach(k => { if (manual.has(k) && !manualHistory.includes(k)) manualHistory.push(k); });
-  // Clamp to at most 2
-  if (manualHistory.length > 2) manualHistory = manualHistory.slice(-2);
-}
-
-// New behavior: clicking a LED selects it as MANUAL. We always keep exactly 2 manuals; the other goes AUTO.
-function setAuto(target) {
-  // Ensure history reflects DOM before changing
-  syncManualHistory();
-
-  const inputs = { Lg: inputLg, V: inputV, T: inputT };
-  const isManual = inputs[target].dataset.auto !== '1';
-
-  // If target is already manual, just mark it as the latest selected (affects which one turns off next time)
-  if (isManual) {
-    manualHistory = manualHistory.filter(k => k !== target);
-    manualHistory.push(target);
-    updateAutoIndicator();
-    return;
-  }
-
-  // Target is currently AUTO -> make it MANUAL, turning OFF the last turned-on manual to keep 2
-  const currentManual = getManualKeys();
-  if (currentManual.length === 0) {
-    // Fallback: if something odd happened, choose an arbitrary other manual so we end with 2
-    const other = ['Lg','V','T'].find(k => k !== target) || 'Lg';
-    const autoKey = ['Lg','V','T'].find(k => k !== target && k !== other) || 'T';
-    setAutoExact(autoKey, { recalc: true });
-    manualHistory = [other, target];
-    return;
-  }
-  if (currentManual.length === 1) {
-    const otherManual = currentManual[0];
-    const autoKey = ['Lg','V','T'].find(k => k !== otherManual && k !== target);
-    setAutoExact(autoKey, { recalc: true });
-    manualHistory = [otherManual, target];
-    return;
-  }
-  // Normal case: 2 manuals present
-  syncManualHistory();
-  const toTurnOff = manualHistory.length ? manualHistory[manualHistory.length - 1] : currentManual[currentManual.length - 1];
-  const otherManual = currentManual.find(k => k !== toTurnOff);
-  // Set the one to turn off as AUTO; recalc so its value is derived
-  setAutoExact(toTurnOff, { recalc: true });
-  // Update manual recency: older stays, target becomes newest
-  manualHistory = [otherManual, target];
-}
-
-// Set autoTarget explicitly (no toggle). Used when computing the 3rd value from 2 known.
-function setAutoExact(target, opts = {}){
-  const { recalc = false } = opts;
-  autoTarget = target;
-  delete inputLg.dataset.auto;
-  delete inputV.dataset.auto;
-  delete inputT.dataset.auto;
-  if (autoTarget === 'Lg') inputLg.dataset.auto = '1';
-  else if (autoTarget === 'V') inputV.dataset.auto = '1';
-  else if (autoTarget === 'T') inputT.dataset.auto = '1';
-
-  // Update LED managers to reflect auto state
-  ledHelpers.setLedAuto('Lg', autoTarget === 'Lg');
-  ledHelpers.setLedAuto('V', autoTarget === 'V');
-  ledHelpers.setLedAuto('T', autoTarget === 'T');
-
-  updateAutoIndicator();
-  if (recalc) handleInput();
-}
-
-ledLg?.addEventListener('click', () => setAuto('Lg'));
-ledV?.addEventListener('click', () => setAuto('V'));
-ledT?.addEventListener('click', () => setAuto('T'));
 
 // Create preference storage for App1
 const preferenceStorage = createPreferenceStorage({ prefix: 'app1', separator: ':' });
@@ -409,50 +316,6 @@ unitBindings.attachAll();
 
 [inputLg, inputV, inputT].forEach(el => el.addEventListener('input', handleInput));
 updateFormula();
-updateAutoIndicator();
-
-const inputToLed = new Map([
-  [inputLg, ledLg],
-  [inputV, ledV],
-  [inputT, ledT],
-]);
-
-const autoTip = document.createElement('div');
-autoTip.className = 'hover-tip auto-tip-below';
-autoTip.textContent = 'Introduce valores en los otros dos círculos, o selecciona este LED para editar el valor';
-document.body.appendChild(autoTip);
-let autoTipTimeout = null;
-
-function showAutoTip(input){
-  const rect = input.getBoundingClientRect();
-  autoTip.style.left = rect.left + rect.width / 2 + 'px';
-  // Show below the input (use bottom instead of top)
-  autoTip.style.top = rect.bottom + window.scrollY + 'px';
-  autoTip.classList.add('show');
-  clearTimeout(autoTipTimeout);
-  // Display twice as long as before
-  autoTipTimeout = setTimeout(() => autoTip.classList.remove('show'), 4000);
-}
-
-function flashOtherLeds(excludeInput){
-  const excludeLed = inputToLed.get(excludeInput);
-  [ledLg, ledV, ledT].forEach(led => {
-    if (led && led !== excludeLed) {
-      led.classList.add('flash');
-      setTimeout(() => led.classList.remove('flash'), 800);
-    }
-  });
-}
-
-[inputLg, inputV, inputT].forEach(input => {
-  input.addEventListener('beforeinput', (e) => {
-    if (input.dataset.auto === '1') {
-      showAutoTip(input);
-      flashOtherLeds(input);
-      e.preventDefault();
-    }
-  });
-});
 
 function setValue(input, value){
   isUpdating = true;
@@ -475,19 +338,8 @@ function adjustT(delta){
   inputT.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-// Guard: if LED is off (auto), show tip and do nothing
-function guardManual(input){
-  if (input?.dataset?.auto === '1'){
-    showAutoTip(input);
-    flashOtherLeds(input);
-    return false;
-  }
-  return true;
-}
-
-
-addRepeatPress(inputTUp,   () => adjustT(1), { guard: () => guardManual(inputT) });
-addRepeatPress(inputTDown, () => adjustT(-1), { guard: () => guardManual(inputT) });
+addRepeatPress(inputTUp,   () => adjustT(1));
+addRepeatPress(inputTDown, () => adjustT(-1));
 
 // Unified spinner behavior for number inputs (V, Lg)
 function stepAndDispatch(input, dir){
@@ -495,74 +347,35 @@ function stepAndDispatch(input, dir){
   if (dir > 0) input.stepUp(); else input.stepDown();
   input.dispatchEvent(new Event('input', { bubbles: true }));
 }
-addRepeatPress(inputVUp,   () => stepAndDispatch(inputV, +1), { guard: () => guardManual(inputV) });
-addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1), { guard: () => guardManual(inputV) });
-addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1), { guard: () => guardManual(inputLg) });
-addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1), { guard: () => guardManual(inputLg) });
+addRepeatPress(inputVUp,   () => stepAndDispatch(inputV, +1));
+addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1));
+addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1));
+addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1));
+
+// Inputs corresponents a cada clau de la fórmula.
+const formulaInputs = { Lg: inputLg, V: inputV, T: inputT };
 
 function handleInput(e){
-  const lg = parseNum(inputLg.value);
-  const v  = parseNum(inputV.value);
-  const t  = parseNum(inputT.value);
-  const src = e && e.target ? e.target.id : '';
-
-  // criteri de “valor informat” (mateix que tens ara)
-  const hasLg = !isNaN(lg) && lg > 0;
-  const hasV  = !isNaN(v)  && v  > 0;
-  const hasT  = !isNaN(t)  && t  > 0;
-
-  // tallafocs reentrància i marcatges auto/manual
+  // tallafocs reentrància (evita re-entrar quan el solver escriu el valor derivat)
   if (isUpdating) return;
 
-  // comptem quants camps estan informats
-  const knownCount = (hasLg ? 1 : 0) + (hasV ? 1 : 0) + (hasT ? 1 : 0);
-  const twoKnown   = knownCount === 2;
-  const threeKnown = knownCount === 3;
+  // Registra quin camp s'acaba d'editar perquè el solver derivi el tercer
+  // (model "els dos últims editats manen"). Els spinners disparen 'input'
+  // amb e.target a l'input corresponent, igual que escriure.
+  const id = e?.target?.id;
+  if (id === 'inputLg') solver.touch('Lg');
+  else if (id === 'inputV') solver.touch('V');
+  else if (id === 'inputT') solver.touch('T');
 
-  // helpers (escriuen valor)
-  const calcT = () => {
-    if (!(hasLg && hasV)) return;
-    const info = fromLgAndTempo(lg, v);
-    if (!info || info.duration == null) return;
-    const rounded = Math.round(info.duration * 100) / 100; // 2 decimals màxim
-    setValue(inputT, rounded);                              // punt a l'input; la fórmula ja mostra coma
-  };
-  const calcV = () => {
-    if (!(hasLg && hasT) || t === 0) return;
-    const vBpm     = (lg * 60) / t;
-    const vRounded = Math.round(vBpm * 100) / 100;
-    setValue(inputV, vRounded);
-  };
-  const calcLg = () => {
-    if (!(hasV && hasT)) return;
-    const lgCount = (v * t) / 60;
-    setValue(inputLg, Math.round(lgCount)); // Lg enter
-  };
-
-  // decisió
-  if (twoKnown) {
-    // sempre calcula la tercera que falta i fixa l'autoTarget a aquest camp
-    if (!hasT) {
-      calcT();
-      if (autoTarget !== 'T') setAutoExact('T');
-    }
-    else if (!hasV) {
-      calcV();
-      if (autoTarget !== 'V') setAutoExact('V');
-    }
-    else if (!hasLg) {
-      calcLg();
-      if (autoTarget !== 'Lg') setAutoExact('Lg');
-    }
-  } else if (threeKnown && autoTarget) {
-    if (autoTarget === 'T')      calcT();
-    else if (autoTarget === 'V') calcV();
-    else if (autoTarget === 'Lg')calcLg();
-  }
+  const result = solver.resolve({
+    Lg: parseNum(inputLg.value),
+    V:  parseNum(inputV.value),
+    T:  parseNum(inputT.value)
+  });
+  if (result) setValue(formulaInputs[result.key], result.value);
 
   updateFormula();
   renderTimeline();
-  updateAutoIndicator();
   // Si canvia Lg mentre està sonant, refresquem la selecció viva filtrant 0 i lg.
   // A-13: el push va col·lapsat (liveTransportPush) — abans cada tecla
   // empenyia transitòries al worklet (escrivint '240': bpm=2 → interval de
@@ -636,6 +449,14 @@ function renderTimeline(){
     silent: true
   });
 
+  // circular-timeline.js crida updateNumbers() DINS de render(), però en mode
+  // lineal ho fa abans que aquesta assignació acabi → getPulses() encara
+  // retorna l'array antic i els números no es generen (sota el tema nuzic, que
+  // amaga els punts, la timeline quedava buida). El tornem a cridar amb
+  // `pulses` ja fresc — mateix patró que App16. En circular ja s'autorepara
+  // via el rAF intern del layout.
+  timelineController.updateNumbers();
+
   // Re-enable transitions after render completes
   requestAnimationFrame(() => {
     timeline.classList.remove('no-anim');
@@ -648,17 +469,6 @@ function animateTimelineCircle(isCircular, opts = {}){
 }
 
 // showNumber, removeNumber, updateNumbers now handled by timelineController
-
-function updateAutoIndicator(){
-  // Los LEDs encendidos son los campos editables; el apagado se recalcula
-  // Using LED helpers for consistent state management
-  ledHelpers.setLedActive('Lg', inputLg.dataset.auto !== '1');
-  ledHelpers.setLedActive('V', inputV.dataset.auto !== '1');
-  ledHelpers.setLedActive('T', inputT.dataset.auto !== '1');
-
-  // Sync LED managers with input states
-  syncLEDsWithInputs(ledManagers, elements);
-}
 
 async function startPlayback(providedAudio) {
   const lg = parseInt(inputLg.value);
