@@ -98,6 +98,10 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
 // anells: fora la classe .timeline perquè cap estil compartit de línia de
 // temps (línia, fons crema del tema nuzic) no s'hi apliqui.
 timeline.className = 'rings-host';
+// Accent de selecció UNIFICAT per a tots els anells (seleccionat/actiu/origen):
+// verd nuzic. Concepte únic "seleccionat = verd", vistós sobre qualsevol banda
+// (fosca o de color). Sobreescriu el default del mòdul (versió saturada per anell).
+const RING_SELECT_ACCENT = 'var(--nuzic-green)';
 const rings = createCircularRings({
   container: timeline,
   onDotClick: handleRingDotClick
@@ -1530,6 +1534,9 @@ function renderRings() {
       denominator: fraction.denominator,
       color: slot?.ringColor || '#43433B',
       lightColor: slot?.ringLightColor || '#eee8d8',
+      // Accent de selecció UNIFICAT: verd nuzic a tots els anells (concepte
+      // únic "seleccionat = verd", visible sobre qualsevol banda).
+      accentColor: RING_SELECT_ACCENT,
       label: '', // sense etiqueta de text a l'anell (les caixes ja mostren n/d)
       dots
     };
@@ -1537,7 +1544,11 @@ function renderRings() {
 
   // Cercle base sense etiqueta de text: els números al voltant ja indiquen
   // que és la graella de polsos (l'usuari va demanar treure el "Pulso").
-  rings.render({ lg, bigCycle, base: { label: '', dots: baseDots }, fractions });
+  rings.render({
+    lg, bigCycle,
+    base: { label: '', dots: baseDots, accentColor: RING_SELECT_ACCENT },
+    fractions
+  });
   renderNotationIfVisible();
 }
 

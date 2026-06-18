@@ -16,13 +16,23 @@
 .crings-ring-group {
   --crings-color: #43433B; /* anell base fosc nuzic */
   --crings-light: #eee8d8;
+  /* Accent de CONTRAST per als estats plens (selected/active/pols 0). El
+     consumidor el pot fixar per anell (circular-rings.js → --crings-accent);
+     per defecte recau al color de l'anell (comportament anterior). */
+  --crings-accent: var(--crings-color);
 }
 
 .crings-ring {
   fill: none;
   stroke: var(--crings-color);
-  stroke-width: 3;
+  stroke-width: 32; /* banda de fracció (coincideix amb RING_GEOMETRY.RING_STROKE) */
   opacity: 0.85;
+}
+
+/* Anell base (pulsos): el doble d'ample — hi viuen punts + números
+   (coincideix amb RING_GEOMETRY.BASE_STROKE). */
+.crings-ring--base {
+  stroke-width: 64;
 }
 
 .crings-dot {
@@ -34,17 +44,22 @@
   transition: transform 0.08s ease-out;
 }
 
-/* Seleccionat: ple del color d'identitat + lleuger engrandiment + glow. */
+/* Seleccionat: ple de l'ACCENT de contrast + engrandiment + glow (l'accent fa
+   que ressalti sobre la banda gruixuda, que és del color de l'anell). */
 .crings-dot--selected {
-  fill: var(--crings-color);
+  fill: var(--crings-accent);
+  stroke: var(--crings-accent);
   transform: scale(1.25);
-  filter: drop-shadow(0 0 3px var(--crings-color));
+  filter: drop-shadow(0 0 4px var(--crings-accent));
 }
 
-/* Punt actiu de reproducció: ple + engrandit (toggle barat de classe). */
+/* Punt actiu de reproducció: accent + engrandit + glow (playhead, ha de saltar
+   a la vista sobre la banda). */
 .crings-dot--active {
-  fill: var(--crings-color);
+  fill: var(--crings-accent);
+  stroke: var(--crings-accent);
   transform: scale(1.55);
+  filter: drop-shadow(0 0 5px var(--crings-accent));
 }
 
 /* No seleccionable (ex. endpoint 0): apagat i sense clic. */
@@ -54,6 +69,17 @@
   cursor: default;
 }
 
+/* Pols 0 (origen): contorn BUIT de l'accent, opac i amb glow → es llegeix com a
+   àncora, no com a selecció. Va DESPRÉS de --nonselectable per recuperar
+   l'opacitat (manté pointer-events:none, que no es toca). */
+.crings-dot--endpoint {
+  fill: none;
+  stroke: var(--crings-accent);
+  stroke-width: 3;
+  opacity: 1;
+  filter: drop-shadow(0 0 4px var(--crings-accent));
+}
+
 /* Etiqueta de l'anell ("Pols", "3/2"...) al capdamunt de cada cercle. */
 .crings-label {
   fill: var(--crings-color);
@@ -61,9 +87,9 @@
   font-weight: 700;
 }
 
-/* Números dels pulsos base, per fora de l'anell base. */
+/* Números dels pulsos base, DINS de la banda base ampla → clars sobre el fosc. */
 .crings-number {
-  fill: #43433B;
+  fill: #eee8d8;
   font-weight: 400;
 }
 

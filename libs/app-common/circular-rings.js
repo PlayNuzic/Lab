@@ -36,10 +36,18 @@ export const RING_GEOMETRY = Object.freeze({
   C: 290,                  // centre (x = y)
   R0: 155,                 // radi de l'anell base (referència fixa)
   RMIN: 42,                // clamp inferior del radi ideal
-  RMAX: 256,               // clamp superior absolut
-  GAP: 30,                 // separació mínima entre anells
+  RMAX: 270,               // clamp superior absolut (pujat perquè 4 bandes de
+                           //   32px càpiguen sense solapar quan totes les
+                           //   fraccions són ràpides → totes cap enfora)
+  GAP: 40,                 // separació mínima entre anells (≥ RING_STROKE perquè
+                           //   les bandes gruixudes no se solapin)
+  RING_STROKE: 32,         // gruix de la banda de fracció (unitats de viewBox →
+                           //   escala amb la mida renderitzada; coincideix amb el CSS)
+  BASE_STROKE: 64,         // l'anell base (pulsos) és el doble d'ample: hi caben
+                           //   els punts (part exterior) i els números (interior).
+                           //   Creix cap ENDINS (vora exterior fixa) → no mou les
+                           //   fraccions. Coincideix amb el CSS .crings-ring--base.
   INNER_CLAMP_MARGIN: 14,  // el clamp final permet RMIN - 14 cap endins
-  LABEL_OFFSET: 22,        // radi dels números = radi base + offset
   MIN_LABEL_SPACING: 18,   // px d'arc mínims perquè càpiguen tots els números
   CYCLE_LINE_OVERHANG: 8,  // les línies de cicle sobresurten 8px de l'anell base
   MAX_CYCLE_LINES: 24,     // més línies que això → s'espaien
@@ -48,15 +56,69 @@ export const RING_GEOMETRY = Object.freeze({
 });
 
 const {
-  C, R0, RMIN, RMAX, GAP, INNER_CLAMP_MARGIN, LABEL_OFFSET,
+  C, R0, RMIN, RMAX, GAP, RING_STROKE, BASE_STROKE, INNER_CLAMP_MARGIN,
   MIN_LABEL_SPACING, CYCLE_LINE_OVERHANG, MAX_CYCLE_LINES,
   NEEDLE_OVERHANG, DEFAULT_K
 } = RING_GEOMETRY;
+
+// L'anell base ample creix cap endins: la vora exterior es manté a R0+RING_STROKE/2
+// (les fraccions, col·locades respecte de R0, no es mouen). Centerline de la banda:
+const baseBandCenter = (baseRadius) => baseRadius - (BASE_STROKE - RING_STROKE) / 2;
+// Radi dels números: terç INTERIOR de la banda base ampla (clars, sobre el fosc;
+// per sota dels punts, que viuen a la part exterior a baseRadius).
+const baseNumberRadius = (baseRadius) => baseBandCenter(baseRadius) - BASE_STROKE / 3;
 
 const BASE_COLOR = '#43433B';
 const BASE_LIGHT = '#eee8d8';
 
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+
+/**
+ * Versió SATURADA del color d'un anell, per als punts plens (selected/active) i
+ * l'origen. Augmenta el croma; els colors FOSCOS s'aclareixen perquè es vegin
+ * sobre la seva pròpia banda (un fosc saturat seguiria sent fosc → invisible),
+ * i els clars/vius s'aprofundeixen. Manté el to → harmònic amb l'anell.
+ * Retorna el color tal qual si no és un hex pla.
+ * @param {string} color - Color de l'anell (#rgb o #rrggbb)
+ * @returns {string} Hex saturat
+ */
+export function saturatedAccent(color) {
+  if (typeof color !== 'string') return color;
+  let hex = color.trim().replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map((c) => c + c).join('');
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return color;
+  const r = parseInt(hex.slice(0, 2), 16) / 255;
+  const g = parseInt(hex.slice(2, 4), 16) / 255;
+  const b = parseInt(hex.slice(4, 6), 16) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  const l = (mx + mn) / 2;
+  let h = 0, s = 0;
+  if (mx !== mn) {
+    const d = mx - mn;
+    s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    if (mx === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h /= 6;
+  }
+  const s2 = Math.min(1, s * 1.4 + 0.2);
+  const l2 = l < 0.4 ? 0.46 : Math.max(0.3, l * 0.8);
+  const hue2rgb = (p, q, t) => {
+    if (t < 0) t += 1; if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+  let R = l2, G = l2, B = l2;
+  if (s2 !== 0) {
+    const q = l2 < 0.5 ? l2 * (1 + s2) : l2 + s2 - l2 * s2;
+    const p = 2 * l2 - q;
+    R = hue2rgb(p, q, h + 1 / 3); G = hue2rgb(p, q, h); B = hue2rgb(p, q, h - 1 / 3);
+  }
+  const to = (x) => Math.round(x * 255).toString(16).padStart(2, '0');
+  return `#${to(R)}${to(G)}${to(B)}`;
+}
 
 /**
  * Angle (radians) d'una posició en pulsos sobre el cercle.
@@ -107,8 +169,12 @@ export function resolveRadii(actives = [], k = DEFAULT_K) {
     list[i].r = Math.max(list[i].r, list[i - 1].r + GAP);
   }
   // Endins per sota de la base: cadascun com a màxim GAP per sota del següent.
+  // La fracció ADJACENT a la base necessita clearança EXTRA perquè la banda base
+  // és ampla i s'estén (BASE_STROKE − RING_STROKE) més endins que una de normal.
+  const baseExtraInward = BASE_STROKE - RING_STROKE;
   for (let i = bi - 1; i >= 0; i--) {
-    list[i].r = Math.min(list[i].r, list[i + 1].r - GAP);
+    const gapHere = GAP + (list[i + 1].fixed ? baseExtraInward : 0);
+    list[i].r = Math.min(list[i].r, list[i + 1].r - gapHere);
   }
   const out = {};
   list.forEach((x) => { out[x.id] = clamp(x.r, RMIN - INNER_CLAMP_MARGIN, RMAX); });
@@ -123,7 +189,9 @@ export function resolveRadii(actives = [], k = DEFAULT_K) {
  * @returns {number}
  */
 export function computeLabelStep(lg, baseRadius = R0) {
-  const labelSpacing = (2 * Math.PI * (baseRadius + LABEL_OFFSET)) / lg;
+  // Números al terç interior de la banda base ampla: circumferència menor que a
+  // fora → el "mode rellotge" entra una mica abans (correcte).
+  const labelSpacing = (2 * Math.PI * baseNumberRadius(baseRadius)) / lg;
   return labelSpacing >= MIN_LABEL_SPACING
     ? 1
     : Math.ceil(MIN_LABEL_SPACING / labelSpacing);
@@ -169,7 +237,9 @@ export function computeCycleLineStep(lg, bigCycle) {
  */
 export function dotMetrics(count, radius, isBase = false) {
   const spacing = (2 * Math.PI * radius) / count;
-  const dotR = clamp(spacing * 0.3, 1.2, isBase ? 7 : 6);
+  // Cap del radi: 10 a tots els anells (base i fracció; unitats de viewBox →
+  // escalen amb la mida renderitzada). Densos: segueixen reduint-se per spacing.
+  const dotR = clamp(spacing * 0.3, 1.2, 10);
   const strokeWidth = clamp(dotR * 0.4, 1, 2.5);
   return { spacing, dotR, strokeWidth };
 }
@@ -302,6 +372,7 @@ export function createCircularRings({ container, k = DEFAULT_K, onDotClick = nul
       {
         id: 'base', isBase: true, r: radii.base,
         color: base.color || BASE_COLOR, lightColor: base.lightColor || BASE_LIGHT,
+        accentColor: base.accentColor,
         step: 1, count: currentLg, label: base.label ?? 'Pols',
         dotsInfo: base.dots || []
       },
@@ -310,6 +381,7 @@ export function createCircularRings({ container, k = DEFAULT_K, onDotClick = nul
         return {
           id: f.id, isBase: false, r: radii[f.id],
           color: f.color, lightColor: f.lightColor,
+          accentColor: f.accentColor,
           step,
           // Sempre exacte per disseny: Lg és múltiple del cicle de cada fracció.
           count: Math.round(currentLg / step),
@@ -331,12 +403,22 @@ export function createCircularRings({ container, k = DEFAULT_K, onDotClick = nul
       // servir per als estats selected/active sense conèixer cada anell.
       group.style.setProperty('--crings-color', ring.color);
       group.style.setProperty('--crings-light', ring.lightColor);
+      // Accent dels estats plens (selected/active/pols 0): per defecte, una
+      // VERSIÓ SATURADA del color de l'anell (harmònic i visible sobre la banda
+      // gruixuda); el consumidor el pot sobreescriure per anell (ring.accentColor)
+      // — p. ex. App4 usa el verd nuzic per a l'anell base fosc.
+      group.style.setProperty('--crings-accent', ring.accentColor || saturatedAccent(ring.color));
 
+      // L'anell base es dibuixa ample i cap ENDINS (centerline desplaçada) perquè
+      // hi càpiguen punts (exterior, a ring.r) + números (interior); la vora
+      // exterior es manté a ring.r+RING_STROKE/2 → les fraccions no es mouen.
+      const circleR = ring.isBase ? baseBandCenter(ring.r) : ring.r;
       const circle = svgEl('circle', {
-        cx: C, cy: C, r: ring.r,
-        fill: 'none', stroke: ring.color, 'stroke-width': 3, opacity: 0.85
+        cx: C, cy: C, r: circleR,
+        fill: 'none', stroke: ring.color, opacity: 0.85
       });
       circle.classList.add('crings-ring');
+      if (ring.isBase) circle.classList.add('crings-ring--base');
       group.appendChild(circle);
 
       // Lookup d'estat per índex (admet llistes disperses).
@@ -396,8 +478,9 @@ export function createCircularRings({ container, k = DEFAULT_K, onDotClick = nul
       ringCaches.push({ id: ring.id, step: ring.step, count: ring.count, dots, lastActive: null });
     }
 
-    // ── números dels pulsos base (mode rellotge si no hi caben) ──
-    const numberR = radii.base + LABEL_OFFSET;
+    // ── números dels pulsos base, al terç INTERIOR de la banda ampla ──
+    // (clars, sobre el fosc de la banda; per sota dels punts, a la part exterior).
+    const numberR = baseNumberRadius(radii.base);
     const labelStep = computeLabelStep(currentLg, radii.base);
     const fontSize = labelStep > 1 ? 11 : 13;
     for (const { index, isCycleStart } of computeLabelList(currentLg, bigCycle, radii.base)) {
@@ -405,7 +488,7 @@ export function createCircularRings({ container, k = DEFAULT_K, onDotClick = nul
       const t = svgEl('text', {
         x: C + numberR * Math.cos(a), y: C + numberR * Math.sin(a) + 4,
         'font-size': fontSize, 'font-weight': isCycleStart ? 900 : 400,
-        fill: BASE_COLOR, 'text-anchor': 'middle'
+        fill: BASE_LIGHT, 'text-anchor': 'middle'
       });
       t.classList.add('crings-number');
       if (isCycleStart) t.classList.add('crings-number--cycle');

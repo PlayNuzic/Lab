@@ -350,13 +350,9 @@ body.app4 .rings-host .crings-svg {
   height: auto;
 }
 
-/* El punt 0 (origen del cicle) és endpoint: visible i ple del color de
-   l'anell, però no clicable (el mòdul ja li treu el pointer). Guanya la
-   regla genèrica --nonselectable (opacity 0.3) per ordre de càrrega. */
-body.app4 .crings-dot--endpoint {
-  opacity: 1;
-  fill: var(--crings-color);
-}
+/* El punt 0 (origen) ara és contorn BUIT de l'accent (definit a
+   circular-rings.css: fill none, stroke --crings-accent, opacity 1, glow). No
+   cal override local. */
 
 /* Tipografia Ubuntu per a números i etiquetes dels anells */
 body.app4 .crings-svg text {

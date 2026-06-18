@@ -14,10 +14,13 @@ import {
   computeLabelList,
   computeCycleLineStep,
   dotMetrics,
+  saturatedAccent,
   RING_GEOMETRY
 } from '../circular-rings.js';
 
-const { R0, RMIN, RMAX, GAP, INNER_CLAMP_MARGIN } = RING_GEOMETRY;
+const { R0, RMIN, RMAX, GAP, RING_STROKE, BASE_STROKE, INNER_CLAMP_MARGIN } = RING_GEOMETRY;
+// Centerline de la banda base ampla (creix cap endins, vora exterior fixa).
+const BASE_BAND_CENTER = R0 - (BASE_STROKE - RING_STROKE) / 2;
 
 describe('idealRadius', () => {
   it('s=1 → exactament R0 (mateixa velocitat que el pols)', () => {
@@ -57,11 +60,11 @@ describe('resolveRadii', () => {
     expect(radii.f1).toBeCloseTo(idealRadius(4), 9); // l'ideal ja respecta el GAP
   });
 
-  it('fracció més lenta (3/2) queda per dins, a GAP de la base', () => {
+  it('fracció més lenta (3/2) queda per dins, esquivant la banda base ampla', () => {
     const radii = resolveRadii([{ id: 'f1', numerator: 3, denominator: 2 }]);
     expect(radii.base).toBe(R0);
-    // ideal ≈ 134.5 > R0 − GAP → empès endins fins a 125
-    expect(radii.f1).toBeCloseTo(R0 - GAP, 9);
+    // adjacent a la base ampla → GAP + (BASE_STROKE − RING_STROKE) de clearança
+    expect(radii.f1).toBeCloseTo(R0 - GAP - (BASE_STROKE - RING_STROKE), 9);
   });
 
   it('dues fraccions iguals se separen exactament GAP', () => {
@@ -87,9 +90,9 @@ describe('resolveRadii', () => {
       { id: 'f3', numerator: 7, denominator: 8 }  // s=8/7 → ideal ~162.4
     ]);
     expect(radii.base).toBe(R0);
-    expect(radii.f2).toBeCloseTo(R0 - GAP, 9);          // endins: 125
-    expect(radii.f3).toBeCloseTo(R0 + GAP, 9);          // enfora: 185 (ideal 162.4 < 185)
-    expect(radii.f1).toBeCloseTo(idealRadius(4), 9);    // ~251.8 ≥ 185 + GAP
+    expect(radii.f2).toBeCloseTo(R0 - GAP - (BASE_STROKE - RING_STROKE), 9); // endins, esquiva banda ampla
+    expect(radii.f3).toBeCloseTo(R0 + GAP, 9);          // enfora: 195 (ideal 162.4 < 195)
+    expect(radii.f1).toBeCloseTo(idealRadius(4), 9);    // ~251.8 ≥ 195 + GAP
     expect(radii.f1 - radii.f3).toBeGreaterThanOrEqual(GAP);
   });
 
@@ -123,19 +126,21 @@ describe('computeLabelStep / computeLabelList', () => {
   it('lg=210 → mode rellotge (pas > 1)', () => {
     const step = computeLabelStep(210);
     expect(step).toBeGreaterThan(1);
-    // spacing = 2π·177/210 ≈ 5.30 → pas = ceil(18/5.30) = 4
-    expect(step).toBe(4);
+    // números al terç interior de la banda ampla: r ≈ 117.7 → spacing ≈ 3.52
+    // → pas = ceil(18/3.52) = 6
+    expect(step).toBe(6);
   });
 
   it('els múltiples de bigCycle SEMPRE s\'etiqueten, encara que el pas els salti', () => {
-    const labels = computeLabelList(210, 30);
+    const labels = computeLabelList(210, 7);
     const indices = labels.map((l) => l.index);
-    for (let i = 0; i < 210; i += 30) {
+    for (let i = 0; i < 210; i += 7) {
       expect(indices).toContain(i);
       expect(labels.find((l) => l.index === i).isCycleStart).toBe(true);
     }
-    // i 30 NO és múltiple del pas 4: hi és només perquè és inici de cicle
-    expect(30 % computeLabelStep(210)).not.toBe(0);
+    // 7 NO és múltiple del pas (5): la majoria d'inicis de cicle hi són només
+    // perquè són inici de cicle, no perquè caiguin al pas d'etiquetatge.
+    expect(7 % computeLabelStep(210)).not.toBe(0);
   });
 
   it('els inicis de cicle es marquen com a isCycleStart i la resta no', () => {
@@ -170,14 +175,48 @@ describe('dotMetrics', () => {
     expect(dotR).toBeGreaterThanOrEqual(1.2);
   });
 
-  it('anell base poc dens → dotR al màxim de base (7)', () => {
+  it('anell base poc dens → dotR al màxim de base (10)', () => {
     const { dotR, strokeWidth } = dotMetrics(8, R0, true);
-    expect(dotR).toBe(7);
+    expect(dotR).toBe(10);
     expect(strokeWidth).toBe(2.5);
   });
 
-  it('anell de fracció poc dens → dotR al màxim de fracció (6)', () => {
-    expect(dotMetrics(8, R0, false).dotR).toBe(6);
+  it('anell de fracció poc dens → dotR al màxim de fracció (10, igual que base)', () => {
+    expect(dotMetrics(8, R0, false).dotR).toBe(10);
+  });
+});
+
+describe('saturatedAccent', () => {
+  const hsl = (hex) => {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    const l = (mx + mn) / 2;
+    const s = mx === mn ? 0 : (l > 0.5 ? (mx - mn) / (2 - mx - mn) : (mx - mn) / (mx + mn));
+    return { s, l };
+  };
+
+  it('retorna un hex de 6 dígits', () => {
+    expect(saturatedAccent('#FFBB33')).toMatch(/^#[0-9a-f]{6}$/);
+  });
+
+  it('un color clar/viu queda més saturat i no més clar (s\'aprofundeix)', () => {
+    const out = hsl(saturatedAccent('#FFBB33'));
+    const src = hsl('#FFBB33');
+    expect(out.s).toBeGreaterThanOrEqual(src.s - 1e-9);
+    expect(out.l).toBeLessThanOrEqual(src.l);
+  });
+
+  it('un color fosc s\'aclareix (per ser visible sobre la seva banda)', () => {
+    const out = hsl(saturatedAccent('#43433B'));
+    expect(out.l).toBeGreaterThan(hsl('#43433B').l);
+    expect(out.l).toBeGreaterThanOrEqual(0.4);
+  });
+
+  it('admet hex de 3 dígits i retorna no-hex tal qual', () => {
+    expect(saturatedAccent('#f93')).toMatch(/^#[0-9a-f]{6}$/);
+    expect(saturatedAccent('var(--nuzic-green)')).toBe('var(--nuzic-green)');
   });
 });
 
@@ -290,8 +329,9 @@ describe('createCircularRings (DOM)', () => {
     it('la fracció lenta (3/2) es dibuixa per dins de la base', () => {
       const rBase = Number(container.querySelector('[data-ring-id="base"] .crings-ring').getAttribute('r'));
       const rF1 = Number(container.querySelector('[data-ring-id="f1"] .crings-ring').getAttribute('r'));
-      expect(rBase).toBe(R0);
-      expect(rF1).toBeCloseTo(R0 - GAP, 6);
+      // El cercle base es dibuixa a la centerline de la banda ampla (cap endins).
+      expect(rBase).toBe(BASE_BAND_CENTER);
+      expect(rF1).toBeCloseTo(R0 - GAP - (BASE_STROKE - RING_STROKE), 6);
     });
 
     it('lg=0 o invàlid → buida el dibuix sense llançar', () => {
@@ -302,7 +342,7 @@ describe('createCircularRings (DOM)', () => {
   });
 
   describe('mode rellotge i espaiat de línies (lg gran)', () => {
-    it('lg=210: números amb pas 4 + inicis de cicle, font 11', () => {
+    it('lg=210: números amb pas 6 + inicis de cicle, font 11', () => {
       rings.render({ lg: 210, bigCycle: 30, base: { dots: [] }, fractions: [] });
       const numbers = container.querySelectorAll('.crings-number');
       expect(numbers).toHaveLength(computeLabelList(210, 30).length);
