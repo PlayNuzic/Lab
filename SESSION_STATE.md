@@ -465,6 +465,20 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
         woff2 de VexFlow) — sense incrustar-la els caps surten com a rectangles
         ("tofu") perquè l'SVG-com-a-imatge no veu les fonts de la pàgina. Una lib
         de PDF no ho hauria evitat. Commit f1871d4.
+      **Millores visuals dels anells (circular-rings, 2026-06-18):**
+      - Bandes gruixudes: fraccions `RING_STROKE = 32`; punts r≤10 (a `dotMetrics`).
+      - Accent de selecció: per defecte el mòdul deriva `saturatedAccent()` (versió
+        saturada del color de l'anell); App4 unifica el **verd nuzic** a tots els
+        anells. Seleccionat/actiu = accent ple + glow; **pols 0 = contorn buit**.
+      - `GAP 30→40` i `RMAX 256→270` perquè 4 bandes de 32px no se solapin quan
+        totes les fraccions van cap enfora.
+      - Anell base **el doble d'ample** (`BASE_STROKE = 64`), creix cap ENDINS
+        (vora exterior fixa → no mou les fraccions): hi caben els **números**
+        (terç interior, clars sobre el fosc) i els **punts** (part exterior). Les
+        fraccions lentes (cap endins) reben clearança extra a `resolveRadii` per
+        esquivar la banda base ampla. (Abans els números, fora o al centre,
+        solapaven amb les fraccions/punts a Lg alt.)
+      - Tests de `circular-rings.test.js` actualitzats + `saturatedAccent`.
       ---- història de la verificació de viabilitat ----
       **Viabilitat de ticks VERIFICADA** (script docs/app4-tick-feasibility.mjs):
       - El pentagrama BASE "Pulso" és l'ÀNCORA: cada fracció cau sobre un pols

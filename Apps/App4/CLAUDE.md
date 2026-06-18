@@ -26,6 +26,16 @@ i es visualitza com un anell amb el seu radi segons la velocitat.
   (pols, referència R₀ fixa) + un anell per fracció activa. **Radi ∝
   velocitat**: `r = R₀·(d/n)^0.35`, després separació mínima (GAP) i clamp.
   Densitat adaptativa (mida de punt, etiquetatge "rellotge", línies de cicle).
+- **Bandes gruixudes**: fraccions `RING_STROKE = 32`; l'anell base (pulsos) és el
+  doble (`BASE_STROKE = 64`) i creix cap ENDINS (vora exterior fixa → no mou les
+  fraccions) per encabir-hi els **números** (terç interior, clars sobre el fosc)
+  i els **punts** (part exterior). Les fraccions lentes (cap endins) esquiven la
+  banda base ampla amb clearança extra. `RMAX = 270` perquè 4 bandes de 32px
+  càpiguen sense solapar. Punts r≤10.
+- **Accent de selecció**: App4 unifica el **verd nuzic** (`var(--nuzic-green)`)
+  per a seleccionats/actiu/origen a TOTS els anells (el mòdul, per defecte,
+  derivaria `saturatedAccent()` = versió saturada del color de cada anell). El
+  **pols 0** és un contorn BUIT de l'accent (origen, no selecció).
 - **Selecció per CLIC** (no hi ha editor de text): als anells (enters al cercle
   base, ticks fraccionats a cada anell de fracció) o a la partitura — totes dues
   vies escriuen el MATEIX estat (vegeu §Partitura per al hit-test del clic).
