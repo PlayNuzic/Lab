@@ -58,7 +58,7 @@ export function renderCircularRingNumbers(timeline, { count, label = (i) => Stri
  * @param {HTMLElement} timeline
  * @param {HTMLElement[]} els
  */
-export function positionCircularRingNumbers(timeline, els) {
+function positionCircularRingNumbers(timeline, els) {
   if (!timeline || !els || !els.length) return;
   const n = els.length;
 

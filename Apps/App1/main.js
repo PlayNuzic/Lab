@@ -42,8 +42,8 @@ const solver = createFormulaSolver();
 const { inputLg, inputV, inputT, inputTUp, inputTDown, inputVUp, inputVDown,
         inputLgUp, inputLgDown, unitLg, unitV, unitT,
         formula, timelineWrapper, timeline, playBtn, loopBtn, resetBtn,
-        tapBtn, tapHelp, circularTimelineToggle, themeSelect, selectColor, baseSoundSelect,
-        startSoundSelect, randomBtn, randomMenu, randLgToggle, randLgMin, randLgMax,
+        tapBtn, tapHelp, circularTimelineToggle, themeSelect, selectColor,
+        randomBtn, randomMenu, randLgToggle, randLgMin, randLgMax,
         randVToggle, randVMin, randVMax, randTToggle, randTMin, randTMax } = elements;
 
 // Mute is handled by shared header (#muteBtn). Listen for events instead.
@@ -76,7 +76,7 @@ function highlightStep(step){
   if (el) el.classList.add(isCircular && idx === 0 ? 'active-zero' : 'active');
 }
 
-// Visual sync manager (replaces visualSyncHandle and lastVisualStep)
+// Visual sync manager
 const visualSync = createSimpleVisualSync({
   getAudio: () => audio,
   getIsPlaying: () => isPlaying,
@@ -231,8 +231,6 @@ setupMutePersistence({
     return audio;
   }
 });
-
-// updateNumbers() removed - now handled by timelineController
 
 // Initialize circular timeline toggle with shared helper
 const circularTimelineHelper = initCircularTimelineToggle({

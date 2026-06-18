@@ -23,7 +23,6 @@ import { createVisualSyncManager } from '../../libs/app-common/visual-sync.js';
 // F5: anells concèntrics — la representació única de l'app (fora timeline)
 import { createCircularRings } from '../../libs/app-common/circular-rings.js';
 import { loadNotation } from '../../libs/notation/lazy.js';
-import { createFormulaRenderer } from '../../libs/app-common/formula-renderer.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
 import {
@@ -63,7 +62,7 @@ const { elements } = bindAppRhythmElements('app4');
 
 // Extract commonly used elements for backward compatibility
 const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
-        unitLg, unitV, unitT, formula, timeline, playBtn, resetBtn, tapBtn, tapHelp,
+        unitLg, timeline, playBtn, resetBtn, tapBtn, tapHelp,
         selectColor, randomBtn, randomMenu, randLgToggle, randLgMin,
         randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
         themeSelect, pulseToggleBtn,
@@ -246,7 +245,6 @@ function applyFractionInfoBackground(panel) {
   panel.style.backdropFilter = 'blur(8px)';
 }
 
-let currentFractionInfo = createEmptyFractionInfo();
 const fractionStore = createFractionSelectionStore();
 const fractionMemory = new Map();
 
@@ -366,27 +364,6 @@ const randNMax = document.getElementById('randNMax');
 const randDToggle = document.getElementById('randDToggle');
 const randDMin = document.getElementById('randDMin');
 const randDMax = document.getElementById('randDMax');
-const titleHeading = document.querySelector('header.top-bar h1');
-const titleTextNode = titleHeading?.querySelector('.top-bar-title-text');
-let titleButton = null;
-if (titleHeading && titleTextNode) {
-  titleButton = document.createElement('button');
-  titleButton.type = 'button';
-  titleButton.id = 'appTitleBtn';
-  titleButton.className = 'top-bar-title-button';
-  titleButton.textContent = titleTextNode.textContent?.trim() || '';
-  titleHeading.replaceChild(titleButton, titleTextNode);
-  attachHover(titleButton, { text: 'Click para ver información detallada' });
-} else if (titleHeading) {
-  titleButton = document.createElement('button');
-  titleButton.type = 'button';
-  titleButton.id = 'appTitleBtn';
-  titleButton.className = 'top-bar-title-button';
-  titleButton.textContent = titleHeading.textContent || '';
-  titleHeading.textContent = '';
-  titleHeading.appendChild(titleButton);
-  attachHover(titleButton, { text: 'Click para ver información detallada' });
-}
 const notationToggleBtn = document.getElementById(NOTATION_TOGGLE_BTN_ID);
 
 // P-02: el renderer — i tot VexFlow (~1,6MB) — es carrega lazy la primera
@@ -880,7 +857,6 @@ function handleFractionLayoutChange() {
   const signature = activeFractionsSignature();
   if (signature !== lastActiveFractionsSignature) {
     lastActiveFractionsSignature = signature;
-    currentFractionInfo = getFirstActiveSlot()?.info || createEmptyFractionInfo();
     renderRings();
   }
   if (!isUpdating) {
@@ -1004,18 +980,11 @@ function removeLastFractionSlot() {
 }
 
 function refreshFractionUI(options = {}) {
-  let firstActiveInfo = null;
   fractionSlots.forEach((slot) => {
     if (!slot.controller) return;
     const info = slot.controller.refresh(options);
     slot.info = info || createEmptyFractionInfo();
-    if (!firstActiveInfo && slot.added && slot.active
-      && isValidFractionPair(slot.controller.getFraction())) {
-      firstActiveInfo = slot.info;
-    }
   });
-  currentFractionInfo = firstActiveInfo || createEmptyFractionInfo();
-  return currentFractionInfo;
 }
 
 function createSlotFractionEditor(slot, host) {
@@ -1755,47 +1724,20 @@ function applyComplexModeToEditors(enabled) {
 // al template) i s'ignora qualsevol valor antic de localStorage.
 function initComplexFractionsState() {
   applyComplexModeToEditors(true);
-  updateRandomMenuComplexState(true);
-}
-
-function updateRandomMenuComplexState(enabled) {
-  const randNToggle = document.getElementById('randNToggle');
-  const randNMin = document.getElementById('randNMin');
-  const randNMax = document.getElementById('randNMax');
-
-  if (!randNToggle) return;
-
-  if (enabled) {
-    // Habilitar controles de numerador
+  // App4 sempre treballa amb fraccions complexes: el numerador del random
+  // queda sempre habilitat. (F8: s'ha retirat el listener
+  // `sharedui:complexfractions` + `updateRandomMenuComplexState`, codi mort —
+  // App4 no exposa el toggle d'usuari (showComplexFractions:false), així que la
+  // branca "disabled" era inabastable. Els consts randNToggle/randNMin/randNMax
+  // ja viuen a dalt.)
+  if (randNToggle) {
     randNToggle.disabled = false;
     randNToggle.style.opacity = '1';
     randNToggle.title = '';
     if (randNMin) randNMin.disabled = false;
     if (randNMax) randNMax.disabled = false;
-  } else {
-    // Deshabilitar controles de numerador
-    randNToggle.disabled = true;
-    randNToggle.checked = false;
-    randNToggle.style.opacity = '0.5';
-    randNToggle.title = 'Activar fracciones complejas en Opciones para habilitar';
-    if (randNMin) randNMin.disabled = true;
-    if (randNMax) randNMax.disabled = true;
   }
 }
-
-// Escuchar cambios de "Activar fracciones complejas"
-window.addEventListener('sharedui:complexfractions', (e) => {
-  const enabled = e.detail.value;
-
-  // Aplicar als tres editors de fracció
-  applyComplexModeToEditors(enabled);
-
-  // Actualizar estado del toggle de numerador en random menu
-  updateRandomMenuComplexState(enabled);
-
-  // Re-renderitzar els anells si cal
-  renderRings();
-});
 
 // Inicializar estado de fracciones complejas después de que todos los componentes estén listos
 initComplexFractionsState();
@@ -1829,10 +1771,6 @@ if (cycleToggleBtn) attachHover(cycleToggleBtn, { text: 'Activar o silenciar las
 const PULSE_AUDIO_KEY = 'pulseAudio';
 const SELECTED_AUDIO_KEY = 'selectedAudio';
 const CYCLE_AUDIO_KEY = 'cycleAudio';
-
-let pulseToggleController = null;
-let selectedToggleController = null;
-let cycleToggleController = null;
 
 const soloMutedChannels = new Set();
 let lastSoloActive = false;
@@ -1971,22 +1909,6 @@ const audioToggleManager = initAudioToggles({
     lastSoloActive = soloActive;
   }
 });
-
-pulseToggleController = audioToggleManager.get('pulse') ?? null;
-selectedToggleController = audioToggleManager.get('accent') ?? null;
-cycleToggleController = audioToggleManager.get('cycle') ?? null;
-
-function setPulseAudio(value, options) {
-  pulseToggleController?.set(value, options);
-}
-
-function setSelectedAudio(value, options) {
-  selectedToggleController?.set(value, options);
-}
-
-function setCycleAudio(value, options) {
-  cycleToggleController?.set(value, options);
-}
 
 const storedColor = loadOpt('color');
 if (storedColor) {
@@ -2280,21 +2202,10 @@ if (typeof window !== 'undefined') {
   window.__labInitAudio = initAudio;
 }
 
-// Mostrar unitats quan s'edita cada paràmetre
-function bindUnit(input, unit){
-  if(!input || !unit) return;
-  input.addEventListener('focus', () => { unit.style.display = 'block'; });
-  input.addEventListener('blur', () => { unit.style.display = 'none'; });
-}
-
 if (inputT) {
   inputT.readOnly = true;
   inputT.dataset.auto = '1';
 }
-
-bindUnit(inputLg, unitLg);
-bindUnit(inputV, unitV);
-bindUnit(inputT, unitT);
 
 [inputLg, inputV].forEach(el => el.addEventListener('input', handleInput));
 
@@ -2335,49 +2246,6 @@ function parseNum(val){
   const n = parseFloat(s);
     return isNaN(n) ? NaN : n;
 }
-// === Formula Renderer and Tooltip Setup ===
-const formulaRenderer = createFormulaRenderer();
-const { formatNumber: formatNumberValue, formatInteger, formatBpm: formatBpmValue } = formulaRenderer;
-
-function formatSec(n) {
-  return formatNumberValue(n);
-}
-
-const titleInfoTooltip = createInfoTooltip({
-  className: 'fraction-info-bubble auto-tip-below top-bar-info-tip'
-});
-
-function buildTitleInfoContent() {
-  const lgValue = parseIntSafe(inputLg?.value);
-  const { numerator, denominator } = getFraction();
-  const tempoValue = parseNum(inputV?.value ?? '');
-  const tValue = parseNum(inputT?.value ?? '');
-
-  return formulaRenderer.buildFormulaFragment({
-    lg: lgValue,
-    numerator,
-    denominator,
-    tempo: tempoValue,
-    t: tValue
-  });
-}
-
-if (titleButton) {
-  titleButton.addEventListener('click', () => {
-    const content = buildTitleInfoContent();
-    if (!content) return;
-    titleInfoTooltip.show(content, titleButton);
-  });
-  titleButton.addEventListener('blur', () => titleInfoTooltip.hide());
-  titleButton.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' || event.key === 'Esc') {
-      titleInfoTooltip.hide();
-    }
-  });
-}
-
-
-
 // Unified spinner behavior for number inputs (V)
 function stepAndDispatch(input, dir){
   if (!input) return;
@@ -2412,7 +2280,6 @@ function handleInput(){
     ensurePulseMemory(lg);
   }
 
-  updateFormula();
   // P-03 (adaptat): handleInput és només Lg/V/T i els anells només depenen
   // d'Lg (els canvis de fracció i de selecció re-rendericen pels seus camins).
   if (lg !== lastRenderedLg) {
@@ -2512,27 +2379,6 @@ const liveTransportPush = createLiveTransportPush({
     }
   }
 });
-
-function updateFormula(){
-  if (!formula) return;
-  const tNum = parseNum(inputT?.value ?? '');
-  const tStr = isNaN(tNum)
-    ? ((inputT?.value ?? '') || 'T')
-    : formatSec(tNum).replace('.', ',');
-  const lg = inputLg.value || 'Lg';
-  const v  = inputV.value || 'V';
-  formula.innerHTML = `
-  <span class="fraction">
-    <span class="top lg">${lg}</span>
-    <span class="bottom v">${v}</span>
-  </span>
-  <span class="equal">=</span>
-  <span class="fraction">
-    <span class="top t">${tStr}</span>
-    <span class="bottom">60</span>
-  </span>`;
-
-}
 
 function handlePlaybackStop(audioInstance) {
   const iconPlay = playBtn?.querySelector('.icon-play');
