@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Línea Temporal (original)</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="../../favicon.ico" />
+  <link rel="modulepreload" href="./main.js" />
+</head>
+<body class="app1b" data-theme="light">
+  <div id="app-root"></div>
+  <!-- Tone.js is now loaded lazily after user interaction via tone-loader.js -->
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Línea Temporal',
+      showSelectColor: true,
+      showAccent: false,
+      showComplexFractions: false,
+      showP1Toggle: true,
+      showWakeLockToggle: true,
+      randomMenuContent: `
+        <label>
+          <input type="checkbox" id="randLgToggle" name="randLgToggle" aria-label="Aleatorizar Lg" />
+          <span aria-hidden="true">Lg</span>
+          <input id="randLgMin" name="randLgMin" type="number" placeholder="Min" aria-label="Valor mínimo de Lg" />
+          <input id="randLgMax" name="randLgMax" type="number" placeholder="Max" aria-label="Valor máximo de Lg" />
+        </label>
+        <label>
+          <input type="checkbox" id="randVToggle" name="randVToggle" aria-label="Aleatorizar V" />
+          <span aria-hidden="true">V</span>
+          <input id="randVMin" name="randVMin" type="number" placeholder="Min" aria-label="Valor mínimo de V" />
+          <input id="randVMax" name="randVMax" type="number" placeholder="Max" aria-label="Valor máximo de V" />
+        </label>
+        <label>
+          <input type="checkbox" id="randTToggle" name="randTToggle" aria-label="Aleatorizar T" />
+          <span aria-hidden="true">T</span>
+          <input id="randTMin" name="randTMin" type="number" placeholder="Min" aria-label="Valor mínimo de T" />
+          <input id="randTMax" name="randTMax" type="number" placeholder="Max" aria-label="Valor máximo de T" />
+        </label>
+      `
+    });
+    initHeader();
+    import('./main.js');
+  </script>
+
+  <!-- Rendimiento Audio (menú flotante) -->
+  <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
+</body>
+</html>

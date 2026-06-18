@@ -1,0 +1,15 @@
+/**
+ * @block app1-overrides
+ * @rol Conté sobreescriptures visuals pròpies de l'App1.
+ * @dep libs/shared-ui/index.css
+ */
+/* App1 specific styles (overrides) */
+body {
+  /* Move unit labels below circles (like mobile) */
+  --unit-label-offset: 120px;
+}
+
+/* Add margin between param circles and formula */
+.formula {
+  margin-top: 40px;
+}
