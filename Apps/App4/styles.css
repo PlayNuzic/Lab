@@ -809,3 +809,97 @@ body.app4 .rings-host {
   }
 
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   T2: amaguem el top-bar (títol + menú ☰) per guanyar espai vertical. El mute
+   (.sound-wrapper) ja l'ha mogut nuzic a .controls, així que sobreviu.
+   ───────────────────────────────────────────────────────────────────────── */
+body[data-visual="nuzic"].app4 header.top-bar {
+  display: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   T4: cercle de pulsos (anell base) en CREMA com el fons de les timelines.
+   La banda passa a --nuzic-yellow-light; punts i números a fosc per contrast.
+   ───────────────────────────────────────────────────────────────────────── */
+body[data-visual="nuzic"].app4 .crings-ring-group[data-ring-id="base"] {
+  /* !important: circular-rings.js posa --crings-color inline al grup; cal
+     guanyar-li per pintar la banda crema. */
+  --crings-color: var(--nuzic-yellow-light, #ffeecc) !important; /* banda crema */
+  --crings-light: #43433B !important;                            /* punts foscos */
+}
+body[data-visual="nuzic"].app4 .crings-ring-group[data-ring-id="base"] .crings-number {
+  fill: #43433B; /* números foscos sobre la banda crema */
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   T3: botó info (∑) a .controls, a l'esquerra del reset, amb la SEVA estètica
+   (cercle fosc, mateixa mida). order:5 com el reset; al DOM va abans (insertBefore)
+   → queda just a la seva esquerra.
+   ───────────────────────────────────────────────────────────────────────── */
+body[data-visual="nuzic"].app4 .controls:not([data-layout]) .info-ctrl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  order: 5;
+  position: static !important;
+  transform: none !important;
+  margin: 0 !important;
+  padding: 0;
+  width: clamp(1.5rem, 3.5vw, 2.25rem);
+  height: clamp(1.5rem, 3.5vw, 2.25rem);
+  border-radius: 50%;
+  background: #43433b;
+  border: 2px solid #43433b;
+  color: #eee8d8;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.9rem, 2vw, 1.25rem);
+  line-height: 1;
+  cursor: pointer;
+  opacity: 1;
+}
+body[data-visual="nuzic"].app4 .controls:not([data-layout]) .info-ctrl.active {
+  box-shadow: 0 0 10px rgba(67, 67, 59, 0.6);
+}
+
+/* Panell info (∑): pastilla flotant nuzic amb la matemàtica de la combinació. */
+body[data-visual="nuzic"].app4 .info-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 5.5rem;
+  transform: translateX(-50%);
+  z-index: 50;
+  width: min(24rem, 92vw);
+  box-sizing: border-box;
+  background: var(--nuzic-light, #eee8d8);
+  color: var(--nuzic-dark, #43433B);
+  border: 2px solid var(--nuzic-dark, #43433B);
+  border-radius: 0.6rem;
+  padding: 0.9rem 1.1rem;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+  font-family: 'Ubuntu', sans-serif;
+}
+body[data-visual="nuzic"].app4 .info-panel[hidden] { display: none; }
+body[data-visual="nuzic"].app4 .info-panel h3 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1rem, 2.2vw, 1.3rem);
+}
+body[data-visual="nuzic"].app4 .info-panel dl {
+  margin: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+body[data-visual="nuzic"].app4 .info-panel dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+body[data-visual="nuzic"].app4 .info-panel dt { opacity: 0.85; }
+body[data-visual="nuzic"].app4 .info-panel dd { margin: 0; font-weight: 700; }
+body[data-visual="nuzic"].app4 .info-panel .info-panel__sub {
+  margin: 0.7rem 0 0.2rem;
+  font-weight: 700;
+}
+body[data-visual="nuzic"].app4 .info-panel ul { margin: 0; padding-left: 1.2rem; }
+body[data-visual="nuzic"].app4 .info-panel .info-panel__empty { opacity: 0.7; list-style: none; }

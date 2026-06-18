@@ -91,6 +91,25 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
     notationCtrlBtn.classList.add('notation-ctrl');
     nuzicControls.appendChild(notationCtrlBtn);
   }
+  // Botó info (∑): obre el panell amb la matemàtica de la combinació. Va a la
+  // dreta de tot menys el reset (esquerra del reset) amb l'estètica del reset
+  // (cercle fosc). L'ordre el fixa el CSS (order:5 com el reset; al DOM va
+  // abans del reset perquè reorderControls ja l'ha re-afegit).
+  if (nuzicControls) {
+    const infoBtn = document.createElement('button');
+    infoBtn.type = 'button';
+    infoBtn.id = 'infoBtn';
+    infoBtn.className = 'info-ctrl';
+    infoBtn.setAttribute('aria-label', 'Información matemática');
+    infoBtn.textContent = '∑';
+    const resetEl = nuzicControls.querySelector('.reset') || elements.resetBtn;
+    if (resetEl && resetEl.parentNode === nuzicControls) {
+      nuzicControls.insertBefore(infoBtn, resetEl);
+    } else {
+      nuzicControls.appendChild(infoBtn);
+    }
+    infoBtn.addEventListener('click', toggleInfoPanel);
+  }
 }
 
 // ── F5: anells concèntrics ──────────────────────────────────────────────────
@@ -106,6 +125,50 @@ const rings = createCircularRings({
   container: timeline,
   onDotClick: handleRingDotClick
 });
+
+// ── Panell info (∑): matemàtica de la combinació ──────────────────────────
+let infoPanelEl = null;
+
+function buildInfoPanelHtml() {
+  const lg = parseIntSafe(inputLg?.value);
+  const cycles = inputCycles ? parseIntSafe(inputCycles.value) : null;
+  const actives = getActiveFractions();
+  const bigCycle = computeBigCycle(actives);
+  const dens = actives.map((f) => f.denominator);
+  const lcmDen = dens.length ? dens.reduce((a, b) => lcm(a, b), 1) : 1;
+  const fracRows = actives.length
+    ? actives.map((f) => {
+        const g = gcd(f.numerator, f.denominator);
+        const reduced = g > 1 ? ` → ${f.numerator / g}/${f.denominator / g}` : '';
+        return `<li><strong>${f.numerator}/${f.denominator}</strong>${reduced}</li>`;
+      }).join('')
+    : '<li class="info-panel__empty">cap fracció activa</li>';
+  return `
+    <h3>∑ Matemàtica</h3>
+    <dl>
+      <div><dt>Lg (polsos)</dt><dd>${Number.isFinite(lg) ? lg : '–'}</dd></div>
+      <div><dt>Cicles (m)</dt><dd>${Number.isFinite(cycles) ? cycles : '–'}</dd></div>
+      <div><dt>Cicle gran = mcm(numeradors)</dt><dd>${bigCycle}</dd></div>
+      <div><dt>mcm(denominadors)</dt><dd>${lcmDen}</dd></div>
+    </dl>
+    <p class="info-panel__sub">Fraccions actives</p>
+    <ul>${fracRows}</ul>`;
+}
+
+function toggleInfoPanel() {
+  const btn = document.getElementById('infoBtn');
+  if (!infoPanelEl) {
+    infoPanelEl = document.createElement('div');
+    infoPanelEl.id = 'infoPanel';
+    infoPanelEl.className = 'info-panel';
+    infoPanelEl.hidden = true;
+    (document.querySelector('main') || document.body).appendChild(infoPanelEl);
+  }
+  const willOpen = infoPanelEl.hidden;
+  if (willOpen) infoPanelEl.innerHTML = buildInfoPanelHtml();
+  infoPanelEl.hidden = !willOpen;
+  btn?.classList.toggle('active', willOpen);
+}
 
 function applyFractionInfoBackground(panel) {
   if (!panel) return;

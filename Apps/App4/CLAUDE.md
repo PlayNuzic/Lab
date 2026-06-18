@@ -36,6 +36,10 @@ i es visualitza com un anell amb el seu radi segons la velocitat.
   per a seleccionats/actiu/origen a TOTS els anells (el mòdul, per defecte,
   derivaria `saturatedAccent()` = versió saturada del color de cada anell). El
   **pols 0** és un contorn BUIT de l'accent (origen, no selecció).
+- **Cercle de pulsos en CREMA**: l'anell base es pinta amb `--nuzic-yellow-light`
+  (fons de les timelines) en lloc del fosc; números/punts a fosc per contrast.
+  Override scoped a `.app4 .crings-ring-group[data-ring-id="base"]` amb
+  `!important` (circular-rings.js posa `--crings-color` inline al grup).
 - **Selecció per CLIC** (no hi ha editor de text): als anells (enters al cercle
   base, ticks fraccionats a cada anell de fracció) o a la partitura — totes dues
   vies escriuen el MATEIX estat (vegeu §Partitura per al hit-test del clic).
@@ -91,6 +95,13 @@ i es visualitza com un anell amb el seu radi segons la velocitat.
   cercle teal entre tap i reset), NO al top-bar. El panell s'obre com a **"full"**
   que tapa inputs/fraccions/anells; clic al backdrop o al toggle el tanca; els
   controls queden visibles a sobre.
+- **Sense top-bar**: `header.top-bar` amagat (`display:none` scoped `.app4`) per
+  guanyar espai vertical. El mute (`.sound-wrapper`) sobreviu perquè nuzic ja el
+  mou a `.controls` (`relocateSoundWrapperForNuzic`).
+- **Botó info (∑)** a `.controls`, a l'esquerra del reset i amb la seva estètica
+  (cercle fosc; `.info-ctrl`, order:5, insertBefore reset). Obre `#infoPanel`
+  (pastilla flotant nuzic) amb la matemàtica: Lg, cicles, cicle gran =
+  mcm(numeradors), mcm(denominadors), fraccions actives (n/d + reduït).
 - **Exportació PNG** (`notation-export-btn`, cantonada dreta superior del full):
   rasteritza l'SVG a `<canvas>` 2x i descarrega. CAL incrustar la font **Bravura**
   (data-URI woff2 de VexFlow, import lazy) com a `@font-face` dins l'SVG abans de
