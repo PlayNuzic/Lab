@@ -544,8 +544,20 @@ async function startPlayback(providedAudio) {
     playBtn.classList.remove('active');
     if (iconPlay) iconPlay.style.display = 'block';
     if (iconStop) iconStop.style.display = 'none';
-    clearTimelineHighlights();
     visualSync.stop();
+    // El worklet envia 'done' al MATEIX batch que el 'pulse' de l'últim pas, així
+    // que el RAF del visualSync no arriba a pintar l'últim pols que SONA (Lg-1).
+    // El pintem explícitament aquí i el deixem un instant (com la resta de
+    // polsos) abans de netejar. Es neteja igualment al pròxim play.
+    const lastStep = (typeof audioInstance.getVisualState === 'function')
+      ? audioInstance.getVisualState().step : null;
+    if (Number.isFinite(lastStep)) {
+      highlightStep(lastStep);
+      const holdMs = Math.max(200, interval * 1000);
+      setTimeout(() => { if (!isPlaying) clearTimelineHighlights(); }, holdMs);
+    } else {
+      clearTimelineHighlights();
+    }
     cancelTapResync();
     audioInstance.stop();
   };
