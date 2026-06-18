@@ -186,19 +186,30 @@ function refreshInfoPanelIfOpen() {
   }
 }
 
+function setInfoPanelOpen(open) {
+  if (!infoPanelEl) return;
+  if (open) infoPanelEl.innerHTML = buildInfoPanelHtml();
+  infoPanelEl.hidden = !open;
+  document.getElementById('infoBtn')?.classList.toggle('active', open);
+}
+
 function toggleInfoPanel() {
-  const btn = document.getElementById('infoBtn');
   if (!infoPanelEl) {
     infoPanelEl = document.createElement('div');
     infoPanelEl.id = 'infoPanel';
     infoPanelEl.className = 'info-panel';
     infoPanelEl.hidden = true;
     (document.querySelector('main') || document.body).appendChild(infoPanelEl);
+    // Tancar en clicar FORA del panell (i no al botó ∑). pointerdown al
+    // document; ignora clics dins del panell o sobre el botó.
+    document.addEventListener('pointerdown', (e) => {
+      if (infoPanelEl.hidden) return;
+      const btn = document.getElementById('infoBtn');
+      if (infoPanelEl.contains(e.target) || (btn && (e.target === btn || btn.contains(e.target)))) return;
+      setInfoPanelOpen(false);
+    });
   }
-  const willOpen = infoPanelEl.hidden;
-  if (willOpen) infoPanelEl.innerHTML = buildInfoPanelHtml();
-  infoPanelEl.hidden = !willOpen;
-  btn?.classList.toggle('active', willOpen);
+  setInfoPanelOpen(infoPanelEl.hidden);
 }
 
 function applyFractionInfoBackground(panel) {
