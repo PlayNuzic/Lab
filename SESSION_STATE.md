@@ -32,6 +32,31 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
   fraccionats per cicle, mcm de denominadors (graella mínima), proporció
   polirítmica reduïda, T.
 
+### ESTAT 2026-06-18 (tot committejat; suite 78 suites / 1496 tests)
+
+El redisseny F1–F6.scroll està **fet i committejat** (ja no hi ha res "pendent
+de commit"). Després s'hi ha afegit:
+
+- **App4B**: còpia congelada de l'App4 lineal original (prefix `app4b:`, targeta
+  al launcher). Commit fe16687.
+- **Anells**: bandes gruixudes (RING_STROKE 32 / BASE_STROKE 64), selecció verd
+  nuzic unificat, pols 0 contorn buit, números dins la banda base; després
+  **cercle base en CREMA** (`--nuzic-yellow-light`) amb números/punts foscos;
+  números **clampats** (més grans amb pocs, 11–22 viewBox) i **centrats**
+  (`dominant-baseline: central`).
+- **Random**: també sorteja n/d de les fraccions actives.
+- **Controls**: notació mogut a `.controls`; export PNG; **top-bar amagat**
+  (guanyar espai, el mute sobreviu a `.controls`); **botó ∑** (info) a l'esquerra
+  del reset.
+- **Model Pulsos/Ciclos**: el pill editable mostra **Pulsos** (= Lg) i el visor
+  mostra **Ciclos** (= m = Lg/cicle gran = coincidències fracció+pols). Swap de
+  rols preservant `inputLg.value === Lg`.
+- **Targeta launcher**: "Pulsos Fraccionados" → "**Metrónomo Fracción**".
+- **abbr de tots els inputs**: `clamp(0.75rem, 2vw, 1.6rem)` (com la nova App1).
+
+Pendent: **F7 versió completa** (panell matemàtic ric via formula-renderer) i
+**F8** (neteja + README + arxiu). Vegeu sota.
+
 ### Fases (cada fase = commit propi + npm test verd)
 
 - [x] **F1 — Tema nuzic base** ✅ (commit de checkpoint 2026-06-12):
@@ -529,10 +554,18 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
       consistent perquè els punts compartits comparteixin tick; tuplets ben
       expressats; re-cablejat de color/clic/cursor; fontsReady es manté.
       Esforç alt (millor agent focalitzat o pas a pas amb verificació).
-- [ ] **F7 — Panell info "ⓘ"**: estendre formula-renderer.js (compartit,
-      amb tests) amb cicle gran, mcm denominadors, proporció reduïda, etc.
-- [ ] **F8 — Neteja + docs**: auditoria Step 15 de la skill, README App4,
-      MODULES.md (circular-rings), arxiu a docs/session-history/.
+- [~] **F7 — Panell info (∑)**: FET el botó ∑ a `.controls` (esquerra del reset,
+      estètica del reset) + `#infoPanel` (pastilla flotant nuzic) amb la
+      matemàtica BÀSICA: Pulsos (Lg), Ciclos (m), cicle gran = mcm(numeradors),
+      mcm(denominadors), fraccions actives (n/d + reduït). Commit 2b6d2d6.
+      Icona: no hi ha símbol Unicode oficial de "matemàtiques" → ∑ (triat per
+      l'usuari). PENDENT (versió completa): estendre `formula-renderer.js`
+      (compartit, amb tests) amb V i V·d/n per fracció, pulsos fraccionats per
+      cicle, proporció polirítmica reduïda, T; i reposicionar el panell perquè
+      no tapi els controls.
+- [ ] **F8 — Neteja + docs**: auditoria Step 15 de la skill, README App4
+      (usuari), MODULES.md (circular-rings, circular-timeline-ring), arxiu a
+      docs/session-history/.
 
 ### Notes de risc
 
@@ -567,7 +600,7 @@ les regles de radi i la validació exactes que ha de tenir el mòdul final):
   (engine.normalizeSilences — mai silencis al final ni adjacents); l'editor
   els mostra com a caselles buides editables; tota mutació del model passa
   per applySequenceMutation.
-- Suite: 74 suites / 1451 tests — `npm test` després de cada batch; commits
+- Suite: 78 suites / 1496 tests — `npm test` després de cada batch; commits
   amb llista explícita de fitxers (sessions paral·leles comparteixen el repo).
 - Verificació CDP: events de confiança, cache desactivada, perfil net, i
   viewport gran (Emulation.setDeviceMetricsOverride) — un clic sota el fold

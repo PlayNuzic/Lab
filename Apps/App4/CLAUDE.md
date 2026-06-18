@@ -125,9 +125,12 @@ circular-rings/visual-sync) + `libs/notation/` + `libs/shared-ui/` + `libs/sound
 
 ## Notes per a Claude
 
-- Redisseny complet documentat a `SESSION_STATE.md` (fases F1–F6 + F6.scroll
-  fetes; després: fixos de random/clic, botó de partitura a controls, export
-  PNG; F7 panell ⓘ pendent) i a l'esbós `docs/app4-rings-sketch.html`.
+- Redisseny complet documentat a `SESSION_STATE.md` (F1–F6.scroll fetes i
+  committejades; després: App4B, millores d'anells + cercle base crema, random
+  de n/d, top-bar fora, model Pulsos/Ciclos, targeta "Metrónomo Fracción").
+  **F7**: botó ∑ + panell info amb la matemàtica BÀSICA fet; versió completa
+  (formula-renderer ric) pendent. **F8** (neteja + README) pendent. Esbós de
+  geometria: `docs/app4-rings-sketch.html`.
 - Arnès de depuració de partitura amb Chrome real (CDP, sense puppeteer): script
   `/tmp/cdp.mjs` (WebSocket cru) + scripts ad-hoc. `Log.enable` és imprescindible
   (els errors de `<rect>` SVG no surten per console); per al clic/posicions cal
