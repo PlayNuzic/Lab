@@ -76,7 +76,12 @@ export function positionCircularRingNumbers(timeline, els) {
     // per EDGE_INSET_PX perquè la punta del tick quedi just dins de la vora.
     const outerSpan = (OUTER_R_RATIO * fullRadius - ringRadius) - EDGE_INSET_PX;
     const innerSpan = (ringRadius - INNER_R_RATIO * fullRadius) - EDGE_INSET_PX;
-    const halfFont = fontPx / 2;
+    // Mitja alçada REAL de la caixa del número (no fontPx/2): line-height ~1.2 +
+    // padding + el superíndex (App17 mostra `i¹`, que sobresurt per dalt). Si
+    // s'infravalora, el tick exterior es col·loca massa enfora i sobresurt del
+    // donut a fonts grans (Lg/n baix). Amb l'estimació real, el tick sempre
+    // cau dins de la vora.
+    const halfFont = fontPx * 0.85 + 3;
     // Ranures "útils": de la vora del text a la vora del donut a cada costat.
     const slotOuter = Math.max(0, outerSpan - halfFont - MIN_TEXT_GAP);
     const slotInner = Math.max(0, innerSpan - halfFont - MIN_TEXT_GAP);
