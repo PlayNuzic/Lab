@@ -342,12 +342,26 @@ body.app4 .rings-host {
   display: flex;
   justify-content: center;
   width: 100%;
-  margin: clamp(0.25rem, 1.5vh, 1rem) auto;
+  /* Marge reduït (abans 0.25–1rem): puja una mica els controls perquè
+     càpiguen en formats verticals/embed sense retallar-se. */
+  margin: clamp(0.15rem, 0.8vh, 0.5rem) auto;
+}
+
+/* Controls una mica més amunt (menys marge superior) — formats verticals. */
+body[data-visual="nuzic"].app4 .controls:not([data-layout]) {
+  margin-top: 0.2rem !important;
 }
 
 body.app4 .rings-host .crings-svg {
   width: min(100%, 60vh);
   height: auto;
+}
+
+/* Formats verticals/embed CURTS: els anells (60vh) estrangulaven els controls
+   fora del viewport. En alçades petites els acotem una mica perquè els controls
+   hi càpiguen; desktop i portrait alt no es toquen (mantenen 60vh). */
+@media (max-height: 680px) {
+  body.app4 .rings-host .crings-svg { width: min(100%, 46vh); }
 }
 
 /* El punt 0 (origen) ara és contorn BUIT de l'accent (definit a
@@ -408,9 +422,11 @@ body.app4 .crings-svg text {
  * ────────────────────────────────────────────────────────────────────────── */
 .fraction-row {
   position: relative; /* ancora el control +/− a la dreta */
-  /* Amplada igualada a la franja de pastilles (.inputs) via JS
-     (setupFractionRowWidthSync fixa max-width); centrada igual. */
+  /* Amplada PRÒPIA (ja no s'iguala a la franja de pastilles): més ampla perquè
+     en pantalles petites càpiguen les 3 fraccions sense scroll horitzontal.
+     Cap a 30rem en pantalla gran (centrada); 100% del viewport en petita. */
   width: 100%;
+  max-width: min(100%, 30rem);
   margin: 0 auto;
   /* min-height = alçada d'una caixa: així, amb 0 fraccions, la fila no
      col·lapsa i el control +/− (centrat vertical) NO puja cap a la pastilla
@@ -442,12 +458,13 @@ body.app4 .crings-svg text {
   justify-content: center;
   width: max-content;
   min-width: 100%;
-  /* marge lateral relatiu (no `auto`): deixa una mica d'aire als costats i
-     `justify-content: center` centra els slots dins del grup. */
-  margin: 0 1.5rem;
-  /* Separació generosa entre fraccions; no baixa de 2rem (espai dels
-     spinners) — per sota, el grup desborda i apareix scroll. */
-  gap: clamp(2rem, 5vw, 3rem);
+  /* Marge lateral 0: amb `min-width: 100%`, qualsevol marge faria que el grup
+     superés l'amplada del scroll (= marge de desbordament → scroll horitzontal
+     espuri). `justify-content: center` ja dóna aire centrant els slots. */
+  margin: 0;
+  /* Separació entre fraccions: ≥ amplada del spinner (1.75rem, projecta a la
+     dreta de cada caixa) perquè no se solapi amb la caixa següent. */
+  gap: clamp(1.85rem, 5vw, 3rem);
   box-sizing: border-box;
   padding: 0 0.25rem;
 }
@@ -797,13 +814,13 @@ gap: 0.875rem;
 }
 
 /* 2) Compensa el desplaçament dels inputs perquè `.middle` (fraction-editor)
-   no es mogui */
-.middle { margin-top: 1.25rem; }
+   no es mogui. Reduït (era 1.25rem) per guanyar alçada en formats verticals. */
+.middle { margin-top: 0.6rem; }
 
 /* 3) Anells: en mòbil l'amplada mana (el min() ja ho resol); només
-   ajustem el respir vertical */
+   ajustem el respir vertical (reduït perquè els controls càpiguen en vertical) */
 body.app4 .rings-host {
-  margin: 0.75rem auto;
+  margin: 0.4rem auto;
 }
 
 /* 5) Baixa l'etiqueta d'unitat quan apareix amb el focus de l'input */

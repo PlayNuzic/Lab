@@ -1153,44 +1153,13 @@ function initFractionSlots() {
   updateFractionAddButton();
   syncMixerChannelVisibility();
 
-  // La fila de fraccions iguala l'amplada de la franja de pastilles
-  // (.inputs: Cicles · Lg · BPM) que té a sobre, mesurant l'abast real dels
-  // seus fills (de la pastilla més a l'esquerra a la més a la dreta) i
-  // centrant-la igual. Així queden alineades i el +/− cau a la vora dreta.
-  setupFractionRowWidthSync(row);
+  // L'amplada de la fila de fraccions la governa el CSS (.fraction-row:
+  // max-width 30rem / 100% en petit) perquè en pantalles petites càpiguen les 3
+  // fraccions sense scroll horitzontal (abans s'igualava a .inputs via JS, que
+  // l'estrangulava). El +/− queda a la vora dreta via padding-right + absolute.
 
   lastActiveFractionsSignature = activeFractionsSignature();
   refreshFractionUI({ reveal: false });
-}
-
-function setupFractionRowWidthSync(row) {
-  const inputs = document.querySelector('.inputs');
-  if (!inputs || !row) return;
-
-  const sync = () => {
-    const children = Array.from(inputs.children)
-      .filter((el) => el.offsetParent !== null);
-    if (!children.length) return;
-    let min = Infinity;
-    let max = -Infinity;
-    children.forEach((el) => {
-      const r = el.getBoundingClientRect();
-      if (r.width === 0) return;
-      min = Math.min(min, r.left);
-      max = Math.max(max, r.right);
-    });
-    const width = max - min;
-    if (Number.isFinite(width) && width > 0) {
-      row.style.maxWidth = `${Math.round(width)}px`;
-    }
-  };
-
-  sync();
-  if (typeof ResizeObserver !== 'undefined') {
-    const ro = new ResizeObserver(() => sync());
-    ro.observe(inputs);
-  }
-  window.addEventListener('resize', sync);
 }
 
 // ─── Pill "Cicles" (m) + Lg calculat ───────────────────────────────────────

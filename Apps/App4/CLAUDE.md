@@ -125,6 +125,18 @@ i es visualitza com un anell amb el seu radi segons la velocitat.
   l'SVG-com-a-imatge no veu les fonts de la pàgina.
 - `rhythm-staff.js` (via single fraction) queda per a App2/App5 — NO es toca.
 
+## Layout responsive (pantalles petites / verticals)
+
+- **Fila de fraccions**: amplada governada per CSS (`.fraction-row` max-width
+  30rem / 100% en petit), NO per JS (es va treure `setupFractionRowWidthSync`,
+  que la igualava a `.inputs` i l'estrangulava). `.fraction-group { margin: 0 }`
+  (amb `min-width:100%`, qualsevol marge desbordava i creava scroll espuri) i
+  `gap ≥ 1.85rem` (amplada del spinner, que projecta a la dreta de cada caixa) →
+  les 3 fraccions caben sense scroll horitzontal a ~375px.
+- **Formats verticals curts**: els anells són `min(100%, 60vh)`; en
+  `@media (max-height: 680px)` baixen a `46vh` perquè els controls hi càpiguen.
+  Marges verticals (rings-host, controls, `.middle`) reduïts una mica.
+
 ## Dependencies
 
 `libs/app-common/` (audio/dom/fraction-editor/loop/mixer/preferences/
