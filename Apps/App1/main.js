@@ -11,7 +11,6 @@ import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createFormulaSolver } from '../../libs/app-common/formula-solver.js';
 import { renderCircularRingNumbers } from '../../libs/app-common/circular-timeline-ring.js';
 import { createSimpleVisualSync } from '../../libs/app-common/visual-sync.js';
-import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
 import { createCircularTimeline } from '../../libs/app-common/circular-timeline.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
@@ -57,17 +56,31 @@ let isUpdating = false;     // evita bucles de 'input' reentrants
 let circularTimeline = false;
 let tapResyncTimeout = null;
 
-// Highlight controller for pulse visualization
-const highlightController = createSimpleHighlightController({
-  getPulses: () => pulses,
-  getLoopEnabled: () => loopEnabled
-});
+// Highlight del pols actual sobre els `.pulse-number` (els `.pulse` dots els
+// amaga el tema nuzic). Lineal: patró App16 (`.active` sobre data-index=step).
+// Circular (loop): patró App17 (`.active`/`.active-zero` sobre el número de
+// l'anell a step%lg; el pols 0 al cim).
+function clearTimelineHighlights(){
+  timeline?.querySelectorAll('.pulse-number.active, .pulse-number.active-zero')
+    .forEach(n => n.classList.remove('active', 'active-zero'));
+}
+
+function highlightStep(step){
+  if (!timeline) return;
+  const lg = parseInt(inputLg.value, 10);
+  if (!Number.isFinite(lg) || lg <= 0) return;
+  clearTimelineHighlights();
+  const isCircular = loopEnabled && circularTimeline;
+  const idx = isCircular ? (((step % lg) + lg) % lg) : step;
+  const el = timeline.querySelector(`.pulse-number[data-index="${idx}"]`);
+  if (el) el.classList.add(isCircular && idx === 0 ? 'active-zero' : 'active');
+}
 
 // Visual sync manager (replaces visualSyncHandle and lastVisualStep)
 const visualSync = createSimpleVisualSync({
   getAudio: () => audio,
   getIsPlaying: () => isPlaying,
-  onStep: (step) => highlightController.highlightPulse(step)
+  onStep: (step) => highlightStep(step)
 });
 
 // Timeline controller for circular/linear rendering
@@ -505,7 +518,7 @@ async function startPlayback(providedAudio) {
 
   visualSync.stop();
   audioInstance.stop();
-  highlightController.clearHighlights();
+  clearTimelineHighlights();
 
   // Sound selection is already applied by initAudio() from dataset.value
   // and by bindSharedSoundEvents from sharedui:sound events
@@ -527,7 +540,7 @@ async function startPlayback(providedAudio) {
     playBtn.classList.remove('active');
     if (iconPlay) iconPlay.style.display = 'block';
     if (iconStop) iconStop.style.display = 'none';
-    highlightController.clearHighlights();
+    clearTimelineHighlights();
     visualSync.stop();
     cancelTapResync();
     audioInstance.stop();
@@ -561,14 +574,13 @@ playBtn.addEventListener('click', async () => {
     playBtn.classList.remove('active');
     if (iconPlay) iconPlay.style.display = 'block';
     if (iconStop) iconStop.style.display = 'none';
-    highlightController.clearHighlights();
+    clearTimelineHighlights();
     return;
   }
 
   await startPlayback(audioInstance);
 });
 
-// highlightPulse now handled by highlightController.highlightPulse()
 // randomInt now imported from number-utils.js
 
 function randomize() {

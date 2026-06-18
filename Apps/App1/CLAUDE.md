@@ -38,6 +38,11 @@ randomització i tap resync.
   `libs/shared-ui/nuzic-theme.css` i la geometria a `circular-timeline-ring.js`,
   reutilitzats per **App17** ("Módulo Temporal - Círculo") i App1. Abans tot
   vivia a `Apps/App17/styles.css`; unificat en aquesta tanda.
+- **Highlight de playback**: `visualSync.onStep → highlightStep(step)` pinta el
+  `.pulse-number` actiu (els `.pulse` dots els amaga nuzic). Lineal: `.active`
+  sobre `data-index=step` (patró App16). Circular: `.active`/`.active-zero` sobre
+  el número de l'anell a `step % Lg` (patró App17). `clearTimelineHighlights()`
+  neteja en aturar. Es va treure `createSimpleHighlightController` (pintava dots).
 - **Botó loop**: nuzic l'amaga per defecte (`.controls .loop { display:none }`);
   App1 el mostra (override a `styles.css`, a la dreta de random, estètica verda).
   El loop "doblega" la línia en cercle. `circularTimeline` (toggle dev) és `true`
