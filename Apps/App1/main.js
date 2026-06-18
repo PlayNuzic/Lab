@@ -477,6 +477,14 @@ function refreshTimelineNumbers(isCircular){
     requestAnimationFrame(() => renderCircularRingNumbers(timeline, { count: lg }));
   } else {
     timelineController.updateNumbers();
+    // L'últim pols (Lg) es mostra com un `·` (cycle-end), com la resta d'apps
+    // nuzic: "tancament" de la seqüència; aquest pols ja no sona. El pols 0
+    // manté el seu número.
+    const last = timeline.querySelector(`.pulse-number[data-index="${lg}"]`);
+    if (last) {
+      last.textContent = '·';
+      last.classList.add('cycle-end');
+    }
   }
 }
 
