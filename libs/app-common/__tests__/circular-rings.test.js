@@ -302,7 +302,12 @@ describe('createCircularRings (DOM)', () => {
       expect(numbers).toHaveLength(12);
       const cycles = [...container.querySelectorAll('.crings-number--cycle')].map((t) => t.textContent);
       expect(cycles).toEqual(['0', '3', '6', '9']);
-      expect(numbers[0].getAttribute('font-size')).toBe('13');
+      // Font dels números: escalat amb el nombre d'etiquetes (clamp 11..22 en
+      // unitats del viewBox). Amb 12 etiquetes (no dens) queda per sobre del
+      // mínim (11) i dins del màxim (22).
+      const fs = parseFloat(numbers[0].getAttribute('font-size'));
+      expect(fs).toBeGreaterThan(11);
+      expect(fs).toBeLessThanOrEqual(22);
     });
 
     it('línies de cicle als múltiples de bigCycle (4 a lg=12, cicle 3)', () => {

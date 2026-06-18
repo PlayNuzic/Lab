@@ -481,9 +481,12 @@ export function createCircularRings({ container, k = DEFAULT_K, onDotClick = nul
     // ── números dels pulsos base, al terç INTERIOR de la banda ampla ──
     // (clars, sobre el fosc de la banda; per sota dels punts, a la part exterior).
     const numberR = baseNumberRadius(radii.base);
-    const labelStep = computeLabelStep(currentLg, radii.base);
-    const fontSize = labelStep > 1 ? 11 : 13;
-    for (const { index, isCycleStart } of computeLabelList(currentLg, bigCycle, radii.base)) {
+    const labelList = computeLabelList(currentLg, bigCycle, radii.base);
+    // Font dels números en unitats del viewBox (l'SVG escala amb el contenidor
+    // → mida relativa). Acotada (clamp) i MÉS GRAN amb pocs números, més petita
+    // amb molts: de ~22 (4 etiquetes) baixa fins a 11 (≥~13 etiquetes).
+    const fontSize = clamp(22 - (labelList.length - 4) * 1.2, 11, 22);
+    for (const { index, isCycleStart } of labelList) {
       const a = angleFor(index, currentLg);
       const t = svgEl('text', {
         x: C + numberR * Math.cos(a), y: C + numberR * Math.sin(a) + 4,

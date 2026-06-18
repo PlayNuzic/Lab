@@ -6,12 +6,12 @@
 /* App1 specific styles (overrides) */
 body {
   /* Move unit labels below circles (like mobile) */
-  --unit-label-offset: 120px;
+  --unit-label-offset: 7.5rem; /* = 120px, en rem (relatiu) */
 }
 
 /* Add margin between param circles and formula */
 .formula {
-  margin-top: 40px;
+  margin-top: 2.5rem; /* = 40px, en rem (relatiu) */
 }
 
 /* Mida de les etiquetes (abbr) dels inputs Lg/V/T. `.app1` puja l'specificity
