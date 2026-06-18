@@ -489,9 +489,12 @@ export function createCircularRings({ container, k = DEFAULT_K, onDotClick = nul
     for (const { index, isCycleStart } of labelList) {
       const a = angleFor(index, currentLg);
       const t = svgEl('text', {
-        x: C + numberR * Math.cos(a), y: C + numberR * Math.sin(a) + 4,
+        x: C + numberR * Math.cos(a), y: C + numberR * Math.sin(a),
         'font-size': fontSize, 'font-weight': isCycleStart ? 900 : 400,
-        fill: BASE_LIGHT, 'text-anchor': 'middle'
+        // `dominant-baseline: central` centra el glif verticalment sobre el punt
+        // (numberR) a QUALSEVOL angle i mida de font → marge intern simètric
+        // (abans un `+4` fix descentrava el 0 de dalt respecte al de baix).
+        fill: BASE_LIGHT, 'text-anchor': 'middle', 'dominant-baseline': 'central'
       });
       t.classList.add('crings-number');
       if (isCycleStart) t.classList.add('crings-number--cycle');
