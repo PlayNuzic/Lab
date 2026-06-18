@@ -136,6 +136,11 @@ i es visualitza com un anell amb el seu radi segons la velocitat.
 - **Formats verticals curts**: els anells són `min(100%, 60vh)`; en
   `@media (max-height: 680px)` baixen a `46vh` perquè els controls hi càpiguen.
   Marges verticals (rings-host, controls, `.middle`) reduïts una mica.
+- **Inputs en UNA fila** (Pulsos/Ciclos/BPM) també en pantalles estretes: el
+  `column-gap` de `.inputs` pujava a ~24px i les pastilles (~294px) no cabien
+  → wrap. Es força `column-gap: clamp(0.5rem,2.5vw,1.5rem)` i l'input de la
+  pastilla `width: clamp(2.4rem,6vw,4.5rem)` (una mica més estret en petit),
+  amb `.app4` + !important per guanyar les regles base.
 
 ## Dependencies
 

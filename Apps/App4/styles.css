@@ -844,6 +844,17 @@ body[data-visual="nuzic"].app4 .param:has(.circle > input) .abbr {
   font-size: clamp(0.75rem, 2vw, 1.6rem) !important;
 }
 
+/* Els 3 inputs (Pulsos/Ciclos/BPM) en UNA fila també en pantalles petites: el
+   gap entre columnes pujava a ~24px (les pastilles sumen ~294px i no cabien en
+   ~334px → wrap). Gap reduït (responsiu) + input una mica més estret en petit.
+   `.app4` + !important per guanyar les regles base de `.inputs`/pastilla. */
+body[data-visual="nuzic"].app4 .inputs {
+  column-gap: clamp(0.5rem, 2.5vw, 1.5rem) !important;
+}
+body[data-visual="nuzic"].app4 .param:not(.param--large):has(.circle > input) .circle input {
+  width: clamp(2.4rem, 6vw, 4.5rem) !important;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    T4: cercle de pulsos (anell base) en CREMA com el fons de les timelines.
    La banda passa a --nuzic-yellow-light; punts i números a fosc per contrast.
