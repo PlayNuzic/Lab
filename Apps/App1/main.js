@@ -432,21 +432,20 @@ function updateFormula(){
     : (inputT.value || 'T');
   const lg = inputLg.value || 'Lg';
   const v  = inputV.value || 'V';
-  const lgFilled = inputLg.value !== '';
-  const vFilled  = inputV.value !== '';
-  // Etiqueta discreta en subíndex (PULSOS/BPM/SEG.): només quan el camp té
-  // número. El `.fnum` n'és l'àncora; el `.funit` hereta el color del número
-  // (--color-lg/v/t) via CSS. El 60 (constant) no en porta.
-  const num = (text, filled, label) =>
-    `<span class="fnum">${text}${filled ? `<sub class="funit">${label}</sub>` : ''}</span>`;
+  // Etiqueta discreta en subíndex (PULSOS/BPM/SEG.), SEMPRE visible — també amb
+  // el placeholder Lg/V/T — perquè la geometria no salti. Va EN FLUX (no
+  // absoluta): la fracció reserva el seu ample i el `=` se situa després, així
+  // l'etiqueta no xoca mai amb el `=` sigui quin sigui el valor. Hereta el color
+  // del número (--color-lg/v/t) via CSS. El 60 (constant) no en porta.
+  const num = (text, label) => `${text}<sub class="funit">${label}</sub>`;
   formula.innerHTML = `
   <span class="fraction">
-    <span class="top lg">${num(lg, lgFilled, 'PULSOS')}</span>
-    <span class="bottom v">${num(v, vFilled, 'BPM')}</span>
+    <span class="top lg">${num(lg, 'PULSOS')}</span>
+    <span class="bottom v">${num(v, 'BPM')}</span>
   </span>
   <span class="equal">=</span>
   <span class="fraction">
-    <span class="top t">${num(tStr, tFilled, 'SEG.')}</span>
+    <span class="top t">${num(tStr, 'SEG.')}</span>
     <span class="bottom">60</span>
   </span>`;
 

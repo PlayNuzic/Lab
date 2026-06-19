@@ -13,22 +13,32 @@
    majúscules i del color del seu número. Les injecta updateFormula() només quan
    el camp té número. `.fnum` és l'àncora i el `.funit` va en posició absoluta
    → no altera la geometria de la fracció (número centrat sobre la barra). */
-body[data-visual="nuzic"].app1 .formula .fnum {
-  position: relative;
-}
 body[data-visual="nuzic"].app1 .formula .funit {
-  position: absolute;
-  left: 100%;
-  bottom: 0.12em; /* abaixat respecte al número → aspecte de subíndex */
-  margin-left: 0.06em;
+  align-self: flex-end; /* baixa a la zona inferior del número → aspecte de subíndex */
+  margin-left: 0.1em;
+  margin-bottom: 0.55em; /* l'apuja una mica del fons perquè no toqui la barra */
   font-size: 0.27em; /* discret, relatiu als 3rem del número */
   font-weight: 700;
-  letter-spacing: -0.03em; /* lletres juntes → l'etiqueta ocupa menys ample i no xoca amb el = */
+  letter-spacing: -0.03em; /* lletres juntes, compacta */
   line-height: 1;
   text-transform: uppercase;
   color: inherit; /* hereta el color del número (--color-lg/v/t) */
   white-space: nowrap;
   pointer-events: none;
+}
+
+/* Numeradors alineats a l'ESQUERRA amb el denominador (no centrats): el número
+   de dalt comparteix vora esquerra amb el primer dígit del de baix. Així
+   l'etiqueta en subíndex (que creix cap a la dreta) guanya l'ample del
+   denominador i no xoca amb el =. `align-items: stretch` + padding 0 fan que la
+   barra (border-bottom del .top) cobreixi tota l'amplada de la fracció (= el
+   número més ample). */
+body[data-visual="nuzic"].app1 .formula .fraction {
+  align-items: stretch;
+}
+body[data-visual="nuzic"].app1 .formula .fraction .top {
+  padding-left: 0;
+  padding-right: 0;
 }
 
 /* Mida de les etiquetes (abbr) dels inputs Lg/V/T. `.app1` puja l'specificity
