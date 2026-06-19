@@ -9,6 +9,28 @@
   margin-top: 2.5rem; /* = 40px, en rem (relatiu) */
 }
 
+/* Etiquetes de la fórmula en subíndex (PULSOS/BPM/SEG.): discretes, en
+   majúscules i del color del seu número. Les injecta updateFormula() només quan
+   el camp té número. `.fnum` és l'àncora i el `.funit` va en posició absoluta
+   → no altera la geometria de la fracció (número centrat sobre la barra). */
+body[data-visual="nuzic"].app1 .formula .fnum {
+  position: relative;
+}
+body[data-visual="nuzic"].app1 .formula .funit {
+  position: absolute;
+  left: 100%;
+  bottom: 0.12em; /* abaixat respecte al número → aspecte de subíndex */
+  margin-left: 0.12em;
+  font-size: 0.3em; /* discret, relatiu als 3rem del número */
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: inherit; /* hereta el color del número (--color-lg/v/t) */
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* Mida de les etiquetes (abbr) dels inputs Lg/V/T. `.app1` puja l'specificity
    per sobre de la regla base del nuzic-theme (.param:has(.circle>input) .abbr). */
 body[data-visual="nuzic"].app1 .param:has(.circle > input) .abbr {

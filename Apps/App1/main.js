@@ -426,19 +426,27 @@ const liveTransportPush = createLiveTransportPush({
 
 function updateFormula(){
   const tNum = parseNum(inputT.value);
-  const tStr = isNaN(tNum)
-    ? (inputT.value || 'T')
-    : formatSec(tNum).replace('.', ',');
+  const tFilled = !isNaN(tNum);
+  const tStr = tFilled
+    ? formatSec(tNum).replace('.', ',')
+    : (inputT.value || 'T');
   const lg = inputLg.value || 'Lg';
   const v  = inputV.value || 'V';
+  const lgFilled = inputLg.value !== '';
+  const vFilled  = inputV.value !== '';
+  // Etiqueta discreta en subíndex (PULSOS/BPM/SEG.): només quan el camp té
+  // número. El `.fnum` n'és l'àncora; el `.funit` hereta el color del número
+  // (--color-lg/v/t) via CSS. El 60 (constant) no en porta.
+  const num = (text, filled, label) =>
+    `<span class="fnum">${text}${filled ? `<sub class="funit">${label}</sub>` : ''}</span>`;
   formula.innerHTML = `
   <span class="fraction">
-    <span class="top lg">${lg}</span>
-    <span class="bottom v">${v}</span>
+    <span class="top lg">${num(lg, lgFilled, 'PULSOS')}</span>
+    <span class="bottom v">${num(v, vFilled, 'BPM')}</span>
   </span>
   <span class="equal">=</span>
   <span class="fraction">
-    <span class="top t">${tStr}</span>
+    <span class="top t">${num(tStr, tFilled, 'SEG.')}</span>
     <span class="bottom">60</span>
   </span>`;
 
