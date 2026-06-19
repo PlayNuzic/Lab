@@ -436,7 +436,8 @@ function updateFormula(){
   // el placeholder Lg/V/T — perquè la geometria no salti. Va EN FLUX (no
   // absoluta): la fracció reserva el seu ample i el `=` se situa després, així
   // l'etiqueta no xoca mai amb el `=` sigui quin sigui el valor. Hereta el color
-  // del número (--color-lg/v/t) via CSS. El 60 (constant) no en porta.
+  // del número (--color-lg/v/t) via CSS. El 60 (60 segons/minut) també en porta
+  // SEG., en el seu color fosc.
   const num = (text, label) => `${text}<sub class="funit">${label}</sub>`;
   formula.innerHTML = `
   <span class="fraction">
@@ -446,7 +447,7 @@ function updateFormula(){
   <span class="equal">=</span>
   <span class="fraction">
     <span class="top t">${num(tStr, 'SEG.')}</span>
-    <span class="bottom">60</span>
+    <span class="bottom">${num('60', 'SEG.')}</span>
   </span>`;
 
   attachHover(formula.querySelector('.top.lg'), { text: 'Pulsos' });
