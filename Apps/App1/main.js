@@ -2,13 +2,13 @@ import { createRhythmAudioInitializer, setupAudioDefaults, CHANNEL_TIERS } from 
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu, mergeRandomConfig } from '../../libs/random/index.js';
-import { toRange, parseNum, formatSec, randomInt } from '../../libs/app-common/number-utils.js';
+import { toRange, parseNum, randomInt } from '../../libs/app-common/number-utils.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { fromLgAndTempo } from '../../libs/app-common/subdivision.js';
 import { createLiveTransportPush } from '../../libs/app-common/transport-live-update.js';
 import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
-import { createFormulaSolver } from '../../libs/app-common/formula-solver.js';
+import { createFormulaSolver, computeField } from '../../libs/app-common/formula-solver.js';
 import { renderCircularRingNumbers } from '../../libs/app-common/circular-timeline-ring.js';
 import { createSimpleVisualSync } from '../../libs/app-common/visual-sync.js';
 import { createCircularTimeline } from '../../libs/app-common/circular-timeline.js';
@@ -336,21 +336,18 @@ updateFormula();
 
 function setValue(input, value){
   isUpdating = true;
-  input.value = String(value);
+  // Cap input mostra decimals: sempre l'enter més proper. El valor precís (amb
+  // decimals) només es veu a la fórmula, que el recalcula dels dos conductors.
+  input.value = String(Math.round(Number(value)));
   isUpdating = false;
 }
 
-// parseNum and formatSec now imported from number-utils.js
+// parseNum now imported from number-utils.js
 
 function adjustT(delta){
   const current = parseNum(inputT.value);
-  const base = isNaN(current) ? 0 : current;
-  // Step scaling: <10 => 0.1, >=10 => 1
-  const step = base < 10 ? 0.1 : 1;
-  let next = base + delta * step;
-  // Avoid FP errors: round to 1 decimal when using 0.1 steps
-  if (step === 0.1) next = Math.round(next * 10) / 10;
-  next = Math.max(0, next);
+  const base = Number.isFinite(current) ? Math.round(current) : 0;
+  const next = Math.max(1, base + delta); // pas d'1 sencer, mínim 1 (com V i Lg)
   setValue(inputT, next);
   inputT.dispatchEvent(new Event('input', { bubbles: true }));
 }
@@ -358,14 +355,28 @@ function adjustT(delta){
 addRepeatPress(inputTUp,   () => adjustT(1));
 addRepeatPress(inputTDown, () => adjustT(-1));
 
-// Unified spinner behavior for number inputs (V, Lg)
+// Unified spinner behavior for number inputs (Lg)
 function stepAndDispatch(input, dir){
   if (!input) return;
   if (dir > 0) input.stepUp(); else input.stepDown();
   input.dispatchEvent(new Event('input', { bubbles: true }));
 }
-addRepeatPress(inputVUp,   () => stepAndDispatch(inputV, +1));
-addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1));
+
+// Spinner de V (BPM): sempre passos d'1 BPM sencer. Com que V es deriva de la
+// fórmula i pot ser decimal (p.ex. 85.71), el stepUp/stepDown natiu hi fa salts
+// incoherents. Aquí portem V al sencer adjacent en la direcció premuda (i ±1
+// net quan ja és sencer), respectant el mínim de l'input.
+function adjustV(dir){
+  const current = parseNum(inputV.value);
+  const base = Number.isFinite(current) ? current : 0;
+  const min = Number(inputV.min) || 1;
+  const next = Math.max(min, dir > 0 ? Math.floor(base) + 1 : Math.ceil(base) - 1);
+  setValue(inputV, next);
+  inputV.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+addRepeatPress(inputVUp,   () => adjustV(+1));
+addRepeatPress(inputVDown, () => adjustV(-1));
 addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1));
 addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1));
 
@@ -425,13 +436,25 @@ const liveTransportPush = createLiveTransportPush({
 });
 
 function updateFormula(){
-  const tNum = parseNum(inputT.value);
-  const tFilled = !isNaN(tNum);
-  const tStr = tFilled
-    ? formatSec(tNum).replace('.', ',')
-    : (inputT.value || 'T');
-  const lg = inputLg.value || 'Lg';
-  const v  = inputV.value || 'V';
+  // A la fórmula, V i T es mostren amb el valor PRECÍS i 1 decimal com a màxim
+  // (sense zero final, coma decimal): 85,7 · 90 · 8,2. El camp derivat es
+  // recalcula dels dos conductors (enters) encara que el seu input només en
+  // mostri l'enter; els conductors es mostren tal com són (ja enters).
+  const derivedKey = solver.derivedByRecency();
+  const vals = { Lg: parseNum(inputLg.value), V: parseNum(inputV.value), T: parseNum(inputT.value) };
+  const raw  = { Lg: inputLg.value, V: inputV.value, T: inputT.value };
+  const fmt1 = (n) => {
+    const r = Math.round(n * 10) / 10;
+    return (Number.isInteger(r) ? String(r) : r.toFixed(1)).replace('.', ',');
+  };
+  const show = (key, placeholder) => {
+    if (isNaN(vals[key])) return raw[key] || placeholder;
+    const precise = key === derivedKey ? (computeField(key, vals)?.value ?? vals[key]) : vals[key];
+    return fmt1(precise);
+  };
+  const tStr = show('T', 'T');
+  const lg = raw.Lg || 'Lg';
+  const v  = show('V', 'V');
   // Etiqueta discreta en subíndex (PULSOS/BPM/SEG.), SEMPRE visible — també amb
   // el placeholder Lg/V/T — perquè la geometria no salti. Va EN FLUX (no
   // absoluta): la fracció reserva el seu ample i el `=` se situa després, així
@@ -630,7 +653,7 @@ function randomize() {
     },
     T: () => {
       const [lo, hi] = toRange(randTMin.value, randTMax.value, randomDefaults.T.range);
-      setValue(inputT, (lo + Math.random() * Math.max(0, hi - lo)).toFixed(2));
+      setValue(inputT, randomInt(lo, hi)); // enter, com Lg i V (setValue ja arrodoneix)
     }
   };
   const enabled = { Lg: lgOn, V: vOn, T: tOn };
