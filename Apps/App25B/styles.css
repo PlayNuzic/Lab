@@ -39,6 +39,10 @@ main {
   overflow: hidden;
   position: relative;
   z-index: 2;
+  /* Marge interior (com App15): separa la graella de la vora perquè les caixes
+     de número i les fletxes/punts dels intervals no es tallin amb overflow:hidden. */
+  padding: 0.6rem;
+  box-sizing: border-box;
 }
 
 /* Musical grid fills available space — compact rows */
