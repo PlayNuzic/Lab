@@ -393,6 +393,12 @@ function handleInputCellType(e) {
 }
 
 function handleInputCellKeydown(e) {
+  // ENTER confirma el valor actual (si n'hi ha) i salta a la casella següent.
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (e.target.value) e.target.dispatchEvent(new Event('input', { bubbles: true }));
+    return;
+  }
   if (e.key === 'Backspace' && !e.target.value) {
     e.preventDefault();
     if (currentIntervals.length > 0) {

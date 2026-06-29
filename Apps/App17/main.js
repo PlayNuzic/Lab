@@ -51,7 +51,7 @@ let p0Enabled = true;         // P0 toggle state (not persisted between sessions
 let cycleHighlightTimeout = null;  // For auto-dimming cycle circle
 let cycleHighlightEnabled = true;  // Cycle highlight toggle state
 let autoJumpTimer = null;     // Timer for auto-jump from Compás to Cycle
-const AUTO_JUMP_DELAY = 500;  // Delay in ms before auto-jumping
+const AUTO_JUMP_DELAY = 4000;  // Delay in ms before auto-jumping (ENTER salta a l'instant)
 
 // ============================================
 // DOM ELEMENTS
@@ -802,6 +802,16 @@ async function initializeApp() {
     handleCompasChange(e.target.value, isDigitTyped);
   });
 
+  inputCompas?.addEventListener('keydown', (e) => {
+    // ENTER confirma el compás i salta al cycle (com l'auto-salt, però immediat).
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (autoJumpTimer) { clearTimeout(autoJumpTimer); autoJumpTimer = null; }
+    handleCompasChange(inputCompas.value);
+    inputCycle?.focus();
+    inputCycle?.select();
+  });
+
   inputCompas?.addEventListener('blur', () => {
     // Clear auto-jump timer on blur
     if (autoJumpTimer) {
@@ -824,6 +834,15 @@ async function initializeApp() {
         }
       }, AUTO_JUMP_DELAY);
     }
+  });
+
+  inputCycle?.addEventListener('keydown', (e) => {
+    // ENTER confirma el cycle i engega el play immediatament.
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    handleCycleChange(inputCycle.value);
+    inputCycle.blur();
+    if (!isPlaying && pulsosCompas !== null && cycles !== null) handlePlay();
   });
 
   inputCycle?.addEventListener('blur', () => {

@@ -1136,12 +1136,8 @@ function createNuzicIntervalEditor(gridContainer) {
   // capturat pel caret de l'input.
   function addCellNavigation(cell, type) {
     cell.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        cell.blur();
-        return;
-      }
-      if (e.key === 'Tab') {
+      // ENTER salta a la casella següent, igual que Tab (abans feia blur).
+      if (e.key === 'Tab' || e.key === 'Enter') {
         e.preventDefault();
         const idx = cell.dataset.intervalIndex;
         const row = type;
@@ -1415,7 +1411,7 @@ function createNuzicIntervalEditor(gridContainer) {
             const itInput = itCells.querySelector('.editor-input');
             if (itInput) itInput.focus();
           }
-        }, 500);
+        }, 4000);
 
       } else {
         // iT validation

@@ -512,12 +512,8 @@ function createNuzicEditor(timelineWrapper) {
   // capturat pel caret de l'input.
   function addCellNavigation(cell, type) {
     cell.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        cell.blur();
-        return;
-      }
-      if (e.key === 'Tab') {
+      // ENTER salta a la casella següent, igual que Tab (abans feia blur).
+      if (e.key === 'Tab' || e.key === 'Enter') {
         e.preventDefault();
         const pIdx = cell.dataset.pairIndex;
         const row = cell.dataset.row || type;
@@ -776,7 +772,7 @@ function createNuzicEditor(timelineWrapper) {
             const pInput = pCells.querySelector('.editor-input');
             if (pInput) pInput.focus();
           }
-        }, 500);
+        }, 4000);
 
       } else {
         // Rule 2: Pulse 0-7

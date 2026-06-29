@@ -473,10 +473,24 @@ function createInputCell() {
       else if (getValidIntervals().length >= MAX_IS) {
         showTooltip(endMarker, 'Seqüència completa');
       }
-    }, 500);
+    }, 4000);
   });
 
   cell.addEventListener('keydown', (e) => {
+    // ENTER confirma el valor actual i salta a la casella següent (mateix
+    // efecte que el timer d'auto-salt, però immediat).
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      clearTimeout(autoJumpTimer);
+      const val = e.target.value.trim();
+      if (/^-?\d+$/.test(val)) {
+        currentIntervals.push(parseInt(val));
+        renderEditorCells();
+        const nextInput = cellsContainer.querySelector('.editor-input');
+        if (nextInput) setTimeout(() => nextInput.focus(), 30);
+      }
+      return;
+    }
     if (e.key === 'Backspace' && !e.target.value) {
       e.preventDefault();
       clearTimeout(autoJumpTimer);

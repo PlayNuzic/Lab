@@ -981,7 +981,7 @@ function initGridEditor() {
               const itInput = itCells.querySelector('.active-input');
               if (itInput) itInput.focus();
             }
-          }, 800);
+          }, 4000);
           return;
         }
 
@@ -1049,7 +1049,7 @@ function initGridEditor() {
               const nInput = nCells.querySelector('.active-input');
               if (nInput) nInput.focus();
             }
-          }, 500);
+          }, 4000);
           return;
         }
 

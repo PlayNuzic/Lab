@@ -811,7 +811,7 @@ function initDegreeEditor() {
             const registerMsg = detectRegisterCorrection(current);
             if (registerMsg) showTooltip(cell, registerMsg);
             commitDegree(p);
-          }, 800);
+          }, 4000);
           return;
         }
         e.target.value = '';
@@ -838,7 +838,7 @@ function initDegreeEditor() {
           const registerMsg = detectRegisterCorrection(current);
           if (registerMsg) showTooltip(cell, registerMsg);
           commitDegree(parsed);
-        }, 800);
+        }, 4000);
       }
     });
 

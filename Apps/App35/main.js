@@ -762,7 +762,7 @@ function initZigzagEditor() {
               const itInput = itCells.querySelector('.active-input');
               if (itInput) itInput.focus();
             }
-          }, 500);
+          }, 4000);
           return;
         }
 
@@ -828,7 +828,7 @@ function initZigzagEditor() {
               const nInput = nCells.querySelector('.active-input');
               if (nInput) nInput.focus();
             }
-          }, 500);
+          }, 4000);
           return;
         }
 

@@ -386,7 +386,7 @@ function initPulseSeqEditor() {
     classes: { base: 'editor-cell editor-cell--p', input: 'editor-input' },
     input: {
       maxLength: 4,
-      commitDelay: 500,
+      commitDelay: 4000,
       // Dígit sol → espera curta per si l'usuari escriu ".X"; "N."/"." → esperar;
       // "N.M"/".M" complets → commit immediat (".X" = "0.X", base 0 implícita).
       classify: (raw) => {
