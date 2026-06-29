@@ -15,12 +15,35 @@ html, body {
 
 .middle { display: none !important; }
 
-/* ========== INPUTS SECTION ========== */
-.inputs {
+/* ========== INPUTS SECTION ==========
+   Columna: Compás (param--large--dual) a dalt i pastilla "Longitud" a sota,
+   centrats. El `gap` reserva l'espai de l'etiqueta absoluta "Nº de compases"
+   (abbr--secondary) que penja sota el cercle gran. Compactem el padding per
+   encabir la pastilla nova entre el títol i els controls sense desplaçar-los. */
+body[data-visual="nuzic"].app17 .inputs {
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 0.5rem 0;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  /* El gap reserva l'espai de l'etiqueta absoluta "Nº de compases" que penja
+     sota el cercle gran, perquè la pastilla "Longitud" hi quedi clarament a
+     sota sense solapar-s'hi. !important per guanyar el `row-gap` compartit del
+     tema (nuzic-theme .inputs). */
+  flex-wrap: nowrap !important;
+  row-gap: clamp(3.4rem, 9vw, 5rem) !important;
+  padding: 0.25rem 0;
+}
+
+/* Pastilla "Longitud" (total) — info-pure com a App19/20, centrada sota el
+   bloc del Compás. */
+body[data-visual="nuzic"].app17 .inputs .param.longitud {
+  margin: 0;
+}
+
+/* Comprimim el marge superior del donut (el compartit és 3.5rem) per recuperar
+   l'alçada que ocupa la nova pastilla "Longitud" → els controls no es desplacen. */
+body[data-visual="nuzic"].app17 .timeline-wrapper.circular {
+  margin-top: clamp(0.5rem, 2vw, 1.4rem) !important;
 }
 
 /* The BPM + Compás pastilla combo lives in .inputs; BPM moves to .controls
@@ -54,7 +77,7 @@ html, body {
   justify-content: center;
   font-family: 'Ubuntu', sans-serif;
   font-weight: 700;
-  font-size: clamp(0.65rem, 1.3vw, 0.95rem);
+  font-size: clamp(1rem, 2.2vw, 1.5rem);
   color: var(--nuzic-dark);
   line-height: 1;
 }

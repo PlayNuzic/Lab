@@ -68,9 +68,11 @@ let playBtn;
 let resetBtn;
 let randomBtn;
 let randomMenu;
-let totalLengthDigit;
+let totalLengthDigit;        // Pastilla "Longitud" (total) — fora del cercle
+let centerCountDigit;        // Dígit del centre del donut — només conteig
 let superscriptController;   // Shared module for cycle superscripts
-let totalLengthController;   // Shared module for total length display
+let totalLengthController;   // Total (pastilla Longitud)
+let centerCountController;   // Conteig de playback (centre del donut)
 
 // ============================================
 // STORAGE
@@ -234,8 +236,9 @@ function updateTotalLength() {
  * Delegates to shared totalLengthController module
  */
 function updateGlobalStep(localStep, cycleNumber) {
-  if (totalLengthController) {
-    totalLengthController.updateGlobalStep(localStep, cycleNumber);
+  // El conteig de playback va al centre del donut (no a la pastilla Longitud).
+  if (centerCountController) {
+    centerCountController.updateGlobalStep(localStep, cycleNumber);
   }
 }
 
@@ -244,8 +247,10 @@ function updateGlobalStep(localStep, cycleNumber) {
  * Delegates to shared totalLengthController module
  */
 function resetTotalLengthDisplay() {
-  if (totalLengthController) {
-    totalLengthController.reset();
+  // En aturar: el centre torna a "--" (només conteig). La pastilla Longitud
+  // recupera el total via showTotalCycles() → updateTotalLength().
+  if (centerCountController) {
+    centerCountController.reset();
   }
 }
 
@@ -678,12 +683,15 @@ async function initializeApp() {
     totalLengthBlock.className = 'total-length-center';
     totalLengthBlock.innerHTML = `
       <div class="circle">
-        <span class="total-length__digit" id="totalLengthDigit">--</span>
+        <span class="total-length__digit" id="centerCountDigit">--</span>
       </div>
     `;
     timelineWrapper.appendChild(totalLengthBlock);
   }
+  // Pastilla "Longitud" (total) — viu a `.inputs` (index.html); el centre del
+  // donut només fa el conteig de playback.
   totalLengthDigit = document.getElementById('totalLengthDigit');
+  centerCountDigit = document.getElementById('centerCountDigit');
 
   // Re-render pulse numbers (positions + font-size) whenever the circular
   // timeline canvia de mida — el wrapper té width/height: clamp(16rem, 34vw,
@@ -743,10 +751,18 @@ async function initializeApp() {
     mode: 'circular'
   });
 
-  // Create total length display controller
+  // Pastilla "Longitud": mostra NOMÉS el total (pulsosCompas × cycles).
   totalLengthController = createTotalLengthDisplay({
     digitElement: totalLengthDigit,
     getTotal: () => (pulsosCompas && cycles) ? pulsosCompas * cycles : null,
+    getPulsosPerCycle: () => pulsosCompas || 1
+  });
+
+  // Centre del donut: NOMÉS conteig de playback. `getTotal: () => null` fa que
+  // showTotal()/reset() mostrin sempre "--" quan no es reprodueix.
+  centerCountController = createTotalLengthDisplay({
+    digitElement: centerCountDigit,
+    getTotal: () => null,
     getPulsosPerCycle: () => pulsosCompas || 1
   });
 
