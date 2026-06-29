@@ -1144,6 +1144,25 @@ async function init() {
     onChange: (value) => handleTransposeChange(value),
   });
 
+  // Col·locació d'un grau en una cel·la (so + commit). Compartida pel clic al
+  // cos de la cel·la (onCellClick) i pel handler de grab del np-dot (mida 1).
+  async function handlePlaceAtCell(noteIndex, pulseIndex) {
+    const audioInstance = await initAudio();
+    if (!window.Tone || !audioInstance) {
+      console.warn('Audio not available');
+      return;
+    }
+    const scaleSems = getVisualScaleSemitones();
+    if (!scaleSems.includes(noteIndex)) return;
+    const absoluteDegree = visualNoteIndexToAbsoluteDegree(noteIndex);
+    const midi = absoluteDegreeToMidi(absoluteDegree);
+    if (midi === null) return;
+    const duration = (60 / currentBPM) * 0.9;
+    const Tone = window.Tone;
+    audioInstance.playNote(midi, duration, Tone.now());
+    handleGridCellClick(noteIndex, pulseIndex);
+  }
+
   // Create musical grid inside timeline-wrapper. The last pulse (index
   // TOTAL_PULSES-1 = 12) renders as a `·` cycle-end marker — visual
   // only, not clickable. Playback already caps at pulse 11.
@@ -1158,8 +1177,11 @@ async function init() {
     activeClassName: 'active',
     highlightClassName: 'highlight',
     scrollEnabled: false,
-    showIntervals: { horizontal: true, vertical: false },
+    showIntervals: { horizontal: true, vertical: false, cellLines: true },
     intervalColor: '#4A9EFF',
+    // Dummy onDotClick: activa la classe .np-dot-clickable (afordança grab +
+    // glow d'App15). La col·locació real la fa el pointer-drag (grab) de sota.
+    onDotClick: () => {},
     noteFormatter: (noteIndex) => {
       const semitoneInOctave = noteIndex % 12;
       const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
@@ -1170,30 +1192,46 @@ async function init() {
       }
       return '·';
     },
-    onCellClick: async (noteIndex, pulseIndex, cellElement) => {
-      const audioInstance = await initAudio();
-      if (!window.Tone || !audioInstance) {
-        console.warn('Audio not available');
-        return;
-      }
-
-      const scaleSems = getVisualScaleSemitones();
-      if (!scaleSems.includes(noteIndex)) return;
-
-      const absoluteDegree = visualNoteIndexToAbsoluteDegree(noteIndex);
-      const midi = absoluteDegreeToMidi(absoluteDegree);
-      if (midi === null) return;
-
-      const duration = (60 / currentBPM) * 0.9;
-      const Tone = window.Tone;
-      audioInstance.playNote(midi, duration, Tone.now());
-
-      handleGridCellClick(noteIndex, pulseIndex);
-    }
+    onCellClick: (noteIndex, pulseIndex) => handlePlaceAtCell(noteIndex, pulseIndex)
   });
 
   // Initial cell states
   updateGridCellStates();
+
+  // ── Handler de "grab" del np-dot (estil App15): agafa un punt i, en deixar-lo
+  // anar, col·loca un grau en aquell pols. SEMPRE mida 1 (iT no creix). Conviu
+  // amb el clic al cos de la cel·la. Delegat al matrixContainer (sobreviu els
+  // re-renders dels intervals). El `onDotClick` dummy del grid només activa
+  // .np-dot-clickable (afordança/glow); el commit el fa aquest pointerup. ──
+  let dotDrag = { active: false, noteIndex: null, spaceIndex: null, cell: null };
+  function resetDotDrag() {
+    if (dotDrag.cell) dotDrag.cell.classList.remove('drag-preview');
+    document.body.classList.remove('dragging-note');
+    dotDrag = { active: false, noteIndex: null, spaceIndex: null, cell: null };
+  }
+  const dragMatrixEl = musicalGrid.getMatrixContainer?.();
+  if (dragMatrixEl) {
+    dragMatrixEl.addEventListener('pointerdown', (e) => {
+      const dot = e.target.closest?.('.np-dot.np-dot-clickable');
+      if (!dot) return;
+      const noteIndex = parseInt(dot.dataset.note, 10);
+      const spaceIndex = parseInt(dot.dataset.pulse, 10);
+      if (Number.isNaN(noteIndex) || Number.isNaN(spaceIndex)) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const cell = musicalGrid.getCellElement?.(noteIndex, spaceIndex) || null;
+      dotDrag = { active: true, noteIndex, spaceIndex, cell };
+      document.body.classList.add('dragging-note');
+      if (cell) cell.classList.add('drag-preview');
+    });
+    document.addEventListener('pointerup', () => {
+      if (!dotDrag.active) return;
+      const { noteIndex, spaceIndex } = dotDrag;
+      resetDotDrag();
+      handlePlaceAtCell(noteIndex, spaceIndex);
+    });
+    document.addEventListener('pointercancel', () => { if (dotDrag.active) resetDotDrag(); });
+  }
 
   // Add missing bottom soundline division below note 0
   const soundlineInner = gridWrapper.querySelector('.soundline-inner') ||

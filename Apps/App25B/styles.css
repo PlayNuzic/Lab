@@ -312,6 +312,36 @@ body[data-visual="nuzic"][data-theme="dark"].app25b .matrix-container .interval-
   text-shadow: none !important;
 }
 
+/* ========== HANDLERS D'INTERVAL (np-dot grab, estil App15) ==========
+   El np-dot clicable agafa el cursor `grab`; en arrossegar-lo el body passa a
+   `grabbing` i la cel·la d'origen mostra una previsualització. */
+body[data-visual="nuzic"].app25b {
+  --np-dot-cursor: grab;
+}
+
+.musical-cell.drag-preview {
+  opacity: 0.3;
+  z-index: var(--z-interactive, 10);
+}
+
+.musical-cell.drag-preview::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 100%;
+  background: var(--nuzic-blue-light, #bdd9e6);
+  border-radius: 2px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+body.dragging-note,
+body.dragging-note * {
+  cursor: grabbing !important;
+}
+
 /* ============================================================================
    PASTILLA TRANSPOSICIÓN (estils visuals via libs/shared-ui/output-note-pill.css;
    ací només pintem els spinners en rosa per coherència amb la resta d'apps
