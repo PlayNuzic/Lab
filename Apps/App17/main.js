@@ -247,10 +247,11 @@ function updateGlobalStep(localStep, cycleNumber) {
  * Delegates to shared totalLengthController module
  */
 function resetTotalLengthDisplay() {
-  // En aturar: el centre torna a "--" (només conteig). La pastilla Longitud
-  // recupera el total via showTotalCycles() → updateTotalLength().
+  // En aturar (fi de seqüència o stop de l'usuari) NO esborrem el conteig del
+  // centre: deixem l'últim número visible. Només treiem el color de playback.
+  // El botó Reset sí que el buida (vegeu handleReset).
   if (centerCountController) {
-    centerCountController.reset();
+    centerCountController.clearPlayingColors();
   }
 }
 
@@ -620,6 +621,10 @@ function handleReset() {
 
   // Show empty circular timeline (just the circle, no pulses)
   renderEmptyTimeline();
+
+  // El botó Reset SÍ que buida el conteig del centre a "--" (a diferència de
+  // l'stop/fi de seqüència, que el manté).
+  centerCountController?.reset();
 
   // Clear cycle display
   showTotalCycles();
