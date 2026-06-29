@@ -30,7 +30,7 @@ body[data-visual="nuzic"].app17 .inputs {
      sota sense solapar-s'hi. !important per guanyar el `row-gap` compartit del
      tema (nuzic-theme .inputs). */
   flex-wrap: nowrap !important;
-  row-gap: clamp(3.4rem, 9vw, 5rem) !important;
+  row-gap: clamp(1.5rem, 3.4vw, 2.1rem) !important;
   padding: 0.25rem 0;
 }
 
@@ -40,10 +40,12 @@ body[data-visual="nuzic"].app17 .inputs .param.longitud {
   margin: 0;
 }
 
-/* Comprimim el marge superior del donut (el compartit és 3.5rem) per recuperar
-   l'alçada que ocupa la nova pastilla "Longitud" → els controls no es desplacen. */
+/* Comprimim els marges del donut (el compartit és 3.5rem dalt i baix) per
+   recuperar l'alçada que ocupa la nova pastilla "Longitud" → els controls no es
+   desplacen ni cauen sota la pantalla. */
 body[data-visual="nuzic"].app17 .timeline-wrapper.circular {
-  margin-top: clamp(0.5rem, 2vw, 1.4rem) !important;
+  margin-top: clamp(0.4rem, 1.6vw, 1.1rem) !important;
+  margin-bottom: clamp(0.4rem, 1.6vw, 1.1rem) !important;
 }
 
 /* The BPM + Compás pastilla combo lives in .inputs; BPM moves to .controls

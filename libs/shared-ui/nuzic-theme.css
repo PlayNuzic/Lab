@@ -1649,12 +1649,12 @@ body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input):not(:ha
    Mateixa pill horitzontal, contingut centrat, `.abbr` a sobre.
    -------------------------------------------------------------------------- */
 
-/* Info-pure: abbr a l'esquerra, pill a la dreta (horitzontal, igual que l'adjunt
-   "LONGITUD 12"). El `.abbr` segueix el seu estil ja existent. */
+/* Info-pure: `.abbr` A SOBRE i pill a sota (columna), com la resta de pills
+   nuzic. Unificat a totes les apps (Longitud d'App17/19/20). */
 body[data-visual="nuzic"] .param:has(.circle > span):not(:has(.circle > input)) {
-  flex-direction: row !important;
+  flex-direction: column !important;
   align-items: center !important;
-  gap: clamp(0.5rem, 1.2vw, 0.875rem) !important;
+  gap: clamp(0.15rem, 0.5vw, 0.35rem) !important;
   font-size: inherit !important;
 }
 
@@ -1676,7 +1676,6 @@ body[data-visual="nuzic"] .param:has(.circle > span):not(:has(.circle > input)) 
   align-items: center !important;
   justify-content: center !important;
   padding: 0 clamp(0.75rem, 2vw, 1.5rem) !important;
-  order: 1;
 }
 
 body[data-visual="nuzic"] .param:has(.circle > span):not(:has(.circle > input)) .circle > span {
