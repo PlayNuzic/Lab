@@ -251,87 +251,88 @@ function createDegreeIntervalLine(degree1, degree2, pulseIndex, intervalIndex = 
 
   const degreeInterval = degree2 - degree1;
   const absInterval = Math.abs(degreeInterval);
-  const isAscending = degreeInterval > 0;
 
   const note1 = absoluteDegreeToVisualNoteIndex(degree1);
   const note2 = absoluteDegreeToVisualNoteIndex(degree2);
-
   if (note1 === null || note2 === null) return;
 
-  const leftPosPercent = (pulseIndex / TOTAL_SPACES) * 100;
-  const cellHeightPercent = 100 / TOTAL_NOTES;
+  // Geometria idèntica a App15 (línies de divisió), però el VALOR del número és
+  // el delta de GRAUS (no de semitons) — el sentit propi d'aquesta app iSº.
+  const isAscending = note2 > note1;
+  const leftPos = (pulseIndex / TOTAL_SPACES) * 100;
+  const cellHeight = 100 / TOTAL_NOTES;
 
+  // Interval 0 (uníson): barra vertical curta centrada a la línia de divisió +
+  // número "0" a sobre (sense fletxa ni punt; ho amaga el CSS .interval-zero).
   if (absInterval === 0) {
-    const noteRow = TOTAL_NOTES - 1 - note2;
-    const topEdgePercent = (noteRow / TOTAL_NOTES) * 100;
+    const divisionPct = ((TOTAL_NOTES - note2) / TOTAL_NOTES) * 100;
 
-    // Interval 0 (uníson): NO es dibuixa barra vertical. El número "0" se situa
-    // A SOBRE de la barra-nota (centrat al pols), amb marge perquè no quedi
-    // enganxat al rectangle — com els números d'interval no-zero, en espai obert.
+    const intervalBar = document.createElement('div');
+    intervalBar.className = 'interval-bar-vertical interval-zero';
+    intervalBar.style.position = 'absolute';
+    intervalBar.style.top = `${divisionPct - cellHeight / 2}%`;
+    intervalBar.style.left = `${leftPos}%`;
+    intervalBar.style.transform = 'translateX(-50%)';
+    intervalBar.style.width = '4px';
+    intervalBar.style.height = `${cellHeight}%`;
+    intervalBar.style.zIndex = '15';
+    matrixContainer.appendChild(intervalBar);
+    currentIntervalElements.push(intervalBar);
+
     const intervalNum = document.createElement('div');
     intervalNum.className = 'interval-number';
     intervalNum.textContent = '0';
     intervalNum.style.position = 'absolute';
     intervalNum.style.zIndex = '16';
-    intervalNum.style.top = `${topEdgePercent + cellHeightPercent / 2}%`;
-    intervalNum.style.left = `${leftPosPercent}%`;
-    intervalNum.style.transform = 'translate(-50%, calc(-100% - 0.35rem))';
+    intervalNum.style.top = `${divisionPct - cellHeight / 2}%`;
+    intervalNum.style.left = `${leftPos}%`;
+    intervalNum.style.transform = 'translate(-50%, -100%)';
     matrixContainer.appendChild(intervalNum);
     currentIntervalElements.push(intervalNum);
     return;
   }
 
-  const rowIndex1 = TOTAL_NOTES - 1 - note1;
-  const rowIndex2 = TOTAL_NOTES - 1 - note2;
+  // Línies de divisió (vora inferior de cada cel·la), com App15.
+  const note1Division = ((TOTAL_NOTES - note1) / TOTAL_NOTES) * 100;
+  const note2Division = ((TOTAL_NOTES - note2) / TOTAL_NOTES) * 100;
 
-  let topEdgePercent, bottomEdgePercent;
+  let topEdge, bottomEdge;
   if (isAscending) {
-    topEdgePercent = ((rowIndex2 + 1) / TOTAL_NOTES) * 100;
-    bottomEdgePercent = ((rowIndex1 + 1) / TOTAL_NOTES) * 100;
+    topEdge = note2Division;
+    // Primer interval des de l'origen (note1 a baix de tot) → s'allarga fins al
+    // fons de la graella (idèntic a App15).
+    bottomEdge = (intervalIndex === 0 && note1 === 0) ? 100 : note1Division;
   } else {
-    topEdgePercent = ((rowIndex1 + 1) / TOTAL_NOTES) * 100;
-    bottomEdgePercent = ((rowIndex2 + 1) / TOTAL_NOTES) * 100;
+    topEdge = note1Division;
+    bottomEdge = note2Division;
   }
-
-  const heightPercent = Math.abs(bottomEdgePercent - topEdgePercent);
+  const finalHeight = bottomEdge - topEdge;
 
   const intervalBar = document.createElement('div');
   intervalBar.className = 'interval-bar-vertical';
   intervalBar.classList.add(isAscending ? 'ascending' : 'descending');
   intervalBar.style.position = 'absolute';
-  intervalBar.style.left = `${leftPosPercent}%`;
+  intervalBar.style.left = `${leftPos}%`;
   intervalBar.style.transform = 'translateX(-50%)';
   intervalBar.style.width = '4px';
-  intervalBar.style.top = `calc(${Math.min(topEdgePercent, bottomEdgePercent)}% + 6px)`;
-  intervalBar.style.height = `calc(${heightPercent}% - 12px)`;
+  intervalBar.style.top = `${topEdge}%`;
+  intervalBar.style.height = `${finalHeight}%`;
   intervalBar.style.zIndex = '15';
   matrixContainer.appendChild(intervalBar);
   currentIntervalElements.push(intervalBar);
 
+  // Caixa central amb el número (delta de GRAUS), centrada a la barra (App15).
   const displayValue = degreeInterval > 0 ? `+${absInterval}` : `-${absInterval}`;
-  const centerYPercent = (topEdgePercent + bottomEdgePercent) / 2;
+  const centerY = (topEdge + bottomEdge) / 2;
 
   const intervalNum = document.createElement('div');
   intervalNum.className = 'interval-number';
   intervalNum.textContent = displayValue;
   intervalNum.style.position = 'absolute';
   intervalNum.style.zIndex = '16';
-
-  const isFirstInterval = intervalIndex === 0;
-  if (absInterval <= 1 || isFirstInterval) {
-    intervalNum.style.top = `${centerYPercent}%`;
-    intervalNum.style.left = `calc(${leftPosPercent}% + 12px)`;
-    intervalNum.style.transform = 'translateY(-50%)';
-  } else if (isAscending) {
-    intervalNum.style.top = `${centerYPercent}%`;
-    intervalNum.style.left = `calc(${leftPosPercent}% - 12px)`;
-    intervalNum.style.transform = 'translate(-100%, -50%)';
-  } else {
-    intervalNum.style.top = `${centerYPercent}%`;
-    intervalNum.style.left = `calc(${leftPosPercent}% + 12px)`;
-    intervalNum.style.transform = 'translateY(-50%)';
-  }
-
+  intervalNum.style.top = `${centerY}%`;
+  intervalNum.style.left = `${leftPos}%`;
+  intervalNum.style.transform = 'translate(-50%, -50%)';
   matrixContainer.appendChild(intervalNum);
   currentIntervalElements.push(intervalNum);
 }
