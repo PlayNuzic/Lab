@@ -80,7 +80,7 @@ vendor/              — Tone.js 15.x, VexFlow 5.0.0, chromatone-theory
 
 ## 🧪 Testing
 
-**75 test suites, 1347 tests** amb Jest 29.x. ES Modules amb Babel.
+**76 test suites, 1370 tests** amb Jest 29.x. ES Modules amb Babel.
 
 ```bash
 npm test                                    # Tots els tests

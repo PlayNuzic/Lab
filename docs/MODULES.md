@@ -73,4 +73,4 @@ npm test                                    # Tots els tests
 npm test -- --testPathPattern="pulse-seq"   # Tests d'un mòdul
 ```
 
-**Cobertura actual:** 75 suites, 1347 tests
+**Cobertura actual:** 76 suites, 1370 tests

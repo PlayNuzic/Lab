@@ -2,7 +2,7 @@
 
 ## Identity
 Monorepo for rhythmic/temporal music apps (Nuzic method). ES2022 modules, no build step, runs directly in browser.
-~70% shared code in `libs/`, individual apps in `Apps/`. 75 test suites, 1347 tests.
+~70% shared code in `libs/`, individual apps in `Apps/`. 76 test suites, 1370 tests.
 
 ## Session Management (MANDATORY)
 - If `SESSION_STATE.md` exists at root → **READ IT FIRST** before any edit. It contains working features that must not break.
