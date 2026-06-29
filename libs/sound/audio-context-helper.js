@@ -2,8 +2,6 @@
 // Helper functions for AudioContext management
 // Extracted to avoid circular dependencies with piano.js/flute.js
 
-import { waitForUserInteraction } from './user-interaction.js';
-import { ensureToneLoaded } from './tone-loader.js';
 import { log } from '../app-common/logger.js';
 
 // Tots els samples del motor (Salamander piano, click samples, etc.) són
@@ -81,83 +79,3 @@ export function ensurePreferredSampleRateContext() {
   }
 }
 
-/**
- * Ensure Tone.js AudioContext is started and running
- * This function handles all the complexity of starting the audio context:
- * - Waits for user interaction
- * - Calls Tone.start()
- * - Falls back to context.resume()
- * - Handles errors gracefully
- *
- * @returns {Promise<boolean>} True if context is running
- */
-export async function ensureToneContextRunning() {
-  // Load Tone.js if not already loaded
-  await ensureToneLoaded();
-
-  if (typeof Tone === 'undefined') {
-    console.warn('Tone.js not available');
-    return false;
-  }
-
-  // Check if already running
-  const contextBefore = getToneContext();
-  if (isRunning(contextBefore)) {
-    return true;
-  }
-
-  // Wait for user interaction before attempting to start audio
-  await waitForUserInteraction();
-
-  // Forcem el sampleRate ABANS de Tone.start() perquè el context que
-  // crea Tone.js per defecte usa la rate del dispositiu (48kHz a
-  // Firefox/Linux), provocant resampling silenciós a cada buffer.
-  ensurePreferredSampleRateContext();
-
-  // Try Tone.start()
-  if (typeof Tone.start === 'function') {
-    try {
-      await Tone.start();
-    } catch (error) {
-      // Ignore autoplay policy errors - will try resume below
-      if (error?.name !== 'InvalidAccessError' &&
-          error?.name !== 'NotAllowedError' &&
-          error?.name !== 'DOMException') {
-        throw error;
-      }
-    }
-  }
-
-  // Check if now running
-  let context = getToneContext();
-  if (isRunning(context)) {
-    return true;
-  }
-
-  // Try context.resume() as fallback
-  if (context && typeof context.resume === 'function') {
-    try {
-      await context.resume();
-    } catch (error) {
-      // Ignore autoplay policy errors
-      if (error?.name !== 'InvalidAccessError' &&
-          error?.name !== 'NotAllowedError' &&
-          error?.name !== 'DOMException') {
-        throw error;
-      }
-    }
-  }
-
-  // Final check
-  context = getToneContext();
-  return isRunning(context);
-}
-
-/**
- * Check if Tone.js AudioContext is currently running
- * @returns {boolean}
- */
-export function isToneContextRunning() {
-  const context = getToneContext();
-  return isRunning(context);
-}

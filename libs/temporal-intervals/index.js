@@ -4,11 +4,7 @@
 
 // Calculator functions - NEW: calculateAllIntervals siempre retorna Lg intervalos
 export {
-  calculateAllIntervals,  // NEW: Principal función para App5
-  calculateIntervals,     // DEPRECATED: Mantenida por compatibilidad
-  getTotalDuration,
-  findIntervalAtPosition,
-  areConsecutiveSelected
+  calculateAllIntervals  // NEW: Principal función para App5
 } from './it-calculator.js';
 
 // Renderer - Completamente reescrito para renderizar SIEMPRE todos los intervalos

@@ -210,58 +210,11 @@ export async function playNote(midiNumber, duration, when = 0) {
 }
 
 /**
- * Play a sequence of notes
- * @param {number[]} midiNumbers - Array of MIDI note numbers
- * @param {number} intervalSec - Interval between note starts (seconds)
- * @param {Function} onNote - Callback (index, midiNumber) called when each note plays
- * @param {Function} onComplete - Callback called when sequence completes
- */
-export async function playSequence(midiNumbers, intervalSec, onNote, onComplete) {
-  if (!isLoaded || !sampler) {
-    log('Piano not loaded, loading...');
-    await loadPiano();
-  }
-
-  const Tone = window.Tone;
-  const startTime = Tone.now();
-
-  // Schedule all notes
-  midiNumbers.forEach((midi, idx) => {
-    const when = startTime + (idx * intervalSec);
-    const note = Tone.Frequency(midi, 'midi').toNote();
-
-    // Duration is 90% of interval to leave small gap
-    const noteDuration = intervalSec * 0.9;
-    sampler.triggerAttackRelease(note, noteDuration, when, 0.8);
-
-    // Call onNote callback at the right time
-    if (onNote) {
-      const delay = idx * intervalSec * 1000; // Convert to milliseconds
-      setTimeout(() => onNote(idx, midi), delay);
-    }
-  });
-
-  // Call onComplete after last note finishes
-  if (onComplete) {
-    const totalDuration = midiNumbers.length * intervalSec * 1000;
-    setTimeout(onComplete, totalDuration);
-  }
-}
-
-/**
  * Check if piano is loaded
  * @returns {boolean}
  */
 export function isPianoLoaded() {
   return isLoaded;
-}
-
-/**
- * Get sampler instance (for advanced usage)
- * @returns {Tone.Sampler|null}
- */
-export function getSampler() {
-  return sampler;
 }
 
 /**

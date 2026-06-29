@@ -37,47 +37,6 @@ export function bindElements(elementMap, options = {}) {
 }
 
 /**
- * Bind elements with specific LED support for rhythm apps (Lg, V, T pattern)
- * @param {Object} elementMap - Map of element keys to IDs
- * @returns {Object} Object with elements, leds, and LED state helpers
- */
-export function bindRhythmElements(elementMap) {
-  const { elements, leds } = bindElements(elementMap, {
-    ledKeys: ['ledLg', 'ledV', 'ledT']
-  });
-
-  // Add LED state management helpers
-  const ledHelpers = {
-    setLedAuto: (param, isAuto) => {
-      const led = leds[`led${param}`];
-      if (led) {
-        if (isAuto) {
-          led.dataset.auto = 'true';
-          led.classList.add('led-auto');
-        } else {
-          delete led.dataset.auto;
-          led.classList.remove('led-auto');
-        }
-      }
-    },
-
-    setLedActive: (param, isActive) => {
-      const led = leds[`led${param}`];
-      if (led) {
-        led.classList.toggle('led-active', isActive);
-      }
-    },
-
-    isLedAuto: (param) => {
-      const led = leds[`led${param}`];
-      return led ? led.hasAttribute('data-auto') : false;
-    }
-  };
-
-  return { elements, leds, ledHelpers };
-}
-
-/**
  * Quick element creation helper
  * @param {string} tag - HTML tag name
  * @param {Object} attrs - Attributes to set

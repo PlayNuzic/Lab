@@ -26,7 +26,7 @@ function resolveDetail(eventOrDetail) {
  *
  * @returns {'mobile'|'desktop'}
  */
-export function detectSchedulingProfile() {
+function detectSchedulingProfile() {
   const ua = (typeof navigator !== 'undefined' && navigator && navigator.userAgent)
     ? navigator.userAgent
     : '';

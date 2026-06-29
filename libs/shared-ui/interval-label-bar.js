@@ -38,10 +38,3 @@ export function createIntervalLabelBar({ startPercent, widthPercent, label, vari
 
   return bar;
 }
-
-/**
- * Elimina tots els indicadors d'iT d'un contenidor.
- */
-export function clearIntervalLabelBars(container) {
-  container.querySelectorAll('.interval-label-bar').forEach(el => el.remove());
-}

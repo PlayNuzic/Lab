@@ -179,77 +179,11 @@ export async function loadFlute() {
 }
 
 /**
- * Play a single note
- * @param {number} midiNumber - MIDI note number (e.g., 60 = C4)
- * @param {number} duration - Note duration in seconds
- * @param {number} when - When to play (seconds from now, default 0)
- */
-export async function playNote(midiNumber, duration, when = 0) {
-  if (!isLoaded || !sampler) {
-    console.warn('Flute not loaded, loading now...');
-    await loadFlute();
-  }
-
-  const Tone = window.Tone;
-  const note = Tone.Frequency(midiNumber, 'midi').toNote();
-  const playTime = when === 0 ? Tone.now() : Tone.now() + when;
-
-  sampler.triggerAttackRelease(note, duration, playTime, 0.25);
-}
-
-/**
- * Play a sequence of notes
- * @param {number[]} midiNumbers - Array of MIDI note numbers
- * @param {number} intervalSec - Interval between note starts (seconds)
- * @param {Function} onNote - Callback (index, midiNumber) called when each note plays
- * @param {Function} onComplete - Callback called when sequence completes
- */
-export async function playSequence(midiNumbers, intervalSec, onNote, onComplete) {
-  if (!isLoaded || !sampler) {
-    log('Flute not loaded, loading...');
-    await loadFlute();
-  }
-
-  const Tone = window.Tone;
-  const startTime = Tone.now();
-
-  // Schedule all notes
-  midiNumbers.forEach((midi, idx) => {
-    const when = startTime + (idx * intervalSec);
-    const note = Tone.Frequency(midi, 'midi').toNote();
-
-    // Duration is 90% of interval to leave small gap
-    const noteDuration = intervalSec * 0.9;
-    sampler.triggerAttackRelease(note, noteDuration, when, 0.25);
-
-    // Call onNote callback at the right time
-    if (onNote) {
-      const delay = idx * intervalSec * 1000; // Convert to milliseconds
-      setTimeout(() => onNote(idx, midi), delay);
-    }
-  });
-
-  // Call onComplete after last note finishes
-  if (onComplete) {
-    const totalDuration = midiNumbers.length * intervalSec * 1000;
-    setTimeout(onComplete, totalDuration);
-  }
-}
-
-/**
  * Check if flute is loaded
  * @returns {boolean}
  */
 export function isFluteLoaded() {
   return isLoaded;
-}
-
-/**
- * Get sampler instance (for advanced usage)
- * @returns {Tone.Sampler|null}
- */
-export function getSampler() {
-  return sampler;
 }
 
 /**
@@ -290,39 +224,6 @@ export async function preloadFlute(options = {}) {
       console.warn('Flute preload failed:', err);
     }
   }
-}
-
-/**
- * Setup automatic flute preload after first user interaction
- * Attaches one-time listener that triggers preload 300ms after first click/touch
- *
- * @param {Object} options - Same options as preloadFlute
- */
-export function setupFlutePreload(options = {}) {
-  if (typeof document === 'undefined') return;
-
-  // Already loaded or preload setup
-  if (isLoaded || preloadInitiated) return;
-
-  const triggerPreload = async () => {
-    // Import tone-loader to ensure Tone.js is loaded first
-    const { ensureToneLoaded } = await import('./tone-loader.js');
-
-    // Ensure Tone.js is loaded before preloading flute
-    await ensureToneLoaded();
-
-    // Preload flute in background
-    preloadFlute(options);
-  };
-
-  // Listen for first interaction
-  const events = ['click', 'touchstart', 'keydown'];
-  const handler = () => {
-    events.forEach(e => document.removeEventListener(e, handler, { capture: true }));
-    triggerPreload();
-  };
-
-  events.forEach(e => document.addEventListener(e, handler, { capture: true, once: true }));
 }
 
 /**
