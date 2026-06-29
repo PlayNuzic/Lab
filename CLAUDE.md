@@ -2,7 +2,7 @@
 
 ## Identity
 Monorepo for rhythmic/temporal music apps (Nuzic method). ES2022 modules, no build step, runs directly in browser.
-~70% shared code in `libs/`, individual apps in `Apps/`. 79 test suites, 1502 tests.
+~70% shared code in `libs/`, individual apps in `Apps/`. 75 test suites, 1347 tests.
 
 ## Session Management (MANDATORY)
 - If `SESSION_STATE.md` exists at root → **READ IT FIRST** before any edit. It contains working features that must not break.
@@ -32,12 +32,12 @@ libs/
   sound/       → Audio engine (TimelineAudio, mixer, samples)
   app-common/  → 50 core modules (DOM, audio-init, loop, fractions, LED, visual-sync...)
   pulse-seq/   → Pulse sequence editor with parser and memory
-  matrix-seq/  → 2D grid editor for N-P pairs
+  matrix-seq/  → Interval parsing utilities (sound/temporal)
   notation/    → VexFlow rhythm staff rendering
   random/      → Randomization system with menu UI
   shared-ui/   → Header, dropdowns, tooltips, theme events
   gamification/→ Achievement system, scoring, event tracking
-  interval-sequencer/ → Interval-based sequencing with drag editing
+  interval-sequencer/ → iTfr timeline engine + interval/gap conversion
   musical-grid/→ 2D musical grid with scroll and interval support
   temporal-intervals/ → Visual interval blocks (iT) for timeline
   scales/      → Musical scale definitions
@@ -46,11 +46,11 @@ libs/
 
 ## Standard App Initialization Pattern
 ```javascript
-import { bindRhythmElements } from '../../libs/app-common/dom.js';
+import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import TimelineAudio from '../../libs/sound/index.js';
 
-const { elements, leds, ledHelpers } = bindRhythmElements({...});
+const { elements } = bindAppRhythmElements('appId');
 const initAudio = createRhythmAudioInitializer({...});
 const audio = await initAudio();
 ```

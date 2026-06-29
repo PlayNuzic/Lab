@@ -60,11 +60,11 @@ shared-ui/           — Header, dropdowns, tema Nuzic, performance audio menu
 plano-modular/       — Grid 2D N×P amb soundline + timeline (App19, App20)
 musical-grid/        — Grid 2D simple (App11A, App12)
 pulse-seq/           — Editor de seqüència de pulsos amb parser
-matrix-seq/          — Editor 2D de parells N-P
+matrix-seq/          — Utilitats de parsing d'intervals (sound/temporal)
 notation/            — Renderització de partitures via VexFlow
 random/              — Sistema de randomització amb menú UI
 gamification/        — Sistema d'achievements i scoring
-interval-sequencer/  — Seqüenciació basada en intervals
+interval-sequencer/  — Motor iTfr + conversió d'intervals/forats
 temporal-intervals/  — Blocs visuals d'iT a la timeline
 scales/              — Definicions d'escales musicals
 scale-selector/      — Selector d'escales
@@ -80,7 +80,7 @@ vendor/              — Tone.js 15.x, VexFlow 5.0.0, chromatone-theory
 
 ## 🧪 Testing
 
-**73 test suites, 1380+ tests** amb Jest 29.x. ES Modules amb Babel.
+**75 test suites, 1347 tests** amb Jest 29.x. ES Modules amb Babel.
 
 ```bash
 npm test                                    # Tots els tests
@@ -92,11 +92,11 @@ Suites principals a `libs/app-common/__tests__/`, `libs/plano-modular/__tests__/
 ## 🛠 Patró d'inicialització modern
 
 ```javascript
-import { bindRhythmElements } from '../../libs/app-common/dom.js';
+import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import TimelineAudio from '../../libs/sound/index.js';
 
-const { elements, leds, ledHelpers } = bindRhythmElements({ /* config */ });
+const { elements } = bindAppRhythmElements('appId');
 const initAudio = createRhythmAudioInitializer({ /* config */ });
 const audio = await initAudio();
 ```

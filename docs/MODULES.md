@@ -7,9 +7,9 @@
 | Mòdul | Descripció | README |
 |-------|------------|--------|
 | **app-common** | 54 mòduls core compartits entre apps | [README](../libs/app-common/README.md) |
-| **matrix-seq** | Editor grid N-P pairs dinàmic | [README](../libs/matrix-seq/README.md) |
+| **matrix-seq** | Utilitats de parsing d'intervals (sound/temporal) | [README](../libs/matrix-seq/README.md) |
 | **musical-grid** | Visualització 2D amb scroll | [README](../libs/musical-grid/README.md) |
-| **interval-sequencer** | Seqüenciador d'intervals iS-iT | [README](../libs/interval-sequencer/README.md) |
+| **interval-sequencer** | Motor iTfr + conversió d'intervals/forats | [README](../libs/interval-sequencer/README.md) |
 | **notation** | VexFlow rendering + rhythm-staff | [README](../libs/notation/README.md) |
 | **plano-modular** | Grid 2D modular | [README](../libs/plano-modular/README.md) |
 | **scale-selector** | Selector d'escales | [README](../libs/scale-selector/README.md) |
@@ -44,8 +44,8 @@ import TimelineAudio from '../../libs/sound/index.js';
 import { createSchedulingBridge } from '../../libs/app-common/audio.js';
 
 // UI
-import { bindRhythmElements } from '../../libs/app-common/dom.js';
-import { createGridEditor } from '../../libs/matrix-seq/index.js';
+import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
+import { intervalsToPairs } from '../../libs/matrix-seq/index.js';
 import { createMusicalGrid } from '../../libs/musical-grid/index.js';
 import { createCircularRings } from '../../libs/app-common/circular-rings.js'; // anells concèntrics polirítmics (App4) + circular-rings.css
 import { renderCircularRingNumbers } from '../../libs/app-common/circular-timeline-ring.js'; // números del donut circular (App1/App17)
@@ -60,7 +60,7 @@ import { createNotationSystem } from '../../libs/notation/notation-system.js'; /
 
 // Seqüències
 import { createPulseSeqController } from '../../libs/pulse-seq/index.js';
-import { createIntervalSequencer } from '../../libs/interval-sequencer/index.js';
+import { createItfrEngine } from '../../libs/interval-sequencer/index.js';
 
 // Random
 import { randomize, initRandomMenu } from '../../libs/random/index.js';
@@ -70,7 +70,7 @@ import { randomize, initRandomMenu } from '../../libs/random/index.js';
 
 ```bash
 npm test                                    # Tots els tests
-npm test -- --testPathPattern="matrix-seq"  # Tests d'un mòdul
+npm test -- --testPathPattern="pulse-seq"   # Tests d'un mòdul
 ```
 
-**Cobertura actual:** 79 suites, 1502 tests
+**Cobertura actual:** 75 suites, 1347 tests

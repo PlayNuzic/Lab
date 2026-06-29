@@ -12,10 +12,7 @@ gamification/
 ├── achievements.js    # Sistema de logros
 ├── storage.js         # Persistència localStorage
 ├── config.js          # Configuració
-├── user-manager.js    # Gestió d'usuari
-└── game-components/   # Components de joc reutilitzables
-    ├── shared/        # Classes base (BaseGameManager, LevelSystem)
-    └── rhythm-game/   # Components per jocs de ritme
+└── user-manager.js    # Gestió d'usuari
 ```
 
 ## Ús
@@ -29,21 +26,6 @@ initGamification('app5');
 // Tracking
 trackEvent('PATTERN_COMPLETED', { accuracy: 0.95 });
 trackEvent('LEVEL_UP', { level: 2 });
-```
-
-## Game Components
-
-```javascript
-import { BaseGameManager } from '../../libs/gamification/game-components/shared/BaseGameManager.js';
-
-class MyGame extends BaseGameManager {
-  constructor() {
-    super({ appId: 'myGame', maxLevels: 4 });
-  }
-
-  getLevelConfig(level) { /* ... */ }
-  executePhase(phase) { /* ... */ }
-}
 ```
 
 ## Implementat a

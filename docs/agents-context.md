@@ -256,9 +256,9 @@ Lab/
 ├── libs/
 │   ├── app-common/         # 43 mòduls compartits
 │   ├── pulse-seq/          # Seqüències de pulsos (8 modes)
-│   ├── matrix-seq/         # Grid editor N-P
+│   ├── matrix-seq/         # Utilitats de parsing d'intervals
 │   ├── musical-grid/       # Grid 2D amb scroll
-│   ├── interval-sequencer/ # Sequencer iS-iT
+│   ├── interval-sequencer/ # Motor iTfr + conversió d'intervals
 │   ├── notation/           # VexFlow rendering
 │   ├── random/             # Randomització
 │   ├── sound/              # Audio engine TimelineAudio
