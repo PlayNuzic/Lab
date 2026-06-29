@@ -265,26 +265,16 @@ function createDegreeIntervalLine(degree1, degree2, pulseIndex, intervalIndex = 
     const noteRow = TOTAL_NOTES - 1 - note2;
     const topEdgePercent = (noteRow / TOTAL_NOTES) * 100;
 
-    const intervalBar = document.createElement('div');
-    intervalBar.className = 'interval-bar-vertical interval-zero';
-    intervalBar.style.position = 'absolute';
-    intervalBar.style.top = `${topEdgePercent}%`;
-    intervalBar.style.left = `${leftPosPercent}%`;
-    intervalBar.style.transform = 'translateX(-50%)';
-    intervalBar.style.width = '4px';
-    intervalBar.style.height = `${cellHeightPercent}%`;
-    intervalBar.style.zIndex = '15';
-    matrixContainer.appendChild(intervalBar);
-    currentIntervalElements.push(intervalBar);
-
+    // Interval 0 (uníson): NO es dibuixa barra vertical; al seu lloc es mostra
+    // el número "0" centrat a la cel·la.
     const intervalNum = document.createElement('div');
     intervalNum.className = 'interval-number';
     intervalNum.textContent = '0';
     intervalNum.style.position = 'absolute';
     intervalNum.style.zIndex = '16';
-    intervalNum.style.top = `${topEdgePercent}%`;
+    intervalNum.style.top = `${topEdgePercent + cellHeightPercent / 2}%`;
     intervalNum.style.left = `${leftPosPercent}%`;
-    intervalNum.style.transform = 'translate(-50%, -100%)';
+    intervalNum.style.transform = 'translate(-50%, -50%)';
     matrixContainer.appendChild(intervalNum);
     currentIntervalElements.push(intervalNum);
     return;

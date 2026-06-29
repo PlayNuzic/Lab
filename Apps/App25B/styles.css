@@ -257,10 +257,6 @@ main {
   border-top: 8px solid var(--interval-sound-color);
 }
 
-.interval-bar-vertical.interval-zero {
-  /* Simple bar without arrows */
-}
-
 .musical-grid .matrix-container .interval-number {
   position: absolute;
   color: var(--interval-sound-color);
