@@ -1,60 +1,21 @@
 /**
- * Interval Sequencer Module
+ * Interval Sequencer Module — utilitats d'intervals vives
  *
- * Complete interval-based musical sequencer system.
- * Provides drag-based iT modification, visualization, and conversion utilities.
+ * Nota (2026-06): es va eliminar el subarbre mort (l'orquestrador
+ * `createIntervalSequencer` + interval-controller.js, interval-drag-handler.js
+ * i interval-renderer.js, més funcions de converter/gap-filler) perquè cap app
+ * l'usava. Queda només el que s'usa: el motor iTfr (App30/31), pairsToIntervals
+ * (App15), fillGapsWithSilences (App15/20) i els re-exports de matrix-seq.
  *
  * @module libs/interval-sequencer
- *
- * @example
- * // Basic usage with all-in-one controller
- * import { createIntervalSequencer } from '../../libs/interval-sequencer/index.js';
- *
- * const sequencer = createIntervalSequencer({
- *   musicalGrid,
- *   gridEditor,
- *   totalSpaces: 8,
- *   basePair: { note: 0, pulse: 0 },
- *   autoFillGaps: true,
- *   onIntervalsChange: (intervals, pairs) => {
- *     console.log('Intervals changed:', intervals);
- *   }
- * });
- *
- * sequencer.setPairs(initialPairs);
- *
- * @example
- * // Using individual components
- * import {
- *   createIntervalDragHandler,
- *   createIntervalRenderer,
- *   fillGapsWithSilences,
- *   pairsToIntervals
- * } from '../../libs/interval-sequencer/index.js';
- *
- * // Manual setup for custom integration
- * const renderer = createIntervalRenderer({ ... });
- * const dragHandler = createIntervalDragHandler({ ... });
  */
 
-// Main controller (recommended entry point)
-export { createIntervalSequencer } from './interval-controller.js';
-
-// Individual components (for custom setups)
-export { createIntervalDragHandler, getSpaceIndexFromPair, getEndSpaceFromPair } from './interval-drag-handler.js';
-export { createIntervalRenderer, DEFAULT_INTERVAL_BAR_STYLES, injectIntervalBarStyles } from './interval-renderer.js';
-
-// Motor iTfr de línia de temps (drag per subdivisions + barres + highlights;
-// App30/App31)
+// Motor iTfr de línia de temps (App30/App31)
 export { createItfrEngine } from './itfr-engine.js';
 
-// Conversion utilities
+// Conversion utilities + re-exports de matrix-seq
 export {
   pairsToIntervals,
-  buildPairsFromIntervals,
-  validatePairSequence,
-  validateIntervalSequence,
-  // Re-exports from matrix-seq
   getIntervalRange,
   validateSoundInterval,
   validateTemporalInterval,
@@ -63,11 +24,5 @@ export {
   formatInterval
 } from './interval-converter.js';
 
-// Gap filler utilities
-export {
-  fillGapsWithSilences,
-  detectGaps,
-  hasGaps,
-  calculateTotalDuration,
-  removeSilences
-} from './gap-filler.js';
+// Gap filler
+export { fillGapsWithSilences } from './gap-filler.js';
