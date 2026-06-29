@@ -420,7 +420,11 @@ function handleGridCellClick(noteIndex, pulseIndex) {
   const newIntervals = absoluteDegreesToIntervals(absoluteDegrees);
   currentDegreeIntervals = newIntervals;
   gridEditor.setPairs(newIntervals);
-  syncGridFromDegreeIntervals(absoluteDegrees);
+  // Renderitza la graella amb les MATEIXES dades que l'editor: `newIntervals`
+  // (via absoluteDegreesToIntervals) omple amb silencis els FORATS entre notes;
+  // `absoluteDegrees` cru NO els té. Abans es passava `absoluteDegrees` → el
+  // silenci d'un forat no es dibuixava fins a l'acció següent (lag d'una acció).
+  syncGridFromDegreeIntervals(degreeIntervalsToAbsoluteDegrees(newIntervals));
 }
 
 // ========== PLAYBACK ==========
