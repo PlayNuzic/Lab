@@ -1,19 +1,20 @@
 # Matrix Sequence — Context for Claude
 
 ## Purpose
-2D grid sequencer for Note-Pulse (N-P) pairs. Dual contenteditable inputs, dynamic column generation, multi-voice polyphony.
+Utilitats pures de **parsing d'intervals** (sound/temporal) per a l'editor
+d'intervals d'App15 i `libs/interval-sequencer`.
 
-## Main Exports
-- `createGridEditor(config)` — Production grid editor with scroll, multi-voice, auto-merge, auto-sort, keyboard nav
-- `createMatrixSeqController(config)` — Dual editor for notes + pulses
-- `createPairStateManager()` — N-P pair state
-- `parseNotes()`, `parsePulses()`, `validateNote()`, `validatePulse()` — Parsing
-- `createIntervalDragHandler()` — Drag handlers for interval mode
+## Història
+Aquest paquet va contenir un sistema d'editor 2D N×P (`createMatrixSeqController`,
+`createDualEditor`, `createGridEditor`, `createDragHandlers`, `createSyncManager`,
+`createPairColumnsRenderer`, `createPairStateManager`, parser N/P + CSS). Es va
+**eliminar el 2026-06** perquè cap app l'usava — totes tenen els seus editors
+inline. Només va quedar `interval-parser.js`, que sí s'usa.
 
-## Key Rules
-- Notes: free input
-- Pulses: must be in ascending order, no duplicates
-- Grid auto-sorts columns by pulse value when order changes
-- Pulse=7 auto-blur (doesn't jump to note input)
-- Dynamic columns created on demand
-- Responsive: 4-breakpoint design, optional scroll mode
+## Exports (`index.js` → `interval-parser.js`)
+- `getIntervalRange(currentNote)`
+- `validateSoundInterval(currentNote, intervalProposed)`
+- `validateTemporalInterval(currentPulse, intervalProposed, maxPulse)`
+- `parseIntervalPairs(pairs)`
+- `intervalsToPairs(initial, intervals)` — usat per App15 i interval-sequencer
+- `formatInterval(interval, type)`

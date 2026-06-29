@@ -1,9 +1,8 @@
 // App12: Plano-Sucesión - 2D Step Sequencer with dual N+P sequences
-// Uses matrix-seq module for coordinated note/pulse selection
 // Uses musical-grid module for 2D grid visualization
+// (editor N-P inline; el createGridEditor de matrix-seq es va eliminar — no s'usava)
 
 import { createMusicalGrid } from '../../libs/musical-grid/index.js';
-import { createGridEditor } from '../../libs/matrix-seq/index.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
