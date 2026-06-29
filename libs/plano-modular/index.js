@@ -210,14 +210,15 @@ export function createPlanoModular(config) {
       columnSizing,
       isSelected: (rowId, colIndex) => selectionManager.isSelected(rowId, colIndex),
       cellFormatter: (row, colIndex) => {
-        // Generate N^r P^m label (same format as updateCellSelection)
+        // Generate P^c N^r label (compás primer, nota després — igual que
+        // updateCellSelection).
         const match = row.id.match(/^(\d+)r(\d+)$/);
         if (match) {
           const noteNum = match[1];
           const registry = match[2];
           const moduloPulse = colIndex % cycleConfig.compas;
           const cycleNum = Math.floor(colIndex / cycleConfig.compas) + 1;
-          return { html: `${noteNum}<sup>${registry}</sup> ${moduloPulse}<sup>${cycleNum}</sup>` };
+          return { html: `${moduloPulse}<sup>${cycleNum}</sup> ${noteNum}<sup>${registry}</sup>` };
         }
         return row.label;
       },

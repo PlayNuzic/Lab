@@ -375,8 +375,8 @@ describe('plano-grid', () => {
 
       const label = container.querySelector('.plano-cell-label');
       expect(label).not.toBeNull();
-      // Label format: N^r P^c → "5" + sup "4" + " " + "2" + sup "1" (cycle 1 because colIndex 2 / compas 4 = 0 + 1)
-      expect(label.innerHTML).toBe('5<sup>4</sup> 2<sup>1</sup>');
+      // Label format: P^c N^r → compás "2" + sup "1" (cycle 1: colIndex 2 / compas 4 = 0 + 1) + " " + nota "5" + sup "4"
+      expect(label.innerHTML).toBe('2<sup>1</sup> 5<sup>4</sup>');
     });
 
     test('should remove label when deselecting', () => {

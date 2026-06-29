@@ -355,9 +355,10 @@ export function updateCellSelection(container, rowId, colIndex, selected, label 
         const compas = options.compas || 1;
         const moduloPulse = colIndex % compas;
 
-        // Build label: N^r P^c (registry and cycle number as superscripts)
+        // Build label: P^c N^r — primer el compás (pols^cicle) i després la
+        // nota (nota^registre), com a les apps 19/20.
         const cycleNum = Math.floor(colIndex / compas) + 1;
-        labelEl.innerHTML = `${noteNum}<sup>${registry}</sup> ${moduloPulse}<sup>${cycleNum}</sup>`;
+        labelEl.innerHTML = `${moduloPulse}<sup>${cycleNum}</sup> ${noteNum}<sup>${registry}</sup>`;
       }
 
       cell.appendChild(labelEl);
@@ -374,7 +375,7 @@ export function updateCellSelection(container, rowId, colIndex, selected, label 
 
 /**
  * Highlight a cell temporarily (e.g., during playback)
- * Shows a label with Note^Registry - Pulse^m (registry and m as superscripts)
+ * Shows a label with Pulse^c - Note^Registry (compás first, then note)
  * @param {HTMLElement} container - Matrix container
  * @param {string} rowId - Row identifier (e.g., "5r4")
  * @param {number} colIndex - Column index (absolute pulse)
@@ -410,9 +411,9 @@ export function highlightCell(container, rowId, colIndex, duration = 0, options 
       const compas = options.compas || 1;
       const moduloPulse = colIndex % compas;
 
-      // Build label: N^r - P^c (registry and cycle number as superscripts)
+      // Build label: P^c - N^r — primer el compás (pols^cicle) i després la nota.
       const cycleNum = Math.floor(colIndex / compas) + 1;
-      highlightLabel.innerHTML = `${noteNum}<sup>${registry}</sup>-${moduloPulse}<sup>${cycleNum}</sup>`;
+      highlightLabel.innerHTML = `${moduloPulse}<sup>${cycleNum}</sup>-${noteNum}<sup>${registry}</sup>`;
     }
 
     cell.appendChild(highlightLabel);
