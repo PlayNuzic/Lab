@@ -197,9 +197,10 @@ export function updateMatrix(container, rows, columns, options = {}) {
         }
       }
 
-      // Attach click handler
+      // Attach click handler (passem l'event perquè el consumidor pugui
+      // distingir l'origen del click, p.ex. un np-dot del drag handler).
       if (onCellClick) {
-        cell.addEventListener('click', () => onCellClick(row, colIdx, cell));
+        cell.addEventListener('click', (e) => onCellClick(row, colIdx, cell, e));
       }
 
       grid.appendChild(cell);

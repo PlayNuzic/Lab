@@ -150,7 +150,14 @@ export function createPlanoModular(config) {
    * @param {number} colIndex - Column index
    * @param {HTMLElement} cellEl - Cell element
    */
-  function handleCellClick(rowData, colIndex, cellEl) {
+  function handleCellClick(rowData, colIndex, cellEl, event) {
+    // Un click sobre un np-dot pertany al drag handler (interval-note-drag):
+    // ell crea/edita la nota amb el seu iT i ja en gestiona la selecció via
+    // loadSelection. Si togglegéssim aquí, desfaríem aquesta selecció just
+    // després d'aplicar-la (la nota només es veuria a la següent interacció).
+    // Els clicks al cos de la cel·la (fora del dot) sí que togglegen.
+    if (event?.target?.closest?.('.np-dot')) return;
+
     if (selectionMode === 'none') {
       if (onCellClick) {
         onCellClick(rowData, colIndex, false);
