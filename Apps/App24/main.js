@@ -46,7 +46,7 @@ let useKeySig = true; // Armadura activada per defecte
 // en exactament 2 línies (les soundlines han d'estar connectades
 // visualment, mateixa Y de partida) — vegeu updateScaleTitle().
 const APP24_SCALES = [
-  { id: 'DIAT', rotation: 0, value: 'DIAT-0', name: 'Major', rootOffset: 0 },
+  { id: 'DIAT', rotation: 0, value: 'DIAT-0', name: 'Mayor', rootOffset: 0 },
   { id: 'DIAT', rotation: 5, value: 'DIAT-5', name: 'Menor Natural', titleName: 'm. Natural', rootOffset: 3 },  // Eolia: +3 semitons
   { id: 'ARMme', rotation: 0, value: 'ARMme-0', name: 'Menor Harmónica', titleName: 'm. Harmónica', rootOffset: 0 },
   { id: 'ARMma', rotation: 0, value: 'ARMma-0', name: 'Mayor Harmónica', titleName: 'M. Harmónica', rootOffset: 0 },
@@ -713,7 +713,7 @@ function createAppLayout() {
         <!-- Soundline d'escala (esquerra) -->
         <div class="soundline-column">
           <div class="soundline-header">
-            <h3 id="scaleSoundlineTitle" class="soundline-title">Escala<br>Major</h3>
+            <h3 id="scaleSoundlineTitle" class="soundline-title">Escala<br>Mayor</h3>
           </div>
           <div class="soundline-block">
             <div id="scaleSoundlineAbbr" class="soundline-abbr-pill">Nº</div>
