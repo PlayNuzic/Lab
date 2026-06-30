@@ -577,7 +577,7 @@ function initZigzagEditor() {
   itBar.className = 'nit-editor-bar';
   const itLabel = document.createElement('div');
   itLabel.className = 'nit-editor-label it-label';
-  itLabel.textContent = 'iT';
+  itLabel.textContent = 'iTfr';
   const itCells = document.createElement('div');
   itCells.className = 'nit-editor-cells';
   const itEnd = document.createElement('div');

@@ -182,7 +182,7 @@ function createItfrLayout() {
 
   const label = document.createElement('div');
   label.className = 'itfr-label';
-  label.textContent = 'iT';
+  label.textContent = 'iTfr';
 
   itfrCellsEl = document.createElement('div');
   itfrCellsEl.className = 'itfr-cells';
