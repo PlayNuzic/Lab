@@ -410,7 +410,10 @@ function syncGridFromDegreeIntervals(absoluteDegrees) {
     if (isRest) {
       const cell = musicalGrid.getCellElement(lastNoteIndex, pulse);
       if (cell) cell.classList.add('rest');
-      halterPairs.push({ note: lastNoteIndex, pulse, isRest: true });
+      // A App25B els SILENCIS no porten halter d'iT (decisió de disseny). La
+      // variant discontínua (`dashed`) de renderItHalterCellLayer i el CSS
+      // `.interval-label-bar--dashed` es conserven per reutilitzar-los a
+      // App32-35 (només cal tornar a fer push amb isRest:true).
       return;
     }
     if (degree === null) return;

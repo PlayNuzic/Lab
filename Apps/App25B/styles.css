@@ -370,6 +370,8 @@ body.dragging-note * {
   height: 0.15rem;
 }
 
+/* Variant discontínua (silencis). A App25B no es genera cap halter de silenci,
+   però es CONSERVA aquesta regla per reutilitzar-la a App32-35. */
 .it-bar-cell-layer .interval-label-bar--dashed::before {
   background-image: linear-gradient(
     to right,
