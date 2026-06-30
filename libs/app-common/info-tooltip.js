@@ -94,10 +94,15 @@ export function createInfoTooltip(options = {}) {
     // Show with CSS class
     tip.classList.add('show');
 
-    // Adjust horizontal position after render to center properly
+    // Adjust horizontal position after render to center properly, clamping to
+    // the viewport so the tooltip no es talli a les vores (p.ex. primera casella
+    // d'un editor, on el centrat donaria un `left` negatiu).
     requestAnimationFrame(() => {
       if (tooltipEl) {
-        const x = rect.left + rect.width / 2 - tooltipEl.offsetWidth / 2;
+        const margin = 4;
+        const centered = rect.left + rect.width / 2 - tooltipEl.offsetWidth / 2;
+        const maxX = window.innerWidth - tooltipEl.offsetWidth - margin;
+        const x = Math.max(margin, Math.min(centered, maxX));
         tooltipEl.style.left = x + 'px';
       }
     });
