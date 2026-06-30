@@ -218,8 +218,15 @@ function renderItfrEditor() {
         inputMode: 'numeric',
         commitDelay: 2000,
         // Només dígits: la resta es sanititza in situ (sense tocar el timer
-        // pendent, paritat amb el comportament original).
-        classify: (raw) => /^\d+$/.test(raw) ? 'defer' : { sanitize: raw.replace(/\D/g, '') },
+        // pendent). Un sol dígit que encara pot créixer a un 2-dígit vàlid
+        // (≤ espai disponible) espera per si arriba el 2n dígit; la resta
+        // (complet o no ampliable) salta directe a la casella següent.
+        classify: (raw) => {
+          if (!/^\d+$/.test(raw)) return { sanitize: raw.replace(/\D/g, '') };
+          const value = parseInt(raw, 10);
+          const available = getTotalSubdivisions() - occupiedEnd();
+          return (raw.length === 1 && value >= 1 && value * 10 <= available) ? 'defer' : 'commit';
+        },
         commitOnBlur: true,
         doubleCommitGuard: true,
         refocusAfterCommit: true,
