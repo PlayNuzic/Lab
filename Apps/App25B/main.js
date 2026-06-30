@@ -651,6 +651,10 @@ function handleReset() {
   });
   document.querySelectorAll('.musical-cell .cell-label').forEach(el => el.remove());
 
+  // Esborra els halters d'iT (la capa quedava dibuixada després del reset).
+  currentHalterPairs = [];
+  renderItHalterCellLayer([]);
+
   currentDegreeIntervals = [];
   lostDegreesMemory.clear();
 }
