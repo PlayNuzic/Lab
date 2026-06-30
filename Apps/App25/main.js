@@ -475,8 +475,8 @@ function syncGridFromDegrees(pairs) {
 
 function formatDegreeLabel(degree, modifier) {
   if (modifier === 'r+') return `${degree}r5`;
-  if (modifier === '+') return `${degree}+`;
-  if (modifier === '-') return `${degree}-`;
+  if (modifier === '+') return `+${degree}`;
+  if (modifier === '-') return `-${degree}`;
   return `${degree}`;
 }
 
@@ -676,8 +676,8 @@ function initDegreeEditor() {
     // editable, no una cel·la rosa readonly.
     if (entry.isRest || entry.degree === null) return 's';
     if (entry.modifier === 'r+') return `${entry.degree}r5`;
-    if (entry.modifier === '+') return `${entry.degree}+`;
-    if (entry.modifier === '-') return `${entry.degree}-`;
+    if (entry.modifier === '+') return `+${entry.degree}`;
+    if (entry.modifier === '-') return `-${entry.degree}`;
     return String(entry.degree);
   }
 
@@ -736,6 +736,12 @@ function initDegreeEditor() {
         return;
       }
 
+      if (parsed.modifier && alterationLandsOnScaleDegree(parsed.degree, parsed.modifier)) {
+        showTooltip(cell, 'Esa alteración cae en otro grado de la escala');
+        cell.value = originalValue;
+        return;
+      }
+
       const registerMsg = detectRegisterCorrection(val);
       if (registerMsg) showTooltip(cell, registerMsg);
 
@@ -777,69 +783,69 @@ function initDegreeEditor() {
 
     cell.addEventListener('input', (e) => {
       const val = e.target.value;
-      if (val === '') return;
+      if (val === '') { clearTimeout(autoJumpTimer); return; }
+      const lower = val.trim().toLowerCase();
 
-      // Silenci: si l'usuari tecleja "s", "·" o "." (un sol caràcter),
-      // commitem un silenci immediatament — patró importat d'App25B.
-      const trimmedLower = val.trim().toLowerCase();
-      if (/^[s.·]$/.test(trimmedLower)) {
+      // Silenci ("s", "·" o "." sol).
+      if (/^[s·.]$/.test(lower)) {
         clearTimeout(autoJumpTimer);
         commitDegree({ isRest: true });
         return;
       }
 
-      // Partial: "0r" — waiting for "+" to complete "0r+"
-      if (/^\d+r$/.test(val)) {
+      // Alteració sola (+/-): el caret espera INDEFINIDAMENT el grau (sense timer).
+      if (/^[+-]$/.test(val)) { clearTimeout(autoJumpTimer); return; }
+
+      // Octava (NOMÉS grau 0): "0r"/"0." parcials → espera; complets → commit.
+      if (/^0(r|\.)$/.test(lower)) { clearTimeout(autoJumpTimer); return; }
+      if (/^0(r|\.)[45]$/.test(lower) || /^0r\+$/.test(lower)) {
         clearTimeout(autoJumpTimer);
+        commitDegree({ degree: 0, modifier: /5$|r\+$/.test(lower) ? 'r+' : null });
         return;
       }
 
-      const parsed = parseDegreeInput(val);
-      if (!parsed) {
-        // Bare number: wait for possible modifier (+, -, r+)
-        if (/^\d+$/.test(val)) {
-          clearTimeout(autoJumpTimer);
-          autoJumpTimer = setTimeout(() => {
-            const current = cell.value;
-            if (/^\d+r$/.test(current)) return; // still typing r+
-            const p = parseDegreeInput(current);
-            if (!p || !validateDegree(p.degree)) {
-              showTooltip(cell, `Grado: 0-${currentScaleLength - 1}`);
-              cell.value = '';
-              return;
-            }
-            const registerMsg = detectRegisterCorrection(current);
-            if (registerMsg) showTooltip(cell, registerMsg);
-            commitDegree(p);
-          }, 2000);
+      // Grau amb alteració opcional ABANS: [+-]?\d+
+      const m = val.match(/^([+-]?)(\d+)$/);
+      if (!m) { e.target.value = ''; clearTimeout(autoJumpTimer); return; }
+      const sign = m[1];
+      const degStr = m[2];
+      const degree = parseInt(degStr, 10);
+      const modifier = sign === '+' ? '+' : sign === '-' ? '-' : null;
+      clearTimeout(autoJumpTimer);
+
+      // Confirma el grau (validacions) i salta; o mostra tooltip i sanititza.
+      const tryCommit = () => {
+        if (!validateDegree(degree)) {
+          showTooltip(cell, `Grado: 0-${currentScaleLength - 1}`);
+          cell.value = '';
           return;
         }
-        e.target.value = '';
-        return;
-      }
+        if (modifier && alterationLandsOnScaleDegree(degree, modifier)) {
+          showTooltip(cell, 'Esa alteración cae en otro grado de la escala');
+          cell.value = '';
+          return;
+        }
+        commitDegree({ degree, modifier });
+      };
 
-      if (!validateDegree(parsed.degree)) {
-        showTooltip(cell, `Grado: 0-${currentScaleLength - 1}`);
-        e.target.value = '';
-        clearTimeout(autoJumpTimer);
-        return;
-      }
-
-      clearTimeout(autoJumpTimer);
-      // If modifier present, commit immediately
-      if (parsed.modifier) {
-        const registerMsg = detectRegisterCorrection(val);
-        if (registerMsg) showTooltip(cell, registerMsg);
-        commitDegree(parsed);
-      } else {
-        // Wait for possible modifier (+, -, r)
+      // "0" net → espera 2000ms per si ve el registre d'octava (r/.).
+      if (degStr === '0' && !modifier) {
         autoJumpTimer = setTimeout(() => {
-          const current = cell.value;
-          const registerMsg = detectRegisterCorrection(current);
-          if (registerMsg) showTooltip(cell, registerMsg);
-          commitDegree(parsed);
+          if (/^0(r|\.)/.test(cell.value)) return; // ha començat el registre
+          tryCommit();
         }, 2000);
+        return;
       }
+      // Grau d'un sol dígit que encara pot estendre's a 2-dígit vàlid → espera 2000ms.
+      if (degStr.length === 1 && degree >= 1 && degree * 10 < currentScaleLength) {
+        autoJumpTimer = setTimeout(() => {
+          if (/^[+-]?\d{2}$/.test(cell.value)) return; // 2n dígit arribat
+          tryCommit();
+        }, 2000);
+        return;
+      }
+      // No ambigu → salt directe a la casella següent.
+      tryCommit();
     });
 
     cell.addEventListener('keydown', (e) => {
@@ -875,26 +881,34 @@ function initDegreeEditor() {
   }
 
   function parseDegreeInput(val) {
-    // Silenci: "s" (legacy d'App25B) o àlies de conveniència ".", "r", "·".
-    // Cas-insensitive, perquè l'usuari pot teclejar "S" o "s" indistintament.
+    // Silenci: "s" o àlies "·". (El "." sol també és silenci; després d'un "0"
+    // és el separador de registre — ho gestiona l'input handler.)
     const lower = val.trim().toLowerCase();
-    if (lower === 's' || lower === '.' || lower === '·') return { isRest: true };
-    // "0r5" → upper octave (degree 0, modifier r+)
-    if (/^0r5$/.test(val)) return { degree: 0, modifier: 'r+' };
-    // "0r4" → base octave (degree 0, no modifier — explicit)
-    if (/^0r4$/.test(val)) return { degree: 0, modifier: null };
-    // "0r+" → upper octave (same as 0r5)
-    if (/^(\d+)r\+$/.test(val)) return { degree: parseInt(val), modifier: 'r+' };
-    // "3+" → degree 3, modifier +
-    const matchPlus = val.match(/^(\d+)\+$/);
-    if (matchPlus) return { degree: parseInt(matchPlus[1]), modifier: '+' };
-    // "3-" → degree 3, modifier -
-    const matchMinus = val.match(/^(\d+)-$/);
-    if (matchMinus) return { degree: parseInt(matchMinus[1]), modifier: '-' };
-    // "3" → degree 3, no modifier
-    const num = parseInt(val);
-    if (!isNaN(num) && num >= 0) return { degree: num, modifier: null };
+    if (lower === 's' || lower === '·' || lower === '.') return { isRest: true };
+    // Octava (NOMÉS grau 0): "0r4"/"0.4" base; "0r5"/"0.5"/"0r+" octava superior.
+    if (/^0(r|\.)4$/.test(lower)) return { degree: 0, modifier: null };
+    if (/^0(r|\.)5$/.test(lower) || /^0r\+$/.test(lower)) return { degree: 0, modifier: 'r+' };
+    // Alteració ABANS del grau: "+3" sostingut, "-3" bemoll, "3" net.
+    const m = val.match(/^([+-]?)(\d+)$/);
+    if (m) {
+      const degree = parseInt(m[2], 10);
+      const modifier = m[1] === '+' ? '+' : m[1] === '-' ? '-' : null;
+      return { degree, modifier };
+    }
     return null;
+  }
+
+  // Una alteració (♯/♭) NOMÉS és vàlida si la nota alterada NO coincideix amb cap
+  // grau de l'escala: no es pot "arribar" a un altre grau a través d'alteracions.
+  function alterationLandsOnScaleDegree(degree, modifier) {
+    if (modifier !== '+' && modifier !== '-') return false;
+    const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
+    const norm = (s) => ((s % 12) + 12) % 12;
+    const altered = norm(degToSemi(visualState, degree) + (modifier === '+' ? 1 : -1));
+    for (let d = 0; d < currentScaleLength; d++) {
+      if (norm(degToSemi(visualState, d)) === altered) return true;
+    }
+    return false;
   }
 
   // Detects when the user typed a register spec (e.g. "0r3", "5r4", "0r")
