@@ -12,6 +12,7 @@
 | **interval-sequencer** | Motor iTfr + conversió d'intervals/forats | [README](../libs/interval-sequencer/README.md) |
 | **notation** | VexFlow rendering + rhythm-staff | [README](../libs/notation/README.md) |
 | **plano-modular** | Grid 2D modular | [README](../libs/plano-modular/README.md) |
+| **interval-overlay** | Línies i números d'interval (estil App15) per a qualsevol graella | [README](../libs/interval-overlay/README.md) |
 | **scale-selector** | Selector d'escales | [README](../libs/scale-selector/README.md) |
 
 ## Mòduls Secundaris

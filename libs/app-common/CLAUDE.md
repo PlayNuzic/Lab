@@ -45,6 +45,9 @@ Middleware layer between UI and TimelineAudio. 54 modules. Everything reusable a
 - `formula-solver.js` — `createFormulaSolver`: resol Lg/V = T/60 amb el model "els dos últims editats manen" (recència); `touch`/`resolve` (App1).
 - `polyrhythm-info.js` — `computePolyrhythmInfo`: cicle gran (mcm dels numeradors reduïts), velocitats V·d/n, pulsos fracc/cicle i proporció polirítmica reduïda incloent el pols (panell ∑ d'App4). Mòdul pur, amb tests.
 
+**Plano grid (App19/20, App32-35):**
+- `plano-note-renderer.js` — `renderNoteBars` (barres de nota + silencis), `renderSilenceLines` (línia discontínua als forats entre notes, continuant la fila de l'última nota — estil App15/App25B), `wouldOverlap`/`removeOverlappingNotes` (mode monofònic). `renderNoteBars` accepta `totalColumns` per posicionar HORITZONTALMENT en **% EXACTE** (encaixa amb columnes 1fr sense la deriva de `índex × offsetWidth` arrodonit); el mode px legacy (`cellWidth`) es manté retrocompatible. Vertical sempre en px (cellHeight enter). Les línies/números d'interval estil App15 viuen a `libs/interval-overlay/`.
+
 ## MOVED to Sub-Packages (do NOT duplicate)
 - pulse-seq → `libs/pulse-seq/`
 - notation → `libs/notation/`
