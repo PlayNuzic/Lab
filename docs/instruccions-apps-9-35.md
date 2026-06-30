@@ -297,6 +297,7 @@ Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, ❌ para borrar.
 **Tips:**
 Esta app demuestra que la melodía no son las notas concretas sino las relaciones entre grados de la escala: Crea una melodía en una escala "mayor" y después cambia a una "menor" — los grados se mantienen pero el carácter cambia completamente.
 Si una escala tiene menos grados que la anterior, los grados "perdidos" se recuerdan internamente y reaparecen al volver a una escala más larga.
+Para escribir grados por teclado: el número es el grado; una alteración cromática se escribe ANTES del número (+3 = sostenido, -3 = bemol) y solo es válida si no coincide con otro grado de la escala; para la octava superior del grado 0 escribe 0r5 (0r4 es la base).
 
 ---
 

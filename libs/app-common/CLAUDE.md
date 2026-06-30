@@ -26,6 +26,7 @@ Middleware layer between UI and TimelineAudio. 54 modules. Everything reusable a
 - `template.js` — Shared slots, supports `useIntervalMode` flag
 - `tap-tempo-handler.js` — Tap tempo with visual feedback, requires 3 taps minimum
 - `play-loading.js` — `withPlayButtonLoading(btn, task)` (U-27): estat de càrrega del Play amb llindar anti-parpelleig de 120ms; restaura sempre, també en error
+- `info-tooltip.js` — `createInfoTooltip` (App17, App25/25B, App28-34…): tooltip flotant sota un ancoratge; es clampa al viewport perquè no es talli a les vores (p.ex. primera casella d'un editor); auto-hide en scroll/resize, auto-remove opcional
 - `transport-live-update.js` — `createLiveTransportPush({apply, isLive})` (A-13): push d'edicions en viu al transport amb debounce trailing de 250ms — cap transitòria de tecleig (bpm=2, totalPulses=1) arriba al worklet
 
 **Utilities:**
