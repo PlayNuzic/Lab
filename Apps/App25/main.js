@@ -803,6 +803,13 @@ function initDegreeEditor() {
         commitDegree({ degree: 0, modifier: /5$|r\+$/.test(lower) ? 'r+' : null });
         return;
       }
+      // Octava invàlida: "0r"/"0." amb un dígit que no és 4 ni 5 → explica per què.
+      if (/^0(r|\.)\d$/.test(lower)) {
+        clearTimeout(autoJumpTimer);
+        showTooltip(cell, 'Solo 0r4 y 0r5 son registros válidos');
+        cell.value = '';
+        return;
+      }
 
       // Grau amb alteració opcional ABANS: [+-]?\d+
       const m = val.match(/^([+-]?)(\d+)$/);
