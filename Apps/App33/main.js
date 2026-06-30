@@ -27,7 +27,7 @@ import {
   getTotalSubdivisions as _getTotalSubdivs,
   filterInvalidNotes as _filterInvalid
 } from '../../libs/plano-fraccion/fraction-math.js';
-import { renderNoteBars, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
+import { renderNoteBars, renderSilenceLines, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
 import { renderGhostPulseLines } from '../../libs/plano-fraccion/ghost-pulse.js';
 import { gcd } from '../../libs/app-common/number-utils.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
@@ -539,6 +539,7 @@ function renderNotes() {
     colors: VIBRANT_COLORS,
     onClickNote: removeNote
   });
+  renderSilenceLines({ matrixContainer: gridElements?.matrixContainer, notes, totalColumns, noteCount: NOTE_COUNT });
   renderNoteHalters();
   renderIntervalOverlay(totalColumns);
 }

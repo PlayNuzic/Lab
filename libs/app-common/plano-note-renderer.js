@@ -124,6 +124,62 @@ export function renderNoteBars({
 }
 
 /**
+ * Render dashed silence lines for the UNCOVERED gaps between notes (estil
+ * App15/App25B): una línia discontínua que CONTINUA la fila de l'última nota a
+ * través del forat. Els silencis EXPLÍCITS (entrades `isRest` a `notes`) ja els
+ * pinta `renderNoteBars` com a `.note-bar--silence`; aquí només omplim els
+ * forats no coberts (p.ex. notes separades a la graella sense entrada de silenci).
+ *
+ * Posicionament HORITZONTAL en % exacte (`col / totalColumns`), VERTICAL en px
+ * (cellHeight enter), centrat a la línia de divisió — igual que els note-bars.
+ * El forat inicial (abans de la primera nota) NO es pinta (no hi ha nota prèvia).
+ *
+ * @param {Object} options
+ * @param {HTMLElement} options.matrixContainer
+ * @param {Array<{note:number, startSubdiv:number, duration:number, isRest?:boolean}>} options.notes
+ * @param {number} options.totalColumns
+ * @param {number} [options.noteCount=12]
+ * @param {number} [options.cellHeight] - mesurat del DOM si no es passa
+ */
+export function renderSilenceLines({ matrixContainer, notes, totalColumns, noteCount = 12, cellHeight }) {
+  const matrix = matrixContainer?.querySelector('.plano-matrix');
+  if (!matrix) return;
+
+  // Netejar línies de silenci anteriors (classe pròpia → no la toca renderNoteBars).
+  matrix.querySelectorAll('.plano-silence-line').forEach(el => el.remove());
+
+  if (!notes || notes.length === 0 || !totalColumns) return;
+
+  if (cellHeight === undefined) {
+    const firstCell = matrix.querySelector('.plano-cell');
+    cellHeight = firstCell?.offsetHeight || 32;
+  }
+  const restHeight = cellHeight * 0.25;
+
+  const sorted = [...notes].sort((a, b) => a.startSubdiv - b.startSubdiv);
+  let cursor = 0;            // primera columna encara no coberta
+  let lastNoteRow = null;    // fila de l'última NOTA real (no silenci)
+
+  sorted.forEach((n) => {
+    // Forat no cobert entre `cursor` i l'inici d'aquesta entrada → línia de silenci
+    // (només si ja hi ha hagut una nota: el forat inicial no es pinta).
+    if (n.startSubdiv > cursor && lastNoteRow !== null) {
+      const rowIndex = (noteCount - 1) - lastNoteRow;
+      const top = (rowIndex + 1) * cellHeight - restHeight / 2;
+      const line = document.createElement('div');
+      line.className = 'plano-silence-line';
+      line.style.left = `${(cursor / totalColumns) * 100}%`;
+      line.style.width = `${((n.startSubdiv - cursor) / totalColumns) * 100}%`;
+      line.style.top = `${top}px`;
+      line.style.height = `${restHeight}px`;
+      matrix.appendChild(line);
+    }
+    cursor = Math.max(cursor, n.startSubdiv + n.duration);
+    if (!n.isRest && n.note != null) lastNoteRow = n.note;
+  });
+}
+
+/**
  * Check if a note would overlap with existing notes (monophonic mode).
  * In monophonic mode, no two notes can occupy the same column range.
  *

@@ -540,6 +540,26 @@ body.dragging-note .np-dot:hover { cursor: grabbing; }
   display: none;
 }
 
+/* Línia de silenci: forat no cobert entre notes, discontínua, continuant la fila
+   de l'última nota (estil App15/App25B). Mateix aspecte que `.note-bar--silence`
+   (els silencis EXPLÍCITS de l'editor ja es pinten amb aquella classe). */
+.plano-silence-line {
+  position: absolute;
+  z-index: 9;
+  pointer-events: none;
+  border-radius: 1px;
+  opacity: 0.5;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--rest-color, var(--interval-color, #4A9EFF)) 0px,
+    var(--rest-color, var(--interval-color, #4A9EFF)) 4px,
+    transparent 4px,
+    transparent 10px
+  );
+}
+
+[data-theme="dark"] .plano-silence-line { opacity: 0.6; }
+
 /* ========== NOTE BARS (inside plano-matrix, positioned by JS in px) ========== */
 .note-bar {
   position: absolute;

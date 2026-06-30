@@ -23,7 +23,7 @@ import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
 import { setupScrollSync } from '../../libs/plano-modular/plano-scroll.js';
 import { buildSimple12Rows } from '../../libs/app-common/plano-grid-rows.js';
 import { getTotalSubdivisions as _getTotalSubdivs, filterInvalidNotes as _filterInvalid } from '../../libs/plano-fraccion/fraction-math.js';
-import { renderNoteBars, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
+import { renderNoteBars, renderSilenceLines, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 import { createIntervalOverlay } from '../../libs/interval-overlay/index.js';
@@ -1073,6 +1073,7 @@ function renderNotes() {
     colors: VIBRANT_COLORS,
     onClickNote: removeNote
   });
+  renderSilenceLines({ matrixContainer: gridElements?.matrixContainer, notes, totalColumns, noteCount: NOTE_COUNT });
   renderNoteHalters();
   renderIntervalOverlay(totalColumns);
 }

@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import { jest } from '@jest/globals';
-import { renderNoteBars, wouldOverlap, removeOverlappingNotes } from '../plano-note-renderer.js';
+import { renderNoteBars, renderSilenceLines, wouldOverlap, removeOverlappingNotes } from '../plano-note-renderer.js';
 
 describe('plano-note-renderer', () => {
   describe('wouldOverlap', () => {
@@ -164,6 +164,66 @@ describe('plano-note-renderer', () => {
       expect(() => {
         renderNoteBars({ matrixContainer: null, notes: [{ startSubdiv: 0, duration: 1, note: 0 }], cellWidth: 20 });
       }).not.toThrow();
+    });
+  });
+
+  describe('renderSilenceLines', () => {
+    let matrixContainer;
+    beforeEach(() => {
+      matrixContainer = document.createElement('div');
+      const matrix = document.createElement('div');
+      matrix.className = 'plano-matrix';
+      matrixContainer.appendChild(matrix);
+    });
+
+    it('draws a dashed line for an uncovered gap between notes', () => {
+      // note@0 (dur1), note@4 (dur1) → gap cols 1..3
+      const notes = [
+        { note: 5, startSubdiv: 0, duration: 1 },
+        { note: 8, startSubdiv: 4, duration: 1 }
+      ];
+      renderSilenceLines({ matrixContainer, notes, totalColumns: 12, cellHeight: 32 });
+      const lines = matrixContainer.querySelectorAll('.plano-silence-line');
+      expect(lines).toHaveLength(1);
+      // gap starts at col 1 → 1/12, width 3/12 = 25%
+      expect(lines[0].style.left).toBe(`${(1 / 12) * 100}%`);
+      expect(lines[0].style.width).toBe('25%');
+    });
+
+    it('draws no line when notes are adjacent (no gap)', () => {
+      const notes = [
+        { note: 5, startSubdiv: 0, duration: 2 },
+        { note: 8, startSubdiv: 2, duration: 2 }
+      ];
+      renderSilenceLines({ matrixContainer, notes, totalColumns: 12, cellHeight: 32 });
+      expect(matrixContainer.querySelectorAll('.plano-silence-line')).toHaveLength(0);
+    });
+
+    it('does NOT draw a leading gap before the first note', () => {
+      const notes = [{ note: 5, startSubdiv: 3, duration: 1 }];
+      renderSilenceLines({ matrixContainer, notes, totalColumns: 12, cellHeight: 32 });
+      expect(matrixContainer.querySelectorAll('.plano-silence-line')).toHaveLength(0);
+    });
+
+    it('treats explicit rests as covered (no extra gap line over them)', () => {
+      // note@0, rest@1(dur2), note@3 → fully covered, no uncovered gap
+      const notes = [
+        { note: 5, startSubdiv: 0, duration: 1 },
+        { note: null, startSubdiv: 1, duration: 2, isRest: true },
+        { note: 8, startSubdiv: 3, duration: 1 }
+      ];
+      renderSilenceLines({ matrixContainer, notes, totalColumns: 12, cellHeight: 32 });
+      expect(matrixContainer.querySelectorAll('.plano-silence-line')).toHaveLength(0);
+    });
+
+    it('clears previous silence lines on re-render', () => {
+      const notes = [
+        { note: 5, startSubdiv: 0, duration: 1 },
+        { note: 8, startSubdiv: 4, duration: 1 }
+      ];
+      renderSilenceLines({ matrixContainer, notes, totalColumns: 12, cellHeight: 32 });
+      renderSilenceLines({ matrixContainer, notes, totalColumns: 12, cellHeight: 32 });
+      expect(matrixContainer.querySelectorAll('.plano-silence-line')).toHaveLength(1);
     });
   });
 });
