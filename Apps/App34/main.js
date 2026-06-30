@@ -746,7 +746,7 @@ function initZigzagEditor() {
               const itInput = itCells.querySelector('.active-input');
               if (itInput) itInput.focus();
             }
-          }, 4000);
+          }, 2000);
           return;
         }
 
@@ -812,7 +812,7 @@ function initZigzagEditor() {
               const nInput = nCells.querySelector('.active-input');
               if (nInput) nInput.focus();
             }
-          }, 4000);
+          }, 2000);
           return;
         }
 
@@ -833,7 +833,7 @@ function initZigzagEditor() {
         e.preventDefault();
         clearTimeout(autoJumpTimer);
         // ENTER/Tab = "ja he acabat": confirma el valor actual de seguida (sense
-        // esperar el timer d'auto-salt de 4000ms, que per a dígits únics ajorna
+        // esperar el timer d'auto-salt de 2000ms, que per a dígits únics ajorna
         // el commit) i salta a la fila parella; commit si el parell N+iT és ple.
         const val = cell.value.trim();
         if (val) {

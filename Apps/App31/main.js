@@ -223,7 +223,7 @@ function renderItfrEditor() {
       input: {
         maxLength: 2,
         inputMode: 'numeric',
-        commitDelay: 4000,
+        commitDelay: 2000,
         // Només dígits: la resta es sanititza in situ (sense tocar el timer
         // pendent, paritat amb el comportament original).
         classify: (raw) => /^\d+$/.test(raw) ? 'defer' : { sanitize: raw.replace(/\D/g, '') },

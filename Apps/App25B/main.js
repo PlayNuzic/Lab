@@ -950,7 +950,7 @@ function initIntervalEditor() {
             return;
           }
           commitInterval(p);
-        }, 4000);
+        }, 2000);
         return;
       }
 

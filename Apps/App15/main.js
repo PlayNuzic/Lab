@@ -1411,7 +1411,7 @@ function createNuzicIntervalEditor(gridContainer) {
             const itInput = itCells.querySelector('.editor-input');
             if (itInput) itInput.focus();
           }
-        }, 4000);
+        }, 2000);
 
       } else {
         // iT validation

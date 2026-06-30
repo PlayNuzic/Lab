@@ -771,7 +771,7 @@ function createNuzicEditor(timelineWrapper) {
             const pInput = pCells.querySelector('.editor-input');
             if (pInput) pInput.focus();
           }
-        }, 4000);
+        }, 2000);
 
       } else {
         // Rule 2: Pulse 0-7

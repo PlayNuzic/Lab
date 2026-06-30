@@ -473,7 +473,7 @@ function createInputCell() {
       else if (getValidIntervals().length >= MAX_IS) {
         showTooltip(endMarker, 'Seqüència completa');
       }
-    }, 4000);
+    }, 2000);
   });
 
   cell.addEventListener('keydown', (e) => {

@@ -51,7 +51,7 @@ let p0Enabled = true;         // P0 toggle state (not persisted between sessions
 let cycleHighlightTimeout = null;  // For auto-dimming cycle circle
 let cycleHighlightEnabled = true;  // Cycle highlight toggle state
 let autoJumpTimer = null;     // Timer for auto-jump from Compás to Cycle
-const AUTO_JUMP_DELAY = 4000;  // Delay in ms before auto-jumping (ENTER salta a l'instant)
+const AUTO_JUMP_DELAY = 2000;  // Delay in ms before auto-jumping (ENTER salta a l'instant)
 
 // ============================================
 // DOM ELEMENTS
