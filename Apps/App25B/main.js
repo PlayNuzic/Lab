@@ -218,13 +218,16 @@ function absoluteDegreesToIntervals(absoluteDegrees) {
 
   if (sorted.length === 0) return intervals;
 
-  const firstPulse = sorted[0].pulse;
   const lastPulse = sorted[sorted.length - 1].pulse;
 
   const pulseMap = new Map();
   sorted.forEach(entry => pulseMap.set(entry.pulse, entry));
 
-  for (let pulse = firstPulse; pulse <= lastPulse; pulse++) {
+  // Sempre des del pols 0 (no del primer pols amb nota): si la primera nota es
+  // posa a un pols > 0 (clic a la graella deixant silencis), els pols previs
+  // s'omplen amb silencis. Si comencéssim a `firstPulse`, `gridEditor.setPairs`
+  // reindexaria els pols a 0..N i la nota "cauria" al pols 0.
+  for (let pulse = 0; pulse <= lastPulse; pulse++) {
     const entry = pulseMap.get(pulse);
     if (entry) {
       if (entry.isRest || entry.degree === null) {
