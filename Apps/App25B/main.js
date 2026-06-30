@@ -24,6 +24,7 @@ import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { createOutputNotePill } from '../../libs/app-common/output-note-pill.js';
 import { createScalePill } from '../../libs/app-common/scale-pill.js';
+import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 13;   // Horizontal: 0-12 (creates 12 spaces)
@@ -68,6 +69,10 @@ const lostDegreesMemory = new Map();
 
 // Interval line elements for cleanup
 let currentIntervalElements = [];
+
+// Parells {note, pulse, isRest} per re-renderitzar els halters d'iT (a resize/
+// scroll). iT sempre és 1 a App25B (un grau per pols).
+let currentHalterPairs = [];
 
 // Elements
 let playBtn = null;
@@ -337,6 +342,55 @@ function createDegreeIntervalLine(degree1, degree2, pulseIndex, intervalIndex = 
   currentIntervalElements.push(intervalNum);
 }
 
+// ========== iT HALTER LAYER (estil App15) ==========
+// Sota cada nota (i cada silenci, en discontínua) un "halter" groc amb el seu
+// iT (sempre 1 a App25B). Es mesura cada cel·la (getBoundingClientRect) i es
+// posiciona en % del matrix container, com a App15.
+
+function renderItHalterCellLayer(halterPairs) {
+  if (!musicalGrid) return;
+  const matrix = musicalGrid.getMatrixContainer?.();
+  if (!matrix) return;
+
+  let layer = matrix.querySelector('#it-bar-cell-layer');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.id = 'it-bar-cell-layer';
+    layer.className = 'it-bar-cell-layer';
+    matrix.appendChild(layer);
+  }
+  layer.innerHTML = '';
+
+  const matrixRect = matrix.getBoundingClientRect();
+  if (!matrixRect.width || !matrixRect.height) return;
+
+  (halterPairs || []).forEach((p) => {
+    if (p.note == null || p.pulse == null) return;
+    if (p.pulse < 0 || p.pulse > TOTAL_SPACES - 1) return;
+    if (p.note < 0 || p.note > TOTAL_NOTES - 1) return;
+    const cell = musicalGrid.getCellElement(p.note, p.pulse);
+    if (!cell) return;
+    const rect = cell.getBoundingClientRect();
+    // iT sempre 1 → el halter ocupa exactament la cel·la (un espai).
+    const halter = createIntervalLabelBar({
+      startPercent: 0, widthPercent: 100, label: 1,
+      variant: p.isRest ? 'dashed' : 'solid'
+    });
+    const leftPct = ((rect.left - matrixRect.left) / matrixRect.width) * 100;
+    const rightPct = ((rect.right - matrixRect.left) / matrixRect.width) * 100;
+    const bottomPct = ((rect.bottom - matrixRect.top) / matrixRect.height) * 100;
+    halter.style.left = `${leftPct}%`;
+    halter.style.width = `${Math.max(0, rightPct - leftPct)}%`;
+    halter.style.top = `${bottomPct}%`;
+    layer.appendChild(halter);
+  });
+}
+
+// Re-render amb les últimes dades (resize/scroll), sense recalcular el model.
+function rerenderHalters() {
+  renderItHalterCellLayer(currentHalterPairs);
+}
+
 // ========== SYNCHRONIZATION ==========
 
 function syncGridFromDegreeIntervals(absoluteDegrees) {
@@ -349,12 +403,14 @@ function syncGridFromDegreeIntervals(absoluteDegrees) {
 
   const sorted = [...absoluteDegrees].sort((a, b) => a.pulse - b.pulse);
   const validDegrees = [];
+  const halterPairs = [];
   let lastNoteIndex = 0;
 
   sorted.forEach(({ degree, pulse, isRest }) => {
     if (isRest) {
       const cell = musicalGrid.getCellElement(lastNoteIndex, pulse);
       if (cell) cell.classList.add('rest');
+      halterPairs.push({ note: lastNoteIndex, pulse, isRest: true });
       return;
     }
     if (degree === null) return;
@@ -364,6 +420,7 @@ function syncGridFromDegreeIntervals(absoluteDegrees) {
 
     lastNoteIndex = noteIndex;
     validDegrees.push({ degree, pulse });
+    halterPairs.push({ note: noteIndex, pulse, isRest: false });
 
     const cell = musicalGrid.getCellElement(noteIndex, pulse);
     if (cell) {
@@ -382,6 +439,11 @@ function syncGridFromDegreeIntervals(absoluteDegrees) {
     createDegreeIntervalLine(prevDegree, degree, pulse, idx);
     prevDegree = degree;
   });
+
+  // Halters d'iT sota cada nota/silenci (mesura les cel·les → cal fer-ho ja
+  // pintades). Es desa `currentHalterPairs` per re-renderitzar a resize/scroll.
+  currentHalterPairs = halterPairs;
+  renderItHalterCellLayer(halterPairs);
 }
 
 // ========== BIDIRECTIONAL: Grid2D -> iSº Editor ==========
@@ -1235,6 +1297,23 @@ async function init() {
       handlePlaceAtCell(noteIndex, spaceIndex);
     });
     document.addEventListener('pointercancel', () => { if (dotDrag.active) resetDotDrag(); });
+  }
+
+  // Re-render dels halters d'iT quan la graella canvia de mida (les posicions
+  // es mesuren en px → s'han de recalcular). rAF per esperar el layout.
+  if (dragMatrixEl && typeof ResizeObserver !== 'undefined') {
+    let halterRaf = null;
+    const ro = new ResizeObserver(() => {
+      if (halterRaf) cancelAnimationFrame(halterRaf);
+      halterRaf = requestAnimationFrame(() => rerenderHalters());
+    });
+    ro.observe(dragMatrixEl);
+    // Si la graella desborda i fa scroll (scrollToNoteIfNeeded durant el play),
+    // recalcula els halters perquè segueixin les cel·les.
+    dragMatrixEl.addEventListener('scroll', () => {
+      if (halterRaf) cancelAnimationFrame(halterRaf);
+      halterRaf = requestAnimationFrame(() => rerenderHalters());
+    }, { passive: true });
   }
 
   // Add missing bottom soundline division below note 0
