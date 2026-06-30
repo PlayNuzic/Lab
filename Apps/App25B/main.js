@@ -1008,10 +1008,11 @@ function initIntervalEditor() {
         return;
       }
 
-      // Complete number (signed or unsigned): schedule validation after AUTO_JUMP delay
+      // Número complet (signat o no): la magnitud "1" és ambigua (pot ser 10/11)
+      // → espera 2000ms per si arriba el 2n dígit; la resta salta directe.
       if (/^[+-]?\d+$/.test(trimmed)) {
         clearTimeout(autoJumpTimer);
-        autoJumpTimer = setTimeout(() => {
+        const commitNow = () => {
           const current = cell.value.trim();
           const p = parseIntervalInput(current);
           if (!p) { cell.value = ''; return; }
@@ -1022,7 +1023,12 @@ function initIntervalEditor() {
             return;
           }
           commitInterval(p);
-        }, 2000);
+        };
+        if (/^[+-]?1$/.test(trimmed)) {
+          autoJumpTimer = setTimeout(commitNow, 2000);
+        } else {
+          commitNow();
+        }
         return;
       }
 

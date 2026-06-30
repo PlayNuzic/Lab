@@ -1361,14 +1361,9 @@ function createNuzicIntervalEditor(gridContainer) {
         pendingIS = 'S';
         lastEnteredType = 'is';
         clearTimeout(autoJumpTimer);
-        autoJumpTimer = setTimeout(() => {
-          if (pendingIT !== null) {
-            commitInterval();
-          } else {
-            const itInput = itCells.querySelector('.editor-input');
-            if (itInput) itInput.focus();
-          }
-        }, 300);
+        if (pendingIT !== null) { commitInterval(); return; }
+        const itInput = itCells.querySelector('.editor-input');
+        if (itInput) itInput.focus();
         return;
       }
 
@@ -1402,16 +1397,22 @@ function createNuzicIntervalEditor(gridContainer) {
         pendingIS = num;
         lastEnteredType = 'is';
 
-        // Delay for multi-digit input (e.g. "11", "-5")
         clearTimeout(autoJumpTimer);
-        autoJumpTimer = setTimeout(() => {
+        const jumpIt = () => {
           if (pendingIT !== null) {
             commitInterval();
           } else {
             const itInput = itCells.querySelector('.editor-input');
             if (itInput) itInput.focus();
           }
-        }, 2000);
+        };
+        // Magnitud "1" és ambigua (pot ser 10/11) → espera 2000ms per si arriba
+        // el 2n dígit; la resta salta directe a la casella següent.
+        if (/^[+-]?1$/.test(val)) {
+          autoJumpTimer = setTimeout(jumpIt, 2000);
+        } else {
+          jumpIt();
+        }
 
       } else {
         // iT validation

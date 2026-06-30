@@ -724,21 +724,17 @@ function initZigzagEditor() {
           lastEnteredType = 'n';
           clearTimeout(autoJumpTimer);
           if (pendingIT !== null) { commitEntry(); return; }
-          autoJumpTimer = setTimeout(() => {
-            const itInput = itCells.querySelector('.active-input');
-            if (itInput) itInput.focus();
-          }, 300);
+          const itInput = itCells.querySelector('.active-input');
+          if (itInput) itInput.focus();
           return;
         }
 
-        // Single digit "1".."9" could still become "10"/"11" — wait briefly.
+        // Un sol dígit: només "1" és ambigu (pot ser 10/11) → espera 2000ms per
+        // si arriba un 2n dígit; la resta salta directe a la casella següent.
         if (/^\d$/.test(val)) {
-          clearTimeout(autoJumpTimer);
-          autoJumpTimer = setTimeout(() => {
-            const current = cell.value;
-            if (/^\d{2}$/.test(current)) return; // second digit arrived — wait for the 2-digit branch
-            const parsed = parseN(current);
-            if (parsed === null || parsed === 'S') { cell.value = ''; return; }
+          const parsed = parseN(val);
+          if (parsed === null) { cell.value = ''; clearTimeout(autoJumpTimer); return; }
+          const jumpN = () => {
             pendingN = parsed;
             lastEnteredType = 'n';
             if (pendingIT !== null) commitEntry();
@@ -746,7 +742,16 @@ function initZigzagEditor() {
               const itInput = itCells.querySelector('.active-input');
               if (itInput) itInput.focus();
             }
-          }, 2000);
+          };
+          clearTimeout(autoJumpTimer);
+          if (val === '1') {
+            autoJumpTimer = setTimeout(() => {
+              if (/^\d{2}$/.test(cell.value)) return; // 2n dígit arribat
+              jumpN();
+            }, 2000);
+          } else {
+            jumpN();
+          }
           return;
         }
 
@@ -794,18 +799,13 @@ function initZigzagEditor() {
           return;
         }
 
-        // Single digit that could still extend to a valid 2-digit value:
-        // wait ~500ms before committing (same pattern as the N input).
-        // If a second digit arrives, the input handler re-fires with the
-        // 2-digit string and this branch is skipped.
-        if (/^\d$/.test(val) && remaining >= 10) {
+        // Un sol dígit ambigu (num*10 ≤ remaining, encara pot ser 2-dígit) →
+        // espera 2000ms per si arriba un 2n dígit; la resta salta directe.
+        if (/^\d$/.test(val) && num * 10 <= remaining) {
           clearTimeout(autoJumpTimer);
           autoJumpTimer = setTimeout(() => {
-            const current = cell.value;
-            if (/^\d{2}$/.test(current)) return; // 2-digit will re-fire handler
-            const commitNum = parseInt(current, 10);
-            if (!Number.isFinite(commitNum) || commitNum < 1) return;
-            pendingIT = commitNum;
+            if (/^\d{2}$/.test(cell.value)) return; // 2-dígit re-dispararà el handler
+            pendingIT = num;
             lastEnteredType = 'it';
             if (pendingN !== null) commitEntry();
             else {
@@ -820,10 +820,8 @@ function initZigzagEditor() {
         lastEnteredType = 'it';
         clearTimeout(autoJumpTimer);
         if (pendingN !== null) { commitEntry(); return; }
-        autoJumpTimer = setTimeout(() => {
-          const nInput = nCells.querySelector('.active-input');
-          if (nInput) nInput.focus();
-        }, 300);
+        const nInput = nCells.querySelector('.active-input');
+        if (nInput) nInput.focus();
       }
     });
 

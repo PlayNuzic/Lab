@@ -953,17 +953,17 @@ function initGridEditor() {
           pendingN = 'S';
           lastEnteredType = 'n';
           clearTimeout(autoJumpTimer);
-          autoJumpTimer = setTimeout(() => {
-            const itInput = itCells.querySelector('.active-input');
-            if (itInput) itInput.focus();
-          }, 300);
+          if (pendingIT !== null) { commitEntry(); return; }
+          const itInput = itCells.querySelector('.active-input');
+          if (itInput) itInput.focus();
           return;
         }
 
         // Partial NrR: "5r" — waiting for registry digit
         if (/^\d+r$/.test(val)) return;
 
-        // Bare number (e.g., "5" or "11"): could become "5r4" — wait before parsing
+        // Número de nota: pot venir seguit de "r" (registre), així que esperem
+        // 4000ms per si l'usuari escriu "rX". Si no, es commiteja el número sol.
         if (/^\d+$/.test(val)) {
           clearTimeout(autoJumpTimer);
           autoJumpTimer = setTimeout(() => {
@@ -981,7 +981,7 @@ function initGridEditor() {
               const itInput = itCells.querySelector('.active-input');
               if (itInput) itInput.focus();
             }
-          }, 2000);
+          }, 4000);
           return;
         }
 
@@ -1001,13 +1001,11 @@ function initGridEditor() {
         lastEnteredType = 'n';
 
         clearTimeout(autoJumpTimer);
-        autoJumpTimer = setTimeout(() => {
-          if (pendingIT !== null) commitEntry();
-          else {
-            const itInput = itCells.querySelector('.active-input');
-            if (itInput) itInput.focus();
-          }
-        }, 300);
+        if (pendingIT !== null) { commitEntry(); }
+        else {
+          const itInput = itCells.querySelector('.active-input');
+          if (itInput) itInput.focus();
+        }
 
       } else {
         // iT input: positive integer bounded by remaining pulses
@@ -1032,17 +1030,13 @@ function initGridEditor() {
           return;
         }
 
-        // Single digit that could still extend to a valid 2-digit value:
-        // wait ~500ms before committing. If a second digit arrives, the
-        // input handler re-fires with the 2-digit string.
-        if (/^\d$/.test(val) && remaining >= 10) {
+        // Un sol dígit ambigu (num*10 ≤ remaining, encara pot ser 2-dígit) →
+        // espera 2000ms per si arriba el 2n dígit; la resta salta directe.
+        if (/^\d$/.test(val) && num * 10 <= remaining) {
           clearTimeout(autoJumpTimer);
           autoJumpTimer = setTimeout(() => {
-            const current = cell.value;
-            if (/^\d{2}$/.test(current)) return; // 2-digit will re-fire handler
-            const commitNum = parseInt(current, 10);
-            if (!Number.isFinite(commitNum) || commitNum < 1) return;
-            pendingIT = commitNum;
+            if (/^\d{2}$/.test(cell.value)) return; // 2-digit will re-fire handler
+            pendingIT = num;
             lastEnteredType = 'it';
             if (pendingN !== null) commitEntry();
             else {
@@ -1055,16 +1049,11 @@ function initGridEditor() {
 
         pendingIT = num;
         lastEnteredType = 'it';
-
-        if (pendingN !== null) {
-          clearTimeout(autoJumpTimer);
-          commitEntry();
-        } else {
-          clearTimeout(autoJumpTimer);
-          autoJumpTimer = setTimeout(() => {
-            const nInput = nCells.querySelector('.active-input');
-            if (nInput) nInput.focus();
-          }, 300);
+        clearTimeout(autoJumpTimer);
+        if (pendingN !== null) { commitEntry(); }
+        else {
+          const nInput = nCells.querySelector('.active-input');
+          if (nInput) nInput.focus();
         }
       }
     });

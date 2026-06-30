@@ -760,18 +760,22 @@ function createNuzicEditor(timelineWrapper) {
         pendingNote = num;
         lastEnteredType = 'n';
 
-        // Rule 6: delay 500ms for 2-digit input (e.g. "11")
         clearTimeout(autoJumpTimer);
-        autoJumpTimer = setTimeout(() => {
-          // If P already entered, commit pair
+        const jumpP = () => {
           if (pendingPulse !== null) {
             commitPair();
           } else {
-            // Jump to P input (same column)
             const pInput = pCells.querySelector('.editor-input');
             if (pInput) pInput.focus();
           }
-        }, 2000);
+        };
+        // "1" és ambigu (pot ser 10/11) → espera 2000ms per si arriba el 2n
+        // dígit; la resta (0, 2-9, 10, 11) salta directe a la casella següent.
+        if (val === '1') {
+          autoJumpTimer = setTimeout(jumpP, 2000);
+        } else {
+          jumpP();
+        }
 
       } else {
         // Rule 2: Pulse 0-7
