@@ -1075,22 +1075,29 @@ function initGridEditor() {
         e.preventDefault();
         clearTimeout(autoJumpTimer);
 
-        // If cell has a value, process it first (trigger input handler)
-        if (cell.value) {
-          cell.dispatchEvent(new Event('input'));
+        // ENTER/Tab = "ja he acabat": confirma el valor actual de seguida (sense
+        // esperar el timer d'auto-salt de 4000ms, que per a un sol dígit l'ajorna)
+        // i salta a la fila parella; commit si el parell N+iT és ple.
+        const val = (cell.value || '').trim();
+        if (val) {
+          if (type === 'n') {
+            if (/^[sS]$/.test(val)) { pendingN = 'S'; lastEnteredType = 'n'; }
+            else {
+              const parsed = parseNoteInput(val);
+              if (parsed && validateNoteRegistry(parsed.note, parsed.registry).valid) {
+                pendingN = parsed; lastEnteredType = 'n';
+              }
+            }
+          } else {
+            const num = parseInt(val, 10);
+            const remaining = getMaxPulses() - getCurrentSum();
+            if (Number.isFinite(num) && num >= 1 && num <= remaining) { pendingIT = num; lastEnteredType = 'it'; }
+          }
         }
 
-        // Jump to the other row's input
-        if (type === 'n') {
-          // If both pending, commit immediately
-          if (pendingN !== null && pendingIT !== null) { commitEntry(); return; }
-          const itInput = itCells.querySelector('.active-input');
-          if (itInput) itInput.focus();
-        } else {
-          if (pendingN !== null && pendingIT !== null) { commitEntry(); return; }
-          const nInput = nCells.querySelector('.active-input');
-          if (nInput) nInput.focus();
-        }
+        if (pendingN !== null && pendingIT !== null) { commitEntry(); return; }
+        const target = (type === 'n' ? itCells : nCells).querySelector('.active-input');
+        if (target) target.focus();
         return;
       }
 

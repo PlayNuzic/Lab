@@ -832,7 +832,20 @@ function initZigzagEditor() {
       if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault();
         clearTimeout(autoJumpTimer);
-        if (cell.value) cell.dispatchEvent(new Event('input'));
+        // ENTER/Tab = "ja he acabat": confirma el valor actual de seguida (sense
+        // esperar el timer d'auto-salt de 4000ms, que per a dígits únics ajorna
+        // el commit) i salta a la fila parella; commit si el parell N+iT és ple.
+        const val = cell.value.trim();
+        if (val) {
+          if (type === 'n') {
+            const parsed = parseN(val);
+            if (parsed !== null) { pendingN = parsed; lastEnteredType = 'n'; }
+          } else {
+            const num = parseInt(val, 10);
+            const remaining = maxTotalPulse - currentSum();
+            if (Number.isFinite(num) && num >= 1 && num <= remaining) { pendingIT = num; lastEnteredType = 'it'; }
+          }
+        }
         if (pendingN !== null && pendingIT !== null) { commitEntry(); return; }
         const other = type === 'n' ? itCells : nCells;
         const target = other.querySelector('.active-input');
