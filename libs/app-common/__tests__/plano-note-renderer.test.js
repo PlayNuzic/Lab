@@ -106,13 +106,31 @@ describe('plano-note-renderer', () => {
       expect(bars).toHaveLength(0);
     });
 
-    it('positions bars correctly', () => {
+    it('positions bars correctly (legacy px mode)', () => {
       const notes = [{ startSubdiv: 3, duration: 2, note: 5 }];
       renderNoteBars({ matrixContainer, notes, cellWidth: 10, noteCount: 12, cellHeight: 32 });
 
       const bar = matrixContainer.querySelector('.note-bar');
       expect(bar.style.left).toBe('30px');
       expect(bar.style.width).toBe('20px');
+    });
+
+    it('positions bars in exact % when totalColumns is provided', () => {
+      const notes = [{ startSubdiv: 2, duration: 2, note: 5 }];
+      renderNoteBars({ matrixContainer, notes, totalColumns: 8, noteCount: 12, cellHeight: 32 });
+
+      const bar = matrixContainer.querySelector('.note-bar');
+      // 2/8 = 25%, exact (no rounded-offsetWidth drift)
+      expect(bar.style.left).toBe('25%');
+      expect(bar.style.width).toBe('25%');
+    });
+
+    it('totalColumns takes precedence over cellWidth', () => {
+      const notes = [{ startSubdiv: 2, duration: 2, note: 5 }];
+      renderNoteBars({ matrixContainer, notes, totalColumns: 8, cellWidth: 10, noteCount: 12, cellHeight: 32 });
+
+      const bar = matrixContainer.querySelector('.note-bar');
+      expect(bar.style.left).toBe('25%');
     });
 
     it('calls onClickNote callback when bar is clicked', () => {

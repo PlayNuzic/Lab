@@ -411,6 +411,61 @@ body[data-visual="nuzic"].app32 .plano-cell.pulse-boundary::before {
   z-index: 11;
 }
 
+/* ========== NP-DOTS: HANDLES DE GRAB (estil App15) ==========
+   Dots uniformes a la línia de divisió de CADA cel·la (substitueixen el dot
+   ::before de pols enter). Són el target de grab: agafar-ne un i arrossegar cap
+   a la dreta crea la nota i fixa la durada (iT). Sota el note-bar (z-8 < z-10)
+   perquè una nota col·locada tapi el seu dot d'origen. */
+body[data-visual="nuzic"].app32 .plano-cell.pulse-boundary::before {
+  display: none; /* substituït pels np-dots uniformes */
+}
+
+body[data-visual="nuzic"].app32 .plano-cell .np-dot {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  top: auto;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, 50%);
+  z-index: 8;
+  pointer-events: auto;
+  cursor: grab;
+}
+
+body[data-visual="nuzic"].app32 .plano-cell .np-dot::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(1.5px, 0.2vw, 3px);
+  height: clamp(1.5px, 0.2vw, 3px);
+  background: var(--nuzic-dark, #43433B);
+  border: none;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.12s ease, height 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+
+/* Hover: glow (afordança grab, com App15) */
+body[data-visual="nuzic"].app32 .plano-cell .np-dot:hover::after {
+  width: 0.7rem;
+  height: 0.7rem;
+  background: var(--nuzic-orange, #F2A03D);
+  box-shadow: 0 0 0.4rem var(--nuzic-orange, #F2A03D);
+}
+
+/* Jerarquia: els np-dots de pulsos FRACCIONATS (subdivisions, no `.pulse-boundary`)
+   es veuen més fluixos que els de pulsos SENCERS. En hover recuperen força plena
+   (afordança de grab). Els pulsos sencers "fantasma" (fracció complexa) ja es
+   marquen amb les ghost-pulse-lines. */
+body[data-visual="nuzic"].app32 .plano-cell:not(.pulse-boundary) .np-dot:not(:hover)::after {
+  opacity: 0.3;
+}
+
+body.dragging-note .np-dot,
+body.dragging-note .np-dot:hover { cursor: grabbing; }
+
 /* ========== NOTE BARS (inside plano-matrix, positioned by JS in px) ========== */
 .note-bar {
   position: absolute;
@@ -449,6 +504,12 @@ body[data-visual="nuzic"].app32 .plano-cell.pulse-boundary::before {
   background: var(--nuzic-yellow, #FFBB33);
   opacity: 0.4;
   pointer-events: none;
+}
+
+/* d>=5 + iT curt (1-2): amaga només el número del halter; el bracket (punts +
+   línia) es conserva per marcar l'extensió. */
+.note-halter.note-halter--no-label .interval-label-bar__box {
+  display: none;
 }
 
 body.dragging-note {
@@ -584,6 +645,15 @@ body[data-visual="nuzic"].app32 .plano-matrix-container,
 body[data-visual="nuzic"].app32 .plano-timeline-container {
   padding-right: var(--app32-endcap-w) !important;
   box-sizing: border-box;
+}
+
+/* Fix estil App25B: que les caixes de número, fletxes i el "0" d'iS de la
+   primera fila (a dalt) i de la primera columna (esquerra) no es tallin. En
+   fr-mode el matrix mai fa scroll (les columnes hi caben), així que deixar
+   l'overflow visible només allibera les etiquetes que sobresurten, sense
+   afectar el layout. */
+body[data-visual="nuzic"].app32 .plano-matrix-container {
+  overflow: visible !important;
 }
 
 /* Subdivision-label "1/d" al BOTTOM-RIGHT del triangle groc (cantonada

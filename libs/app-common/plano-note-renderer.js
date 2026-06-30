@@ -8,7 +8,12 @@
  * @param {Object} options
  * @param {HTMLElement} options.matrixContainer - The grid's matrix container element
  * @param {Array<{note: number, startSubdiv: number, duration: number}>} options.notes - Notes to render
- * @param {number} options.cellWidth - Width of each subdivision cell in pixels
+ * @param {number} [options.totalColumns] - Total subdivision columns. Quan es passa,
+ *   les barres es posicionen horitzontalment en % EXACTE (`col / totalColumns`),
+ *   alineades amb les columnes 1fr sense deriva. És el mode preferent (App32-35).
+ * @param {number} [options.cellWidth] - Ample de cel·la en px (mode LEGACY,
+ *   `índex × cellWidth`). Només s'usa si NO es passa `totalColumns`. ⚠️ Amb
+ *   columnSizing:'fr' l'`offsetWidth` arrodonit acumula deriva — prefereix `totalColumns`.
  * @param {number} [options.noteCount=12] - Total number of note rows
  * @param {number} [options.cellHeight=32] - Height of each row in pixels
  * @param {string[]} [options.colors] - Array of colors for note bars (cycles)
@@ -17,12 +22,17 @@
 export function renderNoteBars({
   matrixContainer,
   notes,
+  totalColumns,
   cellWidth,
   noteCount = 12,
   cellHeight,
   colors,
   onClickNote
 }) {
+  // Horitzontal en % exacte quan es coneix el nombre total de columnes; si no,
+  // mode legacy en px (índex × cellWidth). Vertical sempre en px: a plano-modular
+  // `cellHeight` és un enter exacte, així que no hi ha deriva vertical.
+  const usePercent = totalColumns != null && totalColumns > 0;
   // Clear existing bars
   const existingBars = matrixContainer?.querySelectorAll('.note-bar');
   existingBars?.forEach(bar => bar.remove());
@@ -58,14 +68,17 @@ export function renderNoteBars({
       // de musical-grid (App15/25/25B) per coherència visual.
       const bar = document.createElement('div');
       bar.className = 'note-bar note-bar--silence';
-      const left = noteData.startSubdiv * cellWidth;
-      const width = noteData.duration * cellWidth;
       const rowIndex = (noteCount - 1) - lastNoteRow;
       const restHeight = cellHeight * 0.25;
       const top = (rowIndex + 1) * cellHeight - restHeight / 2;
 
-      bar.style.left = `${left}px`;
-      bar.style.width = `${width}px`;
+      if (usePercent) {
+        bar.style.left = `${(noteData.startSubdiv / totalColumns) * 100}%`;
+        bar.style.width = `${(noteData.duration / totalColumns) * 100}%`;
+      } else {
+        bar.style.left = `${noteData.startSubdiv * cellWidth}px`;
+        bar.style.width = `${noteData.duration * cellWidth}px`;
+      }
       bar.style.top = `${top}px`;
       bar.style.height = `${restHeight}px`;
 
@@ -79,14 +92,17 @@ export function renderNoteBars({
     bar.className = 'note-bar';
     bar.dataset.noteIndex = idx;
 
-    const left = noteData.startSubdiv * cellWidth;
-    const width = noteData.duration * cellWidth;
     const rowIndex = (noteCount - 1) - noteData.note;
     const barHeight = cellHeight - 2;
     const top = (rowIndex + 1) * cellHeight - barHeight / 2;
 
-    bar.style.left = `${left}px`;
-    bar.style.width = `${width}px`;
+    if (usePercent) {
+      bar.style.left = `${(noteData.startSubdiv / totalColumns) * 100}%`;
+      bar.style.width = `${(noteData.duration / totalColumns) * 100}%`;
+    } else {
+      bar.style.left = `${noteData.startSubdiv * cellWidth}px`;
+      bar.style.width = `${noteData.duration * cellWidth}px`;
+    }
     bar.style.top = `${top}px`;
     bar.style.height = `${barHeight}px`;
     bar.style.background = palette[idx % palette.length];

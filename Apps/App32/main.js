@@ -26,6 +26,7 @@ import { getTotalSubdivisions as _getTotalSubdivs, filterInvalidNotes as _filter
 import { renderNoteBars, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
+import { createIntervalOverlay } from '../../libs/interval-overlay/index.js';
 import { setupRandomMenu } from '../../libs/random/menu.js';
 import { reorderControls } from '../../libs/app-common/template.js';
 
@@ -62,6 +63,12 @@ let gridElements = null;
 let cellWidth = 40;
 let playheadController = null;
 
+// Overlay de línies/números d'interval (estil App15). Es vincula al
+// `.plano-matrix` vigent; updateMatrix en crea un de nou cada renderGrid, així
+// que getOverlay() detecta el canvi i en refà la instància.
+let intervalOverlay = null;
+let intervalOverlayMatrix = null;
+
 // DOM elements
 // Timeline-integer and fraction labels inside the plano grid (used for highlight during playback).
 let gridIntegerLabels = [];
@@ -80,6 +87,9 @@ let dragState = {
   maxSubdiv: null,
   previewBar: null
 };
+// La delegació del drag al matrixContainer s'enganxa una sola vegada (el
+// container persisteix als updateMatrix; els np-dots es re-injecten cada cop).
+let gridDelegationAttached = false;
 
 // Playback state
 let playbackAbort = null;
@@ -503,15 +513,52 @@ function syncGridScrolls() {
 
 // ========== NOTE RENDERING ==========
 function renderNotes() {
+  const totalColumns = getTotalSubdivisions();
   renderNoteBars({
     matrixContainer: gridElements?.matrixContainer,
     notes,
-    cellWidth,
+    totalColumns,            // % EXACTE: les barres encaixen amb les columnes 1fr
     noteCount: NOTE_COUNT,
     colors: VIBRANT_COLORS,
     onClickNote: removeNote
   });
   renderNoteHalters();
+  renderIntervalOverlay(totalColumns);
+}
+
+// Overlay vinculat al `.plano-matrix` vigent (updateMatrix el recrea cada cop).
+function getOverlay() {
+  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
+  if (!matrix) return null;
+  if (!intervalOverlay || intervalOverlayMatrix !== matrix) {
+    intervalOverlay = createIntervalOverlay({ matrix });
+    intervalOverlayMatrix = matrix;
+  }
+  return intervalOverlay;
+}
+
+// Línies + números d'interval (estil App15): una barra per transició de nota,
+// número = delta de SEMITONS (notes cromàtiques 0-11). Origen implícit a la
+// nota 0 (com App15). Vertical en px (cellHeight enter exacte); horitzontal en %.
+function renderIntervalOverlay(totalColumns = getTotalSubdivisions()) {
+  const overlay = getOverlay();
+  if (!overlay) return;
+  const matrix = intervalOverlayMatrix;
+  const firstCell = matrix.querySelector('.plano-cell');
+  const cellHeight = firstCell?.offsetHeight || 32;
+  const events = notes
+    .filter(n => !n.isRest && n.note != null)
+    .map(n => ({ note: n.note, column: n.startSubdiv }));
+  overlay.render(events, {
+    totalColumns,
+    noteCount: NOTE_COUNT,
+    cellHeight,
+    baseNote: 0,
+    formatValue: (d) => (d > 0 ? `+${d}` : `${d}`),
+    // A partir de denominador 5 les columnes són massa estretes: amaguem els
+    // números d'iS (es conserven les barres/fletxes amb el contorn melòdic).
+    showNumbers: currentDenominator < 5
+  });
 }
 
 // Halter groc d'iT sota cada note-bar (patró App13/App20/App30).
@@ -524,22 +571,20 @@ function renderNoteHalters() {
   // Netejar halters anteriors.
   matrix.querySelectorAll('.note-halter').forEach(el => el.remove());
 
-  if (!notes || notes.length === 0 || !cellWidth) return;
+  if (!notes || notes.length === 0) return;
 
   // Mesurar cell height per calcular la posició vertical del halter
-  // (mateixa fórmula que renderNoteBars).
+  // (mateixa fórmula que renderNoteBars). Horitzontal en % EXACTE.
   const firstCell = matrix.querySelector('.plano-cell');
   const cellH = firstCell?.offsetHeight || 32;
-  const matrixWidth = matrix.offsetWidth;
-  if (!matrixWidth) return;
+  const totalColumns = getTotalSubdivisions();
+  if (!totalColumns) return;
 
   notes.forEach((noteData) => {
     if (noteData.isRest) return;
 
-    const startPx = noteData.startSubdiv * cellWidth;
-    const widthPx = noteData.duration * cellWidth;
-    const startPercent = (startPx / matrixWidth) * 100;
-    const widthPercent = (widthPx / matrixWidth) * 100;
+    const startPercent = (noteData.startSubdiv / totalColumns) * 100;
+    const widthPercent = (noteData.duration / totalColumns) * 100;
 
     // Posició vertical del bar (= renderNoteBars):
     //   rowIndex = NOTE_COUNT-1 - noteData.note  (notes 0..11 mapped 11..0 from top)
@@ -558,6 +603,11 @@ function renderNoteHalters() {
       variant: 'solid'
     });
     halter.classList.add('note-halter');
+    // A partir de denominador 5, amaga el número d'iT només per a durades
+    // curtes (1-2) on no hi cap; iT≥3 manté el número (el halter és prou ample).
+    if (currentDenominator >= 5 && noteData.duration <= 2) {
+      halter.classList.add('note-halter--no-label');
+    }
     halter.style.top = `${halterTop}px`;
     matrix.appendChild(halter);
   });
@@ -591,15 +641,31 @@ function clearNotes() {
 }
 
 // ========== GRID DRAG HANDLERS ==========
-function attachGridDragHandlers() {
-  const matrix = gridElements?.matrixContainer;
+// np-dots a la línia de divisió de cada cel·la (estil App15): són els HANDLES de
+// grab. updateMatrix recrea les cel·les cada renderGrid → re-injectem.
+function injectNpDots() {
+  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
   if (!matrix) return;
-
-  const cells = matrix.querySelectorAll('.plano-cell');
-  cells.forEach(cell => {
-    cell.addEventListener('mousedown', handleGridDragStart);
-    cell.addEventListener('touchstart', handleGridDragStart, { passive: false });
+  matrix.querySelectorAll('.plano-cell').forEach(cell => {
+    if (cell.querySelector('.np-dot')) return;
+    const dot = document.createElement('div');
+    dot.className = 'np-dot np-dot-clickable';
+    cell.appendChild(dot);
   });
+}
+
+function attachGridDragHandlers() {
+  injectNpDots();
+  if (gridDelegationAttached) return;
+  gridDelegationAttached = true;
+
+  const container = gridElements?.matrixContainer;
+  if (!container) return;
+
+  // Delegació al container (persisteix als updateMatrix). El drag NOMÉS s'inicia
+  // agafant un np-dot (substitueix el drag des del cos de la cel·la, estil App15).
+  container.addEventListener('mousedown', handleGridDragStart);
+  container.addEventListener('touchstart', handleGridDragStart, { passive: false });
 
   document.addEventListener('mousemove', handleGridDragMove);
   document.addEventListener('mouseup', handleGridDragEnd);
@@ -608,23 +674,17 @@ function attachGridDragHandlers() {
 }
 
 function handleGridDragStart(e) {
+  // Grab només des d'un np-dot. (Eliminar una nota: clic al note-bar →
+  // removeNote, ja cablejat a renderNoteBars; aquí el grab sempre crea.)
+  const dot = e.target.closest?.('.np-dot');
+  if (!dot) return;
+  const cell = dot.closest('.plano-cell');
+  if (!cell) return;
+
   e.preventDefault();
 
-  const cell = e.currentTarget;
   const note = parseInt(cell.dataset.note, 10);
   const colIndex = parseInt(cell.dataset.colIndex, 10);
-
-  // Check if clicking on existing note
-  const clickedOnNote = notes.findIndex(n =>
-    n.note === note &&
-    colIndex >= n.startSubdiv &&
-    colIndex < n.startSubdiv + n.duration
-  );
-
-  if (clickedOnNote >= 0) {
-    removeNote(clickedOnNote);
-    return;
-  }
 
   const maxTotal = getTotalSubdivisions();
   if (colIndex >= maxTotal) return;
@@ -656,7 +716,9 @@ function handleGridDragMove(e) {
 
   const rect = matrix.getBoundingClientRect();
   const relX = clientX - rect.left;
-  const colIndex = Math.floor(relX / cellWidth);
+  // Ample de cel·la EXACTE (no l'offsetWidth arrodonit) per encertar la columna.
+  const exactCellWidth = rect.width / getTotalSubdivisions();
+  const colIndex = Math.floor(relX / exactCellWidth);
 
   const newSubdiv = Math.max(dragState.startSubdiv, Math.min(dragState.maxSubdiv, colIndex));
 
@@ -712,13 +774,14 @@ function updateGridPreviewBar() {
   const firstCell = gridElements?.matrixContainer?.querySelector('.plano-cell');
   const cellHeight = firstCell?.offsetHeight || 32;
   const rowIndex = (NOTE_COUNT - 1) - dragState.note;
-  const left = dragState.startSubdiv * cellWidth;
-  const width = (dragState.currentSubdiv - dragState.startSubdiv + 1) * cellWidth;
+  const totalColumns = getTotalSubdivisions();
+  const startPct = (dragState.startSubdiv / totalColumns) * 100;
+  const widthPct = ((dragState.currentSubdiv - dragState.startSubdiv + 1) / totalColumns) * 100;
   const barHeight = cellHeight - 2;
   const top = (rowIndex + 1) * cellHeight - barHeight / 2;  // Center on division line
 
-  dragState.previewBar.style.left = `${left}px`;
-  dragState.previewBar.style.width = `${width}px`;
+  dragState.previewBar.style.left = `${startPct}%`;
+  dragState.previewBar.style.width = `${widthPct}%`;
   dragState.previewBar.style.top = `${top}px`;
   dragState.previewBar.style.height = `${barHeight}px`;
 }

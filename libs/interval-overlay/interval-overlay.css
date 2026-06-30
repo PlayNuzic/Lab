@@ -1,0 +1,86 @@
+/* libs/interval-overlay/interval-overlay.css
+ *
+ * Estil de l'overlay de línies i números d'interval (visual idèntic a
+ * App15/App25B). Classes dedicades (`iv-*`) per evitar les guerres de
+ * especificitat amb `.interval-number` de musical-grid.css / nuzic-theme.css
+ * — així no cal cap `!important`.
+ *
+ * Color via `--iv-color` (per defecte el rosa d'iS d'App15/25B). Posicions
+ * (left/top/height/transform) les fixa el JS (libs/interval-overlay/index.js).
+ */
+
+.iv-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 14; /* sobre note-bars i halters; sota el playhead (z 20) */
+}
+
+/* Barra vertical prima i opaca */
+.iv-bar {
+  position: absolute;
+  background: var(--iv-color, #F28AAD);
+  border-radius: 0;
+  z-index: 15;
+}
+
+/* Fletxa a l'extrem DESTÍ (mida invariant en rem) */
+.iv-bar--asc::before {
+  content: '';
+  position: absolute;
+  top: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 0.5rem solid transparent;
+  border-right: 0.5rem solid transparent;
+  border-bottom: 0.625rem solid var(--iv-color, #F28AAD);
+}
+
+.iv-bar--desc::before {
+  content: '';
+  position: absolute;
+  bottom: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 0.5rem solid transparent;
+  border-right: 0.5rem solid transparent;
+  border-top: 0.625rem solid var(--iv-color, #F28AAD);
+}
+
+/* Punt rodó a l'extrem ORIGEN (oposat a la fletxa) */
+.iv-bar::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 0.6rem;
+  height: 0.6rem;
+  background: var(--iv-color, #F28AAD);
+  border-radius: 50%;
+  transform: translate(-50%, 0);
+}
+
+.iv-bar--asc::after { bottom: -0.3rem; }
+.iv-bar--desc::after { top: -0.3rem; }
+
+/* iS=0: ni fletxa ni punt (només barra curta + "0" a sobre) */
+.iv-bar--zero::before,
+.iv-bar--zero::after {
+  display: none;
+}
+
+/* Caixa central amb el número (posicionada per JS) */
+.iv-num {
+  position: absolute;
+  background: var(--iv-color, #F28AAD);
+  color: var(--nuzic-dark, #43433B);
+  font-size: clamp(0.75rem, 1.4vw, 1.1rem);
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.15rem 0.45rem;
+  min-width: 1.35rem;
+  border-radius: 0;
+  text-align: center;
+  text-shadow: none;
+  white-space: nowrap;
+  z-index: 16;
+}
