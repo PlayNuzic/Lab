@@ -499,13 +499,23 @@ function handleCompasChange(newValue, triggerAutoJump = false) {
   // Save state
   saveState();
 
-  // Auto-jump to inputCycle after delay (only when typing digits)
+  // Auto-jump to inputCycle (only when typing digits). Espera intel·ligent
+  // (model App30/31): només un dígit únic que ENCARA pot formar un Compás
+  // vàlid de 2 dígits (parsed*10 ≤ MAX_PULSOS) espera pel possible 2n dígit;
+  // la resta salta directe a Cycle sense esperar.
   if (triggerAutoJump && inputCycle) {
-    autoJumpTimer = setTimeout(() => {
+    if (autoJumpTimer) { clearTimeout(autoJumpTimer); autoJumpTimer = null; }
+    const canGrow = /^\d$/.test(newValue) && parsed * 10 <= MAX_PULSOS;
+    if (canGrow) {
+      autoJumpTimer = setTimeout(() => {
+        inputCycle.focus();
+        inputCycle.select();
+        autoJumpTimer = null;
+      }, AUTO_JUMP_DELAY);
+    } else {
       inputCycle.focus();
       inputCycle.select();
-      autoJumpTimer = null;
-    }, AUTO_JUMP_DELAY);
+    }
   }
 }
 

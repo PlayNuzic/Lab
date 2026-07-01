@@ -462,9 +462,11 @@ function createInputCell() {
       return;
     }
 
-    // Commit after delay (allows 2-digit input like "11", "-5")
-    clearTimeout(autoJumpTimer);
-    autoJumpTimer = setTimeout(() => {
+    // Espera intel·ligent (model App30/31): confirma i salta directe en teclejar.
+    // Només un dígit únic que ENCARA pot créixer a un iS de 2 dígits vàlid
+    // (l'extensió mínima ×10 encara cau dins [MIN_NOTE, MAX_NOTE]) espera 2000ms
+    // pel possible 2n dígit; la resta salta a l'instant sense esperar.
+    const commit = () => {
       currentIntervals.push(num);
       renderEditorCells();
       // Auto-focus next input
@@ -473,7 +475,14 @@ function createInputCell() {
       else if (getValidIntervals().length >= MAX_IS) {
         showTooltip(endMarker, 'Seqüència completa');
       }
-    }, 2000);
+    };
+    const magnitude = Math.abs(num);
+    const canGrow = /^-?\d$/.test(val) && (num >= 0
+      ? curNote + magnitude * 10 <= MAX_NOTE
+      : curNote - magnitude * 10 >= MIN_NOTE);
+    clearTimeout(autoJumpTimer);
+    if (canGrow) autoJumpTimer = setTimeout(commit, 2000);
+    else commit();
   });
 
   cell.addEventListener('keydown', (e) => {
