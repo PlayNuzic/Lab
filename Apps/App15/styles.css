@@ -404,7 +404,12 @@ body.dragging-note * {
   aspect-ratio: 1;
   text-align: center;
   color: #43433b;
-  font-size: clamp(1rem, 2.4vw, 1.5rem);
+  /* Middle term afinat 2.4vw → 1.6vw: la cel·la és 4% (relatiu al
+     contenidor) però la font era 2.4vw (relatiu al viewport). Dins
+     l'iframe del Sistema el terme vw dominava el clamp i un valor de
+     3 caràcters (+11 / -11) es tallava. 1.6vw ho ajusta al 4% de la
+     cel·la (referència: editor Pfr d'App28 a 1.5vw). */
+  font-size: clamp(1rem, 1.6vw, 1.5rem);
   font-weight: 700;
   border-radius: 0;
   border-width: 0;
