@@ -144,15 +144,20 @@ export function renderNoteBars({
  * @param {number} options.totalColumns
  * @param {number} [options.noteCount=12]
  * @param {number} [options.cellHeight] - mesurat del DOM si no es passa
+ * @param {boolean} [options.leadingGap=false] - Si és `true`, també es pinta el
+ *   forat INICIAL (abans de la primera nota) a la fila d'aquesta primera nota.
+ *   Per defecte `false` (retrocompatible: el forat inicial no es pinta).
+ * @returns {Array<{startSubdiv:number, duration:number, row:number}>} Els segments
+ *   de silenci pintats — perquè qui crida hi pugui afegir halters, p.ex.
  */
-export function renderSilenceLines({ matrixContainer, notes, totalColumns, noteCount = 12, cellHeight }) {
+export function renderSilenceLines({ matrixContainer, notes, totalColumns, noteCount = 12, cellHeight, leadingGap = false }) {
   const matrix = matrixContainer?.querySelector('.plano-matrix');
-  if (!matrix) return;
+  if (!matrix) return [];
 
   // Netejar línies de silenci anteriors (classe pròpia → no la toca renderNoteBars).
   matrix.querySelectorAll('.plano-silence-line').forEach(el => el.remove());
 
-  if (!notes || notes.length === 0 || !totalColumns) return;
+  if (!notes || notes.length === 0 || !totalColumns) return [];
 
   if (cellHeight === undefined) {
     const firstCell = matrix.querySelector('.plano-cell');
@@ -163,24 +168,33 @@ export function renderSilenceLines({ matrixContainer, notes, totalColumns, noteC
   const sorted = [...notes].sort((a, b) => a.startSubdiv - b.startSubdiv);
   let cursor = 0;            // primera columna encara no coberta
   let lastNoteRow = null;    // fila de l'última NOTA real (no silenci)
+  const segments = [];
 
   sorted.forEach((n) => {
-    // Forat no cobert entre `cursor` i l'inici d'aquesta entrada → línia de silenci
-    // (només si ja hi ha hagut una nota: el forat inicial no es pinta).
-    if (n.startSubdiv > cursor && lastNoteRow !== null) {
-      const rowIndex = (noteCount - 1) - lastNoteRow;
-      const top = (rowIndex + 1) * cellHeight - restHeight / 2;
-      const line = document.createElement('div');
-      line.className = 'plano-silence-line';
-      line.style.left = `${(cursor / totalColumns) * 100}%`;
-      line.style.width = `${((n.startSubdiv - cursor) / totalColumns) * 100}%`;
-      line.style.top = `${top}px`;
-      line.style.height = `${restHeight}px`;
-      matrix.appendChild(line);
+    // Forat no cobert entre `cursor` i l'inici d'aquesta entrada → línia de silenci.
+    // Fila: la de l'última nota prèvia; si no n'hi ha cap (forat inicial) i
+    // `leadingGap` està actiu, la de la nota que segueix.
+    if (n.startSubdiv > cursor) {
+      let row = lastNoteRow;
+      if (row === null && leadingGap && !n.isRest && n.note != null) row = n.note;
+      if (row !== null) {
+        const rowIndex = (noteCount - 1) - row;
+        const top = (rowIndex + 1) * cellHeight - restHeight / 2;
+        const line = document.createElement('div');
+        line.className = 'plano-silence-line';
+        line.style.left = `${(cursor / totalColumns) * 100}%`;
+        line.style.width = `${((n.startSubdiv - cursor) / totalColumns) * 100}%`;
+        line.style.top = `${top}px`;
+        line.style.height = `${restHeight}px`;
+        matrix.appendChild(line);
+        segments.push({ startSubdiv: cursor, duration: n.startSubdiv - cursor, row });
+      }
     }
     cursor = Math.max(cursor, n.startSubdiv + n.duration);
     if (!n.isRest && n.note != null) lastNoteRow = n.note;
   });
+
+  return segments;
 }
 
 /**

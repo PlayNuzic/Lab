@@ -1085,53 +1085,54 @@ function renderNotes() {
     onClickNote: removeNote,
     formatBarLabel: (n) => n.note   // número de nota dins el rectangle (no l'iT)
   });
-  renderSilenceLines({ matrixContainer: gridElements?.matrixContainer, notes, totalColumns, noteCount: NOTE_COUNT });
-  renderNoteHalters();
+  // `leadingGap: true` → també es pinta el silenci abans de la primera nota.
+  // Els segments retornats reben halter discontinu (com els silencis explícits).
+  const gaps = renderSilenceLines({ matrixContainer: gridElements?.matrixContainer, notes, totalColumns, noteCount: NOTE_COUNT, leadingGap: true });
+  renderNoteHalters(gaps);
 }
 
-// Halter groc d'iT sota cada note-bar (patró App13/App20/App30/App32/App33/App34).
-function renderNoteHalters() {
+// Halter d'iT sota cada note-bar (patró App13/App20/App30/App32/App33/App34).
+// Notes: sòlid. Silencis (isRest explícits + forats calculats `gaps`): DISCONTINU,
+// alineat amb la fila on viu la seva línia de silenci.
+function renderNoteHalters(gaps = []) {
   const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
   if (!matrix) return;
 
   matrix.querySelectorAll('.note-halter').forEach(el => el.remove());
-
-  if (!notes || notes.length === 0) return;
 
   const firstCell = matrix.querySelector('.plano-cell');
   const cellH = firstCell?.offsetHeight || 32;
   const totalColumns = getTotalSubdivisions();
   if (!totalColumns) return;
 
-  // Silencis (isRest): halter DISCONTINU, alineat amb la fila de l'última nota
-  // (com el note-bar--silence). Notes: halter sòlid. Horitzontal en % EXACTE.
+  const drawHalter = (startSubdiv, duration, row, dashed) => {
+    const rowIndex = (NOTE_COUNT - 1) - row;
+    const barHeight = cellH - 2;
+    const barTop = (rowIndex + 1) * cellH - barHeight / 2;
+    const halter = createIntervalLabelBar({
+      startPercent: (startSubdiv / totalColumns) * 100,
+      widthPercent: (duration / totalColumns) * 100,
+      label: duration,
+      variant: dashed ? 'dashed' : 'solid'
+    });
+    halter.classList.add('note-halter');
+    if (currentDenominator >= 5 && duration <= 2) {
+      halter.classList.add('note-halter--no-label');
+    }
+    halter.style.top = `${barTop + barHeight}px`;
+    matrix.appendChild(halter);
+  };
+
   let lastNoteRow = Math.floor(NOTE_COUNT / 2);
   notes.forEach((noteData) => {
     const isRest = !!noteData.isRest;
     const noteRow = isRest ? lastNoteRow : noteData.note;
     if (!isRest) lastNoteRow = noteData.note;
-
-    const startPercent = (noteData.startSubdiv / totalColumns) * 100;
-    const widthPercent = (noteData.duration / totalColumns) * 100;
-
-    const rowIndex = (NOTE_COUNT - 1) - noteRow;
-    const barHeight = cellH - 2;
-    const barTop = (rowIndex + 1) * cellH - barHeight / 2;
-    const halterTop = barTop + barHeight;
-
-    const halter = createIntervalLabelBar({
-      startPercent,
-      widthPercent,
-      label: noteData.duration,
-      variant: isRest ? 'dashed' : 'solid'
-    });
-    halter.classList.add('note-halter');
-    if (currentDenominator >= 5 && noteData.duration <= 2) {
-      halter.classList.add('note-halter--no-label');
-    }
-    halter.style.top = `${halterTop}px`;
-    matrix.appendChild(halter);
+    drawHalter(noteData.startSubdiv, noteData.duration, noteRow, isRest);
   });
+
+  // Forats calculats (silenci inicial + forats no coberts entre notes).
+  gaps.forEach((gap) => drawHalter(gap.startSubdiv, gap.duration, gap.row, true));
 }
 
 // ========== NOTE MANAGEMENT ==========

@@ -199,10 +199,32 @@ describe('plano-note-renderer', () => {
       expect(matrixContainer.querySelectorAll('.plano-silence-line')).toHaveLength(0);
     });
 
-    it('does NOT draw a leading gap before the first note', () => {
+    it('does NOT draw a leading gap before the first note (default)', () => {
       const notes = [{ note: 5, startSubdiv: 3, duration: 1 }];
       renderSilenceLines({ matrixContainer, notes, totalColumns: 12, cellHeight: 32 });
       expect(matrixContainer.querySelectorAll('.plano-silence-line')).toHaveLength(0);
+    });
+
+    it('draws the leading gap at the first note row when leadingGap is true', () => {
+      const notes = [{ note: 5, startSubdiv: 3, duration: 1 }];
+      const segments = renderSilenceLines({ matrixContainer, notes, totalColumns: 12, cellHeight: 32, leadingGap: true });
+      const lines = matrixContainer.querySelectorAll('.plano-silence-line');
+      expect(lines).toHaveLength(1);
+      // gap cols 0..2 → left 0%, width 3/12 = 25%
+      expect(lines[0].style.left).toBe('0%');
+      expect(lines[0].style.width).toBe('25%');
+      // returns the segment (row = the following note) so callers can add halters
+      expect(segments).toEqual([{ startSubdiv: 0, duration: 3, row: 5 }]);
+    });
+
+    it('returns the drawn gap segments', () => {
+      const notes = [
+        { note: 5, startSubdiv: 0, duration: 1 },
+        { note: 8, startSubdiv: 4, duration: 1 }
+      ];
+      const segments = renderSilenceLines({ matrixContainer, notes, totalColumns: 12, cellHeight: 32 });
+      // gap cols 1..3, at the previous note row (5)
+      expect(segments).toEqual([{ startSubdiv: 1, duration: 3, row: 5 }]);
     });
 
     it('treats explicit rests as covered (no extra gap line over them)', () => {
