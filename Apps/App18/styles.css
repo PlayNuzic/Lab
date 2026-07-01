@@ -106,6 +106,9 @@ body.app18 {
   position: relative;
   width: 3.75rem;
   height: 100%;
+  /* Amplada dels rectangles de nota (.note-highlight) i abast cap a la dreta
+     de la zona de clic estesa (.soundline-hitzone) — mantingudes en sync. */
+  --note-highlight-width: 5rem;
 }
 
 /* `.soundline-block` agrupa la pastilla abbr i el `.soundline` en una
@@ -216,7 +219,7 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
 /* ========== NOTE HIGHLIGHTS ========== */
 .note-highlight {
   position: absolute;
-  width: 5rem;
+  width: var(--note-highlight-width, 5rem);
   height: 6.67%;
   left: 100%;
   background: var(--note-highlight-color, #7BB4CD);
@@ -234,6 +237,18 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
   opacity: 0.8;
   box-shadow: 0 0 14px var(--note-highlight-color), 0 0 20px currentColor;
   animation: noteFlash 0.35s ease-out;
+}
+
+/* Zona de clic transparent per nota, estirada des de la soundline cap a la
+   dreta fins on acaben els rectangles (.note-highlight). Queda darrere de la
+   finestra de números (z-index 1 < 2), així dins la soundline els números
+   segueixen sent el target i a la dreta aquesta zona captura el clic. */
+.soundline-hitzone {
+  position: absolute;
+  left: 0;
+  width: calc(100% + var(--note-highlight-width, 5rem));
+  cursor: pointer;
+  z-index: 1;
 }
 
 @keyframes noteFlash {

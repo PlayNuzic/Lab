@@ -269,7 +269,32 @@ function drawSoundline() {
     });
   }
 
+  // Zones de clic esteses cap a la dreta, fins on apareixen els rectangles.
+  createNoteHitzones();
+
   log('Soundline created for registry:', registry);
+}
+
+/**
+ * Crea una zona de clic transparent per nota, estirada cap a la dreta fins
+ * on apareixen els rectangles de nota (.note-highlight). Viuen a l'element
+ * `.soundline` estable (no a la finestra retallada dels números) i queden
+ * DARRERE de la finestra (z-index 1 < 2): dins la soundline els números
+ * segueixen sent el target; a la dreta la zona captura el clic i sona la nota.
+ */
+function createNoteHitzones() {
+  if (!soundline?.element) return;
+  const totalNotes = registryController.getTotalNotes();
+  for (let i = 0; i < totalNotes; i++) {
+    const hz = document.createElement('div');
+    hz.className = 'soundline-hitzone';
+    hz.dataset.noteIndex = i;
+    hz.style.top = `${soundline.getNotePosition(i)}%`;
+    hz.style.height = `${100 / totalNotes}%`;
+    hz.style.transform = 'translateY(-50%)';
+    hz.addEventListener('click', () => handleNoteClick(i));
+    soundline.element.appendChild(hz);
+  }
 }
 
 // ========== LOCAL HIGHLIGHT CONTROLLER (for 14 notes) ==========
