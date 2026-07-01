@@ -232,6 +232,17 @@ body.app20 {
   display: none;
 }
 
+/* La timeline mostrava DUES barres d'scroll horitzontals redundants: la nativa
+   del matrix (a la vora inferior de `.plano-matrix-container`, entre matrix i
+   timeline) i el track proxy de sota la timeline (`.plano-hscroll-track`, row 3
+   de `showScrollbars`). Totes dues scrollen el matrix. Amaguem NOMÉS el proxy:
+   l'scroll intern del matrix (wheel/trackpad + la seva barra nativa) es manté
+   intacte. El track segueix al DOM i sincronitzat per JS, però sense pintar-se
+   — per això n'amaguem la visualització en lloc de treure'l. */
+.plano-hscroll-track {
+  display: none;
+}
+
 /* plano-modular playback highlight override */
 .plano-cell.plano-highlight {
   background: transparent !important;
