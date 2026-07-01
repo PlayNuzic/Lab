@@ -32,6 +32,12 @@ describe('normalizeFractionToken', () => {
   test('shorthand ".2" → "0.2"', () => {
     expect(normalizeFractionToken('.2')).toBe('0.2');
   });
+  test('subdivisió 0 → pols enter ("5.0" → "5")', () => {
+    expect(normalizeFractionToken('5.0')).toBe('5');
+    expect(normalizeFractionToken('0.0')).toBe('0');
+    expect(normalizeFractionToken('.0')).toBe('0');
+    expect(normalizeFractionToken('12.00')).toBe('12');
+  });
   test('garbage → empty', () => {
     expect(normalizeFractionToken('abc')).toBe('');
     expect(normalizeFractionToken('')).toBe('');

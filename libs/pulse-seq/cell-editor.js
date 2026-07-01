@@ -24,14 +24,18 @@ export function fractionTokenValue(token, denominator = 1) {
   return parseInt(trimmed, 10) || 0;
 }
 
-/** Normalitza un token: "01"→"1", "1.03"→"1.3", ".2"→"0.2" (base 0 implícita). */
+/** Normalitza un token: "01"→"1", "1.03"→"1.3", ".2"→"0.2" (base 0 implícita),
+ *  "5.0"→"5" (subdivisió 0 = el pols enter mateix). */
 export function normalizeFractionToken(token) {
   if (typeof token !== 'string') return '';
   const trimmed = token.trim();
   if (!trimmed) return '';
   if (trimmed.includes('.')) {
     const [base, subdiv] = trimmed.split('.');
-    return `${parseInt(base, 10) || 0}.${parseInt(subdiv, 10) || 0}`;
+    const b = parseInt(base, 10) || 0;
+    const s = parseInt(subdiv, 10) || 0;
+    // Subdivisió 0 = el pols enter mateix → "5.0" es normalitza a "5".
+    return s === 0 ? String(b) : `${b}.${s}`;
   }
   const n = parseInt(trimmed, 10);
   return Number.isFinite(n) ? String(n) : '';
