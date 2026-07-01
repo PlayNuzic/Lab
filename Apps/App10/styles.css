@@ -8,6 +8,8 @@ html, body {
 :root {
   --line-color: #666;
   --soundline-height: 100%;
+  /* Ample dels rectangles de nota — compartit amb .soundline-hitzone per no derivar. */
+  --note-highlight-width: 80px;
 }
 
 body[data-visual="nuzic"] {
@@ -87,15 +89,39 @@ body[data-visual="nuzic"] .soundline-container .soundline {
   border-radius: 4px;
 }
 
-/* Números amb posició absoluta (necessari per top:XX% del JS) */
+/* Números amb posició absoluta (necessari per top:XX% del JS).
+   z-index: 2 → per sobre de la hitzone (z-index 1), així dins la soundline el
+   número és el target del clic i a la dreta ho és la hitzone. */
 body[data-visual="nuzic"] .soundline-container .soundline-number {
   position: absolute;
+  z-index: 2;
+}
+
+/* Zona de clic per nota, estirada cap a la dreta fins on acaben els rectangles.
+   Transparent, darrere els números. Només activa amb `.notes-ready`. */
+.soundline-hitzone {
+  position: absolute;
+  left: 0;
+  width: calc(100% + var(--note-highlight-width));
+  z-index: 1;
+}
+
+/* Clicabilitat només després de l'escala inicial (números, línies i hitzones). */
+.soundline-container:not(.notes-ready) .soundline-number,
+.soundline-container:not(.notes-ready) .soundline-division,
+.soundline-container:not(.notes-ready) .soundline-hitzone {
+  pointer-events: none;
+}
+.soundline-container.notes-ready .soundline-number,
+.soundline-container.notes-ready .soundline-division,
+.soundline-container.notes-ready .soundline-hitzone {
+  cursor: pointer;
 }
 
 /* Note highlights */
 .note-highlight {
   position: absolute;
-  width: 80px;
+  width: var(--note-highlight-width);
   height: 8.33%;
   left: 100%;
   background: var(--note-highlight-color);

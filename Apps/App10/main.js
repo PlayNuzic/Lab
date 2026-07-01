@@ -14,6 +14,9 @@ let soundline = null;
 let noteHighlightController = null;
 let randomNotes = [];
 let currentBPM = 0;
+// Els números i l'espai de les notes NO són clicables fins que s'ha reproduït
+// l'escala cromàtica inicial (handleStartOverlay).
+let notesReady = false;
 
 // Referencias a elementos del DOM
 let soundlineWrapper = null;
@@ -55,10 +58,46 @@ function drawSoundline() {
   // Limpiar contenido previo
   soundlineWrapper.innerHTML = '';
 
-  // Crear soundline usando módulo compartido
-  soundline = createSoundline(soundlineWrapper);
+  // Crear soundline usando módulo compartido. `onNoteClick` fa clicables els
+  // números (i, per teclat, amb Enter/Espai); les hitzones cobreixen l'espai
+  // de la dreta fins als rectangles de nota.
+  soundline = createSoundline({ container: soundlineWrapper, onNoteClick: (i) => handleNoteClick(i) });
+  createNoteHitzones();
 
   log('Soundline creada correctamente');
+}
+
+/**
+ * Zona de clic transparent per nota, estirada cap a la dreta fins on apareixen
+ * els rectangles (.note-highlight). Viuen a `.soundline` i queden DARRERE dels
+ * números (z-index): dins la soundline els números són el target; a la dreta la
+ * hitzone captura el clic. Només actives després de l'escala inicial (CSS
+ * `.notes-ready`). Patró d'App18.
+ */
+function createNoteHitzones() {
+  if (!soundline?.element) return;
+  const total = soundline.getCount();
+  for (let i = 0; i < total; i++) {
+    const hz = document.createElement('div');
+    hz.className = 'soundline-hitzone';
+    hz.dataset.noteIndex = i;
+    hz.style.top = `${soundline.getNotePosition(i)}%`;
+    hz.style.height = `${100 / total}%`;
+    hz.style.transform = 'translateY(-50%)';
+    hz.addEventListener('click', () => handleNoteClick(i));
+    soundline.element.appendChild(hz);
+  }
+}
+
+/**
+ * Clic en un número o en l'espai d'una nota → sona la nota amb el seu highlight.
+ * Es bloqueja fins que l'escala inicial s'ha reproduït i mentre sona la seqüència.
+ */
+function handleNoteClick(noteIndex) {
+  if (!notesReady || isPlaying) return;
+  const midi = soundline.getMidiForNote(noteIndex);
+  playNote(midi, 0.5);
+  noteHighlightController.highlightNote(noteIndex, 500);
 }
 
 // ========== AUDIO ==========
@@ -218,6 +257,10 @@ async function handleStartOverlay() {
 
   // Play scale with visual feedback
   await playChromaticScale(chromaticNotes, intervalMs);
+
+  // A partir d'ara els números i l'espai de les notes són clicables.
+  notesReady = true;
+  soundlineWrapper?.classList.add('notes-ready');
 }
 
 // ========== EVENT HANDLERS ==========
