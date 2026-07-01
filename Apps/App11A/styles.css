@@ -9,9 +9,36 @@ body[data-visual="nuzic"] {
   --nuzic-controls-offset-y: 0rem;
 }
 
-/* App11A és visual-only: desactivar hover i cursor de mà sobre les cel·les */
-body[data-visual="nuzic"] .grid-container:not(.interval-mode) .musical-cell:hover::before {
+/* App11A és visual-only: desactivar el preview de hover NOMÉS a les cel·les
+   buides. Les cel·les actives (rectangles de nota) conserven el seu ::before
+   en hover — el rectangle i el preview comparteixen el mateix ::before, així
+   que un `display:none` genèric també esborrava el rectangle en passar-hi. */
+body[data-visual="nuzic"] .grid-container:not(.interval-mode) .musical-cell:not(.active):hover::before {
   display: none !important;
+}
+
+/* En passar el ratolí per sobre d'un rectangle dibuixat, mostra el par
+   (pols, nota) en un label intern. Només en hover. Valors copiats de la
+   .cell-label d'App11: clamp en mesures relatives (rem/vw), i s'adapta al
+   tema clar/fosc igual que App11. */
+body[data-visual="nuzic"] .grid-container:not(.interval-mode) .musical-cell.active:hover::after {
+  content: '(' attr(data-pulse) ', ' attr(data-note) ')';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--cell-label-font-size, clamp(0.65rem, 1.5vw, 1rem));
+  font-weight: var(--cell-label-font-weight, 600);
+  color: #43433B;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.4);
+  z-index: var(--z-active, 20);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .grid-container:not(.interval-mode) .musical-cell.active:hover::after {
+  color: #EEE8D8;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 body[data-visual="nuzic"] .grid-container .musical-cell {
