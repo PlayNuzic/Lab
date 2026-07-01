@@ -26,7 +26,6 @@ import { getTotalSubdivisions as _getTotalSubdivs, filterInvalidNotes as _filter
 import { renderNoteBars, renderSilenceLines, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
-import { createIntervalOverlay } from '../../libs/interval-overlay/index.js';
 import { setupRandomMenu } from '../../libs/random/menu.js';
 import { reorderControls } from '../../libs/app-common/template.js';
 
@@ -62,12 +61,6 @@ let notes = [];
 let gridElements = null;
 let cellWidth = 40;
 let playheadController = null;
-
-// Overlay de línies/números d'interval (estil App15). Es vincula al
-// `.plano-matrix` vigent; updateMatrix en crea un de nou cada renderGrid, així
-// que getOverlay() detecta el canvi i en refà la instància.
-let intervalOverlay = null;
-let intervalOverlayMatrix = null;
 
 // DOM elements
 // Timeline-integer and fraction labels inside the plano grid (used for highlight during playback).
@@ -520,46 +513,11 @@ function renderNotes() {
     totalColumns,            // % EXACTE: les barres encaixen amb les columnes 1fr
     noteCount: NOTE_COUNT,
     colors: VIBRANT_COLORS,
-    onClickNote: removeNote
+    onClickNote: removeNote,
+    formatBarLabel: (n) => n.note   // número de nota dins el rectangle (no l'iT)
   });
   renderSilenceLines({ matrixContainer: gridElements?.matrixContainer, notes, totalColumns, noteCount: NOTE_COUNT });
   renderNoteHalters();
-  renderIntervalOverlay(totalColumns);
-}
-
-// Overlay vinculat al `.plano-matrix` vigent (updateMatrix el recrea cada cop).
-function getOverlay() {
-  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
-  if (!matrix) return null;
-  if (!intervalOverlay || intervalOverlayMatrix !== matrix) {
-    intervalOverlay = createIntervalOverlay({ matrix });
-    intervalOverlayMatrix = matrix;
-  }
-  return intervalOverlay;
-}
-
-// Línies + números d'interval (estil App15): una barra per transició de nota,
-// número = delta de SEMITONS (notes cromàtiques 0-11). Origen implícit a la
-// nota 0 (com App15). Vertical en px (cellHeight enter exacte); horitzontal en %.
-function renderIntervalOverlay(totalColumns = getTotalSubdivisions()) {
-  const overlay = getOverlay();
-  if (!overlay) return;
-  const matrix = intervalOverlayMatrix;
-  const firstCell = matrix.querySelector('.plano-cell');
-  const cellHeight = firstCell?.offsetHeight || 32;
-  const events = notes
-    .filter(n => !n.isRest && n.note != null)
-    .map(n => ({ note: n.note, column: n.startSubdiv }));
-  overlay.render(events, {
-    totalColumns,
-    noteCount: NOTE_COUNT,
-    cellHeight,
-    baseNote: 0,
-    formatValue: (d) => (d > 0 ? `+${d}` : `${d}`),
-    // A partir de denominador 5 les columnes són massa estretes: amaguem els
-    // números d'iS (es conserven les barres/fletxes amb el contorn melòdic).
-    showNumbers: currentDenominator < 5
-  });
 }
 
 // Halter groc d'iT sota cada note-bar (patró App13/App20/App30).

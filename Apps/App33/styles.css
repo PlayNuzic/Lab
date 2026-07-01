@@ -560,10 +560,15 @@ body.dragging-note .np-dot:hover { cursor: grabbing; }
   box-shadow: 0 0 0.75rem var(--nuzic-blue, #7bb4cd);
 }
 
-/* L'iT ja el porta el halter groc sota el bar — l'amaguem aquí
-   per no duplicar la informació. */
+/* Dins el rectangle es mostra el NÚMERO DE NOTA (l'iT ja el porta el halter
+   groc sota el bar). Text fosc, centrat, no capturable pel ratolí. */
 .note-bar__label {
-  display: none;
+  font-size: clamp(0.7rem, 1.4vw, 0.95rem);
+  font-weight: 600;
+  color: var(--nuzic-dark, #43433B);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
 }
 
 .note-bar-preview {
@@ -573,11 +578,6 @@ body.dragging-note .np-dot:hover { cursor: grabbing; }
   background: var(--nuzic-yellow, #FFBB33);
   opacity: 0.4;
   pointer-events: none;
-}
-
-/* d>=5 + iT curt (1-2): amaga només el número del halter; el bracket es conserva. */
-.note-halter.note-halter--no-label .interval-label-bar__box {
-  display: none;
 }
 
 /* Línia de silenci: forat no cobert entre notes, discontínua, continuant la fila
