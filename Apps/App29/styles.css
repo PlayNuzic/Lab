@@ -247,8 +247,22 @@
   color: white;
 }
 
+/* Punt final (●): amplada fixa, s'estira a l'alçada de la fila. Visible només
+   quan s'han seleccionat tots els polsos possibles. Patró d'App13/App15/App30. */
 .pfr-editor .editor-end-marker {
-  display: none !important;
+  width: 1.5rem;
+  flex: none;
+  flex-shrink: 0;
+  background: var(--nuzic-dark, #43433B);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: clamp(0.65rem, 1.2vw, 0.8rem);
+}
+
+.pfr-editor .editor-end-marker::after {
+  content: '●';
 }
 
 /* ========== TIMELINE ==========

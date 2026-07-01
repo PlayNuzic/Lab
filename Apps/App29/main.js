@@ -346,6 +346,22 @@ function pulseTokenValue(token) {
 }
 
 /**
+ * Nombre total de polsos seleccionables (per detectar "tots seleccionats" i
+ * mostrar el punt final ●). Amb fracció complexa només algunes bases són
+ * seleccionables (0 sempre + enters múltiples del numerador/resta); cada base
+ * aporta l'enter + (d-1) subdivisions = d tokens.
+ */
+function totalSelectablePulses() {
+  const lg = currentNumerator;
+  const d = currentDenominator;
+  let bases = 0;
+  for (let b = 0; b < lg; b++) {
+    if (b === 0 || isIntegerSelectable(b)) bases++;
+  }
+  return bases * d;
+}
+
+/**
  * Normalise a raw token: "01" → "1"; "1.03" → "1.3"; ".2" → "0.2".
  * (delegat a libs/pulse-seq)
  */
@@ -383,6 +399,9 @@ function initPulseSeqEditor() {
   pfrEditor = createCellSequenceEditor({
     host: pfrCellsEl,
     endMarker: pfrEndMarkerEl,
+    // Sense input final quan ja s'han seleccionat TOTS els polsos possibles:
+    // llavors es mostra el punt final ● (com App13/App30).
+    showTrailingInput: () => selectedPulses.size < totalSelectablePulses(),
     classes: { base: 'editor-cell editor-cell--p', input: 'editor-input' },
     input: {
       maxLength: 4,
@@ -473,6 +492,12 @@ function renderPfrEditor() {
   if (!pfrEditor) return;
   pfrEditor.render();
   pfrActiveInputEl = pfrEditor.getActiveInput();
+
+  // Punt final visible quan s'han seleccionat TOTS els polsos possibles.
+  if (pfrEndMarkerEl) {
+    const allSelected = selectedPulses.size >= totalSelectablePulses();
+    pfrEndMarkerEl.style.display = allSelected ? 'flex' : 'none';
+  }
 }
 
 /**

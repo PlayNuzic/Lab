@@ -355,6 +355,9 @@ function initPulseSeqEditor() {
   pfrEditor = createCellSequenceEditor({
     host: pfrCellsEl,
     endMarker: pfrEndMarkerEl,
+    // Sense input final quan ja s'han seleccionat TOTS els polsos possibles
+    // (lg*d): llavors es mostra el punt final ● (com App13/App30).
+    showTrailingInput: () => selectedPulses.size < FIXED_LG * currentDenominator,
     classes: { base: 'editor-cell editor-cell--p', input: 'editor-input' },
     input: {
       maxLength: 4,  // Enough for "5.9" + safety.
@@ -452,6 +455,12 @@ function renderPfrEditor() {
   if (!pfrEditor) return;
   pfrEditor.render();
   pfrActiveInputEl = pfrEditor.getActiveInput();
+
+  // Punt final visible quan s'han seleccionat TOTS els polsos possibles (lg*d).
+  if (pfrEndMarkerEl) {
+    const allSelected = selectedPulses.size >= FIXED_LG * currentDenominator;
+    pfrEndMarkerEl.style.display = allSelected ? 'flex' : 'none';
+  }
 }
 
 /**
