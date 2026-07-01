@@ -118,7 +118,7 @@ header.top-bar h1 .top-bar-title-button:active {
 .fraction-editor input {
   width: 80px;
   text-align: center;
-  font-size: 3rem;
+  font-size: clamp(1.8rem, 4.5vw, 3rem);
   background: none;
   border: none;
   color: inherit;
@@ -197,7 +197,7 @@ header.top-bar h1 .top-bar-title-button:active {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 3rem;
+  font-size: clamp(1.8rem, 4.5vw, 3rem);
   font-weight: 500;
   color: var(--line-color);
   opacity: 0;
@@ -236,7 +236,7 @@ header.top-bar h1 .top-bar-title-button:active {
 }
 
 .fraction-ghost__number {
-  font-size: 2rem;
+  font-size: clamp(1.2rem, 3vw, 2rem);
   font-weight: 500;
   letter-spacing: 0.02em;
 }
@@ -295,7 +295,7 @@ header.top-bar h1 .top-bar-title-button:active {
 .cycle-label {
   position: absolute;
   color: var(--cycle-color);
-  font-size: 1.2rem;
+  font-size: clamp(0.72rem, 1.8vw, 1.2rem);
   transform: translate(-50%, 0);
   pointer-events: none;
   transition: color 0.3s ease, transform 0.3s ease;
@@ -359,7 +359,7 @@ header.top-bar h1 .top-bar-title-button:active {
 }
 
 .timeline.circular .cycle-label {
-  font-size: 1rem;
+  font-size: clamp(0.8rem, 1.5vw, 1rem);
 }
 
 #tIndicator {
@@ -373,7 +373,7 @@ header.top-bar h1 .top-bar-title-button:active {
   border-radius: 50%;
   color: var(--color-t);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: clamp(0.72rem, 1.35vw, 0.9rem);
   background: transparent;
   pointer-events: none;
 }

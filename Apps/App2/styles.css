@@ -92,7 +92,7 @@ main > .notation-panel--inline .notation-panel__canvas {
  * Editable pulse sequence container positioned above the timeline.
  */
 #pulseSeq {
-font-size: 3rem;
+font-size: clamp(1.8rem, 4.5vw, 3rem);
 display: flex;
 justify-content: flex-start;
 align-items: center;
@@ -156,7 +156,7 @@ text-align: center;
 font-weight: 700;
 background: transparent;
 pointer-events: none; /* purely visual */
-font-size: 0.9rem; /* Keep same font size */
+font-size: clamp(0.72rem, 1.35vw, 0.9rem); /* Keep same font size */
 }
 
 /**

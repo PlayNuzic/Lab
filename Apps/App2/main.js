@@ -1107,8 +1107,8 @@ function sanitizePulseSeq(opts = {}){
       if(!rect) rect = el.getBoundingClientRect();
       tip.style.left = rect.left + 'px';
       tip.style.top = (rect.bottom + window.scrollY) + 'px';
-      tip.style.fontSize = '0.95rem';
-      tip.style.fontSize = '0.95rem';
+      tip.style.fontSize = 'clamp(0.76rem, 1.42vw, 0.95rem)';
+      tip.style.fontSize = 'clamp(0.76rem, 1.42vw, 0.95rem)';
       tip.classList.add('show');
       setTimeout(()=>{ tip.classList.remove('show'); try{ document.body.removeChild(tip);}catch{} }, 3000);
     }catch{}
@@ -1600,7 +1600,7 @@ function showPlayWarning(message) {
     const rect = playBtn.getBoundingClientRect();
     tip.style.left = rect.left + 'px';
     tip.style.top = (rect.bottom + 8) + 'px';
-    tip.style.fontSize = '0.95rem';
+    tip.style.fontSize = 'clamp(0.76rem, 1.42vw, 0.95rem)';
     tip.classList.add('show');
     setTimeout(() => { tip.classList.remove('show'); try { document.body.removeChild(tip); } catch {} }, 3000);
   } catch {}
