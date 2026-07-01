@@ -301,6 +301,25 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
   background: var(--nuzic-yellow-light, #ffeecc);
 }
 
+/* Punt final (●): amplada fixa, s'estira a l'alçada de la fila (align-items:
+   stretch al contenidor). Visible només quan la seqüència omple tot l'espai.
+   Mateix patró que App13/App15/App34. */
+.itfr-editor .editor-end-marker {
+  width: 1.5rem;
+  flex: none;
+  flex-shrink: 0;
+  background: var(--nuzic-dark, #43433B);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: clamp(0.65rem, 1.2vw, 0.8rem);
+}
+
+.itfr-editor .editor-end-marker::after {
+  content: '●';
+}
+
 .itfr-editor .itfr-cell.itfr-value {
   background: white;
   z-index: 1;

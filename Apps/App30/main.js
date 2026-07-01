@@ -74,6 +74,7 @@ const mixerMenu = document.getElementById('mixerMenu');
 let itfrRow = null;
 let itfrEditorEl = null;     // .itfr-editor root (label + cells)
 let itfrCellsEl = null;      // .itfr-cells container
+let itfrEndMarkerEl = null;  // ● punt final (visible quan la seqüència és plena, com App13/App15)
 let itfrActiveInputEl = null; // current editable cell
 // Info displays (live in .inputs as pastilles, created via index.html)
 let sumDisplay = null;
@@ -180,6 +181,14 @@ function createItfrLayout() {
   itfrCellsEl = document.createElement('div');
   itfrCellsEl.className = 'itfr-cells';
 
+  // Punt final (●): fix al final de la fila de cel·les, ocult per defecte.
+  // El factory (createCellSequenceEditor) el preserva i hi insereix les
+  // cel·les al davant; renderItfrEditor() el mostra quan la seqüència és plena.
+  itfrEndMarkerEl = document.createElement('div');
+  itfrEndMarkerEl.className = 'editor-end-marker';
+  itfrEndMarkerEl.style.display = 'none';
+  itfrCellsEl.appendChild(itfrEndMarkerEl);
+
   itfrEditorEl.appendChild(label);
   itfrEditorEl.appendChild(itfrCellsEl);
   itfrRow.appendChild(itfrEditorEl);
@@ -212,6 +221,7 @@ function renderItfrEditor() {
   if (!itfrEditor) {
     itfrEditor = createCellSequenceEditor({
       host: itfrCellsEl,
+      endMarker: itfrEndMarkerEl,
       classes: { base: 'itfr-cell', value: 'itfr-value', separator: 'itfr-separator', input: 'itfr-input', silence: 'itfr-silence' },
       input: {
         maxLength: 2,
@@ -291,6 +301,13 @@ function renderItfrEditor() {
 
   itfrEditor.render();
   itfrActiveInputEl = itfrEditor.getActiveInput();
+
+  // Punt final visible només quan la seqüència omple tot l'espai (sense input
+  // final), igual que App13/App15/App34.
+  if (itfrEndMarkerEl) {
+    const full = occupiedEnd() >= getTotalSubdivisions();
+    itfrEndMarkerEl.style.display = full ? 'flex' : 'none';
+  }
 }
 
 /**
