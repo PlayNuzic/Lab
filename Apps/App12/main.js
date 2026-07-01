@@ -328,10 +328,10 @@ function syncGridFromPairs(pairs) {
   // Filter out null notes and rests for active cell rendering
   const validPairs = pairs.filter(p => !p.isRest && p.note !== null);
 
-  // Calculate labels - always in N-P coordinate mode
+  // Calculate labels - P-N coordinate mode (pols primer, després nota)
   const labelsMap = new Map(); // Map: "note-pulse" -> label text
   validPairs.forEach(({ note, pulse }) => {
-    labelsMap.set(`${note}-${pulse}`, `( ${note} , ${pulse} )`);
+    labelsMap.set(`${note}-${pulse}`, `( ${pulse} , ${note} )`);
   });
 
   // Activate cells and apply labels (only update if changed)
@@ -341,7 +341,7 @@ function syncGridFromPairs(pairs) {
       cell.classList.add('active');
 
       // PERFORMANCE: Only update label if text changed
-      const expectedText = labelsMap.get(`${note}-${pulse}`) || `( ${note} , ${pulse} )`;
+      const expectedText = labelsMap.get(`${note}-${pulse}`) || `( ${pulse} , ${note} )`;
       let label = cell.querySelector('.cell-label');
 
       if (!label) {
