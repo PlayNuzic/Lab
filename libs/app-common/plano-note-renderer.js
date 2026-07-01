@@ -18,6 +18,9 @@
  * @param {number} [options.cellHeight=32] - Height of each row in pixels
  * @param {string[]} [options.colors] - Array of colors for note bars (cycles)
  * @param {Function} [options.onClickNote] - Callback when a note bar is clicked: (index) => void
+ * @param {Function} [options.formatBarLabel] - Text mostrat dins el rectangle de la
+ *   nota. Per defecte l'iT (`duration`); App34/35 el fan servir per mostrar el
+ *   número de nota (`note`).
  */
 export function renderNoteBars({
   matrixContainer,
@@ -27,7 +30,8 @@ export function renderNoteBars({
   noteCount = 12,
   cellHeight,
   colors,
-  onClickNote
+  onClickNote,
+  formatBarLabel = (n) => n.duration
 }) {
   // Horitzontal en % exacte quan es coneix el nombre total de columnes; si no,
   // mode legacy en px (índex × cellWidth). Vertical sempre en px: a plano-modular
@@ -109,7 +113,7 @@ export function renderNoteBars({
 
     const label = document.createElement('span');
     label.className = 'note-bar__label';
-    label.textContent = noteData.duration;
+    label.textContent = formatBarLabel(noteData);
     bar.appendChild(label);
 
     if (onClickNote) {
