@@ -77,9 +77,12 @@ export function createPlanoModular(config) {
     playheadOffset = 0,
     columnSizing = 'px',  // 'px' (fixed width) or 'fr' (fill available space)
     showCycleEnd = false, // Last timeline column renders as `·` cycle-end
-    showScrollbars = false // Proxy scrollbars: vertical visible al matrix +
+    showScrollbars = false, // Proxy scrollbars: vertical visible al matrix +
                            // horitzontal sota la timeline (vegeu CSS amb
                            // `[data-show-scrollbars="true"]`).
+    // Format del label de cel·la seleccionada: 'pulse-note' = P^c N^r (App19,
+    // per defecte); 'note' = només la nota amb registre N^r (App20).
+    cellLabelMode = 'pulse-note'
   } = config;
 
   // State
@@ -168,7 +171,7 @@ export function createPlanoModular(config) {
     const { isSelected, deselected } = selectionManager.toggle(rowData.id, colIndex, rowData.data);
 
     // Options with compas for modular pulse calculation
-    const selectionOptions = { compas: cycleConfig.compas };
+    const selectionOptions = { compas: cycleConfig.compas, labelMode: cellLabelMode };
 
     // Update visual state for toggled cell
     updateCellSelection(matrixContainer, rowData.id, colIndex, isSelected, rowData.label, selectionOptions);
@@ -217,12 +220,16 @@ export function createPlanoModular(config) {
       columnSizing,
       isSelected: (rowId, colIndex) => selectionManager.isSelected(rowId, colIndex),
       cellFormatter: (row, colIndex) => {
-        // Generate P^c N^r label (compás primer, nota després — igual que
-        // updateCellSelection).
+        // Label de la cel·la seleccionada (igual que updateCellSelection).
         const match = row.id.match(/^(\d+)r(\d+)$/);
         if (match) {
           const noteNum = match[1];
           const registry = match[2];
+          if (cellLabelMode === 'note') {
+            // Només la nota amb registre (N^r) — App20.
+            return { html: `${noteNum}<sup>${registry}</sup>` };
+          }
+          // P^c N^r — compás primer, nota després (App19).
           const moduloPulse = colIndex % cycleConfig.compas;
           const cycleNum = Math.floor(colIndex / cycleConfig.compas) + 1;
           return { html: `${moduloPulse}<sup>${cycleNum}</sup> ${noteNum}<sup>${registry}</sup>` };
@@ -299,7 +306,7 @@ export function createPlanoModular(config) {
 
     // Selection API
     selectCell(rowId, colIndex) {
-      const selectionOptions = { compas: cycleConfig.compas };
+      const selectionOptions = { compas: cycleConfig.compas, labelMode: cellLabelMode };
       const deselected = selectionManager.select(rowId, colIndex);
       updateCellSelection(matrixContainer, rowId, colIndex, true, '', selectionOptions);
       for (const key of deselected) {
@@ -314,7 +321,7 @@ export function createPlanoModular(config) {
     },
 
     deselectCell(rowId, colIndex) {
-      const selectionOptions = { compas: cycleConfig.compas };
+      const selectionOptions = { compas: cycleConfig.compas, labelMode: cellLabelMode };
       selectionManager.deselect(rowId, colIndex);
       updateCellSelection(matrixContainer, rowId, colIndex, false, '', selectionOptions);
       if (onSelectionChange) {
@@ -323,7 +330,7 @@ export function createPlanoModular(config) {
     },
 
     clearSelection() {
-      const selectionOptions = { compas: cycleConfig.compas };
+      const selectionOptions = { compas: cycleConfig.compas, labelMode: cellLabelMode };
       const cleared = selectionManager.clear();
       for (const key of cleared) {
         const parts = key.split('-');
@@ -359,7 +366,7 @@ export function createPlanoModular(config) {
       selectionManager.loadFromKeys(keys);
       const after = new Set(selectionManager.exportKeys());
       const beforeSet = new Set(before);
-      const selectionOptions = { compas: cycleConfig.compas };
+      const selectionOptions = { compas: cycleConfig.compas, labelMode: cellLabelMode };
       const apply = (key, isSelected) => {
         const parts = key.split('-');
         const col = parseInt(parts.pop(), 10);
@@ -439,6 +446,7 @@ export function createPlanoModular(config) {
       // Include cycleConfig.compas for modular pulse calculation
       const highlightOptions = {
         compas: cycleConfig.compas,
+        labelMode: cellLabelMode,
         ...options
       };
       return highlightCell(matrixContainer, rowId, colIndex, duration, highlightOptions);

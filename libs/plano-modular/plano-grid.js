@@ -352,14 +352,17 @@ export function updateCellSelection(container, rowId, colIndex, selected, label 
         const noteNum = match[1];
         const registry = match[2];
 
-        // Calculate modular pulse (pulse within cycle)
-        const compas = options.compas || 1;
-        const moduloPulse = colIndex % compas;
-
-        // Build label: P^c N^r — primer el compás (pols^cicle) i després la
-        // nota (nota^registre), com a les apps 19/20.
-        const cycleNum = Math.floor(colIndex / compas) + 1;
-        labelEl.innerHTML = `${moduloPulse}<sup>${cycleNum}</sup> ${noteNum}<sup>${registry}</sup>`;
+        if (options.labelMode === 'note') {
+          // Només la nota amb registre (N^r) — App20.
+          labelEl.innerHTML = `${noteNum}<sup>${registry}</sup>`;
+        } else {
+          // P^c N^r — primer el compás (pols^cicle) i després la nota
+          // (nota^registre), com a App19.
+          const compas = options.compas || 1;
+          const moduloPulse = colIndex % compas;
+          const cycleNum = Math.floor(colIndex / compas) + 1;
+          labelEl.innerHTML = `${moduloPulse}<sup>${cycleNum}</sup> ${noteNum}<sup>${registry}</sup>`;
+        }
       }
 
       cell.appendChild(labelEl);
@@ -408,13 +411,16 @@ export function highlightCell(container, rowId, colIndex, duration = 0, options 
       const noteNum = match[1];
       const registry = match[2];
 
-      // Calculate modular pulse (pulse within cycle)
-      const compas = options.compas || 1;
-      const moduloPulse = colIndex % compas;
-
-      // Build label: P^c - N^r — primer el compás (pols^cicle) i després la nota.
-      const cycleNum = Math.floor(colIndex / compas) + 1;
-      highlightLabel.innerHTML = `${moduloPulse}<sup>${cycleNum}</sup>-${noteNum}<sup>${registry}</sup>`;
+      if (options.labelMode === 'note') {
+        // Només la nota amb registre (N^r) — App20.
+        highlightLabel.innerHTML = `${noteNum}<sup>${registry}</sup>`;
+      } else {
+        // P^c - N^r — primer el compás (pols^cicle) i després la nota.
+        const compas = options.compas || 1;
+        const moduloPulse = colIndex % compas;
+        const cycleNum = Math.floor(colIndex / compas) + 1;
+        highlightLabel.innerHTML = `${moduloPulse}<sup>${cycleNum}</sup>-${noteNum}<sup>${registry}</sup>`;
+      }
     }
 
     cell.appendChild(highlightLabel);

@@ -376,6 +376,9 @@ function initGrid() {
       compas: compas || 1,
       showCycle: true
     },
+    // Els labels dels rectangles-notes mostren només la nota amb registre
+    // (N^r), sense el parell P-N (App19 manté el format complet P^c N^r).
+    cellLabelMode: 'note',
     bpm: bpmController?.getValue() || CONFIG.DEFAULT_BPM,
     defaultRegistry: CONFIG.DEFAULT_REGISTRO,
     registryConfig: {

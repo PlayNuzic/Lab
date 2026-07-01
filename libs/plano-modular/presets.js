@@ -62,7 +62,8 @@ export function createPlanoMusical(config) {
     showPlayhead = true,
     playheadOffset = 0,
     initialRegistry,
-    showScrollbars = false
+    showScrollbars = false,
+    cellLabelMode = 'pulse-note'
   } = config;
 
   // Build registry configuration
@@ -95,6 +96,7 @@ export function createPlanoMusical(config) {
     columns,
     columnSizing,
     cycleConfig,
+    cellLabelMode,
     bpm,
     scrollConfig: {
       blockVerticalWheel: false,  // Allow user to scroll vertically
@@ -348,7 +350,8 @@ export function createApp19Grid(config) {
     defaultRegistry = 4,
     registryConfig: customRegistryConfig = {},
     playheadOffset = 0,
-    showScrollbars = false
+    showScrollbars = false,
+    cellLabelMode = 'pulse-note'
   } = config;
 
   // Create with App19 defaults, allowing overrides via customRegistryConfig
@@ -371,7 +374,8 @@ export function createApp19Grid(config) {
     onCellClick,
     onSelectionChange,
     showPlayhead: true,
-    showScrollbars
+    showScrollbars,
+    cellLabelMode
   });
 
   // Scroll to default registry after creation
