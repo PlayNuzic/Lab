@@ -17,11 +17,13 @@ body[data-visual="nuzic"] .grid-container:not(.interval-mode) .musical-cell:not(
   display: none !important;
 }
 
-/* En passar el ratolí per sobre d'un rectangle dibuixat, mostra el par
-   (pols, nota) en un label intern. Només en hover. Valors copiats de la
-   .cell-label d'App11: clamp en mesures relatives (rem/vw), i s'adapta al
-   tema clar/fosc igual que App11. */
-body[data-visual="nuzic"] .grid-container:not(.interval-mode) .musical-cell.active:hover::after {
+/* Mostra el par (pols, nota) en un label intern del rectangle:
+   - en hover d'un rectangle dibuixat, o
+   - durant el preview de clic (.preview, 2 s) sense caldre hover.
+   Valors copiats de la .cell-label d'App11: clamp en mesures relatives
+   (rem/vw), i s'adapta al tema clar/fosc igual que App11. */
+body[data-visual="nuzic"] .grid-container:not(.interval-mode) .musical-cell.active:hover::after,
+body[data-visual="nuzic"] .grid-container:not(.interval-mode) .musical-cell.active.preview::after {
   content: '(' attr(data-pulse) ', ' attr(data-note) ')';
   position: absolute;
   top: 50%;
@@ -36,13 +38,25 @@ body[data-visual="nuzic"] .grid-container:not(.interval-mode) .musical-cell.acti
   white-space: nowrap;
 }
 
-body[data-visual="nuzic"][data-theme="dark"] .grid-container:not(.interval-mode) .musical-cell.active:hover::after {
+body[data-visual="nuzic"][data-theme="dark"] .grid-container:not(.interval-mode) .musical-cell.active:hover::after,
+body[data-visual="nuzic"][data-theme="dark"] .grid-container:not(.interval-mode) .musical-cell.active.preview::after {
   color: #EEE8D8;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
+/* Fade-out final del preview de clic: dins dels 2 s, el rectangle (::before)
+   i el label (::after) s'esvaeixen a l'últim tram en lloc de desaparèixer de
+   cop. Només s'esvaeixen els pseudo-elements, no el fons de la cel·la, així
+   la graella no parpelleja. La durada coincideix amb CELL_FADE_MS a main.js. */
+body[data-visual="nuzic"] .grid-container:not(.interval-mode) .musical-cell.active.preview.preview-out::before,
+body[data-visual="nuzic"] .grid-container:not(.interval-mode) .musical-cell.active.preview.preview-out::after {
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}
+
+/* Cel·les clicables: click → sona la nota + preview del rectangle */
 body[data-visual="nuzic"] .grid-container .musical-cell {
-  cursor: default;
+  cursor: pointer;
 }
 
 [data-theme="dark"] {

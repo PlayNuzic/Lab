@@ -273,6 +273,44 @@ function stopPlayback({ preserveHighlights = false } = {}) {
   musicalGrid?.hidePlayhead?.();
 }
 
+// ========== CELL CLICK PREVIEW ==========
+// Clicar una cel·la: sona la nota i apareix el rectangle amb el label P-N
+// (pols, nota) durant 2 s; després s'esborra. El label reutilitza el ::after
+// de hover via la classe `.preview` perquè es vegi sense passar-hi el ratolí.
+const CELL_PREVIEW_MS = 2000;   // durada total del preview
+const CELL_FADE_MS = 1000;      // fade-out final (dins dels 2 s) — ha de
+                                // coincidir amb la transició de .preview-out
+const cellPreviewTimers = new WeakMap();
+
+async function handleCellPreview(noteIndex, pulseIndex, cellElement) {
+  if (!cellElement) return;
+
+  // Sona la nota (piano melòdic, com el click de cel·la a App12/App25).
+  const audioInstance = await initAudio();
+  if (window.Tone && audioInstance) {
+    const midi = BASE_MIDI + noteIndex;
+    const duration = (60 / currentBPM) * 0.9;
+    audioInstance.playNote(midi, duration, window.Tone.now());
+  }
+
+  // Rectangle (.active) + label P-N (.preview → ::after). Es manté sòlid i,
+  // a l'últim tram, s'esvaeix (.preview-out) fins a desaparèixer als 2 s.
+  // Reclicar la mateixa cel·la reinicia el cicle.
+  const prev = cellPreviewTimers.get(cellElement);
+  if (prev) { clearTimeout(prev.fade); clearTimeout(prev.end); }
+  cellElement.classList.remove('preview-out');
+  cellElement.classList.add('active', 'preview');
+
+  const fade = setTimeout(() => {
+    cellElement.classList.add('preview-out');
+  }, CELL_PREVIEW_MS - CELL_FADE_MS);
+  const end = setTimeout(() => {
+    cellElement.classList.remove('active', 'preview', 'preview-out');
+    cellPreviewTimers.delete(cellElement);
+  }, CELL_PREVIEW_MS);
+  cellPreviewTimers.set(cellElement, { fade, end });
+}
+
 // ========== INITIALIZATION ==========
 
 async function init() {
@@ -323,8 +361,10 @@ async function init() {
     noteFormatter: (index) => index.toString(),
     pulseFormatter: (index) => index.toString(),
     scrollEnabled: false,
-    onCellClick: null,  // No cell interaction in App11A
-    onPulseClick: null  // No pulse clicks either
+    onCellClick: (noteIndex, pulseIndex, cellElement) => {
+      handleCellPreview(noteIndex, pulseIndex, cellElement);
+    },
+    onPulseClick: null  // No pulse clicks
   });
 
   console.log('Musical grid created (visual only)');
