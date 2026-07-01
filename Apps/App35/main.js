@@ -1116,9 +1116,6 @@ function renderNoteHalters(gaps = []) {
       variant: dashed ? 'dashed' : 'solid'
     });
     halter.classList.add('note-halter');
-    if (currentDenominator >= 5 && duration <= 2) {
-      halter.classList.add('note-halter--no-label');
-    }
     halter.style.top = `${barTop + barHeight}px`;
     matrix.appendChild(halter);
   };
