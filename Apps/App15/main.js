@@ -918,6 +918,11 @@ function handleReset() {
   musicalGrid?.clear();
   renderTemporalBars([]);
 
+  // musicalGrid.clear() només treu 'active'/'highlight'; cal netejar també
+  // els silencis (cel·les .rest) i els halters d'iT dibuixats sota la grid.
+  document.querySelectorAll('.musical-cell.rest').forEach(cell => cell.classList.remove('rest'));
+  renderItHalterCellLayer([]);
+
   // Clear interval lines (App14 style vertical bars)
   clearIntervalLines();
 
