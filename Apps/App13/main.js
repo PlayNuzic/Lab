@@ -795,9 +795,6 @@ function handleRandom() {
   }
 
   setIntervalsToEditor(intervals);
-
-  // Auto-play after randomizing (consistent across apps 9+).
-  if (!isPlaying) handlePlay();
 }
 
 function handleReset() {

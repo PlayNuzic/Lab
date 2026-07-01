@@ -374,12 +374,6 @@ function randomize() {
   const { denomMax } = randomMenu?.read() ?? { denomMax: MAX_DENOMINATOR };
   const newD = randomInt(2, Math.min(denomMax, MAX_DENOMINATOR));
   setDenominator(newD);
-
-  // Auto-play after randomizing (consistent across apps 9+).
-  if (!isPlaying) {
-    clearHighlights();
-    startPlayback();
-  }
 }
 
 async function handleReset() {

@@ -1824,9 +1824,6 @@ function handleRandom() {
   }
   renderGrid();
   syncGridToZigzag();
-
-  // Auto-play after randomizing (consistent across apps 9+).
-  if (!isPlaying) handlePlay();
 }
 
 function handleReset() {

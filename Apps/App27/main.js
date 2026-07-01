@@ -397,12 +397,6 @@ function randomize() {
     newD = randomInt(2, dMax);
   } while (gcd(newN, newD) !== 1);
   setFraction(newN, newD);
-
-  // Auto-play after randomizing (consistent across apps 9+).
-  if (!isPlaying) {
-    clearHighlights();
-    startPlayback();
-  }
 }
 
 async function handleReset() {

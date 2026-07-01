@@ -968,12 +968,6 @@ function randomize() {
   // 5. Render and sync
   renderTimeline();
   syncPulseSeqFromSelection();
-
-  // Auto-play after randomizing (consistent across apps 9+).
-  if (!isPlaying) {
-    clearHighlights();
-    startPlayback();
-  }
 }
 
 async function handleReset() {
