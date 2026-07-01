@@ -296,12 +296,13 @@ function isValidPulseToken(token) {
     return true;
   }
 
-  // Integer pulse — amb loop desactivat, pulse Lg és un beat final propi,
-  // independent del pulse 0, així que també es pot seleccionar.
+  // Integer pulse 0..lg-1. El pulse Lg és l'endpoint `·` (cycle-end): només
+  // el marcador visual de final de cicle, no un pols seleccionable. Cf. App29
+  // (num === lg → false), que ja ho gestiona correctament.
   const num = parseInt(trimmed, 10);
   if (!Number.isFinite(num)) return false;
 
-  return num >= 0 && num <= lg;
+  return num >= 0 && num < lg;
 }
 
 /**
@@ -522,8 +523,10 @@ function syncTimelineFromSelection() {
       if (marker) marker.classList.add('selected');
       if (label) label.classList.add('selected');
     } else {
-      // Integer pulse (0 to lg, both endpoints selectable independently)
+      // Integer pulse 0..lg-1. L'endpoint lg no hi arriba (isValidPulseToken
+      // el rebutja); el guard evita marcar-lo si quedés un token antic.
       const idx = parseInt(token, 10);
+      if (idx < 0 || idx >= FIXED_LG) continue;
       const pulse = pulses.find(p => parseInt(p.dataset.index, 10) === idx);
       if (pulse) {
         pulse.classList.add('selected');
@@ -780,9 +783,9 @@ function getAudioSelection() {
         audioSet.add(scaledIndex);
       }
     } else {
-      // Integer pulse: idx → idx * d (0 to lg, both endpoints valid)
+      // Integer pulse: idx → idx * d (0..lg-1; l'endpoint lg no és seleccionable)
       const idx = parseInt(token, 10);
-      if (Number.isFinite(idx) && idx >= 0 && idx <= FIXED_LG) {
+      if (Number.isFinite(idx) && idx >= 0 && idx < FIXED_LG) {
         const scaledIndex = idx * d;
         audioSet.add(scaledIndex);
       }
