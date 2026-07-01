@@ -67,8 +67,7 @@ const registryController = createRegistryController({
 });
 
 // Slide duration must match the CSS transition; kept in JS so we can
-// schedule cleanup of the outgoing numbers track. `AUTO_PLAY_DELAY` is
-// slightly longer so playback starts after the registry-scroll settles.
+// schedule cleanup of the outgoing numbers track.
 const REGISTRY_SLIDE_MS = 620;
 
 /**
@@ -407,17 +406,9 @@ async function handlePlay() {
   }
 
   // Generate random sequence only if we don't have one yet.
-  // Use the side-effect-free generator so we don't re-arm scheduleAutoPlay
-  // mid-handlePlay (that would restart the sequence ~AUTO_PLAY_DELAY in,
-  // truncating it to its first couple of notes).
   if (randomNotes.length === 0) {
     generateRandomSequence();
   }
-
-  // Cancel any pending auto-play timer — we're starting now, and any
-  // queued timer would re-enter handlePlay and restart the sequence.
-  clearTimeout(autoPlayTimer);
-  autoPlayTimer = null;
 
   log(`BPM: ${currentBPM}`);
   log(`Registry: ${registry}`);
@@ -493,17 +484,14 @@ function generateRandomSequence() {
   const bMin = Math.max(MIN_BPM, Math.min(cfg.bpmMin, MAX_BPM));
   const bMax = Math.max(bMin, Math.min(cfg.bpmMax, MAX_BPM));
 
-  const registry = registryController.getRegistry();
-
-  // If no registry, randomize both registry and sequence
-  if (registry === null) {
-    const newRegistry = getRandomRegistry(rMin, rMax);
-    registryController.setRegistry(newRegistry);
-    if (inputRegistro) {
-      inputRegistro.value = newRegistry;
-    }
-    log(`Random registry: ${newRegistry}`);
+  // L'aleatori SEMPRE inclou el registre: en genera un de nou cada cop (abans
+  // només si el registre estava buit).
+  const newRegistry = getRandomRegistry(rMin, rMax);
+  registryController.setRegistry(newRegistry);
+  if (inputRegistro) {
+    inputRegistro.value = newRegistry;
   }
+  log(`Random registry: ${newRegistry}`);
 
   // Generate SEQUENCE_LENGTH random notes within registry range (0-12).
   const totalNotes = registryController.getTotalNotes(); // 13
@@ -519,9 +507,6 @@ function generateRandomSequence() {
 
 function handleRandom() {
   generateRandomSequence();
-  // Auto-play: si ja estem reproduint, atura i recomença amb la nova
-  // seqüència. Si no, dispara play.
-  scheduleAutoPlay();
 }
 
 function handleReset() {
@@ -542,54 +527,22 @@ function handleReset() {
 }
 
 // ========== REGISTRY INPUT HANDLERS ==========
-const AUTO_PLAY_DELAY = 700; // ms after a registry change before auto-firing play
-let autoPlayTimer = null;
-
-/**
- * Programa una represa de play quan canvia el registre. Si ja s'està
- * reproduint, atura primer i recomença amb el nou registre — així cada
- * canvi de registre s'escolta immediatament. Debounced per evitar
- * stop+play en cascada quan l'usuari clica spinners ràpid o escriu
- * múltiples dígits.
- */
-function scheduleAutoPlay() {
-  clearTimeout(autoPlayTimer);
-  autoPlayTimer = setTimeout(() => {
-    if (registryController.getRegistry() == null) return;
-    if (isPlaying) {
-      stopPlayback();
-      requestAnimationFrame(() => handlePlay());
-    } else {
-      handlePlay();
-    }
-  }, AUTO_PLAY_DELAY);
-}
-
 function handleRegistroChange(e) {
   const value = inputRegistro.value.trim();
   registryController.setRegistry(value === '' ? null : value);
   log('Registry changed to:', registryController.getRegistry());
-
-  // Auto-play després d'escriure un dígit. Inclou el cas en què ja
-  // s'està reproduint (atura i recomença amb el nou registre).
-  if (e && e.inputType === 'insertText' && /^[0-9]$/.test(e.data)) {
-    if (!isPlaying) inputRegistro.blur();
-    scheduleAutoPlay();
-  }
 }
 
 function handleRegistroUp() {
   registryController.increment();
   inputRegistro.value = registryController.getRegistry() ?? '';
   log('Registry changed to:', registryController.getRegistry());
-  scheduleAutoPlay();
 }
 
 function handleRegistroDown() {
   registryController.decrement();
   inputRegistro.value = registryController.getRegistry() ?? '';
   log('Registry changed to:', registryController.getRegistry());
-  scheduleAutoPlay();
 }
 
 // ========== EVENT HANDLERS ==========
@@ -663,7 +616,7 @@ function setupEventHandlers() {
 // ========== HOVER LABELS ==========
 function setupHovers() {
   if (playBtn) attachHover(playBtn, { text: 'Reproducir secuencia' });
-  if (randomBtn) attachHover(randomBtn, { text: 'Nueva secuencia aleatoria. Incluye nuevo registro si no hay uno establecido' });
+  if (randomBtn) attachHover(randomBtn, { text: 'Nueva secuencia aleatoria (incluye nuevo registro)' });
   if (resetBtn) attachHover(resetBtn, { text: 'Reiniciar' });
   if (registroUp) attachHover(registroUp, { text: 'Registro +1' });
   if (registroDown) attachHover(registroDown, { text: 'Registro -1' });

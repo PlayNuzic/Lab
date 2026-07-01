@@ -490,25 +490,6 @@ function decrementCompas() {
 // RANDOM
 // ============================================
 
-// Debounced auto-play comú per als canvis de `compas` (input, spinners,
-// random). Si ja estem reproduint, atura i recomença amb el nou valor;
-// si no, simplement inicia. El debounce evita stop+play en cascada
-// quan l'usuari clica spinners ràpid o escriu múltiples dígits.
-const AUTO_PLAY_DELAY = 250;
-let autoPlayTimer = null;
-function scheduleAutoPlay() {
-  clearTimeout(autoPlayTimer);
-  autoPlayTimer = setTimeout(() => {
-    if (compas == null) return;
-    if (isPlaying) {
-      stopPlayback();
-      requestAnimationFrame(() => handlePlay());
-    } else {
-      handlePlay();
-    }
-  }, AUTO_PLAY_DELAY);
-}
-
 function handleRandom() {
   // Regla interna del random:
   //   - Mai genera Compás=1 (mínim és 2).
@@ -526,7 +507,6 @@ function handleRandom() {
     cycles: cyclesForCompas(newCompas),
     maxOverride: MAX_COMPAS_RANDOM
   });
-  scheduleAutoPlay();
 }
 
 // ============================================
@@ -655,26 +635,18 @@ async function initializeApp() {
   // Give focus to input so user can start typing
   inputCompas?.focus();
 
-  // Compás input events. Després d'un canvi vàlid, `scheduleAutoPlay`
-  // (a l'scope de mòdul, més amunt) dispara play amb un petit debounce.
+  // Compás input events.
   inputCompas?.addEventListener('input', (e) => {
     handleCompasChange(e.target.value);
-    if (e.inputType === 'insertText' && /^[0-9]$/.test(e.data)) {
-      scheduleAutoPlay();
-    }
   });
 
   inputCompas?.addEventListener('blur', () => {
     handleCompasChange(inputCompas.value);
   });
 
-  // Spinner buttons with auto-repeat. També disparen auto-play quan
-  // l'usuari canvia el valor amb +/− (després d'un debounce perquè els
-  // clicks consecutius no facin spam de stop+play).
-  const compasUpWithAutoPlay = () => { incrementCompas(); scheduleAutoPlay(); };
-  const compasDownWithAutoPlay = () => { decrementCompas(); scheduleAutoPlay(); };
-  attachSpinnerRepeat(compasUpBtn, compasUpWithAutoPlay);
-  attachSpinnerRepeat(compasDownBtn, compasDownWithAutoPlay);
+  // Spinner buttons with auto-repeat.
+  attachSpinnerRepeat(compasUpBtn, incrementCompas);
+  attachSpinnerRepeat(compasDownBtn, decrementCompas);
 
   // Play button
   playBtn?.addEventListener('click', handlePlay);
@@ -701,8 +673,9 @@ async function initializeApp() {
     });
   }
 
-  // Load mixer state after a short delay
-  setTimeout(loadMixerState, 50);
+  // (L'estat del mixer es carrega via `mixerPersist.hydrate(audio)` a l'init
+  // d'àudio; l'antic `setTimeout(loadMixerState, 50)` cridava una funció
+  // inexistent — ReferenceError que avortava la resta de l'init.)
 
   // Initialize P0 toggle from menu checkbox (NOT persisted between sessions - always starts active)
   // The template generates 'startIntervalToggle' checkbox when showP1Toggle: true

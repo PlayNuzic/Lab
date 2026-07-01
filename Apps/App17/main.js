@@ -570,23 +570,6 @@ function decrementCycle() {
 // RANDOM
 // ============================================
 
-// Debounced auto-play comú per a canvis de pulsos/cycles via random.
-// Si ja estem reproduint, atura i recomença amb el nou estat.
-const AUTO_PLAY_DELAY = 250;
-let autoPlayTimer = null;
-function scheduleAutoPlay() {
-  clearTimeout(autoPlayTimer);
-  autoPlayTimer = setTimeout(() => {
-    if (pulsosCompas == null || cycles == null) return;
-    if (isPlaying) {
-      stopPlayback();
-      requestAnimationFrame(() => handlePlay());
-    } else {
-      handlePlay();
-    }
-  }, AUTO_PLAY_DELAY);
-}
-
 function handleRandom() {
   const maxPulsos = parseInt(document.getElementById('randPulsosMax')?.value || '12', 10);
   const maxCycles = parseInt(document.getElementById('randCyclesMax')?.value || '8', 10);
@@ -596,7 +579,6 @@ function handleRandom() {
 
   handleCompasChange(newPulsos);
   handleCycleChange(newCycles);
-  scheduleAutoPlay();
 }
 
 // ============================================
@@ -824,25 +806,14 @@ async function initializeApp() {
   // Cycle input events
   inputCycle?.addEventListener('input', (e) => {
     handleCycleChange(e.target.value);
-    // Auto-blur after entering a digit, then auto-play if both inputs
-    // are valid and we're not already playing.
-    if (e.inputType === 'insertText' && /^[0-9]$/.test(e.data)) {
-      setTimeout(() => {
-        inputCycle.blur();
-        if (!isPlaying && pulsosCompas !== null && cycles !== null) {
-          handlePlay();
-        }
-      }, AUTO_JUMP_DELAY);
-    }
   });
 
   inputCycle?.addEventListener('keydown', (e) => {
-    // ENTER confirma el cycle i engega el play immediatament.
+    // ENTER confirma el cycle i treu el focus (sense autoplay).
     if (e.key !== 'Enter') return;
     e.preventDefault();
     handleCycleChange(inputCycle.value);
     inputCycle.blur();
-    if (!isPlaying && pulsosCompas !== null && cycles !== null) handlePlay();
   });
 
   inputCycle?.addEventListener('blur', () => {
