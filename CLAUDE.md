@@ -70,3 +70,31 @@ npm test                                    # Run all tests
 npm test -- --testPathPattern="module-name" # Specific module
 npx http-server                             # Serve apps locally
 ```
+
+## Knowledge graph (graphify) — CONSULT FIRST for code/architecture questions
+This repo's code is indexed (together with the Nuzic theory corpus) in a graphify
+knowledge graph. **Before grepping across `Apps/` and `libs/`** to answer a question about
+architecture, how a concept is implemented, or which files relate to what:
+
+1. Query the graph first:
+   `graphify query "<the question>" --graph "/Users/workingburcet/Documents/Nuzic/Corpus/graphify-out/graph.json"`
+2. Trace how two things connect: `graphify path "A" "B" --graph <same path>`
+   Explain a node: `graphify explain "NodeName" --graph <same path>`
+3. Use the graph to locate the relevant modules/apps, then open those files.
+
+The graph's value here is that it links **Nuzic theory** (Pulso/iT, Nota/iS, iA = intervalo
+Armónico, fraccions, polirítmia, simbiosi) to the **Lab code** that implements it — so you can
+ask e.g. "which app/lib implements polyrhythm?" and get theory + code together.
+
+Note: because Lab has no local `graphify-out/graph.json`, a bare `graphify query "..."` prints
+`error: graph file not found` — that's expected. Always pass the explicit `--graph <path>` shown
+above; with it, the query works and returns results (the error line, if any, is harmless).
+
+Caveats (be honest about them):
+- The graph lives in the **Corpus** project, not here: `~/Documents/Nuzic/Corpus/graphify-out/`.
+- Lab's code in that graph is **partial and may be stale** (indexed once). For questions about
+  brand-new or just-edited code, fall back to reading the actual files — the graph won't have them.
+- To refresh Lab's slice: from the Corpus dir run `graphify /Users/workingburcet/Lab --update`
+  (re-extracts changed files). Note: `cluster-only`/`export obsidian` regenerate community names
+  as "Community NNN" and need re-labelling afterwards.
+- graphify Python interpreter: `~/.local/share/uv/tools/graphifyy/bin/python3`
