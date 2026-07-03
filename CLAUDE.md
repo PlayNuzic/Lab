@@ -86,12 +86,15 @@ The graph's value here is that it links **Nuzic theory** (Pulso/iT, Nota/iS, iA 
 Armónico, fraccions, polirítmia, simbiosi) to the **Lab code** that implements it — so you can
 ask e.g. "which app/lib implements polyrhythm?" and get theory + code together.
 
-Note: because Lab has no local `graphify-out/graph.json`, a bare `graphify query "..."` prints
-`error: graph file not found` — that's expected. Always pass the explicit `--graph <path>` shown
-above; with it, the query works and returns results (the error line, if any, is harmless).
+Note: Lab's local `graphify-out/` holds only the converted Nuzic corpus (`converted/`,
+versioned) plus a gitignored `cache/` — there is **no local `graph.json`**, so a bare
+`graphify query "..."` prints `error: graph file not found`. Always pass the explicit
+`--graph <path>` to the **external Corpus graph** shown above; with it the query works and
+returns results (the error line, if any, is harmless).
 
 Caveats (be honest about them):
-- The graph lives in the **Corpus** project, not here: `~/Documents/Nuzic/Corpus/graphify-out/`.
+
+- The searchable graph lives in the **Corpus** project, not here: `~/Documents/Nuzic/Corpus/graphify-out/graph.json` (verified: indexes all Lab Apps + libs).
 - Lab's code in that graph is **partial and may be stale** (indexed once). For questions about
   brand-new or just-edited code, fall back to reading the actual files — the graph won't have them.
 - To refresh Lab's slice: from the Corpus dir run `graphify /Users/workingburcet/Lab --update`

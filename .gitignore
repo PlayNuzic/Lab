@@ -6,3 +6,8 @@ node_modules
 *.bak
 *.bak[0-9]
 *.backup-*
+
+# graphify: el cache és regenerable i lligat a versió+hashes (soroll als diffs).
+# El corpus convertit (graphify-out/converted/) SÍ que es versiona; el graf
+# cercable viu al Corpus extern (~/Documents/Nuzic/Corpus/graphify-out/).
+graphify-out/cache/
