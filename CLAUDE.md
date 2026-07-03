@@ -94,9 +94,9 @@ returns results (the error line, if any, is harmless).
 
 Caveats (be honest about them):
 
-- The searchable graph lives in the **Corpus** project, not here: `~/Documents/Nuzic/Corpus/graphify-out/graph.json` (verified: indexes all Lab Apps + libs).
-- Lab's code in that graph is **partial and may be stale** (indexed once). For questions about
-  brand-new or just-edited code, fall back to reading the actual files — the graph won't have them.
+- The searchable graph lives in the **Corpus** project, not here: `~/Documents/Nuzic/Corpus/graphify-out/graph.json` (verified: indexes all 403 Lab **source** files — every `.js`/`.json` under `Lab/…`, deduplicated, each appearing exactly once under the canonical `Lab/<path>` form). Nuance: those 403 are 336 `Lab/libs/` + 62 `Lab/Apps/` + 5 outside Apps/libs (`package.json`, `sistema/js/…`, `docs/*.mjs`) — so it's "all source", not strictly "across Apps + libs". **CSS (67 files) and HTML (41 files) are NOT indexed** (it's an AST graph of code) — for styling/markup questions, read the files directly.
+- The graph is a **snapshot** (last reindexed once). For brand-new or just-edited code, fall back
+  to reading the actual files — the graph won't have those changes until re-indexed.
 - To refresh Lab's slice: from the Corpus dir run `graphify /Users/workingburcet/Lab --update`
   (re-extracts changed files). Note: `cluster-only`/`export obsidian` regenerate community names
   as "Community NNN" and need re-labelling afterwards.
