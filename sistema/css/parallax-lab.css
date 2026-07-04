@@ -1,0 +1,397 @@
+/* Parallax Lab — compositor de canals per a les tècniques del constructor.
+   Només actua sobre el layout 'P-parallax-lab' (pasos ocults 28.5/28.7): les
+   slides parallax reals (1, 7, 11, 17, 22) usen parallax.css + wireParallax
+   i no es veuen afectades per res d'aquest fitxer.
+
+   Principi: cap tècnica escriu style.transform ni style.filter — cada una
+   escriu NOMÉS les seves variables (--px-<canal>) i aquest fitxer les composa
+   amb calc(). Activar/desactivar una tècnica = posar/treure les seves vars;
+   els canals se sumen (translate/rotate) o es multipliquen (scale) sense
+   trepitjar-se entre ells. LP-07 es respecta: el filter NO transiciona mai.
+
+   Canals reservats (qui escriu què):
+     scroll-depth   → --px-sd-x --px-sd-y --px-sd-rot --px-sd-scale  (per capa)
+     multi-speed    → --px-ms                                        (per capa)
+     mouse-tilt     → --px-mt-rx --px-mt-ry (a .parallax-bg),
+                      --px-mt-x --px-mt-y (per capa), --px-persp (al slide)
+     float-drift    → --px-fd-x --px-fd-y                            (per capa, @property)
+     rotate-progress→ --px-rp-rot                                    (per capa)
+     zoom-drift     → --px-zm-scale --px-zm-origin                   (per capa)
+     depth-blur     → --px-bl                                        (per capa)
+     color-shift    → --px-cs-hue --px-cs-sat --px-cs-bri            (per capa)
+     inertia        → --px-tr-dur --px-tr-ease --px-tr-delay         (per capa)
+     mask-zoom, gradient-drift, marquee, spotlight, grain, text-reveal,
+     app-reveal     → regles pròpies scoped a .slide--parallax-lab (secció
+                      "Tècniques" al final d'aquest fitxer, una per bloc).
+
+   El motor (parallax-lab.js) publica el progrés a --px-progress (0..1) a
+   l'arrel del slide i emet 'sistema:parallax-progress'. */
+
+/* Registre tipat perquè float-drift pugui ANIMAR aquestes vars amb CSS
+   keyframes (sense @property, una var no interpola). Si el navegador no
+   suporta @property, la deriva queda estàtica — degradació neta. */
+@property --px-fd-x { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@property --px-fd-y { syntax: '<length>'; inherits: false; initial-value: 0px; }
+
+/* Perspectiva 3D del slide (mouse-tilt): none per defecte = cap efecte. */
+.slide--parallax-lab{
+  perspective: var(--px-persp, none);
+}
+
+/* Inclinació de tot el conjunt de fons (mouse-tilt). Identitat per defecte. */
+.slide--parallax-lab .parallax-bg{
+  transform: rotateX(var(--px-mt-rx, 0deg)) rotateY(var(--px-mt-ry, 0deg));
+}
+
+/* ---- Compositor de transform per capa ----
+   Substitueix (en el lab) l'escriptura inline que fa wireParallax a les
+   slides reals. Els defaults deixen la capa exactament on el CSS base de
+   parallax.css la col·loca. */
+.slide--parallax-lab .parallax-bg [data-depth]{
+  transform:
+    translate(
+      calc(var(--px-sd-x, 0vw) * var(--px-ms, 1) + var(--px-mt-x, 0px) + var(--px-fd-x, 0px)),
+      calc(var(--px-sd-y, 0vh) * var(--px-ms, 1) + var(--px-mt-y, 0px) + var(--px-fd-y, 0px))
+    )
+    rotate(calc(var(--px-sd-rot, 0deg) + var(--px-rp-rot, 0deg)))
+    scale(calc(var(--px-sd-scale, 1) * var(--px-zm-scale, 1)));
+  transform-origin: var(--px-zm-origin, 50% 50%);
+}
+
+/* ---- Compositor de filter ----
+   Separat per tipus d'element: .parallax-img porta un saturate(0.8) base a
+   parallax.css que cal preservar (el compositor el multiplica, no el perd).
+   El filter salta al valor final sense transició (LP-07). */
+.slide--parallax-lab .parallax-layer{
+  filter:
+    blur(var(--px-bl, 0px))
+    hue-rotate(var(--px-cs-hue, 0deg))
+    saturate(var(--px-cs-sat, 1))
+    brightness(var(--px-cs-bri, 1));
+}
+.slide--parallax-lab .parallax-img{
+  filter:
+    saturate(calc(0.8 * var(--px-cs-sat, 1)))
+    blur(var(--px-bl, 0px))
+    hue-rotate(var(--px-cs-hue, 0deg))
+    brightness(var(--px-cs-bri, 1));
+}
+
+/* ---- Timing (inertia) ----
+   Mateixos valors per defecte que parallax.css; la tècnica inertia només
+   canvia les vars (durada/corba/retard esglaonat per capa) per aconseguir
+   l'efecte elàstic de persecució. El filter mai entra a la transició. */
+.slide--parallax-lab .parallax-layer,
+.slide--parallax-lab .parallax-img{
+  transition: transform var(--px-tr-dur, 0.7s) var(--px-tr-ease, cubic-bezier(0.22, 0.9, 0.3, 1)) var(--px-tr-delay, 0s);
+}
+
+/* ---- Overlays de tècnica (grain, spotlight, marquee...) ----
+   Elements que una tècnica crea i destrueix ella mateixa (apply/cleanup). */
+.slide--parallax-lab .px-overlay{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ---- Ranura d'app (app-reveal, Lab B) ----
+   El motor crea el contenidor buit i amagat; la tècnica app-reveal hi
+   injecta l'iframe (lazy, un sol cop — P-26) i el mostra/amaga. */
+.slide--parallax-lab .parallax-app-slot{
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(720px, 82%);
+  aspect-ratio: var(--px-ar-aspect, 4 / 3);
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.25);
+  background: var(--bg);
+}
+.slide--parallax-lab .parallax-app-slot iframe{
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+/* ---- Mode edició: kill-switch ----
+   Mateix patró que parallax.css per a les frases (que ja queda cobert
+   perquè el slide lab també porta .slide--parallax): aquí neutralitzem
+   els efectes de fons i els overlays per editar còmodament. */
+body[data-editable="true"] .slide--parallax-lab .parallax-bg,
+body[data-editable="true"] .slide--parallax-lab .parallax-bg [data-depth]{
+  transform: none !important;
+  filter: none !important;
+}
+body[data-editable="true"] .slide--parallax-lab .px-overlay,
+body[data-editable="true"] .slide--parallax-lab .parallax-app-slot{
+  display: none !important;
+}
+
+/* ---- Reduced motion ----
+   El gate principal és a JS (les tècniques moviment:true no s'apliquen);
+   aquí, com parallax.css, tallem les transicions perquè cap canvi de var
+   residual generi moviment. */
+@media (prefers-reduced-motion: reduce){
+  .slide--parallax-lab .parallax-layer,
+  .slide--parallax-lab .parallax-img{
+    transition: none;
+  }
+}
+
+/* ---- Secció del panell tweaks (parallax-builder.js) ---- */
+#tweaks .pxlab-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(128, 128, 128, 0.25);
+  font-weight: 700;
+}
+#tweaks .pxlab-tech + .pxlab-tech{
+  margin-top: 2px;
+}
+#tweaks .pxlab-tech__head span{
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#tweaks .pxlab-tech__head input[type="checkbox"]:disabled + span{
+  opacity: 0.5;
+}
+#tweaks .pxlab-params{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px 0 8px 12px;
+}
+#tweaks .pxlab-param{
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 8px;
+  font-size: 11px;
+}
+#tweaks .pxlab-param input[type="range"]{
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 0;
+}
+#tweaks .pxlab-param output{
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+#tweaks .pxlab-actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+#tweaks .pxlab-note{
+  font-size: 10px;
+  opacity: 0.7;
+  margin: 4px 0 0;
+}
+/* Amb 15 tècniques la llista no cap al viewport: scrolleja ella sola i
+   el cap de secció + botons (🎲/Restaurar/Copiar) queden sempre a mà. */
+#tweaks .pxlab-techs{
+  max-height: min(44vh, 400px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+/* Cinturó general: en pantalles baixes, el cos sencer del panell també
+   scrolleja en lloc de sortir del viewport (el cap arrossegable no es mou). */
+#tweaks .tweaks__body{
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ---- Tècniques (regles afegides a la síntesi, una secció per tècnica) ---- */
+/* ---- float-drift ---- */
+/* @keyframes és un at-rule global (no es pot nidificar sota un selector,
+   a diferència de les regles d'estil); el nom porta el prefix "px-fd" per
+   no xocar amb les @keyframes d'altres tècniques — mateix criteri que ja
+   segueixen els @property de --px-fd-x/--px-fd-y (capçal del fitxer).
+   Anima les vars tipades sobre --px-fd-amp: si el navegador no suporta
+   @property, --px-fd-x/-y no interpolen i la deriva queda estàtica
+   (degradació acceptable). Recorregut en diamant (x i y a 90° de fase)
+   perquè la capa dibuixi una òrbita suau en lloc d'un simple vaivé lineal. */
+@keyframes px-fd-drift{
+  0%   { --px-fd-x: 0px; --px-fd-y: calc(var(--px-fd-amp, 14px) * -1); }
+  25%  { --px-fd-x: var(--px-fd-amp, 14px); --px-fd-y: 0px; }
+  50%  { --px-fd-x: 0px; --px-fd-y: var(--px-fd-amp, 14px); }
+  75%  { --px-fd-x: calc(var(--px-fd-amp, 14px) * -1); --px-fd-y: 0px; }
+  100% { --px-fd-x: 0px; --px-fd-y: calc(var(--px-fd-amp, 14px) * -1); }
+}
+.slide--parallax-lab .parallax-bg [data-depth].px-fd{
+  animation: px-fd-drift var(--px-fd-dur, 7s) ease-in-out infinite;
+  animation-delay: var(--px-fd-delay, 0s);
+}
+/* Cinturó i tirants: el gate real és a JS (parallax-lab.js no crida apply()
+   si moviment && reduced), però "reduced" es llegeix un sol cop en carregar
+   el mòdul; si l'usuari canvia la preferència del SO en calent sense
+   recarregar, això talla qualsevol animació residual d'aquesta tècnica. */
+@media (prefers-reduced-motion: reduce){
+  .slide--parallax-lab .parallax-bg [data-depth].px-fd{
+    animation: none;
+  }
+}
+
+/* ---- gradient-drift ---- */
+.slide--parallax-lab .parallax-bg .px-overlay.px-gd{
+  background: radial-gradient(120% 120% at var(--px-gd-x, 85%) var(--px-gd-y, 10%),
+    color-mix(in srgb, var(--px-accent) 70%, transparent), transparent 55%);
+  opacity: var(--px-gd-op, 0.5);
+}
+/* ---- mask-zoom ---- */
+/* La imatge base va a opacity 0.10 (parallax.css): mentre la tècnica és activa
+   la pugem perquè la finestra-glyph es vegi. Classe pròpia px-mz-on (l'afegeix
+   apply, la treu cleanup). Especificitat (0,3,0) > base (0,1,0) → sense !important. */
+.slide--parallax-lab .parallax-img.px-mz-on{
+  opacity: 0.85;
+}
+/* Conflicte mask-zoom + depth-blur (revisió de composició): .parallax-img neix
+   amb data-depth 0.12 — la més baixa — i depth-blur li tocaria el blur més fort
+   just quan la finestra-glyph la fa protagonista. Recomponem el filter SENSE el
+   canal de blur (mantenint els de color-shift); especificitat (0,3,0) > compositor
+   (0,2,0), i només mentre px-mz-on és actiu. */
+.slide--parallax-lab .parallax-img.px-mz-on{
+  filter: saturate(calc(0.8 * var(--px-cs-sat, 1)))
+          hue-rotate(var(--px-cs-hue, 0deg))
+          brightness(var(--px-cs-bri, 1));
+}
+/* Mode edició: kill-switch coherent amb el de parallax-lab.css — la màscara i
+   l'opacitat tornen a la base perquè editar el slide sigui còmode. */
+body[data-editable="true"] .slide--parallax-lab .parallax-img.px-mz-on{
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  opacity: 0.10 !important;
+}
+
+/* ---- spotlight ---- */
+/* Vel fosc amb forat radial de llum sota el cursor. z-index:1 el situa per
+   sobre de les capes [data-depth] (z-index auto) dins .parallax-bg; com que
+   .parallax-bg és z-index:0 al nivell del slide, el vel MAI cobreix les
+   .parallax-frases (queden a .parallax-content, z-index:1) — text sempre
+   llegible (regla 2). Els fallbacks dins var() cobreixen el frame previ al
+   primer setProperty; JS els fixa tots a l'apply. */
+.slide--parallax-lab .parallax-bg .px-overlay.px-sp{
+  z-index: 1;
+  background: radial-gradient(circle var(--px-sp-r, 30vw) at var(--px-sp-x, 50%) var(--px-sp-y, 50%),
+    transparent 0%, transparent 60%, rgba(0, 0, 0, var(--px-sp-f, 0.35)) 100%);
+}
+/* ---- text-reveal ---- */
+.slide--parallax-lab .slide__title .px-txr-char{
+  display: inline-block; /* transform no s'aplica a inline no reemplaçats */
+  opacity: 0;
+  transform: translateY(0.4em);
+  transition-property: opacity, transform;
+  transition-duration: var(--px-txr-dur, 0.8s);
+  transition-timing-function: ease-out;
+  transition-delay: var(--px-txr-delay, 0ms);
+}
+.slide--parallax-lab .slide__title.px-txr-in .px-txr-char{
+  opacity: 1;
+  transform: translateY(0);
+}
+/* Cinturó i tirants (precedent: float-drift, parallax-lab.css:222-230): el
+   gate real és a JS (parallax-lab.js llegeix "reduced" un sol cop en carregar
+   el mòdul); si l'usuari activa prefers-reduced-motion en calent i la
+   tècnica es re-aplica igualment (p.ex. crida directa d'un test), això talla
+   la transició perquè les lletres saltin a l'estat final en lloc de quedar
+   encallades a mig revelar. px-txr-in s'afegeix síncronament, així que cap
+   lletra queda mai penjada a mitges.*/
+@media (prefers-reduced-motion: reduce){
+  .slide--parallax-lab .slide__title .px-txr-char{
+    transition: none;
+  }
+}
+/* Mode edició (P-26: DOM viu, sense re-render en obrir/tancar edició): si
+   l'usuari activa l'edició mentre encara hi ha lletres a mig revelar, les
+   fixem totes a l'estat final sense transició — mateix patró de kill-switch
+   que la resta del compositor fa servir per a .parallax-bg/.px-overlay. */
+body[data-editable="true"] .slide--parallax-lab .slide__title .px-txr-char{
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+/* ---- marquee ---- */
+/* @keyframes és un at-rule global (no es pot nidificar sota un selector):
+   anima `transform` directament perquè .px-mq-track és un element PROPI
+   de la tècnica (no és [data-depth] ni .parallax-layer), fora de l'abast
+   del compositor de transform/filter d'aquest fitxer — cap risc de xoc
+   amb cap altra tècnica. La velocitat ve de --px-mq-dur (fixada a l'apply). */
+@keyframes px-mq-scroll{
+  from{ transform: translateX(0); }
+  to{ transform: translateX(-50%); }
+}
+/* .px-overlay ja aporta position:absolute + inset:0 + pointer-events:none
+   (regla compartida, capçal del fitxer); el retallat el fa .parallax-bg
+   (overflow:hidden), ancestre de .px-mq-track. Aquí només es pinta i
+   s'anima la fila de text; width:max-content la deixa créixer fins a la
+   seva amplada real perquè translateX(-50%) es mogui exactament la
+   meitat del seu PROPI contingut (i no la meitat, molt més petita, de
+   l'overlay que la conté). */
+.slide--parallax-lab .parallax-bg .px-overlay.px-mq .px-mq-track{
+  position: absolute;
+  left: 0;
+  bottom: 12%;
+  width: max-content;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1;
+  font-size: var(--px-mq-size, 90px);
+  color: var(--px-accent);
+  opacity: var(--px-mq-op, 0.08);
+  will-change: transform;
+  animation: px-mq-scroll var(--px-mq-dur, 40s) linear infinite;
+}
+/* Cinturó i tirants (mateix criteri que float-drift): el gate real és a
+   JS (parallax-lab.js no crida apply() si moviment && reduced), però si
+   l'usuari canvia la preferència del SO en calent sense recarregar, això
+   talla el moviment residual. */
+@media (prefers-reduced-motion: reduce){
+  .slide--parallax-lab .parallax-bg .px-overlay.px-mq .px-mq-track{
+    animation: none;
+  }
+}
+
+/* ---- app-reveal ---- */
+/* La ranura ja la posiciona i emmarca la secció "Ranura d'app" (a dalt);
+   aquí només afegim l'estat d'ENTRADA, actiu únicament mentre la tècnica
+   gestiona la ranura (.px-ar-armed): parteix invisible i escalada
+   (--px-ar-scale, que fixa la tècnica a l'apply) i, en revelar-se
+   (.px-ar-on), transiciona a opac i escala 1. El transform recompon la
+   translació de centrat amb l'escala: la ranura NO és una capa del
+   compositor, per això aquí sí que en controlem el transform sencer (i la
+   tècnica mai escriu style.transform). Especificitat 0,3,0 → guanya a la
+   regla base .parallax-app-slot (0,2,0) sense !important. */
+.slide--parallax-lab .parallax-app-slot.px-ar-armed{
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(var(--px-ar-scale, 0.85));
+  transition:
+    opacity var(--px-ar-dur, 0.6s) ease,
+    transform var(--px-ar-dur, 0.6s) cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+.slide--parallax-lab .parallax-app-slot.px-ar-armed.px-ar-on{
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+/* reduced-motion: l'app apareix igualment (moviment:false) però sense animar
+   —el gate de ctx.reduced ja salta el reflow; aquí tallem la transició per si
+   la preferència canvia en calent (mateix criteri que la resta de tècniques). */
+@media (prefers-reduced-motion: reduce){
+  .slide--parallax-lab .parallax-app-slot.px-ar-armed{
+    transition: none;
+  }
+}

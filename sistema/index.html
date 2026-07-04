@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/grid.css">
 <link rel="stylesheet" href="css/slides.css">
 <link rel="stylesheet" href="css/parallax.css">
+<link rel="stylesheet" href="css/parallax-lab.css">
 <link rel="stylesheet" href="css/nav.css">
 <link rel="stylesheet" href="css/tweaks.css">
 </head>
@@ -88,7 +89,11 @@
     <div class="tweaks__foot">← / → para navegar</div>
   </aside>
 
+<!-- parallax-lab.js abans de slides.js: el render inicial pot ser un deep
+     link a un paso lab (?paso=28.5) i necessita window.__parallaxLab. -->
+<script type="module" src="js/parallax-lab.js"></script>
 <script type="module" src="js/slides.js"></script>
 <script type="module" src="js/tweaks.js"></script>
+<script type="module" src="js/parallax-builder.js"></script>
 </body>
 </html>

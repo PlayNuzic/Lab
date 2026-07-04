@@ -17,7 +17,7 @@ export const sections = [
   { id:'intervalos',   title:'Midiendo el movimiento: Los intervalos', slides:[7,8,9,10] },
   { id:'ampliando',    title:'Ampliando',                          slides:[11,12,13,14,15,16] },
   { id:'fraccionando', title:'Fraccionando',                       slides:[17,18,18.5,19,19.5,20,20.5,21,21.5] },
-  { id:'escalas',      title:'Escalas',                            slides:[22,23,24,25,26,27,28] },
+  { id:'escalas',      title:'Escalas',                            slides:[22,23,24,25,26,27,28,28.5,28.7] },
 ];
 
 // Grid layouts — the skeleton shared across pasos. Each defines the grid areas
@@ -118,6 +118,12 @@ export const slideMatrix = [
   { paso:26, section:'escalas',      title:'Probando diferentes Escalas',                                 layout:'B-app-left', apps:['App24'],  aspect:'2/3', group:'scale', density:'compact' },
   { paso:27, section:'escalas',      title:'Melodías con Escalas',                                        layout:'B-app-left', apps:['App25'],  aspect:'4/3', group:'scale' },
   { paso:28, section:'escalas',      title:'Intervalos con Escalas: el iSº',                              layout:'B-app-left', apps:['App25B'], aspect:'4/3', group:'scale' },
+  // Parallax Lab — banc de proves del constructor de tècniques parallax
+  // (parallax-lab.js + parallax-builder.js). Slides ocultes rere el flag
+  // 'lab': s'obren amb ?paso=28.5 a l'URL o amb 5 clics al badge d'un pas
+  // d'Escalas. NO són contingut del curs i no toquen les slides reals.
+  { paso:28.5, section:'escalas', title:'Parallax Lab · A', layout:'P-parallax-lab', hidden:true, flag:'lab', parallax:{ symbols:['N', 'P', 'iT', 'iS', '0 1 2 3', 'BPM'] } },
+  { paso:28.7, section:'escalas', title:'Parallax Lab · B', layout:'P-parallax-lab', hidden:true, flag:'lab', apps:['App11'], aspect:'4/3', parallax:{ symbols:['Nº', 'eE', '1/2', 'r4'] } },
 ];
 
 // Content — one entry per paso. Each entry declares the blocks present in
@@ -427,6 +433,25 @@ export const slideContent = {
 <p>Selecciona una escala y transposición. Introduce una sucesión de iSº para crear una melodía. También puedes hacer clic en los puntos del plano.</p>
 <p>Pulsa ▶️ para reproducir, 🎲 para generar melodías aleatoriamente, 🗑 para reiniciar.</p>
 <p><b>Tips:</b> Crea una sucesión en una escala "mayor" y después cambia a una "menor" — los intervalos de grado se mantienen pero el carácter cambia completamente.<br>Si una escala tiene menos grados que la anterior, los grados "perdidos" se recuerdan internamente y reaparecen al volver a una escala más larga.</p>`,
+  },
+  // Parallax Lab — frases de prova (no són contingut del curs).
+  28.5: {
+    text: `<p>Bienvenido al <b>Parallax Lab</b>: el banco de pruebas de técnicas visuales del Sistema.</p>
+<p>Abre el panel <b>Tweaks</b> y busca la sección <b>Parallax Lab</b>: cada técnica es un interruptor con sus parámetros.</p>
+<p>Actívalas, combínalas y mueve los deslizadores: el efecto cambia <b>al instante</b> mientras navegas estas frases.</p>
+<p>Prueba el botón <b>🎲 Aleatorio</b> para descubrir combinaciones inesperadas.</p>
+<p>Cuando una combinación te guste, <b>Copiar config</b> la guarda como JSON para fijarla en el código.</p>`,
+  },
+  28.7: {
+    image: {
+      alt: 'Imagen de fondo para probar técnicas de máscara y zoom',
+      src: 'images/paso-11.jpg',
+    },
+    text: `<p>Este es el laboratorio <b>B</b>: igual que el A, pero con una <b>imagen de fondo</b> y una <b>app</b> disponibles.</p>
+<p>Las técnicas de máscara y zoom (<b>mask-zoom</b>, <b>zoom-drift</b>) lucen especialmente aquí.</p>
+<p>La técnica <b>app-reveal</b> hace aparecer la app en una frase concreta, como un momento interactivo del relato.</p>
+<p>Sigue avanzando: si app-reveal está activa, la app entrará en escena.</p>
+<p>Todo lo que configures aquí queda guardado en este navegador, sin tocar las slides reales.</p>`,
   },
 };
 

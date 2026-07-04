@@ -40,6 +40,13 @@ const HIDDEN_FLAGS = {
     closeLabel: 'Cerrar paso 1·B',
     section: 'descubriendo',
   },
+  //   lab → pasos 28.5/28.7 (Parallax Lab, banc de proves del constructor
+  //   de tècniques parallax; vegeu parallax-lab.js)
+  lab: {
+    storageKey: 'sistema.labUnlocked',
+    closeLabel: 'Cerrar Parallax Lab',
+    section: 'escalas',
+  },
 };
 const HIDDEN_CLICK_THRESHOLD = 5;
 const HIDDEN_CLICK_WINDOW_MS = 1500;
@@ -417,7 +424,9 @@ function getSection(id){ return sections.find(s=>s.id===id); }
 // (B = la segona variant del mateix concepte).
 function formatPaso(paso){
   if (Number.isInteger(paso)) return String(paso);
-  return `${Math.floor(paso)}·B`;
+  // *.5 → ·B (variant amagada); *.7 → ·C (segona variant: Parallax Lab B).
+  const dec = Math.round((paso % 1) * 10);
+  return `${Math.floor(paso)}·${dec === 7 ? 'C' : 'B'}`;
 }
 
 function escapeAttr(s){
@@ -812,6 +821,14 @@ function render(){
     slideEl.classList.add('slide--parallax');
     slideEl.dataset.section = slide.section;
     slideEl.innerHTML = renderParallax(slide, section, content);
+  } else if (slide.layout === 'P-parallax-lab') {
+    // Parallax Lab (pasos ocults 28.5/28.7): mateix markup que un
+    // P-parallax (renderParallax és una funció pura), però el cablatge va
+    // al motor del lab (parallax-lab.js) i el moviment de fons el fan les
+    // tècniques del constructor via variables CSS (parallax-lab.css).
+    slideEl.classList.add('slide--parallax', 'slide--parallax-lab');
+    slideEl.dataset.section = slide.section;
+    slideEl.innerHTML = renderParallax(slide, section, content);
   } else {
     slideEl.style.gridTemplateAreas = layout.areas;
     slideEl.style.gridTemplateRows  = layout.rows;
@@ -832,6 +849,7 @@ function render(){
   STAGE.innerHTML = '';
   STAGE.appendChild(slideEl);
   if (slide.layout === 'P-parallax') wireParallax(slideEl);
+  else if (slide.layout === 'P-parallax-lab') parallaxCtrl = window.__parallaxLab?.wire(slideEl, slide) ?? null;
   else parallaxCtrl = null;
 
   // Variant toggle wiring

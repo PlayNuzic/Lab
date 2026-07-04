@@ -201,6 +201,9 @@ btnExport.addEventListener('click', async ()=>{
   const payload = {
     overrides: S.overrides || {},
     densityByPaso: S.densityByPaso || {},
+    // Config del Parallax Lab (pasos 28.5/28.7) — per endurir combinacions
+    // guanyadores com a defaults al codi (vegeu parallax-lab.js).
+    parallaxFx: window.__parallaxLab?.getConfigAll?.() || {},
   };
   const json = JSON.stringify(payload, null, 2);
   try {
