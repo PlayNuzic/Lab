@@ -584,31 +584,58 @@ const inertia = {
 };
 
 // ── mask-zoom (workflow verificada, model opus) ──
-// Estat local de mask-zoom: un registre per slideEl amb l'unsub del progrés i
-// la referència a la .parallax-img emmascarada (per poder netejar-la encara
-// que el slide ja hagi sortit del DOM).
+// Estat local de mask-zoom: un registre per slideEl amb l'unsub del progrés,
+// l'element emmascarat (la .parallax-img o la ranura d'app) i, si és la
+// ranura, l'estat hidden previ per restaurar-lo al cleanup.
 const estatMZ = new WeakMap();
 
-// Efecte "logo GTA VI": la .parallax-img només es veu DINS d'un glyph gegant
-// que fa de finestra; amb el progrés la màscara s'escala (easeInQuad) fins que
-// la imatge omple el slide. ATENCIÓ: mask-* NO és transform ni filter — és un
-// canal NOU autoritzat per aquesta tècnica: s'escriu inline sobre .parallax-img
-// i es neteja SENCER al cleanup. Sense .parallax-img → no-op net.
+// Efecte "logo GTA VI": el fons només es veu DINS d'un glyph gegant que fa
+// de finestra; amb el progrés la màscara s'escala (easeInQuad) fins omplir
+// el slide. Amb Fondo=1 la finestra ensenya l'APP a pantalla completa en
+// lloc de la imatge: l'iframe es crea UNA sola vegada (P-26) i es comparteix
+// amb app-reveal via DOM (qui arriba primer el crea, l'altre el reutilitza).
+// ATENCIÓ: mask-* NO és transform ni filter — és un canal NOU autoritzat per
+// aquesta tècnica: s'escriu inline sobre l'element triat i es neteja SENCER
+// al cleanup. Sense imatge ni ranura → no-op net.
 const maskZoom = {
   id: 'mask-zoom',
   nom: 'Máscara zoom (GTA)',
-  descripcio: 'La imagen solo se ve dentro de un símbolo gigante que actúa de ventana; al avanzar, la máscara se agranda hasta que la imagen llena todo el slide.',
+  descripcio: 'La imagen —o la app, con Fondo en 1— solo se ve dentro de un símbolo gigante que actúa de ventana; al avanzar, la máscara se agranda hasta llenar todo el slide.',
   moviment: true,
   params: [
     { key: 'escalaInicial', label: 'Escala inicial de la máscara', min: 10,  max: 100, step: 5,  def: 40,  unit: '%' },
     { key: 'escalaFinal',   label: 'Escala final de la máscara',   min: 150, max: 800, step: 25, def: 400, unit: '%' },
+    { key: 'fons',          label: 'Fondo (0 imagen · 1 app)',     min: 0,   max: 1,   step: 1,  def: 0 },
   ],
   apply(slideEl, cfg, ctx) {
     // IDEMPOTENT: primera línia = cleanup propi (desarma l'unsub i les vars
     // velles; un re-apply per canvi de slider no duplica res).
     maskZoom.cleanup(slideEl);
-    const img = slideEl.querySelector('.parallax-img');
-    if (!img) return;  // Lab A sense imatge → no-op net (el cleanup ja ha corregut).
+
+    // Tria de l'element-finestra: amb Fondo=1, la ranura d'app a pantalla
+    // completa (px-mz-fons la treu del mig i la posa darrere el contingut);
+    // si no n'hi ha (Lab A), cau amb gràcia a la imatge de sempre.
+    const volApp = (cfg.fons ?? 0) >= 1;
+    let el = null, esSlot = false, hiddenAbans = false;
+    if (volApp) {
+      const slot = slideEl.querySelector('.parallax-app-slot');
+      if (slot) {
+        if (!slot.querySelector('iframe') && slot.dataset.app) {
+          const iframe = document.createElement('iframe');
+          iframe.src = `../Apps/${slot.dataset.app}/index.html?embed=true`;
+          iframe.title = slot.dataset.app;
+          iframe.loading = 'lazy';
+          slot.appendChild(iframe);
+        }
+        hiddenAbans = slot.hidden;
+        slot.hidden = false;
+        slot.classList.add('px-mz-fons');
+        el = slot;
+        esSlot = true;
+      }
+    }
+    if (!el) el = slideEl.querySelector('.parallax-img');
+    if (!el) return;  // sense imatge ni ranura → no-op net (el cleanup ja ha corregut).
 
     const escalaInicial = cfg.escalaInicial ?? 40;
     const escalaFinal = cfg.escalaFinal ?? 400;
@@ -633,15 +660,15 @@ const maskZoom = {
     const uri = 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
 
     // Props estàtiques de la màscara (una sola vegada; -webkit-* per a Safari).
-    img.style.setProperty('-webkit-mask-image', uri);
-    img.style.setProperty('mask-image', uri);
-    img.style.setProperty('-webkit-mask-repeat', 'no-repeat');
-    img.style.setProperty('mask-repeat', 'no-repeat');
-    img.style.setProperty('-webkit-mask-position', 'center');
-    img.style.setProperty('mask-position', 'center');
-    // Puja l'opacitat base (0.10 a parallax.css) perquè la finestra es vegi;
-    // classe pròpia que la cssExtra estilitza i que el cleanup treu.
-    img.classList.add('px-mz-on');
+    el.style.setProperty('-webkit-mask-image', uri);
+    el.style.setProperty('mask-image', uri);
+    el.style.setProperty('-webkit-mask-repeat', 'no-repeat');
+    el.style.setProperty('mask-repeat', 'no-repeat');
+    el.style.setProperty('-webkit-mask-position', 'center');
+    el.style.setProperty('mask-position', 'center');
+    // Només per a la imatge: puja l'opacitat base (0.10 a parallax.css)
+    // perquè la finestra es vegi (la ranura d'app ja és opaca de mena).
+    if (!esSlot) el.classList.add('px-mz-on');
 
     // El progrés només mou mask-size: d'escalaInicial% a escalaFinal% amb
     // easeInQuad (t·t) → arrenca lent (finestra petita) i accelera fins omplir.
@@ -649,25 +676,31 @@ const maskZoom = {
       const tt = t < 0 ? 0 : t > 1 ? 1 : t;
       const eased = tt * tt;
       const mida = (escalaInicial + (escalaFinal - escalaInicial) * eased).toFixed(1) + '%';
-      img.style.setProperty('-webkit-mask-size', mida);
-      img.style.setProperty('mask-size', mida);
+      el.style.setProperty('-webkit-mask-size', mida);
+      el.style.setProperty('mask-size', mida);
     };
 
     const unsub = ctx.onProgress(pinta);
-    estatMZ.set(slideEl, { unsub, img });
+    estatMZ.set(slideEl, { unsub, el, esSlot, hiddenAbans });
     pinta(ctx.progress());
   },
   cleanup(slideEl) {
     const st = estatMZ.get(slideEl);
     if (!st) return;  // segur si apply mai s'ha cridat.
     try { st.unsub?.(); } catch {}
-    const img = st.img;
-    if (img) {
-      // Neteja TOTES les mask-props pròpies (canal nou) + la classe d'opacitat.
+    const el = st.el;
+    if (el) {
+      // Neteja TOTES les mask-props pròpies (canal nou) + les classes.
       ['-webkit-mask-image', 'mask-image', '-webkit-mask-repeat', 'mask-repeat',
        '-webkit-mask-position', 'mask-position', '-webkit-mask-size', 'mask-size']
-        .forEach(v => img.style.removeProperty(v));
-      img.classList.remove('px-mz-on');
+        .forEach(v => el.style.removeProperty(v));
+      el.classList.remove('px-mz-on');
+      if (st.esSlot) {
+        // Torna la ranura al seu lloc i retorna el control de visibilitat
+        // a qui el tenia (motor o app-reveal). L'iframe queda dins (P-26).
+        el.classList.remove('px-mz-fons');
+        el.hidden = st.hiddenAbans;
+      }
     }
     estatMZ.delete(slideEl);
   },

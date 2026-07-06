@@ -395,3 +395,25 @@ body[data-editable="true"] .slide--parallax-lab .slide__title .px-txr-char{
     transition: none;
   }
 }
+
+/* ---- mask-zoom · Fondo=app ----
+   Mode "GTA amb app viva": la ranura d'app passa a pantalla completa DARRERE
+   del contingut (z-index 0: per ordre DOM pinta sobre .parallax-bg i sota les
+   frases, que van a z-index 1) i es torna decorativa (pointer-events none: la
+   roda segueix passant frases per sobre de l'iframe). Només fixem GEOMETRIA:
+   opacitat i transicions queden componibles amb app-reveal — si el 🎲 combina
+   les dues tècniques, l'app apareix a la frase triada JA a pantalla completa.
+   Classe doblada a propòsit: iguala el pes de .px-ar-armed.px-ar-on (0,4,0) i,
+   en anar més avall del fitxer, guanya el transform centrat de la ranura. */
+.slide--parallax-lab .parallax-app-slot.px-mz-fons.px-mz-fons{
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  transform: none;
+  z-index: 0;
+  border-radius: 0;
+  box-shadow: none;
+  pointer-events: none;
+}

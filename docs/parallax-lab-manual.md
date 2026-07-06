@@ -152,13 +152,20 @@ de finestra; en avançar, la màscara s'engrandeix fins que la imatge omple tot 
 | Paràmetre | Rang | Defecte | Què controla |
 |---|---|---|---|
 | Escala inicial de la máscara | 10–100% | 40 | Mida de la finestra-glyph a l'inici |
-| Escala final de la máscara | 150–800% | 400 | Mida al final (el moment "imatge plena") |
+| Escala final de la máscara | 150–800% | 400 | Mida al final (el moment "fons ple") |
+| Fondo (0 imagen · 1 app) | 0–1 | 0 | Què hi ha darrere la finestra |
 
-**Necessita imatge de fons (Lab B).** El desenfocament de `Desenfoque de profundidad`
-queda exclòs de la imatge emmascarada a propòsit (la protagonista sempre nítida).
+**Amb `Fondo` a 0 necessita imatge de fons (Lab B).** Amb **`Fondo` a 1 la finestra
+ensenya l'APP en directe**: l'iframe passa a pantalla completa darrere de les frases
+(decoratiu — la roda segueix navegant) i el glyph es va obrint fins que l'app omple el
+slide; l'iframe es crea una sola vegada i es comparteix amb `Aparición de app` (P-26).
+Si el slide no té app, cau amb gràcia al mode imatge. El desenfocament de `Desenfoque
+de profundidad` queda exclòs de la imatge emmascarada a propòsit (la protagonista
+sempre nítida).
 **Aplicacions:** obertures de capítol — el símbol del capítol com a finestra que es fon
-en la imatge del tema; presentar una app "a través" del glyph de la seva funció; escala
-inicial petita (15–20%) per a màxim misteri.
+en la imatge del tema; amb `Fondo` a 1, presentar una app "a través" del glyph de la
+seva funció mentre es veu funcionant en viu (el "moment vídeo" de GTA amb app real);
+escala inicial petita (15–20%) per a màxim misteri.
 
 ### B. Amb vida pròpia (no depenen de l'scroll)
 
@@ -289,6 +296,7 @@ explicació després"; l'última frase com a "recompensa" final del pas.
 | Recepta | Tècniques | On | Sensació |
 |---|---|---|---|
 | **Obertura GTA** | Máscara zoom + Zoom deriva + Viraje de color + Título letra a letra | Lab B | La imatge del tema es revela a través del glyph mentre el color vira |
+| **Obertura GTA amb app viva** | Máscara zoom (Fondo=1) + Título letra a letra | Lab B | L'app funcionant es revela a través del glyph fins omplir el slide |
 | **Profunditat delassus** | Profundidad de scroll + Multi-velocidad (dispersió 1.5) + Inercia + Deriva flotante | Lab A | Capes que se separen i persegueixen el gest amb elasticitat |
 | **Presentació d'app** | Título letra a letra + Aparición de app + Foco | Lab B | Títol → teoria → l'app entra i el focus la il·lumina |
 | **Ambient de lectura** | Deriva flotante (suau) + Gradiente viajero + Desenfoque | Lab A o B | Fons viu però discret; les frases manen |
@@ -306,6 +314,11 @@ acudit — quan en surti un de bo, **Copiar config** i guarda'l.
   (retemporitza tot el moviment); amb durada 2.5 s tot es torna lent i pesat.
 - **`Máscara zoom` anul·la el blur sobre la imatge emmascarada** (decisió de composició:
   la protagonista sempre nítida); les altres capes sí que es desenfoquen.
+- **`Máscara zoom` amb `Fondo`=app + `Aparición de app` alhora**: composen — l'aparició
+  decideix QUAN hi ha app (a partir de la seva frase) i la màscara decideix COM es veu
+  (finestra-glyph a pantalla completa). Abans de la frase d'aparició, la finestra queda
+  buida; és deliberat, però si vols l'app de fons des del principi, desactiva
+  `Aparición de app`.
 - **`Foco` sempre pinta a sobre** de `Marquesina` i `Gradiente viajero` — el vel els
   enfosqueix, coherent amb la metàfora de focus d'escenari.
 - **Tècniques amb requisits de contingut**: `Máscara zoom` i el protagonisme de `Zoom
