@@ -22,12 +22,12 @@ if (PANEL_BODY && lab) {
   root.hidden = true;
   root.innerHTML = `
     <div class="pxlab-head"><span>Parallax Lab</span><span class="pxlab-paso"></span></div>
-    <div class="pxlab-techs"></div>
     <div class="pxlab-actions">
       <button type="button" class="tweaks__btn" data-accio="aleatori" title="Combina técnicas y valores al azar">🎲 Aleatorio</button>
       <button type="button" class="tweaks__btn" data-accio="restaurar" title="Vuelve a la configuración por defecto de este paso">Restaurar</button>
       <button type="button" class="tweaks__btn" data-accio="copiar" title="Copia la configuración actual como JSON">Copiar config</button>
     </div>
+    <div class="pxlab-techs"></div>
     <p class="pxlab-note" hidden></p>`;
   PANEL_BODY.appendChild(root);
 

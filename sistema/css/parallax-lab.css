@@ -187,32 +187,41 @@ body[data-editable="true"] .slide--parallax-lab .parallax-app-slot{
   font-variant-numeric: tabular-nums;
   opacity: 0.8;
 }
+/* Els botons van ENTRE la capçalera i la llista: la llista scrolleja per
+   dins seu i pot quedar tallada pel plec del panell, però 🎲/Restaurar/
+   Copiar queden sempre visibles a dalt. */
 #tweaks .pxlab-actions{
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 6px;
+  margin: 6px 0;
 }
 #tweaks .pxlab-note{
   font-size: 10px;
   opacity: 0.7;
   margin: 4px 0 0;
 }
-/* Amb 15 tècniques la llista no cap al viewport: scrolleja ella sola i
-   el cap de secció + botons (🎲/Restaurar/Copiar) queden sempre a mà. */
-#tweaks .pxlab-techs{
-  max-height: min(44vh, 400px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 4px;
-  scrollbar-width: thin;
-}
-/* Cinturó general: en pantalles baixes, el cos sencer del panell també
-   scrolleja en lloc de sortir del viewport (el cap arrossegable no es mou). */
+/* Amb 15 tècniques la secció no cap al viewport. UN SOL scroll —el del cos
+   del panell— per evitar el rebot de contenidors imbricats: la llista de
+   tècniques flueix dins seu sense scroll propi, i la capçalera + botons
+   (🎲/Restaurar/Copiar) queden enganxats a dalt (sticky) sempre a la vista. */
 #tweaks .tweaks__body{
   max-height: calc(100vh - 140px);
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+/* Només la fila de botons s'enganxa a dalt del scroll (top:0): així sempre
+   tens 🎲/Restaurar/Copiar a mà mentre recorres les tècniques. L'etiqueta
+   de capçalera pot marxar amunt —no cal fixar-la— i evitem apilar dos
+   sticky amb offsets fràgils. El fons opac tapa les files que passen per
+   sota en scrollejar. */
+#tweaks .pxlab-actions{
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg);
+  padding: 6px 0;
+  margin: 0;
 }
 
 /* ---- Tècniques (regles afegides a la síntesi, una secció per tècnica) ---- */
