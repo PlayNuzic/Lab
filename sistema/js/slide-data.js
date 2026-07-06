@@ -28,10 +28,14 @@ export const sections = [
 // applies them inline to the slide's grid. The default is a 3-column
 // grid (1fr 1fr 1fr); intro slides override to 50/50.
 //
-// Cas especial: el layout 'P-parallax' (passos intro de capítol) NO és
-// un grid — el renderer hi fa branch i pinta un slide full-bleed amb
-// capes de fons en parallax i les frases del text com a blocs que
-// s'activen amb el mouse. No necessita entrada en aquest objecte.
+// Cas especial: els layouts 'P-parallax' i 'P-parallax-lab' (passos intro
+// de capítol) NO són un grid — el renderer hi fa branch i pinta un slide
+// full-bleed amb capes de fons en parallax i les frases del text com a
+// blocs que s'activen amb el mouse. No necessiten entrada en aquest
+// objecte. Els passos intro reals (1, 7, 11, 17, 22) usen el motor del
+// lab ('P-parallax-lab'): mateix moviment per defecte que l'antic
+// wireParallax (scroll-depth amb els valors de sempre) + les tècniques
+// del constructor de parallax via ?tweaks=1.
 export const layouts = {
   // Intro slides (1, 2, 11): image left 50% + title/text right 50%.
   // 2-column grid (PDF pages 1-2): the image and the text area share the
@@ -83,7 +87,7 @@ export const layouts = {
 // És la font de veritat de producció; el panell tweaks pot sobreescriure-la
 // localment (localStorage) per previsualitzar, però no es desplega.
 export const slideMatrix = [
-  { paso:1,    section:'descubriendo', title:'¿Sabías que los números son el adn de la música?', layout:'P-parallax', parallax:{ symbols:['0 1 2 3', 'N', 'P', 'BPM'] } },
+  { paso:1,    section:'descubriendo', title:'¿Sabías que los números son el adn de la música?', layout:'P-parallax-lab', apps:['App11A'], aspect:'4/3', parallax:{ symbols:['0 1 2 3', 'N', 'P', 'BPM'] } },
   // 1·B — l'antic paso 1 (vídeo + text complet), ocult rere el flag
   // individual `intro1b` (5 clicks al badge d'un pas de "Descubriendo").
   { paso:1.5,  section:'descubriendo', title:'¿Sabías que los números son el adn de la música?', layout:'A-intro', density:'loose', hidden:true, flag:'intro1b' },
@@ -92,17 +96,17 @@ export const slideMatrix = [
   { paso:4,  section:'descubriendo', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['App10'],  aspect:'5/9', group:'timeline-vertical' },
   { paso:5,  section:'descubriendo', title:'El Plano Musical',                                            layout:'B-app-left', apps:['App11'],  aspect:'4/3', group:'plano-simple', density:'compact' },
   { paso:6,  section:'descubriendo', title:'El par Pulso - Nota',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3', group:'plano-simple', density:'compact' },
-  { paso:7,  section:'intervalos',   title:'Los Intervalos',                                              layout:'P-parallax', parallax:{ symbols:['iT', 'iS', 'P', 'N', '+3', '−2'] } },
+  { paso:7,  section:'intervalos',   title:'Los Intervalos',                                              layout:'P-parallax-lab', apps:['App15'], aspect:'4/3', parallax:{ symbols:['iT', 'iS', 'P', 'N', '+3', '−2'] } },
   { paso:8,  section:'intervalos',   title:'El movimiento en la Música: Los Intervalos',                  layout:'E-app-text-left', apps:['App13'], aspect:'2/1', group:'timeline-simple', density:'compact' },
   { paso:9,  section:'intervalos',   title:'El Intervalo Sonoro',                                         layout:'B-app-left', apps:['App14'],  aspect:'2/3', group:'timeline-vertical', density:'compact' },
   { paso:10, section:'intervalos',   title:'Intervalos en el Plano Musical',                              layout:'B-app-left', apps:['App15'],  aspect:'4/3', group:'plano-simple' },
-  { paso:11, section:'ampliando',    title:'Ampliando el Mapa: Patrones, Ciclos y Módulos',               layout:'P-parallax', parallax:{ symbols:['0 1 2', 'P(3¹)', 'r4', '0 1 2 3'] } },
+  { paso:11, section:'ampliando',    title:'Ampliando el Mapa: Patrones, Ciclos y Módulos',               layout:'P-parallax-lab', apps:['App17'], aspect:'1/1', parallax:{ symbols:['0 1 2', 'P(3¹)', 'r4', '0 1 2 3'] } },
   { paso:12, section:'ampliando',    title:'El compás: el módulo temporal',                               layout:'E-app-text-left', apps:['App16'],  aspect:'2/1', group:'timeline-complex', density:'compact' },
   { paso:13, section:'ampliando',    title:'Línea temporal en círculo',                                   layout:'B-app-left', apps:['App17'],  aspect:'1/1', group:'circular', density:'compact' },
   { paso:14, section:'ampliando',    title:'El registro de octava',                                       layout:'B-app-left', apps:['App18'],  aspect:'6/5', group:'timeline-vertical', density:'compact' },
   { paso:15, section:'ampliando',    title:'Plano Modular',                                               layout:'B-app-left', apps:['App19'],  aspect:'4/3', group:'plano-multi-pill', requiresLandscape:true },
   { paso:16, section:'ampliando',    title:'Sucesión N-iT en Plano Modular',                              layout:'B-app-left', apps:['App20'],  aspect:'4/3', group:'plano-multi-pill', requiresLandscape:true, density:'compact' },
-  { paso:17,   section:'fraccionando', title:'Fraccionando el tiempo',                                      layout:'P-parallax', parallax:{ symbols:['1/2', '1/3', '0.1', '1.2', 'Pfr'] } },
+  { paso:17,   section:'fraccionando', title:'Fraccionando el tiempo',                                      layout:'P-parallax-lab', apps:['App32'], aspect:'3/4', parallax:{ symbols:['1/2', '1/3', '0.1', '1.2', 'Pfr'] } },
   { paso:18,   section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'E-app-text-left', apps:['App26'],  aspect:'5/2', group:'timeline-simple', density:'compact' },
   { paso:18.5, section:'fraccionando', title:'Ciclos en la Línea Temporal',                                  layout:'E-app-text-left', apps:['App27'],  aspect:'5/2', group:'timeline-simple', hidden:true, flag:'complex', density:'compact' },
   { paso:19,   section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'E-app-text-left', apps:['App28'],  aspect:'2/1', group:'timeline-simple' },
@@ -111,7 +115,7 @@ export const slideMatrix = [
   { paso:20.5, section:'fraccionando', title:'Sucesión de iTfr en ciclos polirrítmicos',                     layout:'E-app-text-left', apps:['App31'],  aspect:'5/3', group:'timeline-simple', hidden:true, flag:'complex', density:'compact' },
   { paso:21,   section:'fraccionando', title:'Plano fraccionado con sucesión N-iTfr',                      layout:'B-app-left',      apps:['App34'],  aspect:'3/4', group:'plano-simple', density:'compact' },
   { paso:21.5, section:'fraccionando', title:'Plano con fracciones complejas',                              layout:'B-app-left',      apps:['App35'],  aspect:'3/4', group:'plano-simple', hidden:true, flag:'complex', density:'compact' },
-  { paso:22, section:'escalas',      title:'Las Escalas',                                                 layout:'P-parallax', parallax:{ symbols:['Nº', 'eE', 'iSº', '0 2 4 5 7 9 11'] } },
+  { paso:22, section:'escalas',      title:'Las Escalas',                                                 layout:'P-parallax-lab', apps:['App22'], aspect:'2/3', parallax:{ symbols:['Nº', 'eE', 'iSº', '0 2 4 5 7 9 11'] } },
   { paso:23, section:'escalas',      title:'Escalas: Escogiendo Notas',                                   layout:'B-app-left', apps:['App21'],  aspect:'2/3', group:'scale', density:'compact' },
   { paso:24, section:'escalas',      title:'Estructura Escalar',                                          layout:'B-app-left', apps:['App22'],  aspect:'2/3', group:'scale', density:'loose' },
   { paso:25, section:'escalas',      title:'Transposición',                                               layout:'B-app-left', apps:['App23'],  aspect:'2/3', group:'scale', density:'loose' },

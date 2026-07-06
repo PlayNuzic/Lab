@@ -21,8 +21,12 @@ http://localhost:8080/sistema/index.html?tweaks=1&paso=28.7   ← Lab B (imatge 
 - **Lab B (28.7)**: imatge de fons + ranura d'app (App11) — necessari per a les tècniques
   que treballen amb imatge (`Máscara zoom`, protagonisme de `Zoom deriva`) o amb app
   (`Aparición de app`).
-- Les slides reals (pasos 1, 7, 11, 17, 22) **no es toquen mai**: el lab viu al seu propi
-  layout i les tècniques només actuen a les slides del lab.
+- **Els passos intro reals (1, 7, 11, 17, 22) també tenen el constructor actiu**: obre
+  qualsevol amb `?tweaks=1&paso=1` (o 7, 11, 17, 22) i ajusta'l en viu. Per defecte porten
+  només `Profundidad de scroll` amb els valors clàssics — es veuen **exactament com
+  sempre** fins que hi actives alguna cosa. Com que són slides de símbols (sense imatge ni
+  app), `Máscara zoom` en mode imatge/app i `Aparición de app` no hi fan res; la resta de
+  tècniques, totes.
 
 ## 2. El panell
 
@@ -331,14 +335,16 @@ acudit — quan en surti un de bo, **Copiar config** i guarda'l.
 
 ## 7. Del laboratori a producció
 
-El lab és una zona de proves: les slides reals no llegeixen mai aquesta configuració.
-El camí previst per endurir una recepta:
+Els passos intro reals (1, 7, 11, 17, 22) **ja llegeixen el constructor**: cada un té la
+seva configuració per paso, i per defecte és el moviment clàssic (`Profundidad de scroll`
+amb els valors de sempre). El camí per endurir una recepta:
 
-1. Ajusta el combo al lab fins que t'agradi.
+1. Prova combos al lab (28.5/28.7) o directament al pas real amb `?tweaks=1&paso=N`.
 2. **Copiar config** → JSON amb `{ tècnica: { on, params } }` (o export complet del
    panell, camp `parallaxFx`, que inclou tots els pasos).
-3. Aquest JSON és l'especificació exacta per aplicar la recepta a una slide real quan es
-   decideixi — les tècniques són apilables i deterministes, així que el que veus al lab
-   és el que hi hauria a producció.
+3. Tingues present que la config viu a `localStorage` (per navegador): per portar una
+   recepta a un altre ordinador o deixar-la fixa per a tothom, el JSON copiat és
+   l'especificació exacta — les tècniques són apilables i deterministes, així que el que
+   veus amb el panell és el que es veuria desplegat.
 
 *Manual generat el 2026-07-05 · Arquitectura i procés: `docs/session-history/2026-07-04-parallax-lab.md`*

@@ -822,10 +822,12 @@ function render(){
     slideEl.dataset.section = slide.section;
     slideEl.innerHTML = renderParallax(slide, section, content);
   } else if (slide.layout === 'P-parallax-lab') {
-    // Parallax Lab (pasos ocults 28.5/28.7): mateix markup que un
-    // P-parallax (renderParallax és una funció pura), però el cablatge va
-    // al motor del lab (parallax-lab.js) i el moviment de fons el fan les
-    // tècniques del constructor via variables CSS (parallax-lab.css).
+    // Parallax amb constructor (passos intro 1/7/11/17/22 + labs ocults
+    // 28.5/28.7): mateix markup que un P-parallax (renderParallax és una
+    // funció pura), però el cablatge va al motor del lab (parallax-lab.js)
+    // i el moviment de fons el fan les tècniques del constructor via
+    // variables CSS (parallax-lab.css). Per defecte (scroll-depth amb els
+    // valors de sempre) el moviment és idèntic al de wireParallax.
     slideEl.classList.add('slide--parallax', 'slide--parallax-lab');
     slideEl.dataset.section = slide.section;
     slideEl.innerHTML = renderParallax(slide, section, content);

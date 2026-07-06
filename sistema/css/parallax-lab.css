@@ -1,7 +1,8 @@
 /* Parallax Lab — compositor de canals per a les tècniques del constructor.
-   Només actua sobre el layout 'P-parallax-lab' (pasos ocults 28.5/28.7): les
-   slides parallax reals (1, 7, 11, 17, 22) usen parallax.css + wireParallax
-   i no es veuen afectades per res d'aquest fitxer.
+   Actua sobre el layout 'P-parallax-lab': els passos intro reals (1, 7, 11,
+   17, 22) i els labs ocults (28.5/28.7). El CSS base segueix sent
+   parallax.css (aquí només s'hi afegeix el compositor); wireParallax queda
+   com a referència a slides.js però ja no cableja cap slide.
 
    Principi: cap tècnica escriu style.transform ni style.filter — cada una
    escriu NOMÉS les seves variables (--px-<canal>) i aquest fitxer les composa
