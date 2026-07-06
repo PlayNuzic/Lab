@@ -38,13 +38,45 @@ function saveFx() {
 function configPerDefecte() {
   return { 'scroll-depth': { on: true, params: {} } };
 }
+
+// Receptes "de fàbrica" fixades per paso (fetes al constructor i cuinades
+// aquí perquè viatgin al repositori, no només al localStorage d'un
+// navegador). Prioritat: localStorage de l'usuari > preset > defecte
+// genèric. "Restaurar" esborra el localStorage del paso i, per tant, hi
+// torna. Les entrades on:false amb params conserven els valors afinats
+// perquè, en activar-les al panell, ja surtin a punt.
+const PRESETS = {
+  22: {
+    'scroll-depth':    { on: true,  params: {} },
+    'multi-speed':     { on: true,  params: { factor: 2, dispersio: 0.5 } },
+    'mouse-tilt':      { on: false, params: {} },
+    'float-drift':     { on: true,  params: { amplitud: 4, durada: 15 } },
+    'depth-blur':      { on: false, params: { maxBlur: 5, corba: 1 } },
+    'color-shift':     { on: true,  params: {} },
+    'rotate-progress': { on: true,  params: {} },
+    'zoom-drift':      { on: false, params: { intensitat: 0 } },
+    'inertia':         { on: true,  params: { durada: 0.5, rebot: 0.6, esglaonat: 0.2 } },
+    'mask-zoom':       { on: false, params: { escalaInicial: 10, escalaFinal: 575, fons: 1 } },
+    'text-reveal':     { on: true,  params: {} },
+    'marquee':         { on: true,  params: { velocitat: 120, mida: 110 } },
+    'spotlight':       { on: true,  params: { radi: 50, forca: 0.05 } },
+    'app-reveal':      { on: false, params: { fraseAparicio: 5, escalaInicial: 0.6 } },
+  },
+};
+// Clon profund: mai retornem la referència viva del preset (evitem que una
+// mutació del paso contamini la recepta compartida).
+function preset(paso) {
+  const p = PRESETS[paso];
+  return p ? JSON.parse(JSON.stringify(p)) : null;
+}
+
 function getConfig(paso) {
-  return fx[paso] ?? configPerDefecte();
+  return fx[paso] ?? preset(paso) ?? configPerDefecte();
 }
 // Materialitza la config del paso abans de mutar-la (si encara era la
-// virtual per defecte, primer es fa real perquè no es perdi res).
+// virtual —preset o defecte— primer es fa real perquè no es perdi res).
 function configMutable(paso) {
-  if (!fx[paso]) fx[paso] = configPerDefecte();
+  if (!fx[paso]) fx[paso] = preset(paso) ?? configPerDefecte();
   return fx[paso];
 }
 
