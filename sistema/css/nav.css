@@ -5,6 +5,19 @@
    - centered title/section in cream
 */
 
+/* Avís de privacitat: nota discreta, no interactiva, mai tapa la nav (bottom:0) */
+.sistema-privacy-note {
+  position: fixed;
+  top: 6px;
+  left: 8px;
+  margin: 0;
+  font-size: 0.7em;
+  color: var(--muted);
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 20;
+}
+
 .sistema-nav{
   position: fixed;
   left: 0; right: 0; bottom: 0;
