@@ -667,6 +667,14 @@ export class TimelineAudio {
       try { this._fallbackGain.disconnect(); } catch {}
     }
     this._fallbackGain = null;
+    // A-09: sense això, després d'un canvi de context preview() connectava
+    // un buffer del context NOU al GainNode del context VELL
+    // (InvalidAccessError empassat pel catch → previews muts per sempre).
+    // preview() el recrea lazy sobre el context vigent.
+    if (this._previewGain) {
+      try { this._previewGain.disconnect(); } catch {}
+    }
+    this._previewGain = null;
     this.isReady = false;
     this._lastAbsoluteStep = null;
     this._zeroOffset = null;

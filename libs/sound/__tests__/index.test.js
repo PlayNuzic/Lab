@@ -527,6 +527,19 @@ describe('TimelineAudio (new engine)', () => {
     expect(audio._selectedChannels.size).toBe(0);
   });
 
+  test('teardown desconnecta i neteja _previewGain (A-09)', async () => {
+    const audio = new TimelineAudio();
+    await audio.ready();
+    // Simula un preview previ: el GainNode memoitzat del context vell.
+    // Sense el fix, sobrevivia al teardown i el preview següent connectava
+    // el buffer del context NOU al gain del VELL (InvalidAccessError mut).
+    const fake = { disconnect: jest.fn() };
+    audio._previewGain = fake;
+    audio._teardownAudioGraph();
+    expect(fake.disconnect).toHaveBeenCalled();
+    expect(audio._previewGain).toBeNull();
+  });
+
   test('setChannelSound stores assignments lazily and loads them at init (F4c)', async () => {
     const audio = new TimelineAudio();
     // Pre-gest (sense context): només es desa l'assignació
