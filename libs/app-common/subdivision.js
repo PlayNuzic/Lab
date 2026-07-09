@@ -1,5 +1,3 @@
-const EPSILON = 1e-9;
-
 function toFiniteNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
@@ -103,4 +101,4 @@ export function computeSubdivisionFontRem(lg) {
   return Math.max(MIN_REM, BASE_REM * scale);
 }
 
-export const __testing__ = { toFiniteNumber, EPSILON };
+export const __testing__ = { toFiniteNumber };
