@@ -18,6 +18,8 @@ import {
 
 const maskZoom = TECNIQUES.find(t => t.id === 'mask-zoom');
 const appReveal = TECNIQUES.find(t => t.id === 'app-reveal');
+const depthBlur = TECNIQUES.find(t => t.id === 'depth-blur');
+const colorShift = TECNIQUES.find(t => t.id === 'color-shift');
 
 describe('Parallax Lab — contracte del registre', () => {
   test('el registre no és buit i valida sencer', () => {
@@ -209,5 +211,73 @@ describe('mask-zoom + app-reveal — ranura d\'app compartida (A-02)', () => {
     maskZoom.cleanup(slideEl);
     expect(slot.hidden).toBe(true); // segueix intacta després del cleanup
     expect(img.style.getPropertyValue('mask-image')).toBe('');
+  });
+});
+
+describe('P-06 — compositor de filter escopat a .px-filter', () => {
+  // Mateixa forma que el harness de scroll-depth: fons amb imatge + dues capes.
+  function harness() {
+    document.body.innerHTML = '';
+    const slideEl = document.createElement('article');
+    slideEl.className = 'slide slide--parallax slide--parallax-lab';
+    slideEl.innerHTML = `
+      <div class="parallax-bg" aria-hidden="true">
+        <div class="parallax-img" data-depth="0.12"></div>
+        <span class="parallax-layer" data-depth="0.25">N</span>
+        <span class="parallax-layer" data-depth="0.45">P</span>
+      </div>
+      <div class="parallax-content">
+        <div class="parallax-frases prose"><p>una</p><p>dues</p></div>
+      </div>`;
+    document.body.appendChild(slideEl);
+    let subs = [];
+    const ctx = {
+      reduced: false,
+      progress: () => 0.5,
+      onProgress(cb) {
+        subs.push(cb);
+        return () => { subs = subs.filter(s => s !== cb); };
+      },
+    };
+    const capes = () => [...slideEl.querySelectorAll('.parallax-bg [data-depth]')];
+    return { slideEl, ctx, capes };
+  }
+
+  test('sense cap tècnica de filter activa, cap capa porta .px-filter', () => {
+    const { capes } = harness();
+    capes().forEach(l => expect(l.classList.contains('px-filter')).toBe(false));
+  });
+
+  test('depth-blur marca totes les capes amb .px-filter i el treu al cleanup', () => {
+    const { slideEl, ctx, capes } = harness();
+    depthBlur.apply(slideEl, paramsPerDefecte(depthBlur), ctx);
+    capes().forEach(l => expect(l.classList.contains('px-filter')).toBe(true));
+    depthBlur.cleanup(slideEl);
+    capes().forEach(l => expect(l.classList.contains('px-filter')).toBe(false));
+  });
+
+  test('color-shift segueix afectant totes les capes esperades (herència de vars + .px-filter per capa)', () => {
+    const { slideEl, ctx, capes } = harness();
+    colorShift.apply(slideEl, paramsPerDefecte(colorShift), ctx);
+    // Les vars viuen a l'arrel (herència), però CADA capa consumidora ha de
+    // portar .px-filter perquè el compositor (parallax-lab.css) l'evalui.
+    capes().forEach(l => expect(l.classList.contains('px-filter')).toBe(true));
+    expect(slideEl.style.getPropertyValue('--px-cs-hue')).not.toBe('');
+    colorShift.cleanup(slideEl);
+    capes().forEach(l => expect(l.classList.contains('px-filter')).toBe(false));
+    expect(slideEl.style.getPropertyValue('--px-cs-hue')).toBe('');
+  });
+
+  test('depth-blur i color-shift alhora sobre la mateixa capa: desactivar-ne una no li treu .px-filter a l\'altra', () => {
+    const { slideEl, ctx, capes } = harness();
+    depthBlur.apply(slideEl, paramsPerDefecte(depthBlur), ctx);
+    colorShift.apply(slideEl, paramsPerDefecte(colorShift), ctx);
+    capes().forEach(l => expect(l.classList.contains('px-filter')).toBe(true));
+    // Desactivem depth-blur: color-shift encara necessita el compositor actiu.
+    depthBlur.cleanup(slideEl);
+    capes().forEach(l => expect(l.classList.contains('px-filter')).toBe(true));
+    // Ara desactivem color-shift: ja no queda cap tècnica de filter activa.
+    colorShift.cleanup(slideEl);
+    capes().forEach(l => expect(l.classList.contains('px-filter')).toBe(false));
   });
 });

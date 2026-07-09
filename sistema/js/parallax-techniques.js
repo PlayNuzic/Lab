@@ -293,6 +293,34 @@ const floatDrift = {
   },
 };
 
+// ── px-filter (P-06) ──
+// El compositor de filter (parallax-lab.css) viu escopat sota .px-filter
+// perquè les capes NO rasteritzin un filter identitat quan cap tècnica de
+// filter és activa. Dues tècniques hi contribueixen (depth-blur per capa,
+// color-shift per herència des de slideEl però amb la classe també per
+// capa, ja que .px-filter ha d'estar a l'element que rep el filter). Com
+// que poden estar actives alhora sobre la mateixa capa, un WeakMap amb
+// comptador (Set d'ids de tècnica) evita que el cleanup d'una tècnica
+// esborri la classe que l'altra encara necessita.
+const usuarisFiltre = new WeakMap(); // Element -> Set<techId>
+
+function afegeixFiltre(el, techId) {
+  let usuaris = usuarisFiltre.get(el);
+  if (!usuaris) { usuaris = new Set(); usuarisFiltre.set(el, usuaris); }
+  usuaris.add(techId);
+  el.classList.add('px-filter');
+}
+
+function treuFiltre(el, techId) {
+  const usuaris = usuarisFiltre.get(el);
+  if (!usuaris) return;
+  usuaris.delete(techId);
+  if (usuaris.size === 0) {
+    usuarisFiltre.delete(el);
+    el.classList.remove('px-filter');
+  }
+}
+
 // ── depth-blur (workflow verificada, model sonnet) ──
 // Estat local de depth-blur: capes on hem escrit --px-bl, per poder-les
 // netejar exactament (mateix patró que scroll-depth: WeakMap keyed per slideEl).
@@ -326,13 +354,17 @@ const depthBlur = {
       const ratio = Math.max(0, Math.min(1, 1 - depths[i] / dMax));
       const bl = maxBlur * Math.pow(ratio, corba);
       l.style.setProperty('--px-bl', `${bl.toFixed(2)}px`);
+      afegeixFiltre(l, depthBlur.id); // P-06: activa el compositor de filter només en aquesta capa
     });
     estatDB.set(slideEl, { capes });
   },
   cleanup(slideEl) {
     const st = estatDB.get(slideEl);
     if (!st) return;
-    st.capes.forEach(l => l.style.removeProperty('--px-bl'));
+    st.capes.forEach(l => {
+      l.style.removeProperty('--px-bl');
+      treuFiltre(l, depthBlur.id);
+    });
     estatDB.delete(slideEl);
   },
 };
@@ -347,6 +379,10 @@ const estatCS = new WeakMap();
 // defecte cap a .parallax-layer i .parallax-img, que ja les consumeixen al
 // compositor de filter (parallax-lab.css). Cap regla hi defineix una
 // transició de filter, així que el canvi salta sense animar-se (LP-07).
+// P-06: el compositor viu sota .px-filter, que ha d'estar a CADA capa (una
+// var CSS s'hereta, però la classe que decideix si la regla del compositor
+// s'aplica no); per això, tot i que els valors venen de slideEl, aquí
+// també enumerem les capes només per marcar-les/desmarcar-les.
 const colorShift = {
   id: 'color-shift',
   nom: 'Viraje de color',
@@ -362,19 +398,22 @@ const colorShift = {
     const graus = cfg.graus ?? 40;
     const saturacio = cfg.saturacio ?? 1.2;
     const brillantor = cfg.brillantor ?? 1;
+    const capes = [...slideEl.querySelectorAll('.parallax-bg [data-depth]')];
+    capes.forEach(l => afegeixFiltre(l, colorShift.id));
     const pinta = (t) => {
       slideEl.style.setProperty('--px-cs-hue', `${(graus * t).toFixed(1)}deg`);
       slideEl.style.setProperty('--px-cs-sat', (1 + (saturacio - 1) * t).toFixed(3));
       slideEl.style.setProperty('--px-cs-bri', (1 + (brillantor - 1) * t).toFixed(3));
     };
     const unsub = ctx.onProgress(pinta);
-    estatCS.set(slideEl, { unsub });
+    estatCS.set(slideEl, { unsub, capes });
     pinta(ctx.progress());
   },
   cleanup(slideEl) {
     const st = estatCS.get(slideEl);
     if (!st) return;
     try { st.unsub?.(); } catch {}
+    st.capes.forEach(l => treuFiltre(l, colorShift.id));
     ['--px-cs-hue', '--px-cs-sat', '--px-cs-bri'].forEach(v => slideEl.style.removeProperty(v));
     estatCS.delete(slideEl);
   },

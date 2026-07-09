@@ -59,18 +59,24 @@
   transform-origin: var(--px-zm-origin, 50% 50%);
 }
 
-/* ---- Compositor de filter ----
+/* ---- Compositor de filter (P-06: escopat a .px-filter) ----
    Separat per tipus d'element: .parallax-img porta un saturate(0.8) base a
    parallax.css que cal preservar (el compositor el multiplica, no el perd).
-   El filter salta al valor final sense transició (LP-07). */
-.slide--parallax-lab .parallax-layer{
+   El filter salta al valor final sense transició (LP-07).
+   .px-filter només l'afegeixen les tècniques que escriuen de debò un canal
+   de filter (depth-blur per capa, color-shift per herència des de slideEl
+   però amb la classe també marcada per capa — vegeu afegeixFiltre/treuFiltre
+   a parallax-techniques.js): sense cap tècnica de filter activa, la capa no
+   porta la classe i no s'evalua cap filter (identitat ni cap altre) → sense
+   cost de rasterització invisible. Especificitat 0,3,0. */
+.slide--parallax-lab .parallax-layer.px-filter{
   filter:
     blur(var(--px-bl, 0px))
     hue-rotate(var(--px-cs-hue, 0deg))
     saturate(var(--px-cs-sat, 1))
     brightness(var(--px-cs-bri, 1));
 }
-.slide--parallax-lab .parallax-img{
+.slide--parallax-lab .parallax-img.px-filter{
   filter:
     saturate(calc(0.8 * var(--px-cs-sat, 1)))
     blur(var(--px-bl, 0px))
@@ -270,9 +276,10 @@ body[data-editable="true"] .slide--parallax-lab .parallax-app-slot{
 /* Conflicte mask-zoom + depth-blur (revisió de composició): .parallax-img neix
    amb data-depth 0.12 — la més baixa — i depth-blur li tocaria el blur més fort
    just quan la finestra-glyph la fa protagonista. Recomponem el filter SENSE el
-   canal de blur (mantenint els de color-shift); especificitat (0,3,0) > compositor
-   (0,2,0), i només mentre px-mz-on és actiu. */
-.slide--parallax-lab .parallax-img.px-mz-on{
+   canal de blur (mantenint els de color-shift); classe .px-mz-on DOBLADA perquè
+   l'especificitat (0,4,0) guanyi sempre el compositor sota .px-filter (0,3,0,
+   P-06) sense dependre de l'ordre al fitxer, i només mentre px-mz-on és actiu. */
+.slide--parallax-lab .parallax-img.px-mz-on.px-mz-on{
   filter: saturate(calc(0.8 * var(--px-cs-sat, 1)))
           hue-rotate(var(--px-cs-hue, 0deg))
           brightness(var(--px-cs-bri, 1));
