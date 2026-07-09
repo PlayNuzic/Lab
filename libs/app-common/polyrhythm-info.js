@@ -15,6 +15,14 @@
  */
 import { gcd, lcm } from './number-utils.js';
 
+/**
+ * Calcula la informació matemàtica d'una combinació polirítmica (pols base + fraccions n/d).
+ * @param {Object} [params]
+ * @param {number} [params.lg] - longitud del pols base (Lg)
+ * @param {number} [params.v] - velocitat del pols base (V, en BPM)
+ * @param {{numerator: number, denominator: number}[]} [params.fractions] - fraccions actives
+ * @returns {Object} informació derivada: cicle gran, cicles, durada, `fractionsInfo` per fracció i `ratio` reduïda
+ */
 export function computePolyrhythmInfo({ lg, v, fractions = [] } = {}) {
   const reduced = (Array.isArray(fractions) ? fractions : [])
     .filter((f) => Number.isFinite(f?.numerator) && Number.isFinite(f?.denominator)

@@ -281,7 +281,9 @@ export function createTimelineRenderer(config = {}) {
         const radius = Math.min(width, height) / 2 - 1;
 
         // +PI/2: el pols 0 comença a BAIX del cercle (les 6 en punt) i gira
-        // en sentit horari, convenció visual de totes les apps circulars.
+        // en sentit horari — convenció d'aquest mòdul i de circular-timeline.js.
+        // Els mòduls d'anells més nous (circular-rings.js, circular-timeline-ring.js)
+        // usen -PI/2 (pols 0 a DALT); no assumir una convenció única per a tot el repo.
         const angleForIndex = (index) => {
           if (!Number.isFinite(lg) || lg === 0) return Math.PI / 2;
           return (index / lg) * 2 * Math.PI + Math.PI / 2;

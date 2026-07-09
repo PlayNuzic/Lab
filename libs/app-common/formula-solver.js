@@ -11,7 +11,13 @@ export const FORMULA_KEYS = ['Lg', 'V', 'T'];
 const isFilled = (x) => Number.isFinite(x) && x > 0;
 const round2 = (x) => Math.round(x * 100) / 100;
 
-// Totes deriven de Lg/V = T/60.
+/**
+ * Calcula un dels tres camps de la fórmula temporal a partir dels altres dos.
+ * Totes les branques deriven de Lg/V = T/60.
+ * @param {'Lg'|'V'|'T'} key - camp a calcular
+ * @param {{Lg: number, V: number, T: number}} values - valors actuals dels tres camps
+ * @returns {{key: string, value: number}|null} el camp calculat, o `null` si falten dades
+ */
 export function computeField(key, { Lg, V, T }) {
   if (key === 'T')  return isFilled(Lg) && isFilled(V) ? { key, value: round2(Lg * 60 / V) } : null;
   if (key === 'V')  return isFilled(Lg) && isFilled(T) ? { key, value: round2(Lg * 60 / T) } : null;
@@ -19,6 +25,11 @@ export function computeField(key, { Lg, V, T }) {
   return null;
 }
 
+/**
+ * Crea un solver amb estat propi (recència d'edició) per a la fórmula Lg/V = T/60,
+ * amb el model "els dos últims editats manen".
+ * @returns {{touch: (key: string) => void, resolve: (values: {Lg: number, V: number, T: number}) => ({key: string, value: number}|null), derivedByRecency: () => (string|null), recency: string[]}}
+ */
 export function createFormulaSolver() {
   let recency = []; // keys editats, més recent al final, ≤ 2
 
