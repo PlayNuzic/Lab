@@ -1951,18 +1951,14 @@ export class TimelineAudio {
     }
   }
 
-  async configurePerformance({ requestedSampleRate, scheduleHorizonMs, sampleOffsetMs } = {}) {
-    if (requestedSampleRate && !this._node) {
-      const Ctor = (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext))
-        ? (window.AudioContext || window.webkitAudioContext)
-        : null;
-      if (Ctor) {
-        this._ctx = new Ctor({ latencyHint: 'interactive', sampleRate: +requestedSampleRate });
-        this._node = null;
-        this._fallbackGain = null;
-        await this._ensureContext();
-      }
-    }
+  // H-15 (auditoria 2026-07-06): el paràmetre `requestedSampleRate` s'ha
+  // ELIMINAT. La seva branca creava un AudioContext sense esperar el gest
+  // d'usuari, amb qualsevol sample rate (violava el pin 44100) i abandonava
+  // el context anterior sense close() (classe de bug LA-02). Cap caller el
+  // passava (la fila Sample Rate del menú de rendiment es va retirar
+  // expressament — vegeu performance-audio-menu.js:10-13). El camp es manté
+  // al retorn (sempre null) per estabilitat de forma.
+  async configurePerformance({ scheduleHorizonMs, sampleOffsetMs } = {}) {
     if (Number.isFinite(+scheduleHorizonMs)) {
       this._lookAheadSec = clamp(+scheduleHorizonMs / 1000, 0.02, 0.4);
       this._adaptSchedulerInterval();
@@ -1971,7 +1967,7 @@ export class TimelineAudio {
       this._sampleOffsetSec = clamp(+sampleOffsetMs / 1000, 0, 0.02);
     }
     return {
-      requestedSampleRate: requestedSampleRate || null,
+      requestedSampleRate: null,
       actualSampleRate: this._ctx ? this._ctx.sampleRate : null,
       scheduleHorizonMs: Math.round(this._lookAheadSec * 1000),
       schedulerIntervalMs: Math.round(this._schedulerEverySec * 1000),

@@ -39,6 +39,7 @@
 - `registerNoteProvider(id, fn)`: declarative API — provider returns `[{midi, duration, velocity}]`, engine handles timing
 - `onPulse` is for visual feedback only — never schedule audio in onPulse
 - Configurable via `setSampleOffset()`, `setScheduling({sampleOffset})`, or `configurePerformance({sampleOffsetMs})`
+- H-15 (2026-07-06): `configurePerformance` ja NO accepta `requestedSampleRate` — la branca creava un AudioContext sense gest, amb sample rate arbitrari (violava el pin 44100) i sense close() del context vell. El retorn conserva el camp (sempre `null`) per forma. NO re-introduir.
 - UI control in performance-audio-menu.js "Sample Offset (ms)" slider — NOMÉS en mode dev (?dev / nuzic-debug); en producció ho gestionen el preset balanced + el scheduling bridge. La fila de Sample Rate es va eliminar (re-creava el context i trencava l'invariant 44100 pinnat).
 
 ## Sample Mapping
