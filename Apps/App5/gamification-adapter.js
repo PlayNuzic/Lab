@@ -444,7 +444,7 @@ function analyzeTapPrecision() {
 /**
  * Calcula la complejidad de intervalos
  */
-function calculateIntervalComplexity(intervals) {
+export function calculateIntervalComplexity(intervals) {
   if (!intervals || intervals.length === 0) return 'low';
 
   // Calcular varianza para determinar irregularidad
@@ -461,7 +461,7 @@ function calculateIntervalComplexity(intervals) {
 /**
  * Analiza la complejidad de un patrón de pulsos
  */
-function analyzePatternComplexity(pattern) {
+export function analyzePatternComplexity(pattern) {
   const length = pattern.length;
   const ones = (pattern.match(/1/g) || []).length;
   const density = ones / length;
