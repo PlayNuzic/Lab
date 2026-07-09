@@ -152,12 +152,15 @@ function syncActiu() {
 
 // Canvi de config des del panell. Aplica EN VIU només la tècnica tocada
 // (P-26: mai re-render; l'apply de cada tècnica és idempotent).
-function setConfig(paso, techId, patch = {}) {
+// P-04: `persist` (default true) desa a localStorage; l'arrossegament del
+// slider el passa a false (aplica en viu sense escriure desenes de cops/s) i
+// desa un sol cop al 'change' final. El toggle on/off sí que desa (default).
+function setConfig(paso, techId, patch = {}, persist = true) {
   const perPaso = configMutable(paso);
   const entrada = perPaso[techId] ?? (perPaso[techId] = { on: false, params: {} });
   if (typeof patch.on === 'boolean') entrada.on = patch.on;
   if (patch.params) entrada.params = { ...entrada.params, ...patch.params };
-  saveFx();
+  if (persist) saveFx();
   if (actiu && actiu.paso === paso) {
     if (entrada.on) aplica(techId);
     else desactiva(techId);

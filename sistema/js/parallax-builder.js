@@ -74,11 +74,17 @@ if (PANEL_BODY && lab) {
       rang.max = String(p.max);
       rang.step = String(p.step);
       rang.dataset.key = p.key;
-      // Preview instantani: cada moviment del slider aplica en viu.
+      // Preview instantani: cada moviment del slider aplica en viu SENSE
+      // desar (P-04: persist=false — evita escriure a localStorage desenes
+      // de cops/s durant l'arrossegament).
       rang.addEventListener('input', () => {
         const valor = Number(rang.value);
         sortida.textContent = formata(p, valor);
-        if (pasoActual != null) lab.setConfig(pasoActual, tech.id, { params: { [p.key]: valor } });
+        if (pasoActual != null) lab.setConfig(pasoActual, tech.id, { params: { [p.key]: valor } }, false);
+      });
+      // En deixar anar el slider, desa un sol cop (P-04).
+      rang.addEventListener('change', () => {
+        if (pasoActual != null) lab.setConfig(pasoActual, tech.id, { params: { [p.key]: Number(rang.value) } });
       });
       fila.append(etiqueta, sortida, rang);
       paramsHost.appendChild(fila);
