@@ -33,7 +33,11 @@
   justify-content: center;
   gap: 4px;
   width: 1.3rem;
-  height: 2.8rem;
+  /* min(): a mida gran mana 2.8rem (idèntic a abans); quan la caixa de la
+     fracció s'encongeix (clamp de l'input), el spinner queda confinat al
+     90% del SEU camp — els dos spinners del mode complex (num+den,
+     App29/31/33/35) no es poden superposar mai per construcció. */
+  height: min(2.8rem, 90%);
   background: transparent;
   overflow: visible;
   transition: opacity 0.2s ease;
