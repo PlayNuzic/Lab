@@ -17,10 +17,10 @@ import {
   updateSoundline,
   updateMatrix
 } from '../../libs/plano-modular/plano-grid.js';
+import { createPlanoGridEditor } from '../../libs/plano-modular/plano-grid-editor.js';
 import { createPlayheadController } from '../../libs/plano-modular/plano-playhead.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
-import { setupScrollSync } from '../../libs/plano-modular/plano-scroll.js';
 import { buildSimple12Rows } from '../../libs/app-common/plano-grid-rows.js';
 import { getTotalSubdivisions as _getTotalSubdivs, filterInvalidNotes as _filterInvalid } from '../../libs/plano-fraccion/fraction-math.js';
 import { renderNoteBars, renderSilenceLines, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
@@ -71,17 +71,7 @@ let noteBars = [];     // Rectangles notes al grid
 // Controllers
 let fractionEditorController = null;
 let randomMenu = null;  // Long-press random menu controller (read())
-
-// Drag state
-let dragState = {
-  active: false,
-  startSubdiv: null,
-  currentSubdiv: null,
-  maxSubdiv: null,
-  previewBar: null
-};
-// Delegació del drag enganxada una sola vegada (vegeu App32).
-let gridDelegationAttached = false;
+let gridEditor = null;  // Factory compartida (libs/plano-modular/plano-grid-editor.js)
 
 // Playback state
 let playbackAbort = null;
@@ -238,19 +228,30 @@ function getTotalSubdivisions() {
   return _getTotalSubdivs(FIXED_LG, FIXED_NUMERATOR, currentDenominator);
 }
 
-// ========== GRID HELPERS ==========
+// ========== GRID EDITOR (factory compartida) ==========
+// Instància de libs/plano-modular/plano-grid-editor.js amb el context
+// d'aquesta app (variant SIMPLE: FIXED_NUMERATOR/FIXED_LG, com App32).
+// Tot l'estat de drag/np-dots/labels/scroll-sync viu dins la closure de
+// la factory; aquí només hi ha els getters que li donen accés a l'estat
+// viu de l'app (fracció, notes, bpm, elements DOM).
+gridEditor = createPlanoGridEditor({
+  getGridElements: () => gridElements,
+  getFraction: () => ({ lg: FIXED_LG, numerator: FIXED_NUMERATOR, denominator: currentDenominator }),
+  initAudio,
+  getBpm: () => bpmController?.getValue() || DEFAULT_BPM,
+  getNotes: () => notes,
+  onNoteCreated: addNote,
+  getInfoDisplays: () => ({ sum: sumDisplay, available: availableDisplay }),
+  noteCount: NOTE_COUNT,
+  baseMidi: BASE_MIDI
+});
 
-/**
- * Compute current cell width by reading the actual rendered cell's offsetWidth.
- * With columnSizing='fr' the grid fills all horizontal space, so cell width is
- * dynamic and must be read from the DOM after render (not computed ahead).
- * Returns 40 as fallback before first render.
- */
-function calculateCellWidth() {
-  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
-  const firstCell = matrix?.querySelector('.plano-cell');
-  return firstCell?.offsetWidth || 40;
-}
+// Referències vives als arrays de labels de la factory: el highlight de
+// playback (clearHighlights/highlightPulse/highlightCycle) els llegeix
+// directament. La factory mai reassigna l'array (fa `.length = 0` i
+// reomple), així que una única assignació aquí ja basta.
+gridIntegerLabels = gridEditor.getIntegerLabels();
+gridFractionLabels = gridEditor.getFractionLabels();
 
 // ========== MIDDLE LAYOUT (info pastilles + fraction) ==========
 // LU-04: la fracció va ANCORADA A L'ESQUERRA de `.middle` i el grup de
@@ -302,28 +303,6 @@ function buildMiddleLayout() {
   return middle;
 }
 
-/**
- * Update info displays (iT disponibles i suma iT)
- * - Suma iT: total de columnes ocupades (suma de durades de totes les notes)
- * - iT Disponibles: columnes lliures (total - ocupades)
- */
-function updateInfoDisplays() {
-  const totalColumns = getTotalSubdivisions();
-
-  // Suma iT: sum of all note durations (each column = 1 iT)
-  const usedColumns = notes.reduce((sum, n) => sum + n.duration, 0);
-
-  // iT Disponibles: total - used
-  const available = totalColumns - usedColumns;
-
-  if (availableDisplay) {
-    availableDisplay.value = String(available);
-  }
-  if (sumDisplay) {
-    sumDisplay.value = String(usedColumns);
-  }
-}
-
 function createGrid() {
   // Create grid container AFTER timeline-wrapper (nuzic order: timeline →
   // grid → editor → controls; here there's no editor so grid becomes the
@@ -348,7 +327,7 @@ function createGrid() {
     const ro = new ResizeObserver(() => {
       if (rafId) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
-        cellWidth = calculateCellWidth();
+        cellWidth = gridEditor.refreshCellWidth();
         renderNotes();
       });
     });
@@ -402,102 +381,22 @@ function renderGrid() {
   });
 
   // Render fractional timeline in grid
-  renderGridTimeline();
+  gridEditor.renderGridTimeline();
 
   // Read actual cell width from DOM now that grid is rendered.
-  cellWidth = calculateCellWidth();
+  cellWidth = gridEditor.refreshCellWidth();
 
   // Attach drag handlers to cells
-  attachGridDragHandlers();
+  gridEditor.attachGridDragHandlers();
 
   // Sync scroll
-  syncGridScrolls();
+  gridEditor.syncGridScrolls();
 
   // Render existing notes (uses cellWidth for positioning bars).
   renderNotes();
 
   // Update info displays
-  updateInfoDisplays();
-}
-
-function renderGridTimeline() {
-  const container = gridElements?.timelineContainer;
-  if (!container) return;
-
-  const columns = getTotalSubdivisions();
-  const d = currentDenominator;
-
-  container.innerHTML = '';
-  gridIntegerLabels = [];
-  gridFractionLabels = [];
-
-  const timelineRow = document.createElement('div');
-  timelineRow.className = 'plano-timeline-row';
-
-  // Each number is positioned by absolute percentage (NOT by grid).
-  // Position of cell N (N = pulseIndex*d + subdivIndex) is `N / columns * 100%`,
-  // which matches exactly the left edge of the corresponding matrix cell
-  // (since the matrix uses `repeat(columns, 1fr)`). transform: translateX(-50%)
-  // centers the text on that line. No bearing compensation, no margin hack,
-  // no accumulated floating-point drift: one computation per number.
-  for (let colIdx = 0; colIdx < columns; colIdx++) {
-    const numEl = document.createElement('div');
-    numEl.className = 'plano-timeline-number';
-    numEl.dataset.colIndex = colIdx;
-
-    const pulseIndex = Math.floor(colIdx / d);
-    const subdivIndex = colIdx % d;
-    const leftPercent = (colIdx / columns) * 100;
-    numEl.style.left = `${leftPercent}%`;
-
-    if (subdivIndex === 0) {
-      numEl.classList.add('plano-cycle-start');
-      // Single-digit pulses get a narrower tick offset (4px vs 7px) so the
-      // vertical mark sits under the center of the text. Two-digit pulses
-      // (10, 11, ...) keep the nuzic-theme default of 7px.
-      if (pulseIndex < 10) numEl.classList.add('plano-single-digit');
-      numEl.textContent = String(pulseIndex);
-      gridIntegerLabels[pulseIndex] = numEl;
-    } else {
-      numEl.classList.add('plano-subdivision');
-      numEl.textContent = `.${subdivIndex}`;
-      gridFractionLabels.push(numEl);
-    }
-
-    timelineRow.appendChild(numEl);
-  }
-
-  // Endpoint marker `·` al final de la timeline (col `columns`,
-  // pulse `FIXED_LG`). Mateix patró que App32/App33.
-  const endpointEl = document.createElement('div');
-  endpointEl.className = 'plano-timeline-number plano-cycle-end';
-  endpointEl.dataset.colIndex = columns;
-  endpointEl.style.left = '100%';
-  endpointEl.textContent = '·';
-  timelineRow.appendChild(endpointEl);
-  gridIntegerLabels[FIXED_LG] = endpointEl;
-
-  container.appendChild(timelineRow);
-
-  // Subdivision label "1/d" a la cantonada inferior-esquerra del
-  // `.plano-container` (zona del triangle groc).
-  const planoContainer = gridElements?.container;
-  if (planoContainer) {
-    let subdivisionLabel = planoContainer.querySelector('.plano-subdivision-label');
-    if (!subdivisionLabel) {
-      subdivisionLabel = document.createElement('div');
-      subdivisionLabel.className = 'plano-subdivision-label';
-      planoContainer.appendChild(subdivisionLabel);
-    }
-    subdivisionLabel.textContent = `${FIXED_NUMERATOR}/${d}`;
-  }
-}
-
-function syncGridScrolls() {
-  const matrix = gridElements?.matrixContainer;
-  const timeline = gridElements?.timelineContainer;
-  const soundline = gridElements?.soundlineContainer;
-  if (matrix) setupScrollSync(matrix, soundline, timeline);
+  gridEditor.updateInfoDisplays();
 }
 
 // ========== NUZIC N-iT EDITOR ==========
@@ -1030,7 +929,7 @@ function handleZigzagChange(pairs) {
   });
   notes = newNotes;
   renderNotes();
-  updateInfoDisplays();
+  gridEditor.updateInfoDisplays();
 }
 
 function syncGridToZigzag() {
@@ -1124,169 +1023,28 @@ function addNote(noteData) {
   notes.push(noteData);
   notes.sort((a, b) => a.startSubdiv - b.startSubdiv || a.note - b.note);
   renderNotes();
-  updateInfoDisplays();
+  gridEditor.updateInfoDisplays();
   syncGridToZigzag();
 }
 
 function removeNote(idx) {
   notes.splice(idx, 1);
   renderNotes();
-  updateInfoDisplays();
+  gridEditor.updateInfoDisplays();
   syncGridToZigzag();
 }
 
 function clearNotes() {
   notes = [];
   renderNotes();
-  updateInfoDisplays();
+  gridEditor.updateInfoDisplays();
   syncGridToZigzag();
 }
 
-// ========== GRID DRAG HANDLERS ==========
-// np-dots a cada cel·la = handles de grab (estil App15). updateMatrix recrea
-// les cel·les cada renderGrid → re-injectem.
-function injectNpDots() {
-  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
-  if (!matrix) return;
-  matrix.querySelectorAll('.plano-cell').forEach(cell => {
-    if (cell.querySelector('.np-dot')) return;
-    const dot = document.createElement('div');
-    dot.className = 'np-dot np-dot-clickable';
-    cell.appendChild(dot);
-  });
-}
-
-function attachGridDragHandlers() {
-  injectNpDots();
-  if (gridDelegationAttached) return;
-  gridDelegationAttached = true;
-
-  const container = gridElements?.matrixContainer;
-  if (!container) return;
-
-  // Delegació al container (persisteix als updateMatrix). El drag NOMÉS s'inicia
-  // agafant un np-dot (substitueix el drag des del cos de la cel·la, estil App15).
-  container.addEventListener('mousedown', handleGridDragStart);
-  container.addEventListener('touchstart', handleGridDragStart, { passive: false });
-
-  document.addEventListener('mousemove', handleGridDragMove);
-  document.addEventListener('mouseup', handleGridDragEnd);
-  document.addEventListener('touchmove', handleGridDragMove, { passive: false });
-  document.addEventListener('touchend', handleGridDragEnd);
-}
-
-function handleGridDragStart(e) {
-  // Grab només des d'un np-dot. (Eliminar una nota: clic al note-bar → removeNote.)
-  const dot = e.target.closest?.('.np-dot');
-  if (!dot) return;
-  const cell = dot.closest('.plano-cell');
-  if (!cell) return;
-
-  e.preventDefault();
-
-  const note = parseInt(cell.dataset.note, 10);
-  const colIndex = parseInt(cell.dataset.colIndex, 10);
-
-  const maxTotal = getTotalSubdivisions();
-  if (colIndex >= maxTotal) return;
-
-  dragState = {
-    active: true,
-    note: note,
-    startSubdiv: colIndex,
-    currentSubdiv: colIndex,
-    maxSubdiv: maxTotal - 1,
-    previewBar: null
-  };
-
-  document.body.classList.add('dragging-note');
-  createGridPreviewBar();
-  updateGridPreviewBar();
-}
-
-function handleGridDragMove(e) {
-  if (!dragState.active || dragState.note === undefined) return;
-
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-
-  // Use .plano-matrix (not matrixContainer) so margin-left and scroll are
-  // already baked into the bounding rect. Using the outer container caused
-  // a fractional-column offset that became ~a whole column on small viewports.
-  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
-  if (!matrix) return;
-
-  const rect = matrix.getBoundingClientRect();
-  const relX = clientX - rect.left;
-  // Ample de cel·la EXACTE (no l'offsetWidth arrodonit) per encertar la columna.
-  const exactCellWidth = rect.width / getTotalSubdivisions();
-  const colIndex = Math.floor(relX / exactCellWidth);
-
-  const newSubdiv = Math.max(dragState.startSubdiv, Math.min(dragState.maxSubdiv, colIndex));
-
-  if (newSubdiv !== dragState.currentSubdiv) {
-    dragState.currentSubdiv = newSubdiv;
-    updateGridPreviewBar();
-  }
-}
-
-function handleGridDragEnd() {
-  if (!dragState.active || dragState.note === undefined) return;
-
-  const duration = dragState.currentSubdiv - dragState.startSubdiv + 1;
-
-  document.body.classList.remove('dragging-note');
-  if (dragState.previewBar) {
-    dragState.previewBar.remove();
-    dragState.previewBar = null;
-  }
-
-  if (duration >= 1) {
-    const noteData = {
-      note: dragState.note,
-      startSubdiv: dragState.startSubdiv,
-      duration
-    };
-    addNote(noteData);
-
-    // Play preview sound when note is created
-    playNotePreview(noteData);
-  }
-
-  dragState.active = false;
-  dragState.note = undefined;
-}
-
-function createGridPreviewBar() {
-  if (dragState.previewBar) return;
-
-  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
-  if (!matrix) return;
-
-  const bar = document.createElement('div');
-  bar.className = 'note-bar-preview';
-  matrix.appendChild(bar);
-  dragState.previewBar = bar;
-}
-
-function updateGridPreviewBar() {
-  if (!dragState.previewBar) return;
-
-  // Read actual cell height from DOM (var(--plano-cell-height) shrinks on small viewports)
-  const firstCell = gridElements?.matrixContainer?.querySelector('.plano-cell');
-  const cellHeight = firstCell?.offsetHeight || 32;
-
-  const rowIndex = (NOTE_COUNT - 1) - dragState.note;
-  const totalColumns = getTotalSubdivisions();
-  const startPct = (dragState.startSubdiv / totalColumns) * 100;
-  const widthPct = ((dragState.currentSubdiv - dragState.startSubdiv + 1) / totalColumns) * 100;
-  const barHeight = cellHeight - 2;
-  const top = (rowIndex + 1) * cellHeight - barHeight / 2;  // Center on division line
-
-  dragState.previewBar.style.left = `${startPct}%`;
-  dragState.previewBar.style.width = `${widthPct}%`;
-  dragState.previewBar.style.top = `${top}px`;
-  dragState.previewBar.style.height = `${barHeight}px`;
-}
+// ========== GRID DRAG HANDLERS (factory) ==========
+// Np-dots, delegació de drag (mousedown/move/end) i preview d'àudio ara
+// viuen a libs/plano-modular/plano-grid-editor.js (gridEditor), enganxats
+// des de renderGrid() via gridEditor.attachGridDragHandlers().
 
 // ========== FRACTION EDITOR ==========
 function initFractionEditorController() {
@@ -1416,27 +1174,10 @@ function applyTransportConfig() {
 // via renderNoteBars(). No external #timeline is needed.
 
 // ========== NOTE PREVIEW ==========
-/**
- * Play a preview sound when a note is created
- */
-async function playNotePreview(noteData) {
-  const audioInstance = await initAudio();
-  if (!audioInstance) return;
-
-  // Calculate note duration based on current BPM and denominator
-  const d = currentDenominator;
-  const n = FIXED_NUMERATOR;
-  const bpm = (bpmController?.getValue() || DEFAULT_BPM);
-  const beatDuration = 60 / bpm;
-  const durationPulses = noteData.duration * n / d;
-  const durationSeconds = Math.min(durationPulses * beatDuration, 2); // Cap at 2 seconds for preview
-
-  // MIDI note = BASE_MIDI + note (0-11)
-  const midiNote = BASE_MIDI + noteData.note;
-
-  // Play the note immediately (time=0 means "now")
-  audioInstance.playNote(midiNote, durationSeconds, 0);
-}
+// La previsualització d'àudio en crear una nota per drag viu a
+// gridEditor.playNotePreview() (libs/plano-modular/plano-grid-editor.js),
+// cridada internament per la factory dins el mateix gest de drag-end
+// (Invariant 3 — vegeu comentari al mòdul).
 
 // ========== PLAYBACK ==========
 /**

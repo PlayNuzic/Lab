@@ -517,6 +517,7 @@ export function createPlanoModular(config) {
 // Re-export submodules for advanced usage
 export { createSelectionManager } from './plano-selection.js';
 export { setupScrollSync, setupHScrollTrackSync, blockVerticalWheel, smoothScrollTo, scrollToRegistry, scrollToRowIfNeeded } from './plano-scroll.js';
+export { createPlanoGridEditor } from './plano-grid-editor.js';
 export { createPlayheadController, updatePlayhead, hidePlayhead } from './plano-playhead.js';
 export {
   buildGridDOM,
