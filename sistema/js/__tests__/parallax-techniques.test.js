@@ -16,6 +16,9 @@ import {
   paramsPerDefecte,
 } from '../parallax-techniques.js';
 
+const maskZoom = TECNIQUES.find(t => t.id === 'mask-zoom');
+const appReveal = TECNIQUES.find(t => t.id === 'app-reveal');
+
 describe('Parallax Lab — contracte del registre', () => {
   test('el registre no és buit i valida sencer', () => {
     expect(TECNIQUES.length).toBeGreaterThan(0);
@@ -122,5 +125,89 @@ describe('scroll-depth — tècnica de referència', () => {
       expect(capa.style.getPropertyValue(v)).toBe('');
     });
     expect(() => sd.cleanup(slideEl)).not.toThrow();
+  });
+});
+
+describe('mask-zoom + app-reveal — ranura d\'app compartida (A-02)', () => {
+  // Slide lab amb ranura d'app (Lab B): .parallax-app-slot[data-app], més
+  // .parallax-img (fallback d'imatge) i una .parallax-layer per al glyph.
+  function harness({ slotHidden = true } = {}) {
+    document.body.innerHTML = '';
+    const slideEl = document.createElement('article');
+    slideEl.className = 'slide slide--parallax slide--parallax-lab';
+    slideEl.innerHTML = `
+      <div class="parallax-bg" aria-hidden="true">
+        <div class="parallax-img" data-depth="0.12"></div>
+        <span class="parallax-layer" data-depth="0.25">N</span>
+      </div>
+      <div class="parallax-content">
+        <div class="parallax-frases prose"><p>una</p><p>dues</p></div>
+      </div>
+      <div class="parallax-app-slot" data-app="App1"></div>`;
+    const slot = slideEl.querySelector('.parallax-app-slot');
+    slot.hidden = slotHidden;
+    document.body.appendChild(slideEl);
+    // ctx compartit: onProgress(cb) accepta cb(t) (mask-zoom) i cb(t, detail)
+    // (app-reveal, que necessita {active, total}); _emit dispara totes dues.
+    let subs = [];
+    const ctx = {
+      reduced: false,
+      progress: () => 0,
+      onProgress(cb) {
+        subs.push(cb);
+        return () => { subs = subs.filter(s => s !== cb); };
+      },
+      _emit(t, detail) { subs.forEach(cb => cb(t, detail)); },
+    };
+    return { slideEl, slot, ctx };
+  }
+
+  test('Fondo=1 crea un únic iframe compartit a la ranura i el reutilitza en re-apply', () => {
+    const { slideEl, slot, ctx } = harness();
+    maskZoom.apply(slideEl, { ...paramsPerDefecte(maskZoom), fons: 1 }, ctx);
+    expect(slot.querySelectorAll('iframe').length).toBe(1);
+    expect(slot.hidden).toBe(false);
+    expect(slot.classList.contains('px-mz-fons')).toBe(true);
+    // Re-apply (canvi de slider): idempotent, no en crea un segon.
+    maskZoom.apply(slideEl, { ...paramsPerDefecte(maskZoom), fons: 1, escalaInicial: 50 }, ctx);
+    expect(slot.querySelectorAll('iframe').length).toBe(1);
+  });
+
+  test('regressió A-02: desactivar mask-zoom no torna a amagar una app que app-reveal ja havia revelat', () => {
+    const { slideEl, slot, ctx } = harness({ slotHidden: true });
+    const ctxAR = { ...ctx, reduced: false };
+
+    // 1) mask-zoom Fondo=1 amb la ranura encara amagada: fotografia
+    //    hiddenAbans=true i força slot.hidden=false per mostrar l'efecte.
+    maskZoom.apply(slideEl, { ...paramsPerDefecte(maskZoom), fons: 1 }, ctx);
+    expect(slot.hidden).toBe(false);
+
+    // 2) app-reveal s'arma i revela l'app (el seu propi flag, independent
+    //    de mask-zoom) en arribar a la frase d'aparició.
+    appReveal.apply(slideEl, paramsPerDefecte(appReveal), ctxAR);
+    ctxAR._emit(0.75, { active: 3, total: 4 }); // fraseAparicio per defecte = 3
+    expect(slot.classList.contains('px-ar-on')).toBe(true);
+    expect(slot.hidden).toBe(false);
+
+    // 3) Desactivar mask-zoom des del panell: el cleanup NO pot restaurar
+    //    la foto obsoleta (hiddenAbans=true) sobre una app que ara ja és
+    //    visible per app-reveal.
+    maskZoom.cleanup(slideEl);
+    expect(slot.classList.contains('px-mz-fons')).toBe(false);
+    expect(slot.hidden).toBe(false);
+    // app-reveal segueix intacte: mask-zoom no li ha tocat les classes.
+    expect(slot.classList.contains('px-ar-on')).toBe(true);
+  });
+
+  test('cleanup en mode imatge (fons=0) no toca el hidden de la ranura d\'app', () => {
+    const { slideEl, slot, ctx } = harness({ slotHidden: true });
+    maskZoom.apply(slideEl, { ...paramsPerDefecte(maskZoom), fons: 0 }, ctx);
+    // fons=0 → l'element emmascarat és .parallax-img, no la ranura.
+    const img = slideEl.querySelector('.parallax-img');
+    expect(img.style.getPropertyValue('mask-image')).not.toBe('');
+    expect(slot.hidden).toBe(true); // intacta: mask-zoom ni l'ha mirada
+    maskZoom.cleanup(slideEl);
+    expect(slot.hidden).toBe(true); // segueix intacta després del cleanup
+    expect(img.style.getPropertyValue('mask-image')).toBe('');
   });
 });

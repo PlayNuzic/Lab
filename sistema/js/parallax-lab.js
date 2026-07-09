@@ -1,4 +1,5 @@
-// Parallax Lab — motor del layout 'P-parallax-lab' (pasos ocults 28.5/28.7).
+// Parallax Lab — motor del layout 'P-parallax-lab' (els 5 intros de
+// producció 1/7/11/17/22 + els 2 labs ocults 28.5/28.7).
 //
 // Reprodueix el mode seqüencial de frases del parallax real però delega TOT
 // el moviment de fons a les tècniques del registre (parallax-techniques.js),
@@ -173,8 +174,15 @@ function aleatori(paso) {
   const nova = {};
   if (elegibles.length) {
     const quantes = Math.min(elegibles.length, 2 + Math.floor(Math.random() * 3));
-    const barreja = [...elegibles].sort(() => Math.random() - 0.5).slice(0, quantes);
-    barreja.forEach(t => {
+    // Fisher-Yates (no sort(() => Math.random() - 0.5), que és esbiaixat):
+    // només cal barrejar els primers `quantes` elements, la resta no
+    // s'arriba a triar mai.
+    const barreja = [...elegibles];
+    for (let i = 0; i < quantes; i += 1) {
+      const j = i + Math.floor(Math.random() * (barreja.length - i));
+      [barreja[i], barreja[j]] = [barreja[j], barreja[i]];
+    }
+    barreja.slice(0, quantes).forEach(t => {
       const params = {};
       (t.params || []).forEach(p => {
         const passos = Math.round((p.max - p.min) / p.step);

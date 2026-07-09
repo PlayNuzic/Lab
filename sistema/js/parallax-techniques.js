@@ -207,6 +207,10 @@ const mouseTilt = {
     const ensureRaf = () => { if (st.rafId == null) st.rafId = requestAnimationFrame(frame); };
 
     st.onMove = (e) => {
+      // Mateixa clau que el kill-switch CSS (parallax-lab.css): en edició
+      // el resultat queda anul·lat igualment, però sense aquest gate cada
+      // moviment del ratolí faria lectura de layout + rAF + setProperty en va.
+      if (document.body.dataset.editable === 'true') return;
       const r = slideEl.getBoundingClientRect();
       if (!r.width || !r.height) return;
       const nx = ((e.clientX - r.left) / r.width) * 2 - 1;
@@ -215,7 +219,10 @@ const mouseTilt = {
       st.target.y = Math.max(-1, Math.min(1, ny));
       ensureRaf();
     };
-    st.onLeave = () => { st.target.x = 0; st.target.y = 0; ensureRaf(); }; // torna a pla
+    st.onLeave = () => {
+      if (document.body.dataset.editable === 'true') return;
+      st.target.x = 0; st.target.y = 0; ensureRaf();
+    }; // torna a pla
 
     // Listeners al slideEl (moren amb el slide); igualment desfets al cleanup.
     slideEl.addEventListener('pointermove', st.onMove);
@@ -699,7 +706,14 @@ const maskZoom = {
         // Torna la ranura al seu lloc i retorna el control de visibilitat
         // a qui el tenia (motor o app-reveal). L'iframe queda dins (P-26).
         el.classList.remove('px-mz-fons');
-        el.hidden = st.hiddenAbans;
+        // La foto hiddenAbans (presa a l'apply) pot quedar obsoleta si
+        // app-reveal ha mutat slot.hidden mentrestant (el seu propi
+        // st.revelat, independent d'aquest): si la ranura ja està armada
+        // per app-reveal, la visibilitat viva la marca px-ar-on, no la
+        // foto vella.
+        el.hidden = el.classList.contains('px-ar-armed')
+          ? !el.classList.contains('px-ar-on')
+          : st.hiddenAbans;
       }
     }
     estatMZ.delete(slideEl);
@@ -779,6 +793,10 @@ const spotlight = {
     const ensureFrame = () => { if (st.rafId == null) st.rafId = requestAnimationFrame(frame); };
 
     st.onMove = (e) => {
+      // Mateixa clau que el kill-switch CSS (parallax-lab.css): en edició
+      // el resultat queda anul·lat igualment, però sense aquest gate cada
+      // moviment del ratolí faria lectura de layout + rAF + setProperty en va.
+      if (document.body.dataset.editable === 'true') return;
       // LP-06: el rect es llegeix FRESC a cada gest; mai es cacheja a l'apply
       // (un slide pot canviar de mida i el rect quedaria ranci).
       const r = slideEl.getBoundingClientRect();
@@ -789,6 +807,7 @@ const spotlight = {
       ensureFrame();
     };
     st.onLeave = () => {
+      if (document.body.dataset.editable === 'true') return;
       st.tx = 50; st.ty = 50;                    // objectiu = centre
       st.centering = true;                       // recentrat suau (lerp)
       ensureFrame();

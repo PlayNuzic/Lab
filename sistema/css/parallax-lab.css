@@ -162,7 +162,9 @@ body[data-editable="true"] .slide--parallax-lab .parallax-app-slot{
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-#tweaks .pxlab-tech__head input[type="checkbox"]:disabled + span{
+/* :has() (no el combinador +): head.append(nom, chk) construeix el span
+   ABANS del checkbox, així que "input:disabled + span" no casa mai. */
+#tweaks .pxlab-tech__head:has(input[type="checkbox"]:disabled) span{
   opacity: 0.5;
 }
 #tweaks .pxlab-params{
@@ -187,15 +189,6 @@ body[data-editable="true"] .slide--parallax-lab .parallax-app-slot{
   font-variant-numeric: tabular-nums;
   opacity: 0.8;
 }
-/* Els botons van ENTRE la capçalera i la llista: la llista scrolleja per
-   dins seu i pot quedar tallada pel plec del panell, però 🎲/Restaurar/
-   Copiar queden sempre visibles a dalt. */
-#tweaks .pxlab-actions{
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 6px 0;
-}
 #tweaks .pxlab-note{
   font-size: 10px;
   opacity: 0.7;
@@ -210,12 +203,18 @@ body[data-editable="true"] .slide--parallax-lab .parallax-app-slot{
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+/* Els botons van ENTRE la capçalera i la llista: la llista scrolleja per
+   dins seu i pot quedar tallada pel plec del panell, però 🎲/Restaurar/
+   Copiar queden sempre visibles a dalt. */
 /* Només la fila de botons s'enganxa a dalt del scroll (top:0): així sempre
    tens 🎲/Restaurar/Copiar a mà mentre recorres les tècniques. L'etiqueta
    de capçalera pot marxar amunt —no cal fixar-la— i evitem apilar dos
    sticky amb offsets fràgils. El fons opac tapa les files que passen per
    sota en scrollejar. */
 #tweaks .pxlab-actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   position: sticky;
   top: 0;
   z-index: 1;
