@@ -733,8 +733,8 @@ export function initHeader() {
         // color, etiquetes). Es manté al DOM — 11+ apps en llegeixen els
         // elements i els selects de so són la font de dataset.value per
         // a l'àudio — però ocult per a l'alumne. initHeader és el punt
-        // únic per on passen TOTS DOS camins de render (template.js
-        // renderApp i renderHeader). NO esborrar el DOM: només visibilitat.
+        // únic per on passa el render (template.js renderApp).
+        // NO esborrar el DOM: només visibilitat.
         if (!devLogsEnabled) {
             menu.style.display = 'none';
         }
@@ -744,7 +744,7 @@ export function initHeader() {
         return { header, menu };
     }
     // If header doesn't exist, warn but don't auto-render to avoid duplication
-    console.warn('[initHeader] No header found. Call renderApp() or renderHeader() first.');
+    console.warn('[initHeader] No header found. Call renderApp() first.');
     return undefined;
 }
 

@@ -55,11 +55,14 @@ export async function ensureToneLoaded() {
     }
 
     const eventTypes = ['click', 'keydown', 'touchstart'];
-    const listenerOptions = { capture: true };
+    // U-01: passive — loadTone mai fa preventDefault, així que un touchstart
+    // no-passiu aquí bloquejaria el primer scroll fins que el JS respon
+    // (mateixa classe de bug que LA-03, ja tancada a user-interaction.js).
+    const listenerOptions = { capture: true, passive: true };
 
     const detachListeners = () => {
       eventTypes.forEach((eventName) => {
-        document.removeEventListener(eventName, loadTone, listenerOptions);
+        document.removeEventListener(eventName, onGesture, listenerOptions);
       });
     };
 
@@ -99,6 +102,16 @@ export async function ensureToneLoaded() {
       document.head.appendChild(script);
     };
 
+    // H-17: filtre d'esdeveniments sintètics — un click programàtic
+    // (isTrusted===false) no ha de disparar loadTone, que acaba creant
+    // l'AudioContext pinnat sense cap gest real de l'usuari.
+    const onGesture = (event) => {
+      if (event?.isTrusted === false) {
+        return;
+      }
+      loadTone();
+    };
+
     const hasActiveUserGesture =
       (typeof navigator !== 'undefined' && navigator.userActivation?.isActive) ||
       hasUserInteracted();
@@ -110,7 +123,7 @@ export async function ensureToneLoaded() {
 
     // Wait for first user interaction before loading
     eventTypes.forEach((eventName) => {
-      document.addEventListener(eventName, loadTone, listenerOptions);
+      document.addEventListener(eventName, onGesture, listenerOptions);
     });
   });
 
