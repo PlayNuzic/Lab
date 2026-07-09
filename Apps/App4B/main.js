@@ -119,7 +119,7 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
         randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
         baseSoundSelect, accentSoundSelect,
         startSoundSelect, cycleSoundSelect, themeSelect, pulseToggleBtn,
-        selectedToggleBtn, cycleToggleBtn, notationPanel, notationCloseBtn,
+        selectedToggleBtn, cycleToggleBtn, notationPanel,
         notationContent } = elements;
 
 // App4-specific elements
@@ -377,7 +377,6 @@ function ensureNotationRenderer() {
 notationPanelController = createNotationPanelController({
   toggleButton: notationToggleBtn,
   panel: notationPanel,
-  closeButton: notationCloseBtn,
   appId: 'app4',
   onOpen: () => {
     ensureNotationRenderer();

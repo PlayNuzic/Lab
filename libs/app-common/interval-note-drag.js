@@ -33,6 +33,11 @@
  * dragHandler.detach();  // Stop listening
  */
 
+// H-10: parseRowId reutilitzada de grid-2d-sync-controller.js (idèntica
+// caràcter per caràcter fins ara) — els dos mòduls ja estan acoblats via
+// `syncController`.
+import { parseRowId } from './grid-2d-sync-controller.js';
+
 /**
  * Creates a drag handler for interval note modification
  *
@@ -106,18 +111,6 @@ export function createIntervalNoteDragHandler(config = {}) {
    */
   function getMatrixContainer() {
     return grid?.getElements?.()?.matrixContainer;
-  }
-
-  /**
-   * Parse rowId to extract note and registry
-   */
-  function parseRowId(rowId) {
-    const match = rowId?.match(/^(\d+)r(\d+)$/);
-    if (!match) return null;
-    return {
-      note: parseInt(match[1]),
-      registry: parseInt(match[2])
-    };
   }
 
   // ========== DRAG HANDLERS ==========

@@ -34,6 +34,32 @@
  */
 
 /**
+ * Parse rowId to extract note and registry
+ * (H-10: exportada perquè interval-note-drag.js la reutilitzi en lloc de
+ * duplicar-la — els dos mòduls ja estan acoblats via `syncController`)
+ * @param {string} rowId - Format "NrR" e.g., "5r4"
+ * @returns {{ note: number, registry: number } | null}
+ */
+export function parseRowId(rowId) {
+  const match = rowId?.match(/^(\d+)r(\d+)$/);
+  if (!match) return null;
+  return {
+    note: parseInt(match[1]),
+    registry: parseInt(match[2])
+  };
+}
+
+/**
+ * Build rowId from note and registry
+ * @param {number} note - Note value (0-11)
+ * @param {number} registry - Registry value
+ * @returns {string} Format "NrR"
+ */
+export function buildRowId(note, registry) {
+  return `${note}r${registry}`;
+}
+
+/**
  * Creates a bidirectional sync controller for Grid 2D and Grid Editor
  *
  * @param {Object} config - Configuration object
@@ -80,29 +106,8 @@ export function createGrid2DSyncController(config = {}) {
     return grid?.getElements?.()?.matrixContainer;
   }
 
-  /**
-   * Parse rowId to extract note and registry
-   * @param {string} rowId - Format "NrR" e.g., "5r4"
-   * @returns {{ note: number, registry: number } | null}
-   */
-  function parseRowId(rowId) {
-    const match = rowId?.match(/^(\d+)r(\d+)$/);
-    if (!match) return null;
-    return {
-      note: parseInt(match[1]),
-      registry: parseInt(match[2])
-    };
-  }
-
-  /**
-   * Build rowId from note and registry
-   * @param {number} note - Note value (0-11)
-   * @param {number} registry - Registry value
-   * @returns {string} Format "NrR"
-   */
-  function buildRowId(note, registry) {
-    return `${note}r${registry}`;
-  }
+  // parseRowId/buildRowId ara són funcions de mòdul (exportades més amunt);
+  // aquesta factory les reutilitza per closure sense redefinir-les.
 
   // ========== SYNC: EDITOR → GRID 2D ==========
 

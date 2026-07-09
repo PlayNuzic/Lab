@@ -224,7 +224,12 @@ export function createMelodicAudioInitializer(config = {}) {
         const appId = appMatch ? appMatch[1].toLowerCase() : null;
         const perAppKey = appId ? `app${appId}:selectedInstrument` : null;
 
-        const storedInstrument = perAppKey ? localStorage.getItem(perAppKey) : null;
+        // localStorage pot llançar (Safari amb storage blocat, embeds); no ha
+        // de trencar el primer play — hi ha fallback a prefs/config més avall.
+        let storedInstrument = null;
+        try {
+          storedInstrument = perAppKey ? localStorage.getItem(perAppKey) : null;
+        } catch {}
         const prefs = config.getPreferences?.() || {};
         const instrument = storedInstrument || prefs.selectedInstrument || config.defaultInstrument || 'piano';
         await instance.setInstrument(instrument);

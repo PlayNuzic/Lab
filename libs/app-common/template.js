@@ -4,7 +4,6 @@ const SELECTED_TOGGLE_BTN_ID = 'selectedToggleBtn';
 const CYCLE_TOGGLE_BTN_ID = 'cycleToggleBtn';
 export const NOTATION_TOGGLE_BTN_ID = 'notationToggleBtn';
 const NOTATION_PANEL_ID = 'notationPanel';
-const NOTATION_CLOSE_BTN_ID = 'notationCloseBtn';
 const NOTATION_CONTENT_ID = 'notationContent';
 
 // Gamification event dispatcher
@@ -60,8 +59,7 @@ export function renderApp({
   showInstrumentDropdown = false,
   showPolyphonyToggle = false,
   showCycleHighlightToggle = false,
-  showWakeLockToggle = false,
-  controlsLayout = null
+  showWakeLockToggle = false
 }) {
   if (!root) throw new Error('root element required');
   document.title = title;
@@ -287,23 +285,8 @@ ${togglesMarkup}
     <section class="timeline-wrapper" id="timelineWrapper">
       <section class="timeline" id="timeline"></section>
 
-      <div class="controls"${controlsLayout ? ` data-layout="${controlsLayout.mode}"` : ''}>
-      ${controlsLayout?.mode === 'vertical' ? '<div class="control-buttons-row">' : ''}
+      <div class="controls">
 
-      ${controlsLayout ? `
-      <!-- Layout vertical/horizontal: Play Button + Sound Toggles en play-row -->
-      <div class="play-row">
-        <button id="playBtn" class="play" aria-label="Play">
-          <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
-            <path d="M73 39c-14.8-9-33 2.5-33 19v396c0 16.5 18.2 28 33 19l305-198c13.3-8.6 13.3-29.4 0-38L73 39z"/>
-          </svg>
-          <svg class="icon-stop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" style="display:none">
-            <path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48z"/>
-          </svg>
-        </button>
-        ${soundToggleMarkup}
-      </div>
-      ` : `
       <!-- Layout circular: Play Button solo, Sound Toggles como hermanos -->
       <button id="playBtn" class="play" aria-label="Play">
         <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
@@ -314,7 +297,6 @@ ${togglesMarkup}
         </svg>
       </button>
       ${soundToggleMarkup}
-      `}
 
       <!-- Loop Button -->
       <button id="loopBtn" class="loop" aria-label="Loop" aria-pressed="false">
@@ -370,7 +352,6 @@ ${togglesMarkup}
   </svg>
 </button>
 
-      ${controlsLayout?.mode === 'vertical' ? '</div>' : ''}
       </div>
     </section>
   </main>

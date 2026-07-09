@@ -104,7 +104,7 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
         randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
         randTToggle, randTMin, randTMax, themeSelect, selectColor, baseSoundSelect,
         accentSoundSelect, startSoundSelect, pulseToggleBtn, selectedToggleBtn,
-        notationPanel, notationCloseBtn, notationContent } = elements;
+        notationPanel, notationContent } = elements;
 
 const notationContentEl = notationContent || null;
 let notationRenderer = null;
@@ -261,7 +261,6 @@ const notationToggleBtn = document.getElementById(NOTATION_TOGGLE_BTN_ID);
 notationPanelController = createNotationPanelController({
   toggleButton: notationToggleBtn,
   panel: notationPanel,
-  closeButton: notationCloseBtn,
   appId: 'app2',
   onOpen: () => renderNotationIfVisible({ force: true })
 });

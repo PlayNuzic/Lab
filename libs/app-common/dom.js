@@ -136,7 +136,6 @@ const APP_SPECIFIC_ELEMENTS = {
     randPulsesToggle: 'randPulsesToggle',
     randomCount: 'randomCount',
     notationPanel: 'notationPanel',
-    notationCloseBtn: 'notationCloseBtn',
     notationContent: 'notationContent'
   },
   app3: {
@@ -185,7 +184,6 @@ const APP_SPECIFIC_ELEMENTS = {
     selectedToggleBtn: 'selectedToggleBtn',
     cycleToggleBtn: 'cycleToggleBtn',
     notationPanel: 'notationPanel',
-    notationCloseBtn: 'notationCloseBtn',
     notationContent: 'notationContent'
   }
 };

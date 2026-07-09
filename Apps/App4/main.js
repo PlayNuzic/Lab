@@ -66,7 +66,7 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
         selectColor, randomBtn, randomMenu, randLgToggle, randLgMin,
         randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
         themeSelect, pulseToggleBtn,
-        selectedToggleBtn, cycleToggleBtn, notationPanel, notationCloseBtn,
+        selectedToggleBtn, cycleToggleBtn, notationPanel,
         notationContent } = elements;
 
 // Ordre nuzic de la fila de controls (Play · Random · Reset; App4 no té
@@ -406,7 +406,6 @@ function ensureNotationRenderer() {
 notationPanelController = createNotationPanelController({
   toggleButton: notationToggleBtn,
   panel: notationPanel,
-  closeButton: notationCloseBtn,
   appId: 'app4',
   onOpen: () => {
     ensureNotationRenderer();
@@ -2207,7 +2206,9 @@ if (inputT) {
   inputT.dataset.auto = '1';
 }
 
-[inputLg, inputV].forEach(el => el.addEventListener('input', handleInput));
+// inputLg ja disposa del seu propi listener 'input' (initCyclesParam, més amunt),
+// que crida handleInput() via recomputeLg(dispatch:true) — no cal duplicar-lo aquí.
+[inputV].forEach(el => el.addEventListener('input', handleInput));
 
 // BPM persistent: es desa a cada canvi (també des de tap/random via setValue)
 // i el reset el neteja perquè la propera càrrega torni al default.
