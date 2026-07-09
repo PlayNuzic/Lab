@@ -50,6 +50,13 @@ class FakeAudioContext {
     this.currentTime = 0;
     this.sampleRate = 48000;
     this.state = 'running';
+    this._listeners = {};
+  }
+  addEventListener(type, fn) {
+    (this._listeners[type] ??= []).push(fn);
+  }
+  _fire(type) {
+    (this._listeners[type] || []).forEach((fn) => fn());
   }
   createGain() {
     const n = new FakeNode('gain');
@@ -177,6 +184,34 @@ describe('cadena d\'efectes del màster (A-04)', () => {
     // només es cablejaven a la branca enabled) → destination inabastable.
     audio.setEffectsEnabled(true);
     expect(abastable(audio._bus.master, audio._ctx.destination)).toBe(true);
+  });
+
+  test('A-08: context tancat pel SO a mig playback → teardown + recuperació al següent ready()', async () => {
+    const audio = new TimelineAudio();
+    try {
+      await audio.ready();
+      await audio.play(4, 0.5, new Set(), false);
+      const ctxVell = audio._ctx;
+      expect(audio._node).toBeTruthy();
+
+      // El SO tanca el context (Android/WebView): 'closed' és irreversible.
+      ctxVell.state = 'closed';
+      ctxVell._fire('statechange');
+
+      // Sense el fix: stop() però _node/_ctx vius → zombie mut per sempre.
+      expect(audio.isPlaying).toBe(false);
+      expect(audio._node).toBeNull();
+      expect(audio._ctx).toBeNull();
+
+      // Recuperació: el següent ready() construeix context i graf NOUS.
+      await audio.ready();
+      expect(audio._ctx).toBeTruthy();
+      expect(audio._ctx).not.toBe(ctxVell);
+      expect(audio._node).toBeTruthy();
+      expect(abastable(audio._bus.master, audio._ctx.destination)).toBe(true);
+    } finally {
+      audio.stop();
+    }
   });
 
   test('paritat amb FX off: el màster va directe (cap senyal per la cadena)', async () => {

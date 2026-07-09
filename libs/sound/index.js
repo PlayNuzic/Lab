@@ -701,7 +701,19 @@ export class TimelineAudio {
       if (this._ctx !== ctx) return; // context substituït des d'aleshores
       if (ctx.state === 'running' || !this.isPlaying) return;
       if (ctx.state === 'closed') {
+        // A-08: 'closed' és irreversible (resume() hi és impossible) — a
+        // diferència de 'suspended', cal desmuntar el graf i deixar anar
+        // el context; si no, _ensureContext trobava _node viu (o
+        // re-adoptava aquest mateix ctx tancat via preferExisting) i cap
+        // play() posterior tornava a sonar: Play visible però mut per
+        // sempre. Ordre: stop() ABANS de nul·lar _ctx (stop() comença amb
+        // `if (!this._ctx) return`). Els instruments melòdics JA carregats
+        // queden lligats al context mort (limitació coneguda: cal
+        // recarregar); els que es carreguin després reben el bus nou via
+        // engine-ready re-armable.
         this.stop();
+        this._teardownAudioGraph();
+        this._ctx = null;
         return;
       }
       // 'suspended' (i l''interrupted' d'iOS, que hi mapeja)
