@@ -1,19 +1,12 @@
 # SESSION_STATE
 
-## Tasca activa: Auditoria 2026-07-06 — Grups 2 i 3 pendents
+Cap tasca activa.
 
-Workflow 1 (auditoria) i Workflow 2 Grup 1 (37 troballes segures) **tancats i commitejats**
-(`39c02a74`..`8a4ee954`). Suite: 84 suites / 1431 tests, tot verd. Detall complet a
-`docs/session-history/2026-07-06-auditoria-grup1.md`. Informe font: `docs/audit-report-2026-07-06.md`.
+Última tasca completada: **Auditoria 2026-07-06 TANCADA (58/59)** — vegeu
+`docs/session-history/2026-07-09-auditoria-grups2-3-tancada.md` (Grups 2 i 3) i
+`docs/session-history/2026-07-06-auditoria-grup1.md` (Grup 1). Informe amb checkboxes:
+`docs/audit-report-2026-07-06.md`. Suite: 89 suites / 1472 tests.
 
-**Pendent:**
-
-- **Grup 2 — decisió-documentar (11 troballes)**: A-03, A-06, P-04, P-06, H-04, H-08, H-11,
-  H-14, T-03, T-04, D-10 — cadascuna necessita una tria explícita de l'usuari (secció 3 de
-  l'informe) abans de tocar-la.
-- **Grup 3 — alt risc (11 troballes)**: A-04, A-05, A-08, A-09, A-10, A-11, A-12, P-03, H-01,
-  H-15, T-01 — toquen Nivell 1 (`libs/sound/index.js`, `timeline-processor.js`). Protocol de
-  diff complet + aprovació humana, un per un, mai en lot.
-
-Última tasca completada: **Parallax Lab** (2026-07-04) — commitejat a `6ca792a4` + `487987fc`;
-acta a `docs/session-history/2026-07-04-parallax-lab.md`.
+Pendents coneguts documentats al codi (re-obrir quan toqui): A-03+T-04 (ear-training,
+dorment), A-10 (align 'cycle', decisió de producte), A-05 risc 2 (comptabilitat melòdica),
+A-08 (re-init d'instruments post context-closed).
