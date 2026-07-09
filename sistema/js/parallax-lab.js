@@ -5,8 +5,13 @@
 // el moviment de fons a les tècniques del registre (parallax-techniques.js),
 // que escriuen variables CSS composades per parallax-lab.css. El motor:
 //   1. Cableja frases + gestos (roda/swipe/clic) — CÒPIA DELIBERADA de la
-//      lògica de wireParallax (slides.js): les slides reals no es toquen,
-//      i aquesta lògica de gestos està finament ajustada (no simplificar).
+//      lògica de wireParallax (slides.js). Aquesta duplicació venia de quan
+//      el Lab encara es construïa (juliol 2026) i no es volia arriscar el
+//      comportament dels passos reals; ara el Lab és estable i en producció
+//      (1/7/11/17/22 ja l'usen) i wireParallax fa doble papel: fallback
+//      real si window.__parallaxLab no existeix (vegeu slides.js render()).
+//      Els dos poden evolucionar; si es toca la lògica de gestos, revisar-la
+//      als dos llocs (no simplificar sense verificar-los junts).
 //   2. Publica el progrés: --px-progress a l'arrel del slide + CustomEvent
 //      'sistema:parallax-progress' — les tècniques s'hi subscriuen via ctx.
 //   3. Gestiona el cicle de vida de les tècniques (apply/cleanup) segons la

@@ -815,13 +815,7 @@ function render(){
   if (slide.apps?.length) slideEl.dataset.app = slide.apps[0];
   if (!pasoExpandsOnVertical(slide.paso)) slideEl.classList.add('slide--no-expand');
 
-  if (slide.layout === 'P-parallax') {
-    // Pas intro de capítol: full-bleed, sense grid. El data-section
-    // tria la paleta d'accent del capítol (vegeu parallax.css).
-    slideEl.classList.add('slide--parallax');
-    slideEl.dataset.section = slide.section;
-    slideEl.innerHTML = renderParallax(slide, section, content);
-  } else if (slide.layout === 'P-parallax-lab') {
+  if (slide.layout === 'P-parallax-lab') {
     // Parallax amb constructor (passos intro 1/7/11/17/22 + labs ocults
     // 28.5/28.7): mateix markup que un P-parallax (renderParallax és una
     // funció pura), però el cablatge va al motor del lab (parallax-lab.js)
@@ -850,9 +844,21 @@ function render(){
 
   STAGE.innerHTML = '';
   STAGE.appendChild(slideEl);
-  if (slide.layout === 'P-parallax') wireParallax(slideEl);
-  else if (slide.layout === 'P-parallax-lab') parallaxCtrl = window.__parallaxLab?.wire(slideEl, slide) ?? null;
-  else parallaxCtrl = null;
+  if (slide.layout === 'P-parallax-lab') {
+    const lab = window.__parallaxLab;
+    if (lab) {
+      parallaxCtrl = lab.wire(slideEl, slide) ?? null;
+    } else {
+      // Fallback si el motor del Lab no s'ha carregat: reutilitzem el
+      // cablatge clàssic de wireParallax (mateix markup produït per
+      // renderParallax, mateix comportament per defecte). wireParallax
+      // assigna `parallaxCtrl` ella mateixa — no reassignar aquí.
+      console.warn('[slides] window.__parallaxLab no disponible; fent fallback a wireParallax per al pas', slide.paso);
+      wireParallax(slideEl);
+    }
+  } else {
+    parallaxCtrl = null;
+  }
 
   // Variant toggle wiring
   slideEl.querySelectorAll('.variant-toggle button').forEach(btn => {
