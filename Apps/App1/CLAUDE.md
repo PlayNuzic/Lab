@@ -39,8 +39,10 @@ randomització i tap resync.
   `toPlaybackPulseCount`, que fa Lg+1 → sonava un pols de més).
   - **Circular** (loop ON): donut cream estil App17. Els números els posa el mòdul
     compartit `circular-timeline-ring.js` (`renderCircularRingNumbers`): Lg punts
-    (0..Lg-1; el Lg coincideix amb el 0 al cim), via trigonometria. Es crida dins
-    d'un rAF perquè guanyi al rAF intern d'`applyCircularLayout`.
+    (0..Lg-1; el Lg coincideix amb el 0 al cim), via trigonometria. `render()` i
+    `setCircular()` de `circular-timeline.js` es criden amb `skipNumbers: true`
+    (P-02) perquè no arribi a pintar el seu propi joc de `.pulse-number`, que
+    es llençaria sempre en favor del donut.
 - **Donut compartit**: el CSS (`.timeline.circular` etc.) viu a
   `libs/shared-ui/nuzic-theme.css` i la geometria a `circular-timeline-ring.js`,
   reutilitzats per **App17** ("Módulo Temporal - Círculo") i App1. Abans tot
@@ -78,9 +80,10 @@ l'ordre Lg→V→T derivava Lg i el treia de rang (Lg=27…).
 
 ## Dependencies
 `libs/app-common/` (audio.js, audio-init.js, audio-schedule.js, dom.js,
-**formula-solver.js**, random-menu.js, range.js, subdivision.js, utils.js,
+**formula-solver.js**, subdivision.js, utils.js,
 number-utils.js, visual-sync.js, circular-timeline.js,
-**circular-timeline-ring.js**), `libs/shared-ui/` (header, hover, nuzic-theme.css),
+**circular-timeline-ring.js**), `libs/random/index.js` (initRandomMenu, mergeRandomConfig),
+`libs/shared-ui/` (header, hover, nuzic-theme.css),
 `libs/sound/index.js`
 
 ## Tests

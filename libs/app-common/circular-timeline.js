@@ -45,19 +45,24 @@ export function createCircularTimeline({
    * @param {Object} options - Render options
    * @param {boolean} options.isCircular - Whether to render in circular mode
    * @param {boolean} options.silent - Skip animations
+   * @param {boolean} [options.skipNumbers=false] - P-02: omet `updateNumbers()`
+   *   intern (només circular); l'app consumidora pinta els seus propis números.
    */
   // P-03: memo de l'últim render — handleInput de les apps crida render()
   // a cada tecla (també per a V/T, que no afecten el timeline) i amb el
   // spinner premut són ~12 reconstruccions DOM per segon. Si (lg,
   // isCircular) no han canviat i els polsos segueixen al DOM, retornem el
   // mateix array sense tocar res (les classes de highlight viuen als
-  // elements conservats).
+  // elements conservats). La clau NO inclou `skipNumbers`: quan hi ha
+  // memo-hit no es torna a cridar applyLayout, així que el valor d'aquesta
+  // crida és irrellevant (els números ja es van pintar, o ometre, a la
+  // crida anterior amb el mateix isCircular).
   let lastLg = null;
   let lastCircular = null;
   let lastPulses = [];
 
   function render(lg, options = {}) {
-    const { isCircular = false, silent = true } = options;
+    const { isCircular = false, silent = true, skipNumbers = false } = options;
 
     if (lg === lastLg && isCircular === lastCircular
         && lastPulses.length && lastPulses[0].isConnected) {
@@ -91,7 +96,7 @@ export function createCircularTimeline({
     }
 
     // Apply layout with local pulses array (not getPulses())
-    applyLayout(pulses, isCircular, { silent });
+    applyLayout(pulses, isCircular, { silent, skipNumbers });
 
     lastLg = lg;
     lastCircular = isCircular;
@@ -104,7 +109,7 @@ export function createCircularTimeline({
    * Internal helper used by render() to avoid timing issues
    */
   function applyLayout(pulses, isCircular, options = {}) {
-    const { silent = false } = options;
+    const { silent = false, skipNumbers = false } = options;
     const lg = pulses.length - 1;
     const bars = timeline.querySelectorAll('.bar');
 
@@ -113,8 +118,10 @@ export function createCircularTimeline({
     // P-05: updateNumbers el crida cada layout al seu moment (linear al
     // final síncron; circular DINS del rAF, quan la geometria ja és bona)
     // — abans es cridava també aquí i cada passada el feia DUES vegades.
+    // P-02: skipNumbers només s'aplica al camí circular (App1 hi pinta el
+    // seu propi donut); el camí lineal manté sempre la doble crida.
     if (isCircular) {
-      applyCircularLayout(pulses, bars, lg, silent);
+      applyCircularLayout(pulses, bars, lg, silent, skipNumbers);
     } else {
       applyLinearLayout(pulses, bars, lg);
     }
@@ -127,6 +134,7 @@ export function createCircularTimeline({
    * @param {boolean} isCircular - True for circular, false for linear
    * @param {Object} options - Layout options
    * @param {boolean} options.silent - Skip animations (for initial render)
+   * @param {boolean} [options.skipNumbers=false] - P-02: vegeu render()
    */
   function setCircular(isCircular, options = {}) {
     const pulses = getPulses();
@@ -137,7 +145,7 @@ export function createCircularTimeline({
   /**
    * Apply circular layout geometry
    */
-  function applyCircularLayout(pulses, bars, lg, silent) {
+  function applyCircularLayout(pulses, bars, lg, silent, skipNumbers = false) {
     timelineWrapper.classList.add('circular');
     timeline.classList.add('circular');
     if (silent) timeline.classList.add('no-anim');
@@ -208,7 +216,10 @@ export function createCircularTimeline({
         bar.style.transform = 'rotate(' + (angle + Math.PI/2) + 'rad)';
       });
 
-      updateNumbers();
+      // P-02: skipNumbers evita reconstruir aquí un joc sencer de
+      // .pulse-number quan l'app consumidora (App1) el llença sempre en
+      // pintar el seu propi donut al rAF següent.
+      if (!skipNumbers) updateNumbers();
 
       // Fade out guide after timeline is drawn
       if (!silent) {

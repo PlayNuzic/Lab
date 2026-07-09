@@ -493,7 +493,9 @@ function renderTimeline(){
   }
 
   const isCircular = loopEnabled && circularTimeline;
-  pulses = timelineController.render(lg, { isCircular, silent: true });
+  // P-02: en circular ometem els números interns de circular-timeline.js
+  // (refreshTimelineNumbers pinta els nostres propis, donut nuzic).
+  pulses = timelineController.render(lg, { isCircular, silent: true, skipNumbers: isCircular });
   refreshTimelineNumbers(isCircular);
 
   // Re-enable transitions after render completes
@@ -504,7 +506,8 @@ function renderTimeline(){
 
 function animateTimelineCircle(isCircular, opts = {}){
   const silent = !!opts.silent;
-  timelineController.setCircular(isCircular, { silent });
+  // P-02: skipNumbers en circular (mateix motiu que a renderTimeline).
+  timelineController.setCircular(isCircular, { silent, skipNumbers: isCircular });
   // El canvi de mode (loop / circular) no passa per renderTimeline → refresquem
   // els números aquí també perquè el donut (circular) o la barra (lineal)
   // quedin ben etiquetats.
@@ -514,9 +517,9 @@ function animateTimelineCircle(isCircular, opts = {}){
 // Números de la timeline segons el mode. Lineal: els genera circular-timeline.js
 // (cal cridar updateNumbers amb `pulses` ja fresc, vegeu renderTimeline).
 // Circular (loop): donut nuzic estil App17 via mòdul compartit — Lg punts
-// (0..Lg-1; el Lg coincideix amb el 0 al cim). El rAF assegura que els nostres
-// números s'escriuen DESPRÉS del rAF intern d'applyCircularLayout (que pintaria
-// els seus propis números solapats) i així guanyen.
+// (0..Lg-1; el Lg coincideix amb el 0 al cim). circular-timeline.js rep
+// `skipNumbers: true` (P-02) i mai pinta el seu propi joc de números en
+// aquest mode, així que el rAF d'aquí ja no competeix amb cap altre.
 function refreshTimelineNumbers(isCircular){
   const lg = parseInt(inputLg.value);
   if (!Number.isFinite(lg) || lg <= 0) return;
