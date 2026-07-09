@@ -29,7 +29,7 @@ export class GameManager {
     this.gameState = new GameState();
     this.pulseSeqController = null; // Will be set from App5
     this.audioCapture = null;
-    this.rhythmAnalyzer = createRhythmAnalyzer();
+    this.rhythmAnalyzer = createRhythmAnalyzer({ timingTolerance: 300 });
     this.currentLevel = null;
     this.phase1StartTime = null;
     this.phase2StartTime = null;
@@ -917,8 +917,7 @@ export class GameManager {
         // Analyze rhythm
         const analysis = this.rhythmAnalyzer.compareRhythm(
           capturedBeats,
-          allExpectedTimestamps,
-          { tolerance: 300 } // 300ms tolerance (opción permisiva)
+          allExpectedTimestamps
         );
 
         log('📊 Rhythm analysis:', analysis);

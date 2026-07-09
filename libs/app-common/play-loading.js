@@ -21,11 +21,14 @@
  */
 export async function withPlayButtonLoading(playBtn, task, { delayMs = 120 } = {}) {
   const icon = playBtn?.querySelector('.icon-play');
+  // A-01: bloqueig SÍNCRON del botó per tancar la finestra de doble clic
+  // abans que dispari `task()`; els visuals (aria-busy, opacity) segueixen
+  // darrere del llindar per preservar l'anti-parpelleig U-27.
+  if (playBtn) playBtn.disabled = true;
   let shown = false;
   const timer = playBtn
     ? setTimeout(() => {
         shown = true;
-        playBtn.disabled = true;
         playBtn.setAttribute('aria-busy', 'true');
         if (icon) icon.style.opacity = '0.5';
       }, delayMs)
@@ -34,8 +37,8 @@ export async function withPlayButtonLoading(playBtn, task, { delayMs = 120 } = {
     return await task();
   } finally {
     if (timer) clearTimeout(timer);
+    if (playBtn) playBtn.disabled = false;
     if (shown && playBtn) {
-      playBtn.disabled = false;
       playBtn.removeAttribute('aria-busy');
       if (icon) icon.style.opacity = '1';
     }
