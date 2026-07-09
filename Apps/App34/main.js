@@ -295,13 +295,6 @@ function buildMiddleLayout() {
   fractionSlot.className = 'itfr-fraction-slot';
   middle.appendChild(fractionSlot);
 
-  // Invisible spacer column mirrors pastilles group width so fraction renders
-  // visually centered despite pastilles on the left.
-  const spacer = document.createElement('div');
-  spacer.className = 'itfr-spacer';
-  spacer.setAttribute('aria-hidden', 'true');
-  middle.appendChild(spacer);
-
   // Resolve info displays
   sumDisplay = document.getElementById('sumItDisplay');
   availableDisplay = document.getElementById('itDisponiblesDisplay');
@@ -1688,11 +1681,19 @@ function highlightCycle(payload = {}) {
 /**
  * Highlight the note bar (inside the grid matrix) that contains a given position.
  */
+// P-01: refs cachejades + últim índex actiu — abans cada tick de subdivisió
+// (~20/s a 150 BPM amb d=8) re-consultava totes les barres (querySelectorAll)
+// i l'editor sencer (document-wide ×2). Ara el tick és matemàtica pura +
+// early-return si l'índex no canvia; quan canvia només es toquen ≤2 barres
+// i ≤4 cel·les per referència. Les refs es revaliden per length/isConnected
+// (re-render ⇒ refs noves). Patró portat d'App35 (P-29); es manté la
+// fórmula pròpia d'App34 (startSubdiv/d, FIXED_NUMERATOR=1).
+let hlBars = null;       // Array de .note-bar alineat amb `notes`
+let hlCellsByIdx = null; // Map entryIndex -> [cel·les N + iT]
+let hlLastIdx = -1;
+
 function highlightBarAtPosition(position) {
   const d = currentDenominator;
-  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
-  const bars = matrix?.querySelectorAll('.note-bar');
-  if (!bars) return;
 
   let activeIdx = -1;
   for (let i = 0; i < notes.length; i++) {
@@ -1705,19 +1706,38 @@ function highlightBarAtPosition(position) {
     }
   }
 
-  bars.forEach((b, i) => b.classList.toggle('highlight', i === activeIdx));
+  if (!hlBars || hlBars.length !== notes.length || (hlBars[0] && !hlBars[0].isConnected)) {
+    const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
+    if (!matrix) return;
+    hlBars = Array.from(matrix.querySelectorAll('.note-bar'));
+    hlCellsByIdx = new Map();
+    document.querySelectorAll('.nit-editor-cell[data-entry-index]').forEach(c => {
+      const idx = Number(c.dataset.entryIndex);
+      if (!hlCellsByIdx.has(idx)) hlCellsByIdx.set(idx, []);
+      hlCellsByIdx.get(idx).push(c);
+    });
+    hlLastIdx = -1;
+    // Neteja residus d'un render anterior (classes que hagin sobreviscut)
+    hlBars.forEach(b => b.classList.remove('highlight'));
+    hlCellsByIdx.forEach(cells => cells.forEach(c => c.classList.remove('active')));
+  }
 
+  if (activeIdx === hlLastIdx) return;
+
+  if (hlLastIdx >= 0) {
+    hlBars[hlLastIdx]?.classList.remove('highlight');
+    hlCellsByIdx?.get(hlLastIdx)?.forEach(c => c.classList.remove('active'));
+  }
   // Editor zigzag (N + iT): il·luminem ambdues cel·les amb el mateix
   // `data-entry-index` que la nota activa. Cada entry produeix una nota
   // (filter no en treu cap perquè les entries són sempre completes),
   // així que `notes[activeIdx]` correspon a entries[activeIdx]. El
   // color per fila ve del CSS (rosa intens per N, groc per iT).
-  document.querySelectorAll('.nit-editor-cell.active').forEach(c => c.classList.remove('active'));
   if (activeIdx >= 0) {
-    document.querySelectorAll(
-      `.nit-editor-cell[data-entry-index="${activeIdx}"]`
-    ).forEach(c => c.classList.add('active'));
+    hlBars[activeIdx]?.classList.add('highlight');
+    hlCellsByIdx?.get(activeIdx)?.forEach(c => c.classList.add('active'));
   }
+  hlLastIdx = activeIdx;
 }
 
 // ========== CONTROLS ==========
