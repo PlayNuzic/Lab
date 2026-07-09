@@ -910,15 +910,22 @@ export class TimelineAudio {
         this._bus.effects.reverbDry.connect(this._bus.effects.reverbMix);
         this._bus.effects.reverbWet.connect(this._bus.effects.reverbMix);
 
-        // Connect based on effects enabled state
+        // A-04: la cadena INTERNA es cableja SEMPRE, fora del condicional.
+        // Abans només es cablejava a la branca enabled: si el graf es
+        // (re)construïa amb FX off, setEffectsEnabled(true) feia
+        // master→eq amb l'eq sense sortida (i reverbMix sense destination)
+        // → silenci total fins a recarregar. Amb FX off la cadena no rep
+        // senyal (el master va directe a destination) → comportament
+        // audible idèntic al d'abans.
+        this._bus.effects.eq.connect(this._bus.effects.compressor);
+        this._bus.effects.compressor.connect(this._bus.effects.limiter);
+        this._bus.effects.reverbMix.connect(ctx.destination);
+
+        // Només la SORTIDA del master depèn de l'estat d'efectes (el
+        // mateix que setEffectsEnabled commuta en calent).
         if (this._effectsEnabled) {
-          // Connect effects chain: master → eq → compressor → limiter → reverb → destination
           this._bus.master.connect(this._bus.effects.eq);
-          this._bus.effects.eq.connect(this._bus.effects.compressor);
-          this._bus.effects.compressor.connect(this._bus.effects.limiter);
-          this._bus.effects.reverbMix.connect(ctx.destination);
         } else {
-          // Effects disabled: connect master directly to destination
           this._bus.master.connect(ctx.destination);
         }
       } else {
