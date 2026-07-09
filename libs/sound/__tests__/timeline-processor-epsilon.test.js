@@ -109,6 +109,33 @@ describe('epsilon 1e-9 del worklet — anti doble-tret (T-01)', () => {
     expect(total).toBe(3);
   });
 
+  test('veus: catch-up amb període < beatsPerSample — cap dèficit acumulat (A-12)', () => {
+    const { p, runBlock, drain } = mkProcessor();
+    // period 1e-5 << beatsPerSample (4.17e-5): l\'antic `if` emetia com a
+    // molt 1 per sample (128/bloc) i acumulava dèficit; el while emet
+    // exactament les degudes (≈ BLOCK/period per bloc).
+    p.port.onmessage({
+      data: { action: 'setVoices', voices: [{ id: 'vfast', numerator: 1, denominator: 100000 }] }
+    });
+    runBlock();
+    const emeses = drain('voice');
+    const esperades = BLOCK / (1 / 100000); // ≈ 533.3
+    expect(Math.abs(emeses - esperades)).toBeLessThanOrEqual(1);
+    expect(emeses).toBeGreaterThan(128); // l\'if antic mai passava de 128/bloc
+  });
+
+  test('veus: denominador Infinity es saneja (període mai 0 → cap bucle infinit) (A-12)', () => {
+    const { p, runBlock, drain } = mkProcessor();
+    p.port.onmessage({
+      data: { action: 'setVoices', voices: [{ id: 'vinf', numerator: 1, denominator: Infinity }] }
+    });
+    const veu = p._voiceList[0];
+    expect(veu.periodBeats).toBeGreaterThan(0);   // sanejat: den Infinity → 1
+    expect(Number.isFinite(veu.periodBeats)).toBe(true);
+    runBlock();                                    // i el bloc acaba (cap penjada)
+    expect(drain('voice')).toBeGreaterThanOrEqual(1);
+  });
+
   test('veus polirítmiques: mateix epsilon al comptador de veu (if de :365)', () => {
     const { p, runBlock, drain } = mkProcessor();
     p.port.onmessage({

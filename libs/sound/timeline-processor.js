@@ -154,8 +154,11 @@ class TimelineProcessor extends AudioWorkletProcessor {
 
   _addVoice(v) {
     if (!v || !v.id) return;
-    const num = Math.max(1, +v.numerator || 1);
-    const den = Math.max(1, +v.denominator || 1);
+    // A-12: Number.isFinite — l'antic `+v.denominator || 1` deixava passar
+    // Infinity (period 0) i, amb el while del catch-up, període 0 seria un
+    // bucle infinit al fil d'àudio.
+    const num = Math.max(1, Number.isFinite(+v.numerator) ? +v.numerator : 1);
+    const den = Math.max(1, Number.isFinite(+v.denominator) ? +v.denominator : 1);
     const periodBeats = num / den;
     this.voices.set(v.id, {
       id: String(v.id),
@@ -362,7 +365,16 @@ class TimelineProcessor extends AudioWorkletProcessor {
         voice.countdownBeats -= beatsPerSample;
         // Epsilon i acumulació (+= period, mai = period): mateixes raons
         // que el comptador de polsos — anti doble-tret i anti deriva.
-        if (voice.countdownBeats <= 1e-9) {
+        // A-12: while (abans if) — amb beatsPerSample > periodBeats l'if
+        // només emetia un cop per sample i acumulava dèficit, trencant el
+        // patró de catch-up que polsos (:339) i cycleEvents (:352) sí
+        // apliquen. Guardes anti-penjada del fil d'àudio: (1) periodBeats
+        // > 0 (un període degenerat mai pot iterar), i (2) topall de 128
+        // emissions per sample i veu — inassolible amb denominadors
+        // legítims (les apps clampen den ≤ 12) però fa el bucle FINIT per
+        // construcció davant de qualsevol entrada patològica.
+        let emissions = 0;
+        while (voice.countdownBeats <= 1e-9 && voice.periodBeats > 0 && emissions < 128) {
           this.port.postMessage({
             type: 'voice',
             id: voice.id,
@@ -370,6 +382,7 @@ class TimelineProcessor extends AudioWorkletProcessor {
             time: blockTime + i * this.secondsPerSample
           });
           voice.countdownBeats += voice.periodBeats;
+          emissions++;
         }
       }
     }
