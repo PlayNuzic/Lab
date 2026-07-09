@@ -179,6 +179,13 @@ export async function ensureAudio() {
     if (started) return;
   }
 
+  // P-03: run-once. Abans el .finally() re-nul·lava audioReadyPromise i
+  // aquest bloc creava i tancava un AudioContext d'un sol ús a CADA crida
+  // sense Tone (ready(), setBase/setAccent/setStart/setCycle, preview()):
+  // pur malbaratament (spin-up de sessió d'àudio + GC). El bloc NO
+  // s'esborra (lliçó A-17: pot ser priming/unlock load-bearing — primer
+  // context de sessió a Firefox, consum del gest d'autoplay — no falsable
+  // des dels tests); només es garanteix que passi UNA vegada.
   if (!audioReadyPromise) {
     audioReadyPromise = (async () => {
       if (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) {
@@ -188,9 +195,7 @@ export async function ensureAudio() {
           await ctx.close?.();
         } catch {}
       }
-    })().finally(() => {
-      audioReadyPromise = null;
-    });
+    })();
   }
 
   await audioReadyPromise;
