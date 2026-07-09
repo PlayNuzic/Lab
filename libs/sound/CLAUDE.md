@@ -12,8 +12,12 @@
 - Tempo ramp: linear per sample, `rampStep = (targetSpb - startSpb) / rampSamples`
 
 ## Polyrhythmic Voices
-- Period = numerator / denominator (both minimum 1)
-- Voice countdown uses same `1e-9` epsilon
+- Period = numerator / denominator (both minimum 1; Infinity/NaN es sanegen a 1 — A-12)
+- Voice countdown uses same `1e-9` epsilon; catch-up amb `while` + topall 128 emissions/sample (A-12)
+- A-11 (2026-07-09): `setVoices` en viu fa MERGE per id — la veu que sobreviu amb la mateixa
+  raó n/d conserva fase i subIndex; la nova (o amb raó canviada) s'ancora a la graella del
+  compàs (primer tic al proper múltiple del seu període des de l'inici de mesura). Mai
+  reiniciar tothom a countdown 0.
 
 ## Mixer
 - Master volume default: 0.75, clamping always [0, 1]

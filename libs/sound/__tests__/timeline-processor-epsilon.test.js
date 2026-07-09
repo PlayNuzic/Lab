@@ -65,7 +65,13 @@ function mkProcessor() {
     msgs.length = 0;
     return n;
   };
-  return { p, runBlock, drain };
+  // Com drain, però retorna els missatges sencers (per filtrar per id).
+  const grab = (type) => {
+    const arr = msgs.filter(m => m && m.type === type);
+    msgs.length = 0;
+    return arr;
+  };
+  return { p, runBlock, drain, grab };
 }
 
 describe('epsilon 1e-9 del worklet — anti doble-tret (T-01)', () => {
@@ -134,6 +140,57 @@ describe('epsilon 1e-9 del worklet — anti doble-tret (T-01)', () => {
     expect(Number.isFinite(veu.periodBeats)).toBe(true);
     runBlock();                                    // i el bloc acaba (cap penjada)
     expect(drain('voice')).toBeGreaterThanOrEqual(1);
+  });
+
+  test('setVoices en viu: la veu que sobreviu conserva la fase exacta (A-11 merge)', () => {
+    const { p, runBlock, drain } = mkProcessor();
+    p.port.onmessage({ data: { action: 'setVoices', voices: [{ id: 'v1', numerator: 3, denominator: 2 }] } });
+    for (let i = 0; i < 3; i++) runBlock();
+    drain('voice');
+    const abans = p.voices.get('v1');
+    const cd = abans.countdownBeats;
+    const sub = abans.subIndex;
+
+    // Edició en viu: v1 es manté (mateixa raó), s'hi afegeix v2.
+    p.port.onmessage({ data: { action: 'setVoices', voices: [
+      { id: 'v1', numerator: 3, denominator: 2 },
+      { id: 'v2', numerator: 3, denominator: 4 }
+    ] } });
+    const despres = p.voices.get('v1');
+    expect(despres.countdownBeats).toBe(cd);   // fase intacta, cap salt
+    expect(despres.subIndex).toBe(sub);
+  });
+
+  test('setVoices en viu: la veu NOVA s\'ancora a la graella del compàs (A-11)', () => {
+    const { p, runBlock, drain, grab } = mkProcessor();
+    p.port.onmessage({ data: { action: 'setVoices', voices: [{ id: 'v1', numerator: 3, denominator: 2 }] } });
+    for (let i = 0; i < 3; i++) runBlock();
+    drain('voice');
+
+    const fase = p.measurePhaseBeats;          // ≈ 3·BLOCK ≈ 0.016 beats
+    p.port.onmessage({ data: { action: 'setVoices', voices: [
+      { id: 'v1', numerator: 3, denominator: 2 },
+      { id: 'v2', numerator: 3, denominator: 4 }  // període 0.75
+    ] } });
+    const v2 = p.voices.get('v2');
+    const periode = 0.75;
+    // El primer tic de v2 cau al proper múltiple de 0.75 des de l'inici de
+    // mesura (no a l'instant d'arribada del missatge, com feia abans).
+    expect(v2.countdownBeats).toBeCloseTo(periode - (fase % periode), 9);
+    expect(v2.subIndex).toBe(Math.floor(fase / periode));
+
+    // I efectivament NO dispara al bloc següent (countdown ≈ 0.734 >> BLOCK);
+    // amb el codi antic (countdown 0) hauria disparat al primer sample.
+    runBlock();
+    const deV2 = grab('voice').filter(m => m.id === 'v2');
+    expect(deV2.length).toBe(0);
+  });
+
+  test('setVoices en repòs: cap ancoratge (start reseteja els comptadors) (A-11)', () => {
+    const { p } = mkProcessor();
+    p.port.onmessage({ data: { action: 'stop' } });
+    p.port.onmessage({ data: { action: 'setVoices', voices: [{ id: 'v1', numerator: 3, denominator: 2 }] } });
+    expect(p.voices.get('v1').countdownBeats).toBe(0); // valor d'_addVoice, intacte
   });
 
   test('veus polirítmiques: mateix epsilon al comptador de veu (if de :365)', () => {

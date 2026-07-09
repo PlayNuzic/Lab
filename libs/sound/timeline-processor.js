@@ -99,9 +99,34 @@ class TimelineProcessor extends AudioWorkletProcessor {
         break;
       }
       case 'setVoices': {
-        this.voices.clear();
+        // A-11 (semàntica de graella, decisió 2026-07-09): en una edició en
+        // viu (push A-13), les veus que sobreviuen amb la MATEIXA raó n/d
+        // conserven la fase (cap salt), i les noves (o amb raó canviada)
+        // s'ancoren a la fase del compàs: el primer tic cau on tocaria si
+        // haguessin sonat des de l'inici de la mesura. Abans: clear() +
+        // countdown 0 per a tothom → totes disparaven a l'instant d'arribada
+        // del missatge i corrien lliures fora de graella.
+        const previes = this.voices;
+        this.voices = new Map();
         if (Array.isArray(msg.voices)) {
-          for (const v of msg.voices) this._addVoice(v);
+          for (const v of msg.voices) {
+            this._addVoice(v);
+            if (!v || !v.id) continue;
+            const nova = this.voices.get(v.id);
+            if (!nova) continue;
+            const antiga = previes.get(v.id);
+            if (antiga && antiga.periodBeats === nova.periodBeats) {
+              // Mateixa veu, mateixa raó: fase i comptador d'emissions intactes.
+              nova.countdownBeats = antiga.countdownBeats;
+              nova.subIndex = antiga.subIndex;
+            } else if (this.active && nova.periodBeats > 0) {
+              // Nova (o raó canviada) amb el transport en marxa: ancoratge
+              // a graella. En repòs no cal: 'start' reseteja els comptadors.
+              const fase = this.measurePhaseBeats % nova.periodBeats;
+              nova.countdownBeats = fase <= 1e-9 ? 0 : nova.periodBeats - fase;
+              nova.subIndex = Math.floor((this.measurePhaseBeats + 1e-9) / nova.periodBeats);
+            }
+          }
         }
         this._syncVoiceList();
         break;
