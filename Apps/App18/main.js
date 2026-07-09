@@ -531,6 +531,8 @@ function generateRandomSequence() {
 }
 
 function handleRandom() {
+  // No permetre randomitzar registre/BPM mentre sona la seqüència (patró App16/17/20/25/25B)
+  if (isPlaying) return;
   generateRandomSequence();
 }
 
