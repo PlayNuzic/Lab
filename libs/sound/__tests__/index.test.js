@@ -527,6 +527,44 @@ describe('TimelineAudio (new engine)', () => {
     expect(audio._selectedChannels.size).toBe(0);
   });
 
+  test('restart després de final natural desenganxa les fonts velles del lookahead (A-05)', async () => {
+    const audio = new TimelineAudio();
+    // try/finally: si un expect falla a mig camí, el stop() final ha de
+    // córrer igualment — sense ell, el setInterval del scheduler queda viu
+    // i jest no surt mai (penjada real vista a la prova de mutació).
+    try {
+      await audio.ready();
+      await audio.play(4, 0.5, new Set(), false);
+
+      // Fonts futures agendades per la sessió en curs (forma real: Map pas→Set)
+      const font = { stop: jest.fn(), disconnect: jest.fn() };
+      audio._futureSources.set(7, new Set([font]));
+
+      // Final natural ('done' del worklet) → stop() graceful: les cues NO es
+      // tallen ni es buiden (per disseny — han d'acabar de sonar).
+      audio._endedNaturally = true;
+      audio.stop();
+      expect(audio.isPlaying).toBe(false);
+      expect(audio._futureSources.size).toBe(1);
+
+      // El punt del bug: restart immediat. Sense el fix, la font vella seguia
+      // comptabilitzada i un setTempo posterior la tallava en sec
+      // (_cancelSourcesAfterStep no distingeix sessions). El clear la
+      // desenganxa SENSE tallar-la.
+      await audio.play(4, 0.5, new Set(), false);
+      expect(audio._futureSources.size).toBe(0);
+      expect(font.stop).not.toHaveBeenCalled();
+
+      // Cinturó (risc residual 1 de l'informe): play() amb so en marxa NO
+      // desenganxa fonts vives del cancel·lador d'A-10.
+      audio._futureSources.set(9, new Set([font]));
+      await audio.play(4, 0.5, new Set(), false); // isPlaying encara true
+      expect(audio._futureSources.size).toBe(1);
+    } finally {
+      audio.stop();
+    }
+  });
+
   test('teardown desconnecta i neteja _previewGain (A-09)', async () => {
     const audio = new TimelineAudio();
     await audio.ready();

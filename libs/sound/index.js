@@ -1699,6 +1699,15 @@ export class TimelineAudio {
     this._pulseCounter = -1;
     this._lastAbsoluteStep = null;
     this._lastCycleState = null;
+    // A-05: desenganxa la comptabilitat del lookahead de la sessió ANTERIOR.
+    // En un stop() graceful (final natural) _futureSources no es buida
+    // expressament (les cues acaben de sonar); però els seus passos absoluts
+    // no porten marca de sessió, i un restart immediat + setTempo les
+    // tallava en sec via _cancelSourcesAfterStep. clear() les DESENGANXA
+    // sense tallar-les (l'onended té guard `if (sources)`). Guard isPlaying:
+    // si algú crida play() amb so en marxa, no desenganxem fonts vives del
+    // cancel·lador d'A-10 (aquell camí conserva el comportament d'avui).
+    if (!this.isPlaying) this._futureSources?.clear();
     // Nova seqüència: encara no ha acabat de forma natural.
     this._endedNaturally = false;
 
