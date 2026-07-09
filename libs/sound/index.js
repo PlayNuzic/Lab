@@ -2464,6 +2464,17 @@ export class TimelineAudio {
       };
     }
 
+    // A-10 (documentat 2026-07-09, DECISIÓ PENDENT — no tocar sense llegir
+    // això): align 'cycle' té DUES semàntiques divergents. Aquí (fil
+    // principal) el llindar es calcula al proper múltiple del NUMERADOR de
+    // cicle en PASSOS ABSOLUTS (free-running, sense wrap); el worklet, en
+    // canvi, aplica el canvi al WRAP DE MESURA (measurePhaseBeats, espai
+    // embolcallat) — frontera diferent i espai diferent. Avui és API latent
+    // (cap caller passa align:'cycle'; tots usen 'nextPulse'), així que la
+    // divergència no té efecte viu. Si mai s'activa: o bé es corregeix
+    // aquesta banda al wrap de mesura, o bé es degrada/elimina l'opció —
+    // tria de producte. NO "arreglar" només una banda: aquesta funció es
+    // comparteix amb la branca 'nextPulse' viva de totes les apps.
     if (align === 'cycle') {
       const numerator = Number.isFinite(this._cycleConfig?.numerator) ? this._cycleConfig.numerator : null;
       if (lastStep == null || !(numerator > 0)) {

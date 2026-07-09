@@ -7,7 +7,10 @@
 - Processing block: 128 samples
 - Epsilon for beat comparison: `1e-9` (prevents double-trigger)
 - `secondsPerBeat`: always `Math.max(1e-6, value)` to avoid division by zero
-- Tempo alignment options: `'immediate'`, `'nextPulse'` (default), `'cycle'`
+- Tempo alignment options: `'immediate'`, `'nextPulse'` (default). ATENCIÓ `'cycle'`: API
+  latent (cap caller) amb DUES semàntiques divergents — el fil principal calcula al múltiple
+  del numerador en passos absoluts, el worklet aplica al wrap de mesura (A-10, decisió
+  pendent documentada a `_computePendingTempo`). No usar sense resoldre-ho abans.
 - Loop wrap: `currentStep %= totalBeats`
 - Tempo ramp: linear per sample, `rampStep = (targetSpb - startSpb) / rampSamples`
 
