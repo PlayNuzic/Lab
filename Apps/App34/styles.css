@@ -221,70 +221,13 @@ body[data-visual="nuzic"].app34 .itfr-info-group .bpm-inline.visible.param.it-di
   padding-right: 0;
 }
 
-.fraction-field .spinner {
-  position: absolute;
-  left: calc(100% + 0.45rem);
-  right: auto;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-  gap: 4px;
-  width: 1.3rem;
-  height: 2.8rem;
-  background: transparent;
-  overflow: visible;
-  transition: opacity 0.2s ease;
-}
-
+/* H-14: el bloc .spinner half-pill viu ara a
+   libs/app-common/fraction-editor-nuzic.css (enllaçat abans d'aquest fitxer).
+   Aquí només queden els dos overrides locals d'App32-35:
+   - font-size en clamp (la lib fixa 0.8rem; App32-35 volen escalat responsiu)
+   - .fraction-field-placeholder ocult (regla pròpia, no és a la lib) */
 .fraction-field .spinner .spin {
-  flex: 1 1 50%;
-  width: 100%;
-  height: auto;
-  border: none;
-  background: var(--nuzic-yellow, #FFBB33);
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-family: 'Ubuntu', sans-serif;
-  font-weight: 700;
   font-size: clamp(0.65rem, 1.2vw, 0.8rem);
-  line-height: 1;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
-}
-
-.fraction-field .spinner .spin.up {
-  border-radius: 999px 999px 0 0;
-}
-
-.fraction-field .spinner .spin.down {
-  border-radius: 0 0 999px 999px;
-}
-
-.fraction-field .spinner .spin::before {
-  content: none;
-  border: 0;
-}
-
-.fraction-field .spinner .spin.up::after  { content: '+'; }
-.fraction-field .spinner .spin.down::after { content: '−'; }
-
-.fraction-field .spinner .spin:hover {
-  background: #e6a82e;
-}
-
-.fraction-field .spinner .spin:active {
-  background: #d9991a;
-}
-
-.fraction-field--empty .spinner {
-  opacity: 0;
-  pointer-events: none;
 }
 
 .fraction-field-placeholder {
