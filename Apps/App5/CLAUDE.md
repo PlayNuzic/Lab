@@ -18,7 +18,15 @@ Unlike App2 (pulses 0 to Lg), App5 uses pulsaciones numbered 1 to Lg, where each
 **Phase 2 (Sync):** User synchronizes with rhythm via keyboard (Space) or microphone (experimental).
 
 Levels: (1) Odd positions, (2) Even positions, (3) Dynamic/random, (4) Free mode.
-Tolerance: 300ms, pass threshold: 40%, success: 60%.
+Tolerance: 300ms (game-manager.js, `createRhythmAnalyzer({ timingTolerance: 300 })` — A-07,
+auditoria 2026-07-06). Pass/success: un únic llindar `accuracy >= 50%` (`game-manager.js`,
+`game-state.js`); no hi ha 40%/60% separats enlloc del codi.
+
+**Pendent (A-03, decisió: es deixa documentat, no es toca ara):** el subsistema
+`ear-training`/`ExerciseRunner` (diferent del joc principal) crida `RhythmAnalyzer` amb la
+clau `tolerance` mentre la classe llegeix `timingTolerance` — la tolerància per nivell mai
+s'aplica allà. Avui és scaffolding dorment (`runLevel()` no s'arriba a executar), per això
+es documenta com a conegut en lloc d'arreglar-se.
 
 **Capture modes:** Keyboard (recommended, default) | Microphone (experimental, -22dB threshold).
 Debug: `window.debugGame` (només amb `?dev=1` a la URL, H-06) — See `GAME_DEBUG.md` for full API.

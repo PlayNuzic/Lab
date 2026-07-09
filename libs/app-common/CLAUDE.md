@@ -36,6 +36,16 @@ Middleware layer between UI and TimelineAudio. 54 modules. Everything reusable a
 - `logger.js` — `log` gated per `?dev` o localStorage `nuzic-debug` (H-13); console.warn/error mai hi passen
 - `led-manager.js`, `utils.js`, `mixer-menu.js`
 
+**Fórmula Lg/V=T/60 — tres implementacions DELIBERADES (H-04, no unificar):**
+`subdivision.js` (`fromLgAndTempo`), `formula-solver.js` (`computeField`) i
+`formula-renderer.js` reimplementen la mateixa aritmètica per separat perquè cadascuna
+té una política de capa diferent: `formula-solver.js` ARRODONEIX expressament (s'escriu
+de tornada als inputs d'App1, tests ho asserten literal); `formula-renderer.js` NO
+arrodoneix a propòsit (delega als formatters, que són intercanviables); `subdivision.js`
+cobreix només una direcció (Lg,tempo→interval) i valida diferent (retorna `null` en lloc
+de fallar). Unificar-les exigiria tocar `subdivision.js` (Nivell 1) o crear una quarta
+implementació — decisió presa: mantenir-les separades i documentades aquí.
+
 **Rhythm & Notation:**
 - `pulse-selectability.js` — Pulse 0 and Lg are NOT directly selectable. Epsilon: `1e-6`
 
