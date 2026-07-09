@@ -12,7 +12,7 @@ import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import createPulseSeqController from '../../libs/pulse-seq/index.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
-import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
+import { syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
 import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
 // P-02: panel.js és lliure de VexFlow; la resta de la notació (createRhythmStaff
@@ -63,9 +63,6 @@ const { elements, leds, ledHelpers } = bindAppRhythmElements('app2', {
   pulseToggleBtn: 'pulseToggleBtn',
   selectedToggleBtn: 'selectedToggleBtn'
 });
-
-// Create LED managers for Lg, V, T parameters
-const ledManagers = createRhythmLEDManagers(leds);
 
 // State object for shared loop controller
 const appState = {

@@ -6,7 +6,7 @@ Visualize linear/circular timeline with time indicator (T).
 Integrates popup mixer and theme/selection preferences.
 
 ## Flow
-1. `bindAppRhythmElements('app2')` + `createRhythmLEDManagers`
+1. `bindAppRhythmElements('app2')` (LEDs amagats: `hideLeds: true`, no s'usa `createRhythmLEDManagers`)
 2. `createSchedulingBridge` + `bindSharedSoundEvents` → `sharedui:*` events
 3. `createRhythmAudioInitializer` → lazy TimelineAudio, `pendingMute` for deferred mute
 4. `createPulseSeqController` → contenteditable for pulses (text, caret, selection, memory)
