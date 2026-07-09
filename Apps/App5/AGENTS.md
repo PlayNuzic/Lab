@@ -218,7 +218,7 @@ Módulo para renderizar y calcular intervalos temporales visuales:
   - Animaciones de entrada/salida
 
 ### 2. pulse-seq-intervals.js
-Ubicación: `/libs/app-common/pulse-seq-intervals.js`
+Ubicación: `/libs/pulse-seq/index.js` (createPulseSeqIntervalsController)
 
 Controlador de secuencia de pulsos adaptado para el formato de intervalos:
 
@@ -251,8 +251,8 @@ libs/temporal-intervals/
 ├── it-styles.css       # Estilos de intervalos
 └── index.js            # Barrel export
 
-libs/app-common/
-└── pulse-seq-intervals.js  # Controlador de secuencia adaptado
+libs/pulse-seq/
+└── index.js  # Controlador de secuencia adaptado (createPulseSeqIntervalsController)
 ```
 
 ## Diferencias Clave en main.js

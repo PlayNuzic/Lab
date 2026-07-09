@@ -25,7 +25,7 @@ Debug: `window.debugGame` (només amb `?dev=1` a la URL, H-06) — See `GAME_DEB
 
 ## New Modules Created
 - `libs/temporal-intervals/` — `it-calculator.js`, `it-renderer.js`, `it-styles.css`
-- `libs/app-common/pulse-seq-intervals.js` — Adapted sequence controller
+- `libs/pulse-seq/index.js` (createPulseSeqIntervalsController) — Adapted sequence controller
 
 ## Compatibility
 Changes to shared modules are opt-in. App2 maintains its behavior unchanged.

@@ -14,7 +14,7 @@ Test bed for `fraction-editor` integration with mixer, preferences, and shared r
 7. `initRandomMenu` + `applyBaseRandomConfig` → Lg/V/n/d randomization (`allowComplex`)
 
 ## Fraction Validation
-- denominator > 0, numerator > 0, numerator < denominator
+- denominator > 0, numerator > 0 (n ≥ d és vàlid via fraccions complexes, `enableComplexFractions`)
 - Fraction key format: `"base+numerator/denominator"` (e.g., `makeFractionKey(3, 1, 4)` → `"3+1/4"`)
 
 ## State
@@ -22,4 +22,4 @@ Test bed for `fraction-editor` integration with mixer, preferences, and shared r
 - Local caches: `pulseNumberLabels`, `cycleMarkers`, `cycleLabels`, `bars`, `lastStructureSignature`
 
 ## Tests
-Shared tests: fraction-editor, audio-toggles, subdivision, notation-utils, tap-resync.
+Shared tests: fraction-editor, audio-toggles, subdivision, fraction-notation, tap-resync.

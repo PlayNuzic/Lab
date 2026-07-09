@@ -19,7 +19,7 @@ Integrates popup mixer and theme/selection preferences.
 - Local: `isPlaying`, `loopEnabled`, `circularTimeline`, `pendingMute`, `pulseMemory` (Map)
 
 ## Dependencies
-`libs/app-common/` (audio.js, audio-init.js, dom.js, led-manager.js, loop-control.js, mixer-menu.js, random-menu.js, range.js, subdivision.js, pulse-seq.js, utils.js), `libs/shared-ui/hover.js`
+`libs/app-common/` (audio.js, audio-init.js, dom.js, led-manager.js, loop-control.js, mixer-menu.js, random-menu.js, range.js, subdivision.js, utils.js), `libs/pulse-seq/`, `libs/shared-ui/hover.js`
 
 ## Tests
-No app-specific suite. Shared tests cover: pulse-seq, loop-resize, subdivision, notation-utils.
+No app-specific suite. Shared tests cover: pulse-seq, loop-resize, subdivision, fraction-notation.

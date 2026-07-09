@@ -28,7 +28,7 @@ Test lab for randomization and tap resync.
 - `createSimpleVisualSync()` — RAF-based visual sync
 
 ## Dependencies
-`libs/app-common/` (audio.js, audio-init.js, audio-schedule.js, dom.js, led-manager.js, random-menu.js, range.js, subdivision.js, utils.js, number-utils.js, simple-visual-sync.js, simple-highlight-controller.js, circular-timeline.js), `libs/shared-ui/hover.js`, `libs/sound/index.js`
+`libs/app-common/` (audio.js, audio-init.js, audio-schedule.js, dom.js, led-manager.js, subdivision.js, utils.js, number-utils.js, visual-sync.js, simple-highlight-controller.js, circular-timeline.js), `libs/random/index.js` (initRandomMenu, mergeRandomConfig), `libs/shared-ui/hover.js`, `libs/sound/index.js`
 
 ## Tests
 No app-specific tests. Relies on shared module tests. Run `npm test` before committing.
