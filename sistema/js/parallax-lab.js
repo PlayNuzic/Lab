@@ -234,12 +234,14 @@ function wire(slideEl, slide) {
   // (step) mantenen el pas discret; amb reduced-motion el lerp és sec.
   const total = frases.length;
   const denom = Math.max(1, total - 1);
-  const PX_PER_FRASE = 300;    // px de gest per recórrer una frase
-  const SUAVITAT = 0.16;       // factor de lerp per frame
-  const SNAP_MS = 450;         // repòs abans del snap a la frase propera
-  const EDGE_ESCAPE_PX = 340;  // sobre-empenta per canviar de paso
-  const EDGE_RESET_MS = 600;   // pausa que buida la sobre-empenta
-  const HYST = 0.1;            // histèresi del canvi de frase (en frases)
+  const PX_PER_FRASE = 300;      // px de gest per recórrer una frase
+  const SUAVITAT = 0.16;         // factor de lerp per frame
+  const SNAP_MS = 450;           // repòs abans del snap a la frase propera
+  const EDGE_ESCAPE_PX = 340;    // sobre-empenta per canviar de paso
+  const EDGE_RESET_MS = 600;     // pausa que buida la sobre-empenta
+  const HYST = 0.1;              // histèresi del canvi de frase (en frases)
+  const GEST_RESET_MS = 250;     // pausa (o canvi de sentit) que obre un gest nou
+  const FRE_PER_FRASE = 0.55;    // fracció d'empenta que sobreviu cada frase recorreguda
 
   let target = 0;
   let cur = 0;
@@ -247,6 +249,10 @@ function wire(slideEl, slide) {
   let snapTimer = null;
   let edgePx = 0;
   let lastEdgeTime = 0;
+  let lastWheelTime = 0;
+  let gestOrigen = 0;        // ancoratge del pressupost (en frases)
+  let gestSign = 0;
+  let gestAlLimit = false;   // el gest va COMENÇAR a l'última frase?
 
   // Postures contínues de les frases (mateixa coreografia que wireParallax,
   // intocable per a les tècniques). Durant el gest NOMÉS s'escriuen
@@ -338,12 +344,23 @@ function wire(slideEl, slide) {
     if (!dy) return;
     hideHint();
     const now = performance.now();
-    // Frontera ENDAVANT (última frase): la sobre-empenta s'acumula i, si
-    // l'usuari insisteix, salta al paso següent. Una pausa la buida.
-    // Frontera ENRERE (primera frase): el gest NO escapa mai de paso —
-    // lliscant és massa fàcil sortir del pas sense voler; enrere només
-    // s'hi va deliberadament (fletxa ↑ o botó de nav).
-    if (dy > 0 && (total === 1 || target >= 1)) {
+    const sign = dy > 0 ? 1 : -1;
+    // Un "gest" = una empenta: una pausa o un canvi de sentit n'obren un
+    // de nou i re-ancoren el pressupost i el permís d'escapada. La cua
+    // d'inèrcia del trackpad pertany al MATEIX gest que la va llençar.
+    if (now - lastWheelTime > GEST_RESET_MS || sign !== gestSign) {
+      gestOrigen = target * denom;
+      gestSign = sign;
+      gestAlLimit = sign > 0 && (total === 1 || target >= 1);
+    }
+    lastWheelTime = now;
+
+    // Frontera ENDAVANT (última frase): només escapa un gest COMENÇAT al
+    // límit — la cua d'una llençada que hi acaba d'arribar no compta.
+    // Frontera ENRERE (primera frase): el gest NO escapa mai de paso
+    // (només fletxa ↑ o botó de nav).
+    if (sign > 0 && (total === 1 || target >= 1)) {
+      if (!gestAlLimit) return;
       if (now - lastEdgeTime > EDGE_RESET_MS) edgePx = 0;
       lastEdgeTime = now;
       edgePx += dy;
@@ -353,9 +370,16 @@ function wire(slideEl, slide) {
       }
       return;
     }
-    if (dy < 0 && target <= 0) { edgePx = 0; return; }
+    if (sign < 0 && target <= 0) { edgePx = 0; return; }
     edgePx = 0;
-    target = Math.max(0, Math.min(1, target + dy / (PX_PER_FRASE * denom)));
+    // Inèrcia que es perd frase a frase (GTA): l'empenta mai es bloqueja,
+    // però cada frase recorreguda dins del MATEIX gest frena la resta
+    // (0.55^frases). Una llençada forta avança 2-3 frases perdent força a
+    // cada pas; un gest nou (pausa o canvi de sentit) recupera tota
+    // l'empenta.
+    const avanc = Math.abs(target * denom - gestOrigen);
+    const fre = Math.pow(FRE_PER_FRASE, avanc);
+    target = Math.max(0, Math.min(1, target + (dy * fre) / (PX_PER_FRASE * denom)));
     arrenca();
     programaSnap();
   }, { passive: false });
@@ -377,28 +401,32 @@ function wire(slideEl, slide) {
   // criteri que la roda).
   let touchY = null;
   let touchTarget = 0;
-  let touchExces = 0;  // en unitats de t, amb signe
+  let touchExces = 0;        // en unitats de t, amb signe
+  let touchAlLimit = false;  // el toc va començar a l'última frase?
   slideEl.addEventListener('touchstart', (e) => {
     if (estat()?.editable) return;
     touchY = e.touches[0].clientY;
     touchTarget = target;
     touchExces = 0;
+    touchAlLimit = total === 1 || target >= 1;
     clearTimeout(snapTimer);
   }, { passive: true });
   slideEl.addEventListener('touchmove', (e) => {
     if (touchY == null || estat()?.editable) return;
     hideHint();
     const dy = touchY - e.touches[0].clientY;           // dit amunt = avançar
-    const nou = touchTarget + dy / (PX_PER_FRASE * denom);
-    target = total === 1 ? 0 : Math.max(0, Math.min(1, nou));
-    touchExces = nou - target;
+    // El dit és manipulació directa (sense inèrcia): mapeig 1:1, sense
+    // fre. El cru es conserva per mesurar l'excés a la frontera.
+    const cru = touchTarget + dy / (PX_PER_FRASE * denom);
+    target = total === 1 ? 0 : Math.max(0, Math.min(1, cru));
+    touchExces = cru - target;
     arrenca();
   }, { passive: true });
   slideEl.addEventListener('touchend', () => {
     if (touchY == null) return;
     touchY = null;
     const excesPx = touchExces * PX_PER_FRASE * denom;  // amb signe: només endavant
-    if (excesPx > 90) {
+    if (touchAlLimit && excesPx > 90) {
       document.getElementById('btn-next')?.click();
     } else {
       programaSnap();

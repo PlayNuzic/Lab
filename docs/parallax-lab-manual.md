@@ -33,10 +33,16 @@ http://localhost:8080/sistema/index.html?tweaks=1&paso=28.7   ← Lab B (imatge 
 A tots els slides del constructor el scroll és **continu i reversible**: la roda o el dit
 mouen el progrés proporcionalment, endavant i endarrere — l'usuari condueix i el motor
 només suavitza (lerp). En parar el gest ~mig segon, el text s'assenta amb un **snap suau**
-a la frase més propera. A l'última frase cal una **sobre-empenta** acumulada per saltar
-al pas següent; **enrere no s'escapa mai per gest** (a la primera frase el scroll s'atura:
-per tornar al pas anterior, fletxa ↑ o botó de navegació). Les fletxes ↑↓ mantenen el pas
-discret de sempre, i amb `prefers-reduced-motion` el moviment és sec (sense lliscament).
+a la frase més propera. Hi ha **inèrcia que es perd frase a frase**: dins d'un mateix gest
+(delimitat per una pausa o un canvi de sentit), cada frase recorreguda frena l'empenta
+restant (~55% de força supervivent per frase) — una llençada forta avança dues o tres
+frases perdent gas a cada pas, mai es bloqueja ni travessa el slide sencer; un gest nou
+recupera tota l'empenta. A l'última frase, per saltar al pas
+següent cal una **sobre-empenta** acumulada d'un gest **començat allà** (la cua d'inèrcia
+d'una llençada que hi acaba d'arribar no compta); **enrere no s'escapa mai per gest** (a
+la primera frase el scroll s'atura: per tornar al pas anterior, fletxa ↑ o botó de
+navegació). Les fletxes ↑↓ mantenen el pas discret de sempre, i amb
+`prefers-reduced-motion` el moviment és sec (sense lliscament).
 
 ## 2. El panell
 
