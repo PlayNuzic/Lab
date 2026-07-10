@@ -39,26 +39,22 @@ Dues funcions pures fan de pont entre l'editor (intervals relatius) i la graella
 
 - Fila pròpia dins `.grid-container` (grid-row 3). Cel·les `<input>`
   (`.interval-editor-cell`): es teclegen intervals `±N`, `0`, o un silenci
-  (`s`/`.`/`r`/`·`). El número complet es confirma amb Enter/Tab o auto-jump als
-  4 s; el silenci es confirma a l'instant (a l'`input`).
+  (`s`/`.`/`r`/`·`). El número complet es confirma amb Enter/Tab o auto-jump;
+  el silenci es confirma a l'instant. En editar una cel·la existent, es pot
+  esborrar tot el contingut i escriure el valor nou. Qualsevol entrada rebutjada
+  mostra el motiu amb `createInfoTooltip`.
 - `commitInterval` → `notifyChange` (re-indexa, converteix a graus absoluts i crida
   `syncGridFromDegreeIntervals`) → `renderCells`. `gridEditor` exposa
   `getPairs/setPairs/clear` amb el model `{ degreeInterval, pulse, isRest }`.
 
 ## Graella (musical-grid) + interacció
 
-- `createMusicalGrid({ notes: 20, pulses: 13, showIntervals:{horizontal,
-  cellLines:true}, onDotClick:()=>{}, onCellClick })`. El darrer pols és cycle-end.
-- **Col·locar un grau**: `handlePlaceAtCell(noteIndex, pulse)` (compartida) toca la
-  nota (`audio.playNote`) i crida `handleGridCellClick`, que recalcula la seqüència i
-  re-sincronitza. Dues vies, MATEIX estat:
-  - **Clic al cos de la cel·la** → `onCellClick` → `handlePlaceAtCell`.
-  - **Grab d'un `np-dot`** (handles estil App15): `cellLines:true` + `onDotClick`
-    dummy activen `.np-dot-clickable` (cursor `grab` via `--np-dot-cursor`, glow). Un
-    pointer-drag delegat al matrix container marca `.drag-preview` + `body.dragging-
-    note` (cursor `grabbing`) i, en deixar anar, col·loca el grau (SEMPRE mida 1; iT
-    no creix). No s'importa cap maquinària note/iT d'App15 (corromperia l'editor de
-    graus); el commit va pel `handlePlaceAtCell` propi.
+- `createMusicalGrid({ notes: 20, pulses: 13,
+  showIntervals:{horizontal:true, vertical:false}, onCellClick })`. El darrer pols
+  és cycle-end. No hi ha `np-dot`, handles de drag ni etiquetes/halters d'iT.
+- **Col·locar un grau**: clic al cos de la cel·la → `handlePlaceAtCell(noteIndex,
+  pulse)` → toca la nota (`audio.playNote`) i crida `handleGridCellClick`, que
+  recalcula la seqüència i re-sincronitza.
 - **`handleGridCellClick`**: llegeix la seqüència de l'editor, hi aplica el clic
   (toggle/replace/afegir), recalcula `newIntervals = absoluteDegreesToIntervals(...)`,
   fa `gridEditor.setPairs(newIntervals)` i **renderitza la graella amb les MATEIXES
@@ -88,24 +84,6 @@ no es pot importar la d'App15 perquè etiqueta semitons):
   box }` (com App15) perquè caixes/fletxes/punts no es tallin amb l'`overflow:hidden`.
 - `pointer-events: none` a barres i números → els clics passen a la cel·la.
 
-## Halters d'iT (estil App15)
-
-- `renderItHalterCellLayer(halterPairs)` posa, dins `#it-bar-cell-layer`, un halter
-  groc (`createIntervalLabelBar` de `libs/shared-ui`) **sota cada NOTA**: punt–línia–
-  caixa(iT)–línia–punt. iT sempre és **1** (un grau per pols). Es mesura cada cel·la
-  (`getBoundingClientRect`) i es posiciona en % del matrix; re-render en **resize**
-  (ResizeObserver) i **scroll** (si la graella desborda durant el play). `currentHalter-
-  Pairs` desa les dades per re-renderitzar sense recalcular el model.
-- **`z-index: 12`** → per SOTA de les barres/fletxes (`.interval-bar-vertical`, 15) i
-  dels números d'iS (`.interval-number`, 16): els halters no tapen els elements iS.
-- **Silencis SENSE halter** (decisió de disseny). La variant **discontínua**
-  (`.interval-label-bar--dashed` + `variant:'dashed'`) es CONSERVA documentada per
-  reutilitzar-la a **App32-35** (només cal tornar a fer `push` del parell amb
-  `isRest:true` a `syncGridFromDegreeIntervals`).
-- **Reset** (`handleReset`) buida la capa: `currentHalterPairs = []` +
-  `renderItHalterCellLayer([])` (a més de `clearIntervalLines` + `musicalGrid.clear` +
-  treure `.rest`/`.cell-label`).
-
 ## Silencis a la graella
 
 Un silenci (`isRest`) pinta una **línia discontínua rosa** (`.musical-cell.rest`,
@@ -115,8 +93,8 @@ línia puntejada blava de continuació la dibuixa el propi `musical-grid`
 
 ## Random / Àudio / Playback
 
-- `handleRandom`: genera intervals (notes + silencis) directament, `setPairs`, sync i
-  auto-play. `handleReset`: para, buida editor/graella/halters/memòria.
+- `handleRandom`: genera intervals (notes + silencis) directament, `setPairs` i sync.
+  `handleReset`: para i buida editor/graella/memòria.
 - Àudio **melòdic** (Tone via `createMelodicAudioInitializer`): el primer gest
   carrega Tone i arrenca el context. `handlePlaceAtCell`/playback toquen `playNote`.
   Cursor de playback: `highlightController.highlightPulse` + `.playing` a la cel·la i
@@ -126,19 +104,19 @@ línia puntejada blava de continuació la dibuixa el propi `musical-grid`
 
 `libs/musical-grid`, `libs/app-common/` (preferences, matrix-highlight-controller,
 audio-init, bpm-controller, idle-caret-flash, info-tooltip, output-note-pill,
-scale-pill, mixer-menu, audio-toggles), `libs/shared-ui/` (**interval-label-bar**
-[+ `.css`], sound-dropdown), `libs/scales/`, `libs/sound/`.
+scale-pill, mixer-menu, audio-toggles), `libs/shared-ui/sound-dropdown`,
+`libs/scales/`, `libs/sound/`.
 
 ## Notes per a Claude
 
-- **Visualització d'intervals = App15** (línies/números/handlers/halters), però
+- **Visualització d'intervals = App15** (línies i números), però
   l'app és **degree-based**: el número és el delta de GRAUS, el commit va per
   `handleGridCellClick` (mai per la maquinària note/iT d'App15).
 - **Verificació CDP**: l'editor s'omple injectant `input`+Enter a `.interval-editor-
   cell.active-input`; els clics a la graella es fan amb `Input.dispatchMouseEvent`
   reals (l'àudio Tone arrenca amb el gest de confiança i `handleGridCellClick` corre).
-  jsdom no fa layout → els halters i les posicions % necessiten Chrome real.
+  jsdom no fa layout → les posicions de les línies necessiten Chrome real.
 - Bugs resolts en aquesta tanda (2026-06): número d'interval blau→caixa rosa
   (selector), caixes tallades (marge graella), silenci de forat amb lag d'una acció
-  (render amb dades de l'editor), Reset no esborrava halters, i clic deixant silencis
-  inicials movia la nota al pols 0 (`absoluteDegreesToIntervals` des del pols 0).
+  (render amb dades de l'editor) i clic deixant silencis inicials movia la nota al
+  pols 0 (`absoluteDegreesToIntervals` des del pols 0).

@@ -99,12 +99,6 @@ main {
   cursor: not-allowed;
 }
 
-/* Inherit np-dot::after size from nuzic-theme; only change color + opacity. */
-.musical-cell.disabled .np-dot::after {
-  background: var(--line-color, #666);
-  opacity: 0.6;
-}
-
 /* ========== Nº EDITOR (inside .grid-container as grid-row 3) ========== */
 .degree-editor {
   grid-column: 1 / -1;

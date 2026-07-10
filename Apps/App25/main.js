@@ -668,6 +668,13 @@ function initDegreeEditor() {
     infoTooltip.show(message, cell);
   }
 
+  const degreeInputHint = () =>
+    `Grado: 0-${currentScaleLength - 1}; usa ±N, 0r4/0r5 o s para silencio`;
+
+  endMarker.addEventListener('click', () => {
+    showTooltip(endMarker, 'Longitud completa');
+  });
+
   function formatDegree(entry) {
     // Silenci: mostra 's' (igual que App25B) dins una cel·la de valor blanca
     // editable, no una cel·la rosa readonly.
@@ -699,20 +706,49 @@ function initDegreeEditor() {
     cell.style.cursor = 'text';
 
     let originalValue = cell.value;
+    let editCommitTimer = null;
 
-    cell.addEventListener('focus', () => { originalValue = cell.value; cell.select(); });
+    cell.addEventListener('focus', () => {
+      clearTimeout(editCommitTimer);
+      originalValue = cell.value;
+      cell.select();
+    });
+
+    // En substituir una entrada existent, confirma també després d'esborrar
+    // el contingut i escriure el nou valor. Els prefixos multicaràcter esperen.
+    cell.addEventListener('input', () => {
+      clearTimeout(editCommitTimer);
+      const val = cell.value.trim().toLowerCase();
+      if (!val || /^[+-]$/.test(val) || /^0(r|\.)$/.test(val)) return;
+
+      const parsed = parseDegreeInput(val);
+      const isAmbiguousZero = val === '0';
+      const isAmbiguousDigit = /^1$/.test(val) && currentScaleLength > 10;
+      const delay = parsed && (isAmbiguousZero || isAmbiguousDigit) ? 2000 : 0;
+      editCommitTimer = setTimeout(() => cell.blur(), delay);
+    });
 
     cell.addEventListener('blur', () => {
+      clearTimeout(editCommitTimer);
       const val = cell.value.trim();
-      if (!val || val === originalValue) { cell.value = originalValue; return; }
+      if (val === originalValue) return;
+      if (!val) {
+        showTooltip(cell, degreeInputHint());
+        cell.value = originalValue;
+        return;
+      }
 
       const idx = parseInt(cell.dataset.entryIndex);
       const entry = entries[idx];
-      if (!entry) { cell.value = originalValue; return; }
+      if (!entry) {
+        showTooltip(cell, 'No se pudo actualizar esta entrada');
+        cell.value = originalValue;
+        return;
+      }
 
       const parsed = parseDegreeInput(val);
       if (!parsed) {
-        showTooltip(cell, `Grado: 0-${currentScaleLength - 1}`);
+        showTooltip(cell, degreeInputHint());
         cell.value = originalValue;
         return;
       }
@@ -728,7 +764,7 @@ function initDegreeEditor() {
       }
 
       if (!validateDegree(parsed.degree)) {
-        showTooltip(cell, `Grado: 0-${currentScaleLength - 1}`);
+        showTooltip(cell, degreeInputHint());
         cell.value = originalValue;
         return;
       }
@@ -810,7 +846,12 @@ function initDegreeEditor() {
 
       // Grau amb alteració opcional ABANS: [+-]?\d+
       const m = val.match(/^([+-]?)(\d+)$/);
-      if (!m) { e.target.value = ''; clearTimeout(autoJumpTimer); return; }
+      if (!m) {
+        showTooltip(cell, degreeInputHint());
+        e.target.value = '';
+        clearTimeout(autoJumpTimer);
+        return;
+      }
       const sign = m[1];
       const degStr = m[2];
       const degree = parseInt(degStr, 10);
@@ -857,16 +898,34 @@ function initDegreeEditor() {
         e.preventDefault();
         clearTimeout(autoJumpTimer);
         const val = cell.value.trim();
-        if (val) {
-          const parsed = parseDegreeInput(val);
-          if (parsed?.isRest) {
-            commitDegree({ isRest: true });
-          } else if (parsed && validateDegree(parsed.degree)) {
-            const registerMsg = detectRegisterCorrection(val);
-            if (registerMsg) showTooltip(cell, registerMsg);
-            commitDegree(parsed);
-          }
+        if (!val) {
+          showTooltip(cell, degreeInputHint());
+          return;
         }
+
+        const parsed = parseDegreeInput(val);
+        if (!parsed) {
+          showTooltip(cell, degreeInputHint());
+          cell.value = '';
+          return;
+        }
+        if (parsed.isRest) {
+          commitDegree({ isRest: true }, cell);
+          return;
+        }
+        if (!validateDegree(parsed.degree)) {
+          showTooltip(cell, degreeInputHint());
+          cell.value = '';
+          return;
+        }
+        if (parsed.modifier && alterationLandsOnScaleDegree(parsed.degree, parsed.modifier)) {
+          showTooltip(cell, 'Esa alteración cae en otro grado de la escala');
+          cell.value = '';
+          return;
+        }
+        const registerMsg = detectRegisterCorrection(val);
+        if (registerMsg) showTooltip(cell, registerMsg);
+        commitDegree(parsed, cell);
         return;
       }
 
@@ -877,6 +936,8 @@ function initDegreeEditor() {
           entries.pop();
           notifyChange();
           renderCells();
+        } else {
+          showTooltip(cell, 'No hay entradas para borrar');
         }
       }
     });
@@ -928,9 +989,12 @@ function initDegreeEditor() {
     return degree >= 0 && degree < currentScaleLength;
   }
 
-  function commitDegree(parsed) {
+  function commitDegree(parsed, anchor = null) {
     const pulse = entries.length;
-    if (pulse >= TOTAL_SPACES) return;
+    if (pulse >= TOTAL_SPACES) {
+      showTooltip(anchor || endMarker, 'Longitud completa');
+      return false;
+    }
 
     if (parsed.isRest) {
       entries.push({ degree: null, modifier: null, pulse, isRest: true });
@@ -940,6 +1004,7 @@ function initDegreeEditor() {
     lostDegreesMemory.delete(pulse);
     notifyChange();
     renderCells();
+    return true;
   }
 
   function notifyChange() {
@@ -968,7 +1033,7 @@ function initDegreeEditor() {
       const input = createInputCell();
       cellsContainer.insertBefore(input, endMarker);
       cellsContainer.insertBefore(createReadonlyCell(), endMarker);
-      setTimeout(() => input.focus(), 30);
+      input.focus();
     }
 
     endMarker.style.display = entries.length >= TOTAL_SPACES ? 'flex' : 'none';

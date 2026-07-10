@@ -105,12 +105,6 @@ main {
   cursor: not-allowed;
 }
 
-/* Inherit np-dot::after size from nuzic-theme; only change color + opacity. */
-.musical-cell.disabled .np-dot::after {
-  background: var(--line-color, #666);
-  opacity: 0.6;
-}
-
 /* ========== REST CELLS (silences shown as dotted line) ========== */
 .musical-cell.rest {
   background-image: linear-gradient(to right, var(--interval-sound-color) 50%, transparent 50%);
@@ -310,84 +304,6 @@ body[data-visual="nuzic"].app25b .matrix-container .interval-number {
 body[data-visual="nuzic"][data-theme="dark"].app25b .matrix-container .interval-number {
   color: var(--nuzic-dark, #43433B) !important;
   text-shadow: none !important;
-}
-
-/* ========== HANDLERS D'INTERVAL (np-dot grab, estil App15) ==========
-   El np-dot clicable agafa el cursor `grab`; en arrossegar-lo el body passa a
-   `grabbing` i la cel·la d'origen mostra una previsualització. */
-body[data-visual="nuzic"].app25b {
-  --np-dot-cursor: grab;
-}
-
-.musical-cell.drag-preview {
-  opacity: 0.3;
-  z-index: var(--z-interactive, 10);
-}
-
-.musical-cell.drag-preview::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 100%;
-  background: var(--nuzic-blue-light, #bdd9e6);
-  border-radius: 2px;
-  z-index: 1;
-  pointer-events: none;
-}
-
-body.dragging-note,
-body.dragging-note * {
-  cursor: grabbing !important;
-}
-
-/* ========== HALTERS D'iT (sota cada nota/silenci, estil App15) ==========
-   El layer cobreix el matrix; cada halter es posiciona en % (per JS). Mides
-   compactes copiades d'App15. El número (iT) sempre és "1" a App25B. */
-.it-bar-cell-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  /* Per SOTA de les barres/fletxes (.interval-bar-vertical, z-index 15) i dels
-     números d'iS (.interval-number, z-index 16): els halters d'iT no han de
-     tapar les etiquetes ni les fletxes d'iS. */
-  z-index: 12;
-}
-
-.it-bar-cell-layer .interval-label-bar {
-  height: 0.8rem;
-  margin-top: 0.15rem; /* petita separació de la cel·la */
-}
-
-.it-bar-cell-layer .interval-label-bar__dot {
-  width: 0.4rem;
-  height: 0.4rem;
-  top: 0.075rem; /* centrat sobre la línia (0.15rem / 2) */
-}
-
-.it-bar-cell-layer .interval-label-bar::before {
-  height: 0.15rem;
-}
-
-/* Variant discontínua (silencis). A App25B no es genera cap halter de silenci,
-   però es CONSERVA aquesta regla per reutilitzar-la a App32-35. */
-.it-bar-cell-layer .interval-label-bar--dashed::before {
-  background-image: linear-gradient(
-    to right,
-    var(--nuzic-yellow, #ffbb33) 0,
-    var(--nuzic-yellow, #ffbb33) 0.25rem,
-    transparent 0.25rem,
-    transparent 0.5rem
-  );
-  background-size: 0.5rem 100%;
-}
-
-.it-bar-cell-layer .interval-label-bar__box {
-  font-size: clamp(0.75rem, 1.4vw, 1.1rem);
-  padding: 0.15rem 0.45rem;
-  min-width: 1.35rem;
-  line-height: 1;
 }
 
 /* ============================================================================

@@ -24,7 +24,6 @@ import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { createOutputNotePill } from '../../libs/app-common/output-note-pill.js';
 import { createScalePill } from '../../libs/app-common/scale-pill.js';
-import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 13;   // Horizontal: 0-12 (creates 12 spaces)
@@ -69,10 +68,6 @@ const lostDegreesMemory = new Map();
 
 // Interval line elements for cleanup
 let currentIntervalElements = [];
-
-// Parells {note, pulse, isRest} per re-renderitzar els halters d'iT (a resize/
-// scroll). iT sempre és 1 a App25B (un grau per pols).
-let currentHalterPairs = [];
 
 // Elements
 let playBtn = null;
@@ -345,55 +340,6 @@ function createDegreeIntervalLine(degree1, degree2, pulseIndex, intervalIndex = 
   currentIntervalElements.push(intervalNum);
 }
 
-// ========== iT HALTER LAYER (estil App15) ==========
-// Sota cada nota (i cada silenci, en discontínua) un "halter" groc amb el seu
-// iT (sempre 1 a App25B). Es mesura cada cel·la (getBoundingClientRect) i es
-// posiciona en % del matrix container, com a App15.
-
-function renderItHalterCellLayer(halterPairs) {
-  if (!musicalGrid) return;
-  const matrix = musicalGrid.getMatrixContainer?.();
-  if (!matrix) return;
-
-  let layer = matrix.querySelector('#it-bar-cell-layer');
-  if (!layer) {
-    layer = document.createElement('div');
-    layer.id = 'it-bar-cell-layer';
-    layer.className = 'it-bar-cell-layer';
-    matrix.appendChild(layer);
-  }
-  layer.innerHTML = '';
-
-  const matrixRect = matrix.getBoundingClientRect();
-  if (!matrixRect.width || !matrixRect.height) return;
-
-  (halterPairs || []).forEach((p) => {
-    if (p.note == null || p.pulse == null) return;
-    if (p.pulse < 0 || p.pulse > TOTAL_SPACES - 1) return;
-    if (p.note < 0 || p.note > TOTAL_NOTES - 1) return;
-    const cell = musicalGrid.getCellElement(p.note, p.pulse);
-    if (!cell) return;
-    const rect = cell.getBoundingClientRect();
-    // iT sempre 1 → el halter ocupa exactament la cel·la (un espai).
-    const halter = createIntervalLabelBar({
-      startPercent: 0, widthPercent: 100, label: 1,
-      variant: p.isRest ? 'dashed' : 'solid'
-    });
-    const leftPct = ((rect.left - matrixRect.left) / matrixRect.width) * 100;
-    const rightPct = ((rect.right - matrixRect.left) / matrixRect.width) * 100;
-    const bottomPct = ((rect.bottom - matrixRect.top) / matrixRect.height) * 100;
-    halter.style.left = `${leftPct}%`;
-    halter.style.width = `${Math.max(0, rightPct - leftPct)}%`;
-    halter.style.top = `${bottomPct}%`;
-    layer.appendChild(halter);
-  });
-}
-
-// Re-render amb les últimes dades (resize/scroll), sense recalcular el model.
-function rerenderHalters() {
-  renderItHalterCellLayer(currentHalterPairs);
-}
-
 // ========== SYNCHRONIZATION ==========
 
 function syncGridFromDegreeIntervals(absoluteDegrees) {
@@ -406,17 +352,12 @@ function syncGridFromDegreeIntervals(absoluteDegrees) {
 
   const sorted = [...absoluteDegrees].sort((a, b) => a.pulse - b.pulse);
   const validDegrees = [];
-  const halterPairs = [];
   let lastNoteIndex = 0;
 
   sorted.forEach(({ degree, pulse, isRest }) => {
     if (isRest) {
       const cell = musicalGrid.getCellElement(lastNoteIndex, pulse);
       if (cell) cell.classList.add('rest');
-      // A App25B els SILENCIS no porten halter d'iT (decisió de disseny). La
-      // variant discontínua (`dashed`) de renderItHalterCellLayer i el CSS
-      // `.interval-label-bar--dashed` es conserven per reutilitzar-los a
-      // App32-35 (només cal tornar a fer push amb isRest:true).
       return;
     }
     if (degree === null) return;
@@ -426,7 +367,6 @@ function syncGridFromDegreeIntervals(absoluteDegrees) {
 
     lastNoteIndex = noteIndex;
     validDegrees.push({ degree, pulse });
-    halterPairs.push({ note: noteIndex, pulse, isRest: false });
 
     const cell = musicalGrid.getCellElement(noteIndex, pulse);
     if (cell) {
@@ -445,11 +385,6 @@ function syncGridFromDegreeIntervals(absoluteDegrees) {
     createDegreeIntervalLine(prevDegree, degree, pulse, idx);
     prevDegree = degree;
   });
-
-  // Halters d'iT sota cada nota/silenci (mesura les cel·les → cal fer-ho ja
-  // pintades). Es desa `currentHalterPairs` per re-renderitzar a resize/scroll.
-  currentHalterPairs = halterPairs;
-  renderItHalterCellLayer(halterPairs);
 }
 
 // ========== BIDIRECTIONAL: Grid2D -> iSº Editor ==========
@@ -654,10 +589,6 @@ function handleReset() {
   });
   document.querySelectorAll('.musical-cell .cell-label').forEach(el => el.remove());
 
-  // Esborra els halters d'iT (la capa quedava dibuixada després del reset).
-  currentHalterPairs = [];
-  renderItHalterCellLayer([]);
-
   currentDegreeIntervals = [];
   lostDegreesMemory.clear();
 }
@@ -839,6 +770,12 @@ function initIntervalEditor() {
     infoTooltip.show(message, cell);
   }
 
+  const intervalInputHint = 'iSº: usa ±N (ej: +2, -1, 0) o s para silencio';
+
+  endMarker.addEventListener('click', () => {
+    showError(endMarker, 'Longitud completa');
+  });
+
   function formatInterval(entry) {
     if (entry.isRest) return 's';
     const v = entry.degreeInterval;
@@ -919,17 +856,45 @@ function initIntervalEditor() {
     cell.style.cursor = 'text';
 
     let originalValue = cell.value;
+    let editCommitTimer = null;
 
-    cell.addEventListener('focus', () => { originalValue = cell.value; cell.select(); });
+    cell.addEventListener('focus', () => {
+      clearTimeout(editCommitTimer);
+      originalValue = cell.value;
+      cell.select();
+    });
+
+    // Confirma la substitució encara que l'usuari primer esborri tot el camp.
+    // Un signe sol és un prefix vàlid; l'interval 1 espera per admetre 10/11.
+    cell.addEventListener('input', () => {
+      clearTimeout(editCommitTimer);
+      const val = cell.value.trim().toLowerCase();
+      if (!val || /^[+-]$/.test(val)) return;
+
+      const parsed = parseIntervalInput(val);
+      const delay = parsed && /^[+-]?1$/.test(val) ? 2000 : 0;
+      editCommitTimer = setTimeout(() => cell.blur(), delay);
+    });
 
     cell.addEventListener('blur', () => {
+      clearTimeout(editCommitTimer);
       const val = cell.value.trim();
-      if (!val || val === originalValue) { cell.value = originalValue; return; }
+      if (val === originalValue) return;
+      if (!val) {
+        showError(cell, intervalInputHint);
+        cell.value = originalValue;
+        return;
+      }
 
       const idx = parseInt(cell.dataset.entryIndex);
+      if (!entries[idx]) {
+        showError(cell, 'No se pudo actualizar esta entrada');
+        cell.value = originalValue;
+        return;
+      }
       const parsed = parseIntervalInput(val);
       if (!parsed) {
-        showError(cell, 'iSº: usa ±N (ej: +2, -1, 0) o s para silencio');
+        showError(cell, intervalInputHint);
         cell.value = originalValue;
         return;
       }
@@ -1012,7 +977,11 @@ function initIntervalEditor() {
         const commitNow = () => {
           const current = cell.value.trim();
           const p = parseIntervalInput(current);
-          if (!p) { cell.value = ''; return; }
+          if (!p) {
+            showError(cell, intervalInputHint);
+            cell.value = '';
+            return;
+          }
           const validation = validateIntervalChange(p, null);
           if (!validation.valid) {
             showError(cell, validation.message);
@@ -1030,6 +999,7 @@ function initIntervalEditor() {
       }
 
       // Any other input is invalid — clear
+      showError(cell, intervalInputHint);
       e.target.value = '';
       clearTimeout(autoJumpTimer);
     });
@@ -1039,21 +1009,23 @@ function initIntervalEditor() {
         e.preventDefault();
         clearTimeout(autoJumpTimer);
         const val = cell.value.trim();
-        if (val) {
-          const parsed = parseIntervalInput(val);
-          if (!parsed) {
-            showError(cell, 'iSº: usa ±N (ej: +2, -1, 0) o s para silencio');
-            cell.value = '';
-            return;
-          }
-          const validation = validateIntervalChange(parsed, null);
-          if (!validation.valid) {
-            showError(cell, validation.message);
-            cell.value = '';
-            return;
-          }
-          commitInterval(parsed);
+        if (!val) {
+          showError(cell, intervalInputHint);
+          return;
         }
+        const parsed = parseIntervalInput(val);
+        if (!parsed) {
+          showError(cell, intervalInputHint);
+          cell.value = '';
+          return;
+        }
+        const validation = validateIntervalChange(parsed, null);
+        if (!validation.valid) {
+          showError(cell, validation.message);
+          cell.value = '';
+          return;
+        }
+        commitInterval(parsed, cell);
         return;
       }
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
@@ -1079,6 +1051,8 @@ function initIntervalEditor() {
           entries.pop();
           notifyChange();
           renderCells();
+        } else {
+          showError(cell, 'No hay entradas para borrar');
         }
       }
     });
@@ -1086,9 +1060,12 @@ function initIntervalEditor() {
     return cell;
   }
 
-  function commitInterval(parsed) {
+  function commitInterval(parsed, anchor = null) {
     const pulse = entries.length;
-    if (pulse >= TOTAL_SPACES) return;
+    if (pulse >= TOTAL_SPACES) {
+      showError(anchor || endMarker, 'Longitud completa');
+      return false;
+    }
 
     if (parsed.isRest) {
       entries.push({ degreeInterval: null, pulse, isRest: true });
@@ -1098,6 +1075,7 @@ function initIntervalEditor() {
     lostDegreesMemory.delete(pulse);
     notifyChange();
     renderCells();
+    return true;
   }
 
   function notifyChange() {
@@ -1121,7 +1099,7 @@ function initIntervalEditor() {
       const input = createInputCell();
       cellsContainer.insertBefore(input, endMarker);
       cellsContainer.insertBefore(createReadonlyCell(), endMarker);
-      setTimeout(() => input.focus(), 30);
+      input.focus();
     }
 
     endMarker.style.display = entries.length >= TOTAL_SPACES ? 'flex' : 'none';
@@ -1223,8 +1201,7 @@ async function init() {
     onChange: (value) => handleTransposeChange(value),
   });
 
-  // Col·locació d'un grau en una cel·la (so + commit). Compartida pel clic al
-  // cos de la cel·la (onCellClick) i pel handler de grab del np-dot (mida 1).
+  // Col·locació d'un grau amb clic directe al cos de la cel·la (so + commit).
   async function handlePlaceAtCell(noteIndex, pulseIndex) {
     const audioInstance = await initAudio();
     if (!window.Tone || !audioInstance) {
@@ -1257,11 +1234,8 @@ async function init() {
     activeClassName: 'active',
     highlightClassName: 'highlight',
     scrollEnabled: false,
-    showIntervals: { horizontal: true, vertical: false, cellLines: true },
+    showIntervals: { horizontal: true, vertical: false },
     intervalColor: '#4A9EFF',
-    // Dummy onDotClick: activa la classe .np-dot-clickable (afordança grab +
-    // glow d'App15). La col·locació real la fa el pointer-drag (grab) de sota.
-    onDotClick: () => {},
     noteFormatter: (noteIndex) => {
       const semitoneInOctave = noteIndex % 12;
       const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
@@ -1277,58 +1251,6 @@ async function init() {
 
   // Initial cell states
   updateGridCellStates();
-
-  // ── Handler de "grab" del np-dot (estil App15): agafa un punt i, en deixar-lo
-  // anar, col·loca un grau en aquell pols. SEMPRE mida 1 (iT no creix). Conviu
-  // amb el clic al cos de la cel·la. Delegat al matrixContainer (sobreviu els
-  // re-renders dels intervals). El `onDotClick` dummy del grid només activa
-  // .np-dot-clickable (afordança/glow); el commit el fa aquest pointerup. ──
-  let dotDrag = { active: false, noteIndex: null, spaceIndex: null, cell: null };
-  function resetDotDrag() {
-    if (dotDrag.cell) dotDrag.cell.classList.remove('drag-preview');
-    document.body.classList.remove('dragging-note');
-    dotDrag = { active: false, noteIndex: null, spaceIndex: null, cell: null };
-  }
-  const dragMatrixEl = musicalGrid.getMatrixContainer?.();
-  if (dragMatrixEl) {
-    dragMatrixEl.addEventListener('pointerdown', (e) => {
-      const dot = e.target.closest?.('.np-dot.np-dot-clickable');
-      if (!dot) return;
-      const noteIndex = parseInt(dot.dataset.note, 10);
-      const spaceIndex = parseInt(dot.dataset.pulse, 10);
-      if (Number.isNaN(noteIndex) || Number.isNaN(spaceIndex)) return;
-      e.stopPropagation();
-      e.preventDefault();
-      const cell = musicalGrid.getCellElement?.(noteIndex, spaceIndex) || null;
-      dotDrag = { active: true, noteIndex, spaceIndex, cell };
-      document.body.classList.add('dragging-note');
-      if (cell) cell.classList.add('drag-preview');
-    });
-    document.addEventListener('pointerup', () => {
-      if (!dotDrag.active) return;
-      const { noteIndex, spaceIndex } = dotDrag;
-      resetDotDrag();
-      handlePlaceAtCell(noteIndex, spaceIndex);
-    });
-    document.addEventListener('pointercancel', () => { if (dotDrag.active) resetDotDrag(); });
-  }
-
-  // Re-render dels halters d'iT quan la graella canvia de mida (les posicions
-  // es mesuren en px → s'han de recalcular). rAF per esperar el layout.
-  if (dragMatrixEl && typeof ResizeObserver !== 'undefined') {
-    let halterRaf = null;
-    const ro = new ResizeObserver(() => {
-      if (halterRaf) cancelAnimationFrame(halterRaf);
-      halterRaf = requestAnimationFrame(() => rerenderHalters());
-    });
-    ro.observe(dragMatrixEl);
-    // Si la graella desborda i fa scroll (scrollToNoteIfNeeded durant el play),
-    // recalcula els halters perquè segueixin les cel·les.
-    dragMatrixEl.addEventListener('scroll', () => {
-      if (halterRaf) cancelAnimationFrame(halterRaf);
-      halterRaf = requestAnimationFrame(() => rerenderHalters());
-    }, { passive: true });
-  }
 
   // Add missing bottom soundline division below note 0
   const soundlineInner = gridWrapper.querySelector('.soundline-inner') ||
