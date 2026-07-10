@@ -467,12 +467,29 @@ body[data-visual="nuzic"].app35 .plano-cell .np-dot:hover::after {
   box-shadow: 0 0 0.4rem var(--nuzic-orange, #F2A03D);
 }
 
-/* Jerarquia: els np-dots de pulsos FRACCIONATS (subdivisions, no `.pulse-boundary`)
-   es veuen més fluixos que els de pulsos SENCERS. En hover recuperen força plena
-   (afordança de grab). Els pulsos sencers "fantasma" (fracció complexa) ja es
-   marquen amb les ghost-pulse-lines. */
-body[data-visual="nuzic"].app35 .plano-cell:not(.pulse-boundary) .np-dot:not(:hover)::after {
-  opacity: 0.3;
+/* Polsos fraccionats: línia crema vertical en lloc de punt. El handle
+   conserva 16px d'amplada, però ocupa tota la franja de la nota per mantenir
+   una zona de grab còmoda. Els polsos sencers, també els fantasma, continuen
+   sent punts. */
+body[data-visual="nuzic"].app35 .plano-cell:not(.pulse-boundary) .np-dot {
+  height: var(--plano-cell-height, 2rem);
+  z-index: 4;
+}
+
+body[data-visual="nuzic"].app35 .plano-cell:not(.pulse-boundary) .np-dot::after {
+  width: 2px;
+  height: 100%;
+  background: var(--nuzic-light, #EEE8D8);
+  border-radius: 0;
+  opacity: 1;
+  box-shadow: none;
+}
+
+body[data-visual="nuzic"].app35 .plano-cell:not(.pulse-boundary) .np-dot:hover::after {
+  width: 3px;
+  height: 100%;
+  background: var(--nuzic-orange, #F2A03D);
+  box-shadow: 0 0 0.25rem var(--nuzic-orange, #F2A03D);
 }
 
 body.dragging-note .np-dot,
