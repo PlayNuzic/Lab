@@ -546,7 +546,12 @@ function initZigzagEditor() {
           return;
         }
         if (parsed === 'S') { entry.isRest = true; entry.note = 0; }
-        else { entry.isRest = false; entry.note = parsed; }
+        else {
+          entry.isRest = false;
+          entry.note = parsed;
+          // Editar la N d'una entrada existent també fa sonar la nota nova.
+          gridEditor.playNotePreview({ note: entry.note, duration: entry.temporalInterval });
+        }
       } else {
         const num = parseInt(val, 10);
         if (isNaN(num) || num < 1) {
@@ -797,6 +802,9 @@ function initZigzagEditor() {
       entries.push({ note: 0, temporalInterval: pendingIT, isRest: true });
     } else {
       entries.push({ note: pendingN, temporalInterval: pendingIT, isRest: false });
+      // La nota entrada des de l'editor sona igual que quan es crea des de la
+      // graella (mateix preview compartit de plano-grid-editor).
+      gridEditor.playNotePreview({ note: pendingN, duration: pendingIT });
     }
     pendingN = null;
     pendingIT = null;

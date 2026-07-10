@@ -877,6 +877,8 @@ function initGridEditor() {
           entry.note = parsed.note;
           entry.registry = parsed.registry;
           entry.isRest = false;
+          // Editar la N d'una entrada existent també fa sonar la nota nova.
+          playNotePreview(entry.note, entry.registry, entry.temporalInterval);
         }
       } else {
         const num = parseInt(val);
@@ -1151,6 +1153,9 @@ function initGridEditor() {
       entries.push({ note: 0, registry: CONFIG.DEFAULT_REGISTRO, temporalInterval: pendingIT, isRest: true });
     } else {
       entries.push({ note: pendingN.note, registry: pendingN.registry, temporalInterval: pendingIT, isRest: false });
+      // La nota entrada des de l'editor sona igual que quan es crea des de la
+      // graella (mateix preview; el gest de teclat manté desbloquejat l'audio).
+      playNotePreview(pendingN.note, pendingN.registry, pendingIT);
     }
 
     pendingN = null;

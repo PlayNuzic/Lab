@@ -378,6 +378,19 @@ function syncGridFromPairs(pairs) {
 
 let currentPairs = []; // Array of { note: 0-11, pulse: 0-7 }
 
+/**
+ * Preview d'una nota entrada des de l'editor N-P: mateix so que el clic a la
+ * graella (midi = 60 + nota, durada d'1 pols). `initAudio` es crida aquí dins,
+ * en el mateix gest de teclat, per mantenir el desbloqueig de l'AudioContext.
+ */
+async function playNotePreview(note) {
+  const audioInstance = await initAudio();
+  if (!window.Tone || !audioInstance) return;
+  const midi = 60 + note;
+  const duration = (60 / currentBPM) * 0.9;
+  audioInstance.playNote(midi, duration, window.Tone.now());
+}
+
 function createNuzicEditor(timelineWrapper) {
   const BLOCK = 35;
   const editorEl = document.createElement('div');
@@ -609,6 +622,8 @@ function createNuzicEditor(timelineWrapper) {
         }
         target.note = num;
         target.isRest = false;
+        // Editar la N d'un parell existent també fa sonar la nota nova.
+        playNotePreview(num);
         renderEditor();
         syncGridFromPairs(currentPairs);
       } else {
@@ -700,6 +715,8 @@ function createNuzicEditor(timelineWrapper) {
     // pendingNote === 's' indica silenci.
     const isRest = note === 's';
     if (addPair(isRest ? null : note, pulse, isRest)) {
+      // La nota entrada des de l'editor sona igual que el clic a la graella.
+      if (!isRest) playNotePreview(note);
       pendingNote = null;
       pendingPulse = null;
       renderEditor();
@@ -787,12 +804,17 @@ function createNuzicEditor(timelineWrapper) {
         // If N already entered, commit pair
         if (pendingNote !== null) {
           clearTimeout(autoJumpTimer);
-          if (!addPair(pendingNote, num)) {
+          // pendingNote === 's' indica silenci (mateix tractament que commitPair;
+          // abans es passava 's' tal qual i el parell quedava amb note='s').
+          const isRest = pendingNote === 's';
+          if (!addPair(isRest ? null : pendingNote, num, isRest)) {
             // Duplicate pulse — clear input, keep caret
             e.target.value = '';
             pendingPulse = null;
             return;
           }
+          // La nota entrada des de l'editor sona igual que el clic a la graella.
+          if (!isRest) playNotePreview(pendingNote);
           pendingNote = null;
           pendingPulse = null;
           renderEditor();

@@ -1277,6 +1277,13 @@ function createNuzicIntervalEditor(gridContainer) {
 
       // Update pairs, re-render, sync grid
       updatePairsFromIntervals();
+      // Editar l'iS d'un interval existent també fa sonar la nota resultant.
+      if (type === 'is') {
+        const editedPair = currentPairs[idx];
+        if (editedPair && editedPair.note != null) {
+          playNotePreview(editedPair.note, iv.temporalInterval);
+        }
+      }
       renderEditorCells();
       syncGridFromPairs(currentPairs);
     });
@@ -1495,10 +1502,19 @@ function createNuzicIntervalEditor(gridContainer) {
     } else {
       currentIntervals.push({ soundInterval: pendingIS, temporalInterval: pendingIT });
     }
+    const committedRest = pendingIS === 'S';
+    const committedIT = pendingIT;
     pendingIS = null;
     pendingIT = null;
 
     updatePairsFromIntervals();
+    // La nota resultant de l'interval entrat des de l'editor sona igual que
+    // quan es crea des de la graella (l'iS és relatiu: la nota absoluta és la
+    // de l'últim parell un cop recalculada la seqüència).
+    if (!committedRest) {
+      const lastPair = currentPairs[currentPairs.length - 1];
+      if (lastPair && lastPair.note != null) playNotePreview(lastPair.note, committedIT);
+    }
     renderEditorCells();
     syncGridFromPairs(currentPairs);
 
