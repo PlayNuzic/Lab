@@ -438,14 +438,23 @@ function syncGridFromDegrees(pairs) {
     if (label) label.remove();
   });
 
-  // Sort by pulse and track last playable noteIndex for silence placement
+  // Sort by pulse and use the first note for silences before the melody starts.
+  // Once a note has sounded, following silences stay on its row.
   const sorted = [...pairs].sort((a, b) => a.pulse - b.pulse);
-  let lastNoteIndex = 0; // Base note row for silences
+  const firstPlayableNote = sorted.find(({ degree, modifier, isRest }) =>
+    !isRest && degree !== null && degree !== undefined &&
+    degreeToVisualNoteIndex(degree, modifier) !== null
+  );
+  let lastNoteIndex = firstPlayableNote
+    ? degreeToVisualNoteIndex(firstPlayableNote.degree, firstPlayableNote.modifier)
+    : null;
 
   sorted.forEach(({ degree, modifier, pulse, isRest }) => {
     if (isRest) {
       // Silence: dotted line on the last playable note row
-      const cell = musicalGrid.getCellElement(lastNoteIndex, pulse);
+      const cell = lastNoteIndex === null
+        ? null
+        : musicalGrid.getCellElement(lastNoteIndex, pulse);
       if (cell) cell.classList.add('rest');
       return;
     }
@@ -468,6 +477,31 @@ function syncGridFromDegrees(pairs) {
       cell.appendChild(label);
     }
   });
+}
+
+/**
+ * Completa amb silencis tots els polsos entre l'origen i l'ultima entrada.
+ * Així els clics a la graella conserven la seva posició temporal a l'editor
+ * i la visualització pot dibuixar la línia discontínua dels forats.
+ */
+function fillMissingDegreePulses(pairs) {
+  const validPairs = (pairs || []).filter((pair) =>
+    Number.isInteger(pair.pulse) && pair.pulse >= 0 && pair.pulse < TOTAL_SPACES
+  );
+  if (validPairs.length === 0) return [];
+
+  const byPulse = new Map(validPairs.map((pair) => [pair.pulse, pair]));
+  const lastPulse = Math.max(...byPulse.keys());
+  const completed = [];
+
+  for (let pulse = 0; pulse <= lastPulse; pulse++) {
+    const pair = byPulse.get(pulse);
+    completed.push(pair
+      ? { ...pair, pulse }
+      : { degree: null, modifier: null, pulse, isRest: true });
+  }
+
+  return completed;
 }
 
 function formatDegreeLabel(degree, modifier) {
@@ -1226,8 +1260,9 @@ async function init() {
         newPairs.push({ degree: actualDegree, modifier, pulse: pulseIndex, isRest: false });
       }
 
-      gridEditor.setPairs(newPairs);
-      syncGridFromDegrees(newPairs);
+      const completedPairs = fillMissingDegreePulses(newPairs);
+      gridEditor.setPairs(completedPairs);
+      syncGridFromDegrees(completedPairs);
     }
   });
 

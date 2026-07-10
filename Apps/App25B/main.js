@@ -803,14 +803,57 @@ function initIntervalEditor() {
     return null;
   }
 
+  function formatSignedInterval(value) {
+    return value > 0 ? `+${value}` : String(value);
+  }
+
+  // Calcula el rang d'iSº possible en una cel·la sense fer sortir cap grau
+  // posterior de la graella. Això inclou les entrades que ja venen després.
+  function getAllowedIntervalRange(entryIndex) {
+    const targetIndex = entryIndex === null || entryIndex >= entries.length
+      ? entries.length
+      : entryIndex;
+    const maxDeg = getMaxAbsoluteDegree();
+    let degreeBefore = BASE_DEGREE;
+
+    for (let i = 0; i < targetIndex; i++) {
+      const entry = entries[i];
+      if (!entry.isRest && typeof entry.degreeInterval === 'number') {
+        degreeBefore += entry.degreeInterval;
+      }
+    }
+
+    let min = -degreeBefore;
+    let max = maxDeg - degreeBefore;
+    let followingOffset = 0;
+
+    for (let i = targetIndex + 1; i < entries.length; i++) {
+      const entry = entries[i];
+      if (entry.isRest || typeof entry.degreeInterval !== 'number') continue;
+
+      followingOffset += entry.degreeInterval;
+      min = Math.max(min, -degreeBefore - followingOffset);
+      max = Math.min(max, maxDeg - degreeBefore - followingOffset);
+    }
+
+    return { min, max };
+  }
+
   // Validate change at entryIndex — cascade check across all entries.
-  // Returns { valid, message } with legacy error messages.
   // entryIndex === null → appending a new entry at entries.length.
   function validateIntervalChange(parsed, entryIndex) {
     if (parsed.isRest) return { valid: true };
 
     const maxDeg = getMaxAbsoluteDegree();
     const isNew = entryIndex === null || entryIndex >= entries.length;
+    const allowedRange = getAllowedIntervalRange(entryIndex);
+    if (parsed.degreeInterval < allowedRange.min || parsed.degreeInterval > allowedRange.max) {
+      return {
+        valid: false,
+        message: `iSº fuera de rango: entre ${formatSignedInterval(allowedRange.min)} y ${formatSignedInterval(allowedRange.max)}`
+      };
+    }
+
     const projected = entries.map((e, i) => (i === entryIndex ? parsed : e));
     if (isNew) projected.push(parsed);
 
