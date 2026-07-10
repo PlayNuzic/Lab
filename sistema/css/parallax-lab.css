@@ -433,3 +433,14 @@ body[data-editable="true"] .slide--parallax-lab .slide__title .px-txr-char{
   box-shadow: none;
   pointer-events: none;
 }
+
+/* ---- Scroll lliure ----
+   Al lab el progrés es mou per rAF (lerp del motor) i les frases es
+   repinten a cada frame: la transició de 0.55s de parallax.css lluitaria
+   contra aquest repintat i faria el text "flotant" respecte del gest. El
+   lerp ja és l'única animació de frases. Les capes de fons SÍ conserven
+   la seva transició (bloc Timing): aquest retard respecte de les frases
+   és precisament la sensació de profunditat. */
+.slide--parallax-lab .parallax-frases > p{
+  transition: none;
+}

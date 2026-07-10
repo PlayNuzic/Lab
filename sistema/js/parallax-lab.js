@@ -215,109 +215,195 @@ function wire(slideEl, slide) {
   const hint = slideEl.querySelector('.parallax-scroll-hint');
   const estat = () => window.__sistemaState;  // exposat per slides.js
 
-  let active = 0;
+  let active = 0;  // frase "assentada": classes + detail.active (amb histèresi)
 
   function hideHint() {
     if (hint) hint.classList.add('is-hidden');
   }
 
-  // Frases: mateixos estils inline que setActive() de wireParallax (la
-  // coreografia de frases és idèntica al parallax real i és intocable per
-  // a les tècniques). El bloc de capes de l'original se substitueix per
-  // la publicació de progrés: les tècniques fan la resta.
-  function setActive(i) {
-    active = Math.max(0, Math.min(frases.length - 1, i));
+  // ── Scroll lliure ────────────────────────────────────────────────────
+  // El gest ja no dispara passos discrets: acumula sobre `target` (0..1)
+  // i un bucle rAF hi fa perseguir `cur` amb lerp — l'usuari condueix, el
+  // motor només suavitza. Tot el que penja del progrés es pinta CONTINU
+  // des de `cur`: les frases amb les mateixes postures que wireParallax
+  // (les corbes empalmen amb els valors discrets originals a |d|=1) i les
+  // tècniques via --px-progress + esdeveniment. La frase activa es deriva
+  // amb histèresi; en parar el gest, snap suau a la frase més propera
+  // (àncora de lectura). A les fronteres cal una sobre-empenta acumulada
+  // per saltar de paso (adéu al canvi de pas accidental). Les fletxes
+  // (step) mantenen el pas discret; amb reduced-motion el lerp és sec.
+  const total = frases.length;
+  const denom = Math.max(1, total - 1);
+  const PX_PER_FRASE = 300;    // px de gest per recórrer una frase
+  const SUAVITAT = 0.16;       // factor de lerp per frame
+  const SNAP_MS = 450;         // repòs abans del snap a la frase propera
+  const EDGE_ESCAPE_PX = 340;  // sobre-empenta per canviar de paso
+  const EDGE_RESET_MS = 600;   // pausa que buida la sobre-empenta
+  const HYST = 0.1;            // histèresi del canvi de frase (en frases)
+
+  let target = 0;
+  let cur = 0;
+  let rafId = null;
+  let snapTimer = null;
+  let edgePx = 0;
+  let lastEdgeTime = 0;
+
+  // Postures contínues de les frases (mateixa coreografia que wireParallax,
+  // intocable per a les tècniques). Durant el gest NOMÉS s'escriuen
+  // transform i opacity (compositables): les corbes empalmen amb els
+  // valors discrets originals a |d|=1.
+  function pintaFrases(pos) {
     frases.forEach((p, j) => {
-      const d = j - active;
+      const d = j - pos;
       const abs = Math.abs(d);
-      p.classList.toggle('is-active', d === 0);
-      p.style.opacity = d === 0 ? '1' : String(Math.max(0.07, 0.26 - abs * 0.07));
-      p.style.transform = `translateY(calc(-50% + ${d * 19}vh)) scale(${d === 0 ? 1 : 0.68})`;
-      p.style.filter = d === 0 ? 'none' : `blur(${Math.min(abs * 1.6, 4)}px)`;
+      const op = abs <= 1 ? 1 - abs * 0.81 : Math.max(0.07, 0.26 - abs * 0.07);
+      const esc = abs <= 1 ? 1 - abs * 0.32 : 0.68;
+      p.style.opacity = op.toFixed(3);
+      p.style.transform = `translateY(calc(-50% + ${(d * 19).toFixed(2)}vh)) scale(${esc.toFixed(3)})`;
+    });
+  }
+
+  // Blur, z-index i is-active NOMÉS quan canvia la frase assentada (LP-07:
+  // escriure filter a cada frame re-rasteritza el text amb will-change
+  // actiu i a Chrome pot fer desaparèixer la frase mentre es mou — l'
+  // artefacte exacte que va motivar la regla). Un sol cop per canvi de
+  // frase = comportament idèntic al parallax discret original.
+  function pintaEstatics() {
+    frases.forEach((p, j) => {
+      const abs = Math.abs(j - active);
+      p.classList.toggle('is-active', abs === 0);
+      p.style.filter = abs === 0 ? 'none' : `blur(${Math.min(abs * 1.6, 4)}px)`;
       p.style.zIndex = String(10 - abs);
     });
-    const t = frases.length > 1 ? active / (frases.length - 1) : 0;
+  }
+
+  function publica() {
+    const t = Math.max(0, Math.min(1, cur));
     slideEl.style.setProperty('--px-progress', String(t));
     slideEl.dispatchEvent(new CustomEvent('sistema:parallax-progress', {
-      detail: { t, active, total: frases.length },
+      detail: { t, active, total },
     }));
   }
 
+  function frame() {
+    rafId = null;
+    if (actiu?.slideEl !== slideEl) return;  // el render ens ha substituït
+    cur += (target - cur) * (reduced ? 1 : SUAVITAT);
+    if (Math.abs(target - cur) < 0.0006) cur = target;
+    const pos = cur * denom;
+    const cand = Math.max(0, Math.min(total - 1, Math.round(pos)));
+    if (cand !== active && Math.abs(pos - active) > 0.5 + HYST) {
+      active = cand;
+      pintaEstatics();
+    }
+    pintaFrases(pos);
+    publica();
+    if (cur !== target) rafId = requestAnimationFrame(frame);
+  }
+  function arrenca() {
+    if (rafId == null) rafId = requestAnimationFrame(frame);
+  }
+
+  function programaSnap() {
+    clearTimeout(snapTimer);
+    snapTimer = setTimeout(() => {
+      target = Math.max(0, Math.min(total - 1, Math.round(target * denom))) / denom;
+      arrenca();
+    }, SNAP_MS);
+  }
+
+  // Pas discret (fletxes de teclat i API): glissa fins a la frase veïna;
+  // a la frontera escapem al paso adjacent, com el parallax real. go()
+  // és privat de slides.js: usem els botons públics de la nav (un botó
+  // disabled ignora .click(), que replica el no-op als extrems).
   function step(delta) {
     if (estat()?.editable) return false;
-    const next = active + delta;
-    // A la frontera escapem al paso adjacent, com el parallax real. go()
-    // és privat de slides.js: usem els botons públics de la nav (un botó
-    // disabled ignora .click(), que replica el no-op als extrems).
-    if (next >= frases.length) { document.getElementById('btn-next')?.click(); return true; }
+    const next = Math.round(target * denom) + delta;
+    if (next >= total) { document.getElementById('btn-next')?.click(); return true; }
     if (next < 0) { document.getElementById('btn-prev')?.click(); return true; }
     hideHint();
-    setActive(next);
+    clearTimeout(snapTimer);
+    target = next / denom;
+    arrenca();
     return true;
   }
 
-  // ── Roda: còpia exacta del gest per-empenta de wireParallax ──
-  // (desarma/rearma per gest; vegeu els comentaris de l'original a
-  // slides.js — no modificar aquí sense portar-ho també allà.)
-  const WHEEL_REARM_GAP_MS = 100;
-  const WHEEL_STEP_THRESHOLD = 50;
-  const WHEEL_STEP_COOLDOWN_MS = 450;
-  let wheelArmed = true;
-  let wheelAcc = 0;
-  let lastWheelTime = 0;
-  let lastWheelSign = 0;
-  let lastWheelAbs = 0;
-  let lastStepTime = 0;
+  // ── Roda: acumulació contínua (scroll lliure) ──
   slideEl.addEventListener('wheel', (e) => {
     if (estat()?.editable) return;
     e.preventDefault();
-    const abs = Math.abs(e.deltaY);
-    if (abs < 1) return;
+    let dy = e.deltaY;
+    if (e.deltaMode === 1) dy *= 16;                    // línies → px
+    else if (e.deltaMode === 2) dy *= window.innerHeight;
+    if (!dy) return;
+    hideHint();
     const now = performance.now();
-    const gap = now - lastWheelTime;
-    lastWheelTime = now;
-    const sign = Math.sign(e.deltaY);
-
-    if (!wheelArmed) {
-      const cooled = now - lastStepTime > WHEEL_STEP_COOLDOWN_MS;
-      const fresh = (sign !== 0 && sign !== lastWheelSign)
-        || (cooled && (
-          gap > WHEEL_REARM_GAP_MS
-          || (abs > 20 && abs > lastWheelAbs * 1.5 + 8)
-        ));
-      if (!fresh) { lastWheelAbs = abs; return; }
-      wheelArmed = true;
-      wheelAcc = 0;
-    } else if (gap > 300) {
-      wheelAcc = 0;
+    // Frontera ENDAVANT (última frase): la sobre-empenta s'acumula i, si
+    // l'usuari insisteix, salta al paso següent. Una pausa la buida.
+    // Frontera ENRERE (primera frase): el gest NO escapa mai de paso —
+    // lliscant és massa fàcil sortir del pas sense voler; enrere només
+    // s'hi va deliberadament (fletxa ↑ o botó de nav).
+    if (dy > 0 && (total === 1 || target >= 1)) {
+      if (now - lastEdgeTime > EDGE_RESET_MS) edgePx = 0;
+      lastEdgeTime = now;
+      edgePx += dy;
+      if (edgePx >= EDGE_ESCAPE_PX) {
+        edgePx = 0;
+        document.getElementById('btn-next')?.click();
+      }
+      return;
     }
-    lastWheelAbs = abs;
-    if (sign !== 0) lastWheelSign = sign;
-
-    wheelAcc += e.deltaY;
-    if (Math.abs(wheelAcc) < WHEEL_STEP_THRESHOLD) return;
-    const delta = wheelAcc > 0 ? 1 : -1;
-    wheelAcc = 0;
-    if (step(delta)) { wheelArmed = false; lastStepTime = now; }
+    if (dy < 0 && target <= 0) { edgePx = 0; return; }
+    edgePx = 0;
+    target = Math.max(0, Math.min(1, target + dy / (PX_PER_FRASE * denom)));
+    arrenca();
+    programaSnap();
   }, { passive: false });
 
-  // Clic sobre una frase atenuada: l'activa directament.
+  // Clic sobre una frase atenuada: hi glissa directament.
   frases.forEach((p, i) => {
     p.addEventListener('click', () => {
       if (estat()?.editable || i === active) return;
       hideHint();
-      setActive(i);
+      clearTimeout(snapTimer);
+      target = i / denom;
+      arrenca();
     });
   });
 
-  // Swipe vertical en tàctil.
+  // Tàctil: arrossegament directe (el dit mana, mateixa escala que la
+  // roda), snap en deixar anar; l'excés d'arrossegament més enllà de
+  // l'última frase escapa al paso següent (enrere mai per gest — mateix
+  // criteri que la roda).
   let touchY = null;
-  slideEl.addEventListener('touchstart', (e) => { touchY = e.touches[0].clientY; }, { passive: true });
-  slideEl.addEventListener('touchend', (e) => {
+  let touchTarget = 0;
+  let touchExces = 0;  // en unitats de t, amb signe
+  slideEl.addEventListener('touchstart', (e) => {
+    if (estat()?.editable) return;
+    touchY = e.touches[0].clientY;
+    touchTarget = target;
+    touchExces = 0;
+    clearTimeout(snapTimer);
+  }, { passive: true });
+  slideEl.addEventListener('touchmove', (e) => {
+    if (touchY == null || estat()?.editable) return;
+    hideHint();
+    const dy = touchY - e.touches[0].clientY;           // dit amunt = avançar
+    const nou = touchTarget + dy / (PX_PER_FRASE * denom);
+    target = total === 1 ? 0 : Math.max(0, Math.min(1, nou));
+    touchExces = nou - target;
+    arrenca();
+  }, { passive: true });
+  slideEl.addEventListener('touchend', () => {
     if (touchY == null) return;
-    const dy = touchY - e.changedTouches[0].clientY;
-    if (Math.abs(dy) > 40) step(dy > 0 ? 1 : -1);
     touchY = null;
+    const excesPx = touchExces * PX_PER_FRASE * denom;  // amb signe: només endavant
+    if (excesPx > 90) {
+      document.getElementById('btn-next')?.click();
+    } else {
+      programaSnap();
+    }
+    touchExces = 0;
   }, { passive: true });
 
   // Ranura per a app-reveal (Lab B): contenidor buit i amagat; la tècnica
@@ -333,7 +419,9 @@ function wire(slideEl, slide) {
 
   // Activa les tècniques persistides i publica el progrés inicial.
   actiu = { slideEl, paso: slide.paso, wired: new Map() };
-  setActive(0);
+  pintaFrases(0);
+  pintaEstatics();
+  publica();
   const cfg = getConfig(slide.paso);
   TECNIQUES.forEach(t => { if (cfg[t.id]?.on) aplica(t.id); });
 
