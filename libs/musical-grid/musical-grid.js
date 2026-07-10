@@ -24,6 +24,7 @@
  * @param {Function} [config.cellRenderer] - (noteIndex, pulseIndex, cellElement) => void - Custom cell rendering
  * @param {Function} [config.noteFormatter] - (noteIndex, midi) => string - Custom note label
  * @param {Function} [config.pulseFormatter] - (pulseIndex) => string - Custom pulse label
+ * @param {string} [config.soundlineHeader] - Text opcional de capçalera sobre la línia sonora
  * @param {string} [config.cellClassName='musical-cell'] - CSS class for cells
  * @param {string} [config.activeClassName='active'] - CSS class for active cells
  * @param {string} [config.highlightClassName='highlight'] - CSS class for highlighted cells
@@ -56,6 +57,7 @@ export function createMusicalGrid(config) {
     cellRenderer = null,
     noteFormatter = null,
     pulseFormatter = null,
+    soundlineHeader = '',
     cellClassName = 'musical-cell',
     activeClassName = 'active',
     highlightClassName = 'highlight',
@@ -119,6 +121,9 @@ export function createMusicalGrid(config) {
     // Main grid container (CSS Grid 2x2)
     const gridContainer = document.createElement('div');
     gridContainer.className = 'grid-container';
+    if (soundlineHeader) {
+      gridContainer.classList.add('grid-container--soundline-header');
+    }
 
     // Apply scroll container size if provided
     if (scrollEnabled && containerSize) {
@@ -131,6 +136,16 @@ export function createMusicalGrid(config) {
     // Soundline wrapper (top-left)
     const soundlineWrapper = document.createElement('div');
     soundlineWrapper.className = 'soundline-wrapper';
+
+    // Capçalera optativa, enganxada a la part superior de la columna sonora.
+    // El padding reservat per CSS manté la soundline i la matriu alineades.
+    if (soundlineHeader) {
+      const header = document.createElement('div');
+      header.className = 'musical-grid-soundline-header';
+      header.textContent = soundlineHeader;
+      soundlineWrapper.appendChild(header);
+      containers.soundlineHeader = header;
+    }
 
     // Enable vertical scroll if needed
     if (scrollEnabled) {

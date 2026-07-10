@@ -51,6 +51,25 @@ describe('musical-grid', () => {
       expect(timeline).toBeTruthy();
     });
 
+    it('renderitza una capçalera optativa sobre la línia sonora', () => {
+      grid = createMusicalGrid({ parent, soundlineHeader: 'Nº' });
+
+      const gridContainer = parent.querySelector('.grid-container');
+      const header = parent.querySelector('.musical-grid-soundline-header');
+
+      expect(gridContainer.classList.contains('grid-container--soundline-header')).toBe(true);
+      expect(header).toBeTruthy();
+      expect(header.textContent).toBe('Nº');
+      expect(header.parentElement.classList.contains('soundline-wrapper')).toBe(true);
+    });
+
+    it('no reserva capçalera si no es configura', () => {
+      grid = createMusicalGrid({ parent });
+
+      expect(parent.querySelector('.musical-grid-soundline-header')).toBeNull();
+      expect(parent.querySelector('.grid-container').classList.contains('grid-container--soundline-header')).toBe(false);
+    });
+
     it('acepta configuración personalizada', () => {
       grid = createMusicalGrid({
         parent,

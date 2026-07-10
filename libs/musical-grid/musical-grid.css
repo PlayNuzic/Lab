@@ -88,6 +88,33 @@
   margin: 0 auto;
 }
 
+/* Capçalera optativa de la línia sonora. L'espai es reserva com a padding
+   del grid perquè la soundline i la matriu continuïn compartint la mateixa fila. */
+.grid-container--soundline-header {
+  --musical-grid-soundline-header-height:
+    var(--soundline-abbr-pill-size, clamp(2.4rem, 4vw, 3rem));
+  box-sizing: border-box;
+  padding-top: var(--musical-grid-soundline-header-height);
+}
+
+.musical-grid-soundline-header {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  width: 100%;
+  height: var(--musical-grid-soundline-header-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  background: var(--nuzic-pink, #F28AAD);
+  color: var(--nuzic-dark, #43433B);
+  font-size: var(--soundline-abbr-pill-font, clamp(1.1rem, 1.8vw, 1.4rem));
+  font-weight: 700;
+  line-height: 1;
+  z-index: var(--z-content, 5);
+}
+
 /* ========== SOUNDLINE WRAPPER (LEFT) ========== */
 .soundline-wrapper {
   grid-column: 1;

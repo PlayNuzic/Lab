@@ -1250,6 +1250,7 @@ async function init() {
     notes: TOTAL_NOTES,
     pulses: TOTAL_PULSES,
     showCycleEnd: true,
+    soundlineHeader: 'Nº',
     startMidi: 60,
     fillSpaces: true,
     cellClassName: 'musical-cell',
