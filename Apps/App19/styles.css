@@ -267,6 +267,18 @@ body.app19 {
   display: none;
 }
 
+/* Amb `showScrollbars: true` la timeline mostrava DUES barres d'scroll
+   horitzontals redundants (mesurat: totes dues scrollen el mateix matrix):
+   la nativa de `.plano-matrix-container` (overflow-x:auto) i el track proxy
+   de sota (`.plano-hscroll-track`, row 3 de showScrollbars). Amaguem NOMÉS el
+   proxy: la barra nativa del matrix es manté com a única scrollbar horitzontal
+   i l'scroll intern (wheel/trackpad + barra nativa) queda intacte. El track
+   segueix al DOM i sincronitzat per JS però sense pintar-se (mirror matrix→track
+   és no-op sobre element ocult). Mateix fix que App20 (commit 1ec21605). */
+.plano-hscroll-track {
+  display: none;
+}
+
 /* plano-modular highlight override */
 .plano-cell.plano-highlight {
   background: transparent !important;

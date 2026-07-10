@@ -321,6 +321,18 @@ body[data-theme="dark"] .iframe-frame:has(.iframe-placeholder){ background: #2a2
 .slide[data-app="App34"] .iframe-frame,
 .slide[data-app="App35"] .iframe-frame{ max-height: 900px; }
 
+/* App17 (línea temporal en círculo) — aspect 1/1, però `.iframe-frame` té
+   `width:100%`, que trenca la ràtio: en pantalles AMPLES el frame s'eixamplava
+   (1200–1600px) mentre l'alçada quedava capada a 700px, i el cercle (mida per
+   `vw`) i els gaps creixien fins a empènyer els controls Play/BPM/Random/Reset
+   fora del frame → es tallaven. `max-width: 700px` retorna el frame a quadrat
+   (≤700×700) sigui quina sigui la pantalla, així el cercle es manté proporcionat.
+   A més, `max-height: min(700px, calc(100vh − 8rem))` fa que en finestres BAIXES
+   el frame encongeixi per no quedar tapat per la barra de navegació inferior.
+   Només aplica ≥901px: en vertical (≤900px) l'iframe s'expandeix al contingut i
+   el media query de sota desactiva els caps. */
+.slide[data-app="App17"] .iframe-frame{ max-height: min(700px, calc(100vh - 8rem)); max-width: 700px; }
+
 /* App23 — aspect adaptatiu al viewport del sistema:
    • Per sobre del breakpoint del sistema (≥901px) el slot d'app és
      prou ample per cabir el layout horitzontal de dues columnes;
