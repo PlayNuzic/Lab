@@ -787,7 +787,13 @@ function initGridEditor() {
   function getCurrentSum() { return entries.reduce((s, e) => s + (e.temporalInterval || 0), 0); }
 
   // ---- Tooltip ----
-  function showTooltip(cell, message) {
+  let tooltipHideTimer = null;
+  // Cert mentre es mostra l'avís d'espera de registre (tooltip persistent). Un
+  // `showTooltip` normal el posa a false → `hideRegistryTooltip()` no tocarà mai
+  // un tooltip d'error que hagi substituït l'avís.
+  let registryTooltipActive = false;
+
+  function showTooltip(cell, message, persist = false) {
     let tooltip = document.querySelector('.nit-editor-tooltip');
     if (!tooltip) {
       tooltip = document.createElement('div');
@@ -796,11 +802,46 @@ function initGridEditor() {
     }
     tooltip.textContent = message;
     const rect = cell.getBoundingClientRect();
-    tooltip.style.left = `${rect.left + rect.width / 2}px`;
+    // Clampa la posició horitzontal al viewport perquè a les primeres caselles
+    // (a prop de la vora esquerra) el tooltip no quedi tallat. Mateix patró que
+    // App13 / info-tooltip (commit 9d98056c). `offsetWidth` = amplada de layout
+    // (no afectada pel transform); centrem sobre la cel·la i limitem als marges.
+    const margin = 8;
+    const tipWidth = tooltip.offsetWidth;
+    const ideal = rect.left + rect.width / 2 - tipWidth / 2;
+    const maxLeft = window.innerWidth - tipWidth - margin;
+    tooltip.style.left = `${Math.max(margin, Math.min(ideal, maxLeft))}px`;
     tooltip.style.top = `${rect.top - 8}px`;
-    tooltip.style.transform = 'translate(-50%, -100%)';
+    tooltip.style.transform = 'translateY(-100%)';
     tooltip.classList.add('visible');
-    setTimeout(() => tooltip.classList.remove('visible'), 1500);
+    clearTimeout(tooltipHideTimer);
+    if (persist) return; // es manté fins que s'amagui explícitament
+    registryTooltipActive = false; // un avís normal substitueix l'avís d'espera
+    tooltipHideTimer = setTimeout(() => tooltip.classList.remove('visible'), 1500);
+  }
+
+  // Avís persistent mentre l'editor espera (4s) per si l'usuari completa "NrR"
+  // amb la "r" i el número de registre. Si no, es commiteja amb el registre de
+  // l'última nota (o el per defecte).
+  function showRegistryWaitTooltip(cell) {
+    showTooltip(cell, 'Escribe "r" + registro (ej. r4) o espera', true);
+    registryTooltipActive = true;
+  }
+
+  function hideRegistryTooltip() {
+    if (!registryTooltipActive) return;
+    registryTooltipActive = false;
+    clearTimeout(tooltipHideTimer);
+    const tooltip = document.querySelector('.nit-editor-tooltip');
+    if (tooltip) tooltip.classList.remove('visible');
+  }
+
+  // Cancel·la el timer d'auto-salt i, si estava actiu, l'avís d'espera de
+  // registre. Guardat pel flag: mai amaga un tooltip d'error (que posa el flag
+  // a false), sigui quin sigui l'ordre de les crides.
+  function cancelAutoJump() {
+    clearTimeout(autoJumpTimer);
+    hideRegistryTooltip();
   }
 
   // ---- Parse N input ----
@@ -957,7 +998,7 @@ function initGridEditor() {
         if (/^[sS]$/.test(val)) {
           pendingN = 'S';
           lastEnteredType = 'n';
-          clearTimeout(autoJumpTimer);
+          cancelAutoJump();
           if (pendingIT !== null) { commitEntry(); return; }
           const itInput = itCells.querySelector('.active-input');
           if (itInput) itInput.focus();
@@ -970,8 +1011,9 @@ function initGridEditor() {
         // Número de nota: pot venir seguit de "r" (registre), així que esperem
         // 4000ms per si l'usuari escriu "rX". Si no, es commiteja el número sol.
         if (/^\d+$/.test(val)) {
-          clearTimeout(autoJumpTimer);
+          cancelAutoJump();
           autoJumpTimer = setTimeout(() => {
+            hideRegistryTooltip(); // l'espera s'ha acabat (el timer ha disparat)
             // Re-read cell value in case user kept typing
             const current = cell.value;
             if (/^\d+r/.test(current)) return; // user started typing NrR
@@ -987,6 +1029,8 @@ function initGridEditor() {
               if (itInput) itInput.focus();
             }
           }, 4000);
+          // Avisa que estem esperant per si es completa "NrR" amb el registre.
+          showRegistryWaitTooltip(cell);
           return;
         }
 
@@ -998,14 +1042,14 @@ function initGridEditor() {
         if (!v.valid) {
           showTooltip(cell, v.message);
           e.target.value = '';
-          clearTimeout(autoJumpTimer);
+          cancelAutoJump();
           return;
         }
 
         pendingN = parsed;
         lastEnteredType = 'n';
 
-        clearTimeout(autoJumpTimer);
+        cancelAutoJump();
         if (pendingIT !== null) { commitEntry(); }
         else {
           const itInput = itCells.querySelector('.active-input');
@@ -1023,7 +1067,7 @@ function initGridEditor() {
         if (num < 1) {
           showTooltip(cell, 'iT debe ser ≥ 1');
           e.target.value = '';
-          clearTimeout(autoJumpTimer);
+          cancelAutoJump();
           return;
         }
 
@@ -1031,14 +1075,14 @@ function initGridEditor() {
         if (num > remaining) {
           showTooltip(cell, `iT máximo: ${remaining}`);
           e.target.value = '';
-          clearTimeout(autoJumpTimer);
+          cancelAutoJump();
           return;
         }
 
         // Un sol dígit ambigu (num*10 ≤ remaining, encara pot ser 2-dígit) →
         // espera 2000ms per si arriba el 2n dígit; la resta salta directe.
         if (/^\d$/.test(val) && num * 10 <= remaining) {
-          clearTimeout(autoJumpTimer);
+          cancelAutoJump();
           autoJumpTimer = setTimeout(() => {
             if (/^\d{2}$/.test(cell.value)) return; // 2-digit will re-fire handler
             pendingIT = num;
@@ -1054,7 +1098,7 @@ function initGridEditor() {
 
         pendingIT = num;
         lastEnteredType = 'it';
-        clearTimeout(autoJumpTimer);
+        cancelAutoJump();
         if (pendingN !== null) { commitEntry(); }
         else {
           const nInput = nCells.querySelector('.active-input');
@@ -1067,7 +1111,7 @@ function initGridEditor() {
       // Enter / Tab → confirm current value and jump to zigzag partner
       if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault();
-        clearTimeout(autoJumpTimer);
+        cancelAutoJump();
 
         // ENTER/Tab = "ja he acabat": confirma el valor actual de seguida (sense
         // esperar el timer d'auto-salt de 2000ms, que per a un sol dígit l'ajorna)
@@ -1098,7 +1142,7 @@ function initGridEditor() {
       // Backspace on empty: delete last entry or pending value
       if (e.key === 'Backspace' && !e.target.value) {
         e.preventDefault();
-        clearTimeout(autoJumpTimer);
+        cancelAutoJump();
 
         if (type === 'it') {
           if (pendingIT !== null) {
@@ -1268,7 +1312,7 @@ function initGridEditor() {
         }));
       pendingN = null;
       pendingIT = null;
-      clearTimeout(autoJumpTimer);
+      cancelAutoJump();
       renderCells();
     },
 
@@ -1276,14 +1320,14 @@ function initGridEditor() {
       entries = [];
       pendingN = null;
       pendingIT = null;
-      clearTimeout(autoJumpTimer);
+      cancelAutoJump();
       renderCells();
     },
 
     clearHighlights: () => {}, // Required no-op
 
     destroy: () => {
-      clearTimeout(autoJumpTimer);
+      cancelAutoJump();
       container.innerHTML = '';
     },
 
