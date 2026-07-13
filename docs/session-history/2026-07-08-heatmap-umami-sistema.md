@@ -1,7 +1,11 @@
 # Heatmap de navegació — Umami Cloud a `sistema/`
 
+> **SUPERSEDED (2026-07-13)**: substituït per Microsoft Clarity. Vegeu
+> `docs/session-history/2026-07-13-heatmap-clarity-sistema.md`. Cap codi
+> d'Umami queda actiu al repositori.
+
 **Data**: 2026-07-08
-**Estat**: COMPLET
+**Estat**: COMPLET (retirat 2026-07-13)
 
 ## Objectiu
 Instrumentar `sistema/` (presentació estàtica del mètode Nuzic) amb tracking de

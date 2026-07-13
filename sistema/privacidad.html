@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacidad — Sistema Interactivo Nuzic</title>
+<link rel="stylesheet" href="css/tokens.css">
+<style>
+  body { max-width: 68ch; margin: 0 auto; padding: var(--sp-5) var(--slide-pad-x);
+         font-family: var(--font-body); font-size: var(--fs-body); color: var(--fg);
+         background: var(--bg); line-height: 1.6; }
+  h1 { font-size: var(--fs-h1); } h2 { font-size: var(--fs-h2); margin-top: var(--sp-5); }
+  a { color: var(--nuzic-blue); }
+  code { background: rgba(123,180,205,0.15); padding: 0 4px; border-radius: 4px; }
+  .back { display: inline-block; margin-bottom: var(--sp-4); }
+  .consent-state { margin-top: var(--sp-5); padding: var(--sp-3); border: 2px solid var(--rule);
+                   border-radius: 8px; }
+  .consent-state button { font: inherit; margin-top: var(--sp-2); padding: var(--sp-1) var(--sp-3);
+                          border-radius: 6px; border: 2px solid var(--nuzic-dark);
+                          background: var(--nuzic-yellow); color: var(--nuzic-dark);
+                          font-weight: 700; cursor: pointer; }
+</style>
+</head>
+<body>
+  <a class="back" href="index.html">← Volver a la presentación</a>
+  <h1>Privacidad y analítica</h1>
+
+  <p>Esta presentación mide de forma <strong>anónima</strong> cómo se navega por
+  ella, para poder mejorarla. No pedimos registro ni recogemos datos que te
+  identifiquen personalmente (nombre, email, etc.).</p>
+
+  <h2>Responsable</h2>
+  <p>PlayNuzic — <a href="mailto:infonuzic@gmail.com">infonuzic@gmail.com</a>.</p>
+
+  <h2>Qué medimos y con qué herramienta</h2>
+  <p>Usamos <a href="https://clarity.microsoft.com/" target="_blank" rel="noopener">Microsoft
+  Clarity</a>, un servicio de analítica de Microsoft. Recoge:</p>
+  <ul>
+    <li>Qué pasos de la presentación se visitan y en qué orden (mapa de navegación).</li>
+    <li>Mapas de calor de clic y desplazamiento.</li>
+    <li>Grabaciones anónimas de sesión (movimientos de ratón e interacciones,
+        sin identificarte).</li>
+  </ul>
+
+  <h2>Cookies</h2>
+  <ul>
+    <li><code>_clck</code>, <code>_clsk</code> — de Microsoft Clarity, para
+        distinguir sesiones de forma anónima. Solo se activan si aceptas.</li>
+    <li><code>sistema.consent</code> — guarda tu decisión (aceptar/rechazar) en
+        tu navegador (<em>localStorage</em>), para no volver a preguntarte.</li>
+  </ul>
+
+  <h2>Base legal, transferencia y conservación</h2>
+  <p>La base es tu <strong>consentimiento</strong>: no se activa nada hasta que
+  pulsas «Aceptar». Los datos los procesa Microsoft, que puede tratarlos en
+  servidores fuera del Espacio Económico Europeo (por ejemplo, EE. UU.), con las
+  garantías de su propia política. Clarity conserva los datos un máximo de ~13
+  meses. Consulta la
+  <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener">declaración
+  de privacidad de Microsoft</a>.</p>
+
+  <h2>Cómo retirar tu consentimiento</h2>
+  <p>Puedes cambiar tu decisión en cualquier momento desde aquí. Al retirarlo,
+  se borran las cookies de Clarity y se deja de medir.</p>
+  <div class="consent-state">
+    <p id="consent-status">…</p>
+    <button type="button" id="consent-reset">Retirar / cambiar mi consentimiento</button>
+  </div>
+
+  <script type="module">
+    import { getConsent, resetConsent } from './js/consent.js';
+    const status = document.getElementById('consent-status');
+    const label = { granted: 'Ahora mismo: analítica ACEPTADA.',
+                    denied: 'Ahora mismo: analítica RECHAZADA.' };
+    status.textContent = label[getConsent()] || 'Ahora mismo: sin decisión (se te preguntará al abrir la presentación).';
+    document.getElementById('consent-reset').addEventListener('click', () => {
+      resetConsent();
+      status.textContent = 'Hecho. La próxima vez que abras la presentación podrás volver a elegir.';
+    });
+  </script>
+</body>
+</html>

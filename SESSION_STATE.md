@@ -2,7 +2,13 @@
 
 Cap tasca activa.
 
-Última tasca completada: **Auditoria 2026-07-06 TANCADA (58/59)** — vegeu
+Última tasca completada: **Analítica Microsoft Clarity a `sistema/`** (2026-07-13) —
+gate de consentiment RGPD + navegació per pas, substitueix la instrumentació
+Umami (retirada). Acta: `docs/session-history/2026-07-13-heatmap-clarity-sistema.md`.
+Suite: 90 suites / 1474 tests. Pendent de l'usuari: verificació al navegador i
+crear el Funnel manual a Clarity (detalls a l'acta).
+
+Tasca anterior completada: **Auditoria 2026-07-06 TANCADA (58/59)** — vegeu
 `docs/session-history/2026-07-09-auditoria-grups2-3-tancada.md` (Grups 2 i 3) i
 `docs/session-history/2026-07-06-auditoria-grup1.md` (Grup 1). Informe amb checkboxes:
 `docs/audit-report-2026-07-06.md`. Suite: 89 suites / 1472 tests.

@@ -5,17 +5,42 @@
    - centered title/section in cream
 */
 
-/* Avís de privacitat: nota discreta, no interactiva, mai tapa la nav (bottom:0) */
-.sistema-privacy-note {
+/* Banner de consentiment (RGPD): barra sòbria per sobre de tot (tweaks és
+   z-index 30) fins que l'usuari decideix; s'enganxa just sobre la nav. */
+.consent-banner {
   position: fixed;
-  top: 6px;
-  left: 8px;
-  margin: 0;
-  font-size: 0.7em;
-  color: var(--muted);
-  opacity: 0.6;
-  pointer-events: none;
-  z-index: 20;
+  left: 0; right: 0;
+  bottom: var(--nav-h);
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--nuzic-dark);
+  color: var(--nuzic-light);
+  font-family: var(--font-display);
+  font-size: var(--fs-small);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.18);
+}
+.consent-banner__text { margin: 0; max-width: 60ch; }
+.consent-banner__link { color: var(--nuzic-green); text-decoration: underline; }
+.consent-banner__actions { display: flex; gap: var(--sp-2); flex-shrink: 0; }
+.consent-banner__btn {
+  font: inherit;
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: 6px;
+  border: 2px solid var(--nuzic-light);
+  background: transparent;
+  color: var(--nuzic-light);
+  cursor: pointer;
+}
+.consent-banner__btn--accept {
+  background: var(--nuzic-green);
+  border-color: var(--nuzic-green);
+  color: var(--nuzic-dark);
+  font-weight: 700;
 }
 
 .sistema-nav{
