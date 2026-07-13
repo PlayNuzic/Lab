@@ -5,6 +5,24 @@
    - centered title/section in cream
 */
 
+/* Accés permanent a la política de privacitat: nota discreta a baix a la
+   dreta, sempre visible (presa o no la decisió) perquè l'usuari pugui tornar
+   a privacidad.html i canviar/retirar el consentiment. Quan surt el banner
+   de consentiment (només sense decisió), aquest la tapa i ja ofereix el seu
+   propi enllaç, així que no cal veure-la en aquell moment. */
+.sistema-privacy-link {
+  position: fixed;
+  right: var(--sp-2);
+  bottom: calc(var(--nav-h) + var(--sp-1));
+  z-index: 20;
+  font-family: var(--font-display);
+  font-size: 0.72em;
+  color: var(--muted);
+  opacity: 0.6;
+  text-decoration: none;
+}
+.sistema-privacy-link:hover { opacity: 1; text-decoration: underline; }
+
 /* Banner de consentiment (RGPD): barra sòbria per sobre de tot (tweaks és
    z-index 30) fins que l'usuari decideix; s'enganxa just sobre la nav. */
 .consent-banner {
