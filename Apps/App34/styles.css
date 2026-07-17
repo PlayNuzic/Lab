@@ -335,33 +335,32 @@ body[data-visual="nuzic"].app34 .plano-cell.pulse-boundary {
   background-image: none !important;
 }
 
+/* Polsos SENCERS: línia vertical crema a la divisió de cel·la, igual que la de
+   les subdivisions fraccionàries. NO substitueix el punt: el punt el pinta el
+   `.np-dot` uniforme (z-8), que queda PER SOBRE d'aquesta línia.
+   z-index 4 = mateix pla que les línies fraccionàries (`:not(.pulse-boundary)
+   .np-dot`) → darrere dels halters (z-5) i de les note-bars (z-10), coherent amb
+   29157f27. Cal z-index positiu per no quedar tapada pel fons opac de les
+   `.plano-cell` veïnes. Alçada = una cel·la centrada a la divisió, així les
+   línies de cel·les consecutives s'uneixen en una columna contínua. */
 body[data-visual="nuzic"].app34 .plano-cell.pulse-boundary::before {
   content: '';
   position: absolute;
-  /* Cantonada bottom-left de la cel·la. Mida en clamp() perquè escali
-     proporcionalment amb el viewport (~4px com el radial-gradient
-     original a la mida default). */
   left: 0;
   bottom: 0;
-  width: clamp(1.5px, 0.2vw, 3px);
-  height: clamp(1.5px, 0.2vw, 3px);
-  background: var(--nuzic-dark, #43433B);
-  border-radius: 50%;
+  width: 2px;
+  height: var(--plano-cell-height, 2rem);
+  background: var(--nuzic-light, #EEE8D8);
   transform: translate(-50%, 50%);
   pointer-events: none;
-  /* z-index 11 perquè els dots quedin SOBRE les note-bars (z-index: 10).
-     Sense això les barres tapen el dot a partir del seu colIdx. */
-  z-index: 11;
+  z-index: 4;
 }
 
 /* ========== NP-DOTS: HANDLES DE GRAB (estil App15) ==========
-   Dots uniformes a la línia de divisió de CADA cel·la (substitueixen el dot
-   ::before de pols enter). Target de grab: agafar-ne un i arrossegar crea la
-   nota i fixa la durada. Sota el note-bar (z-8 < z-10) perquè una nota tapi el
-   seu dot d'origen. */
-body[data-visual="nuzic"].app34 .plano-cell.pulse-boundary::before {
-  display: none; /* substituït pels np-dots uniformes */
-}
+   Dots uniformes a la línia de divisió de CADA cel·la: pinten el PUNT (el
+   ::before de la cel·la hi posa la línia de sota, als polsos sencers). Target de
+   grab: agafar-ne un i arrossegar crea la nota i fixa la durada. Sota el
+   note-bar (z-8 < z-10) perquè una nota tapi el seu dot d'origen. */
 
 body[data-visual="nuzic"].app34 .plano-cell .np-dot {
   position: absolute;
