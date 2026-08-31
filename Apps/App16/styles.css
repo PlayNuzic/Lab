@@ -19,18 +19,6 @@ html, body {
 /* Compás: uses the shared `.param--large` variant defined in
    libs/shared-ui/nuzic-theme.css — no per-app pill overrides. */
 
-/* ========== FADE-OUT EFFECT (post-jump pulses) ========== */
-.pulse.fade-out,
-.pulse-number.fade-out {
-  opacity: 0.5;
-  transition: opacity 0.15s ease;
-}
-
-.pulse-number.hidden {
-  opacity: 0;
-  visibility: hidden;
-}
-
 /* ========== PULSE NUMBER HIGHLIGHT (nuzic golden bar) ========== */
 /* App16 highlights .pulse-number elements (dots hidden by nuzic-theme) */
 .timeline .pulse-number.active {

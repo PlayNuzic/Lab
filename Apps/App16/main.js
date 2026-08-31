@@ -2,7 +2,7 @@
  * App16 - Módulo Temporal - Compás
  *
  * Enseña el concepto de aritmética modular en música.
- * Timeline dinámica que muestra 2 compases completos con fade-out al repetir.
+ * Timeline d'un sol compás (2-12 pulsos) amb superíndex de cicle (notació Nuzic).
  */
 
 import { createRhythmAudioInitializer, setupAudioDefaults, CHANNEL_TIERS, createMixerPersistence } from '../../libs/app-common/audio-init.js';
@@ -12,7 +12,6 @@ import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/index.js';
 import { createPreferenceStorage, registerFactoryReset } from '../../libs/app-common/preferences.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
-import { setVolume, getVolume } from '../../libs/sound/index.js';
 import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
@@ -23,20 +22,11 @@ import { createMeasureHeader } from '../../libs/shared-ui/measure-header.js';
 // CONSTANTS
 // ============================================
 
-const MAX_COMPAS = 7;         // Maximum compás value (manual input)
-const MAX_COMPAS_RANDOM = 12; // Maximum compás value en mode random
-const MIN_COMPAS_RANDOM = 2;  // Random no genera mai Compás=1
+const MIN_COMPAS = 2;         // Mínim de pulsos per compás (manual i random)
+const MAX_COMPAS = 12;        // Màxim de pulsos per compás (manual i random)
 const DEFAULT_BPM = 90;
 const MIN_BPM = 50;
 const MAX_BPM = 150;
-
-// Regla de cicles per random: a NºCompás més alt, menys cicles.
-// Compás 9-12 → 1 cicle · Compás 4-8 → 2 cicles · Compás 2-3 → 3 cicles.
-function cyclesForCompas(c) {
-  if (c >= 9) return 1;
-  if (c >= 4) return 2;
-  return 3;
-}
 
 // ============================================
 // STATE
@@ -46,17 +36,8 @@ let audio = null;
 let bpmController = null;
 let isPlaying = false;
 let compas = null;            // Starts as null (empty input)
-let cycles = 2;               // Nombre de cicles (compases) a reproduir; manual=2, random aplica `cyclesForCompas`
 let pulses = [];              // DOM pulse elements
-let currentStep = -1;
 let p0Enabled = true;         // P0 toggle state (not persisted between sessions)
-
-// Fade-out state
-// Set FADE_OUT_PULSES to 0 to fully disable the post-cycle fade-out
-// (audio tail + visual cycle-shift). All downstream logic (highlighting,
-// measure-header applyFadeOut, volume ramp, totalSteps) collapses to a
-// no-op when the value is 0 and can be re-enabled by restoring 3.
-const FADE_OUT_PULSES = 0;
 
 // ============================================
 // DOM ELEMENTS
@@ -105,7 +86,10 @@ const _baseInitAudio = createRhythmAudioInitializer({
   defaultInstrument: 'piano'
 });
 
-const mixerPersist = createMixerPersistence({ storageKey: 'app16-mixer' });
+// Clau compartida entre la persistència del mixer i el factory reset
+// (abans el reset referenciava una MIXER_STORAGE_KEY inexistent — ReferenceError).
+const MIXER_STORAGE_KEY = 'app16-mixer';
+const mixerPersist = createMixerPersistence({ storageKey: MIXER_STORAGE_KEY });
 
 async function initAudio() {
   if (!audio) {
@@ -133,12 +117,10 @@ let superscriptController;
 let measureHeader;
 
 /**
- * Total de polsos = compás × cycles. `cycles` és 2 per defecte (manual);
- * el random l'ajusta via `cyclesForCompas`.
+ * Total de polsos visibles = el compás (un sol cicle).
  */
 function getTotalPulses() {
-  if (compas === null || compas < 1) return 0;
-  return compas * cycles;
+  return compas ?? 0;
 }
 
 /**
@@ -158,11 +140,11 @@ function renderPulseNumbers() {
   // into the `--pulse-left` custom property and let the stylesheet
   // combine it with the band offset.
   for (let i = 0; i < totalPulses; i++) {
+    // createNumberElement ja marca `cycle-start` al pols 0 del cicle.
     const label = superscriptController.createNumberElement(i);
     const percent = (i / totalPulses) * 100;
     // Scale the pulse space to the visible track (100% - band width).
     label.style.setProperty('--pulse-left', `calc((100% - var(--com-band-w)) * ${percent / 100})`);
-    if (i % compas === 0) label.classList.add('cycle-start');
     timeline.appendChild(label);
   }
 
@@ -214,8 +196,8 @@ function renderTimeline() {
   // Render numbers
   renderPulseNumbers();
 
-  // Render the "Com." measure header amb el mateix nombre de cicles que el timeline
-  measureHeader?.render(compas, cycles);
+  // Render the "Com." measure header (un sol cicle)
+  measureHeader?.render(compas, 1);
 }
 
 
@@ -224,10 +206,9 @@ function renderTimeline() {
 // ============================================
 
 /**
- * Highlight a pulse dot and optionally the endpoint bars
+ * Highlight del pols actiu — sobre els `.pulse-number` (els dots els amaga nuzic-theme)
  */
-function highlightPulse(step, isFadeOut = false) {
-  // Highlight on .pulse-number elements (dots hidden by nuzic-theme)
+function highlightPulse(step) {
   timeline?.querySelectorAll('.pulse-number').forEach(n => n.classList.remove('active'));
 
   const numberEl = timeline?.querySelector(`.pulse-number[data-index="${step}"]`);
@@ -236,51 +217,8 @@ function highlightPulse(step, isFadeOut = false) {
   }
 }
 
-/**
- * Highlight a number using data-index selector (more reliable than array index)
- * During fade-out: ALL visible numbers change to cycle 3 at once when step 0 activates
- */
-function highlightNumber(step, isFadeOut = false) {
-  if (!timeline) return;
-
-  // Clear previous fade-out state (not during fade-out phase)
-  if (!isFadeOut) {
-    timeline.querySelectorAll('.pulse-number').forEach(n => {
-      n.classList.remove('fade-out', 'hidden');
-    });
-  }
-
-  if (isFadeOut) {
-    const numberEl = timeline.querySelector(`.pulse-number[data-index="${step}"]`);
-
-    // On FIRST fade-out pulse (step 0): update ALL visible numbers at once
-    if (step === 0) {
-      // Measure header: shift cycle labels 1,2 → 3,4 to match the timeline
-      measureHeader?.applyFadeOut(3);
-      timeline.querySelectorAll('.pulse-number').forEach(n => {
-        const idx = parseInt(n.dataset.index, 10);
-        if (idx < FADE_OUT_PULSES) {
-          const posInCycle = idx % compas;
-          const fadeOutCycle = Math.floor(idx / compas) + 3;
-          n.innerHTML = `${posInCycle}<sup>${fadeOutCycle}</sup>`;
-        } else {
-          n.classList.add('hidden');
-        }
-      });
-    }
-
-    if (numberEl) numberEl.classList.add('fade-out');
-  }
-}
-
-function clearHighlights(keepFadeOut = false) {
-  timeline?.querySelectorAll('.pulse-number').forEach(n => {
-    n.classList.remove('active');
-    if (!keepFadeOut) {
-      n.classList.remove('fade-out', 'hidden');
-    }
-  });
-  if (!keepFadeOut) measureHeader?.clearFadeOut();
+function clearHighlights() {
+  timeline?.querySelectorAll('.pulse-number').forEach(n => n.classList.remove('active'));
 }
 
 // ============================================
@@ -299,12 +237,6 @@ async function handlePlay() {
   if (!audioInstance) return;
 
   isPlaying = true;
-  currentStep = -1;
-
-  // Reset timeline to original state (clear any fade-out classes from previous play)
-  renderPulseNumbers();
-  measureHeader?.clearFadeOut();
-  pulses.forEach(p => p.classList.remove('fade-out'));
 
   // Update play button state
   playBtn?.classList.add('active');
@@ -317,63 +249,28 @@ async function handlePlay() {
   if (randomBtn) randomBtn.disabled = true;
 
   const intervalSec = 60 / (bpmController?.getValue() || DEFAULT_BPM);
-  const totalPulses = getTotalPulses();  // compás × 2
+  const totalPulses = getTotalPulses();
 
-  // Total steps = main pulses + fade-out pulses
-  const totalSteps = totalPulses + FADE_OUT_PULSES;
-
-  // Configure Measure system: P0 sounds at positions 0, compás, compás*2, etc.
-  // Use totalSteps so fade-out pulses also get the P0 sound when appropriate
-  audioInstance.configureMeasure(compas, totalSteps);
+  // Sistema Measure: P0 sona al pols 0 (inici de l'únic compás)
+  audioInstance.configureMeasure(compas, totalPulses);
   audioInstance.setMeasureEnabled(p0Enabled);
 
-  // Store original volume (captured once, used as fade reference)
-  const originalVolume = getVolume();
-
-  // Fade-out volumes as fractions of originalVolume so the cadence always
-  // fades DOWN from the main-sequence level regardless of the user's master
-  // volume setting. Fractions: 40%, 15%, 5%.
-  const fadeVolumes = [originalVolume * 0.4, originalVolume * 0.15, originalVolume * 0.05];
-
   audioInstance.play(
-    totalSteps,
+    totalPulses,
     intervalSec,
     new Set(),    // No selected pulses
     false,        // NO loop (single-shot)
     (step) => {
-      currentStep = step;
-
-      // Visual feedback only (volume handled in onSchedule)
-      const isFadeOut = step >= totalPulses;
-      const displayStep = isFadeOut ? step - totalPulses : step;
-
-      highlightPulse(displayStep, isFadeOut);
-      highlightNumber(displayStep, isFadeOut);
+      highlightPulse(step);
     },
     () => {
       // onComplete fires right after the worklet emits the final pulse, but
-      // the scheduled click sample is still ringing out at its fade volume.
-      // Restoring master volume immediately would swap the tail of the last
-      // click to full volume, making P2 sound LOUDER than P1.
-      // Defer just long enough for the click to finish (~150ms), then
-      // restore master so a quick replay captures the correct originalVolume.
-      setTimeout(() => setVolume(originalVolume), 150);
+      // the scheduled click sample is still ringing out. Defer the stop just
+      // long enough for the last click to finish.
       setTimeout(() => {
         audio?.stop();
         stopPlayback(false);
       }, 590);
-    },
-    {
-      onSchedule: (step) => {
-        // Fade starts AFTER the 3rd compás P0 (not on it)
-        // P0 at totalPulses plays at full volume, matching compás 1 and 2
-        if (step > totalPulses) {
-          const fadeIndex = step - totalPulses - 1;
-          setVolume(fadeVolumes[fadeIndex] ?? 0.1);
-        } else if (step === 0 || step === totalPulses) {
-          setVolume(originalVolume);
-        }
-      }
     }
   );
 }
@@ -384,12 +281,6 @@ async function handlePlay() {
  */
 function stopPlayback(forceStop = true) {
   isPlaying = false;
-  currentStep = -1;
-
-  // Restore volume to 1.0 (in case stopped during fade-out)
-  if (forceStop) {
-    setVolume(1.0);
-  }
 
   // Only force stop if user clicked stop (not on natural completion)
   // The audio engine already handles the delay to let the last pulse finish
@@ -407,8 +298,7 @@ function stopPlayback(forceStop = true) {
   // Re-enable random button after playback
   if (randomBtn) randomBtn.disabled = false;
 
-  // Clear highlights - keep fade-out numbers visible on natural completion
-  clearHighlights(!forceStop);
+  clearHighlights();
 }
 
 // ============================================
@@ -416,18 +306,13 @@ function stopPlayback(forceStop = true) {
 // ============================================
 
 function handleCompasChange(newValue, opts = {}) {
-  // `opts.cycles` permet al random fixar el nombre de cicles segons la
-  // regla (`cyclesForCompas`). Si no es passa, els canvis manuals
-  // (input/spinner/reset) tornen a 2 cicles, que és el comportament base.
-  const nextCycles = opts.cycles ?? 2;
-  // `opts.maxOverride` permet superar el límit manual (MAX_COMPAS=7) quan
-  // el random escull valors fins a MAX_COMPAS_RANDOM=12.
-  const effectiveMax = opts.maxOverride ?? MAX_COMPAS;
+  // `opts.lenient` marca una edició en curs (event 'input'): un "1" pot ser
+  // el prefix de 10-12, així que no avisem ni esborrem res — la validació
+  // estricta arriba al blur o al següent dígit.
 
   // Handle empty input - clear timeline
   if (newValue === '' || newValue === null || newValue === undefined) {
     compas = null;
-    cycles = 2;
     renderTimeline();  // Clears timeline when no compás
     return;
   }
@@ -444,16 +329,23 @@ function handleCompasChange(newValue, opts = {}) {
     return;
   }
 
+  // Prefix possible de 10-12 mentre s'escriu: estat pendent (timeline buida).
+  if (opts.lenient && parsed === 1) {
+    compas = null;
+    renderTimeline();
+    return;
+  }
+
   // Validate range with tooltips - clear input and keep focus on error
-  if (parsed < 1) {
-    showValidationWarning(inputCompas, 'El mínimo es <strong>1</strong>', 2000);
+  if (parsed < MIN_COMPAS) {
+    showValidationWarning(inputCompas, `El mínimo es <strong>${MIN_COMPAS}</strong>`, 2000);
     if (inputCompas) {
       inputCompas.value = '';
       inputCompas.focus();
     }
     return;
-  } else if (parsed > effectiveMax) {
-    showValidationWarning(inputCompas, `El máximo es <strong>${effectiveMax}</strong>`, 2000);
+  } else if (parsed > MAX_COMPAS) {
+    showValidationWarning(inputCompas, `El máximo es <strong>${MAX_COMPAS}</strong>`, 2000);
     if (inputCompas) {
       inputCompas.value = '';
       inputCompas.focus();
@@ -461,7 +353,6 @@ function handleCompasChange(newValue, opts = {}) {
     return;
   } else {
     compas = parsed;
-    cycles = nextCycles;
     if (inputCompas) inputCompas.value = compas;
   }
 
@@ -473,15 +364,15 @@ function handleCompasChange(newValue, opts = {}) {
 }
 
 function incrementCompas() {
-  const current = compas ?? 0;
+  const current = compas ?? MIN_COMPAS - 1;   // primer clic des de buit → MIN_COMPAS
   if (current < MAX_COMPAS) {
     handleCompasChange(current + 1);
   }
 }
 
 function decrementCompas() {
-  const current = compas ?? 2;
-  if (current > 1) {
+  const current = compas ?? MIN_COMPAS + 1;   // primer clic des de buit → MIN_COMPAS
+  if (current > MIN_COMPAS) {
     handleCompasChange(current - 1);
   }
 }
@@ -491,22 +382,15 @@ function decrementCompas() {
 // ============================================
 
 function handleRandom() {
-  // Regla interna del random:
-  //   - Mai genera Compás=1 (mínim és 2).
-  //   - Compás 9-12: 1 cicle · 4-8: 2 cicles · 2-3: 3 cicles
-  //   (com més alt el compás, menys cicles per no allargar massa la seqüència).
+  // Compás aleatori entre MIN_COMPAS i el "Compás máximo" del menú (mai >12).
   const maxCompasInput = parseInt(
-    document.getElementById('randCompasMax')?.value || String(MAX_COMPAS_RANDOM),
+    document.getElementById('randCompasMax')?.value || String(MAX_COMPAS),
     10
   );
-  const min = MIN_COMPAS_RANDOM;
-  const max = Math.min(Math.max(maxCompasInput, min), MAX_COMPAS_RANDOM);
-  const newCompas = Math.floor(Math.random() * (max - min + 1)) + min;
+  const max = Math.min(Math.max(maxCompasInput, MIN_COMPAS), MAX_COMPAS);
+  const newCompas = Math.floor(Math.random() * (max - MIN_COMPAS + 1)) + MIN_COMPAS;
 
-  handleCompasChange(newCompas, {
-    cycles: cyclesForCompas(newCompas),
-    maxOverride: MAX_COMPAS_RANDOM
-  });
+  handleCompasChange(newCompas);
 }
 
 // ============================================
@@ -635,9 +519,9 @@ async function initializeApp() {
   // Give focus to input so user can start typing
   inputCompas?.focus();
 
-  // Compás input events.
+  // Compás input events: tolerant mentre s'escriu, estricte al blur.
   inputCompas?.addEventListener('input', (e) => {
-    handleCompasChange(e.target.value);
+    handleCompasChange(e.target.value, { lenient: true });
   });
 
   inputCompas?.addEventListener('blur', () => {
