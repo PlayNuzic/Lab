@@ -1,5 +1,5 @@
 /**
- * App16 - Módulo Temporal - Compás
+ * App16 - Módulo Temporal - Pulsos por compás
  *
  * Enseña el concepto de aritmética modular en música.
  * Timeline d'un sol compás (2-12 pulsos) amb superíndex de cicle (notació Nuzic).

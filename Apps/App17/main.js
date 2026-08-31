@@ -1,9 +1,10 @@
 /**
- * App17 - Módulo Temporal - Circular
+ * App17 - Módulo Temporal - Compases
  *
- * Timeline circular dinámica donde:
- * - Pulsos Compás define la longitud de la timeline (y el módulo aritmético)
- * - Cycle define cuántas veces se repite el módulo antes de parar
+ * Redisseny des del donut circular: timeline lineal estil App16 que pot
+ * albergar fins a 6 compases (2-12 pulsos cadascun) amb scroll horitzontal.
+ * Durant el playback, l'scroll segueix la reproducció amb un lliscament
+ * suau a cada canvi de compás.
  */
 
 import { createRhythmAudioInitializer, setupAudioDefaults, CHANNEL_TIERS, createMixerPersistence } from '../../libs/app-common/audio-init.js';
@@ -17,20 +18,25 @@ import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.
 import { createTotalLengthDisplay } from '../../libs/app-common/total-length-display.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
-import { renderCircularRingNumbers } from '../../libs/app-common/circular-timeline-ring.js';
+import { createMeasureHeader } from '../../libs/shared-ui/measure-header.js';
+import { smoothScrollTo } from '../../libs/plano-modular/plano-scroll.js';
 
 // ============================================
 // CONSTANTS
 // ============================================
 
-const MIN_PULSOS = 1;
-const MAX_PULSOS = 12;
-const MIN_CYCLES = 1;
-const MAX_CYCLES = 12;
-const DEFAULT_CYCLES = 4;
+const MIN_COMPAS = 2;         // Mínim de pulsos per compás (manual i random)
+const MAX_COMPAS = 12;        // Màxim de pulsos per compás (manual i random)
+const MIN_CYCLES = 1;         // Mínim de compases
+const MAX_CYCLES = 6;         // Màxim de compases
 const DEFAULT_BPM = 90;
 const MIN_BPM = 50;
 const MAX_BPM = 150;
+const AUTO_JUMP_DELAY = 2000; // ms abans de l'auto-salt Compás→Cycle (ENTER salta a l'instant)
+const SCROLL_GLIDE_MS = 940;  // Durada del lliscament d'scroll al canvi de compás.
+                              // Ajustada a l'alça dues vegades (600 → 750 → 940,
+                              // +25% cada cop): dins l'iframe del sistema el
+                              // moviment ha de ser ben visible per a tothom.
 
 // ============================================
 // STATE
@@ -40,18 +46,11 @@ let audio = null;
 let bpmController = null;
 let isPlaying = false;
 let pulsosCompas = null;      // Starts as null (empty input)
-let cycles = DEFAULT_CYCLES;  // Número de repeticiones del módulo
-let currentCycle = 1;
-// LH-01: `numberEls` és l'estat viu (els números del cercle); l'antic
-// array `pulses` no es repoblava MAI (sempre []) i highlightPulse era un
-// no-op permanent al callback de cada pols.
-let numberEls = [];           // DOM .pulse-number elements (per índex)
-let currentStep = -1;
+let cycles = null;            // Nº de compases; també comença buit
+let numberEls = [];           // DOM .pulse-number elements (per índex absolut)
+let lastNumberEl = null;
 let p0Enabled = true;         // P0 toggle state (not persisted between sessions)
-let cycleHighlightTimeout = null;  // For auto-dimming cycle circle
-let cycleHighlightEnabled = true;  // Cycle highlight toggle state
-let autoJumpTimer = null;     // Timer for auto-jump from Compás to Cycle
-const AUTO_JUMP_DELAY = 2000;  // Delay in ms before auto-jumping (ENTER salta a l'instant)
+let autoJumpTimer = null;     // Timer d'auto-salt Compás→Cycle (i validació diferida del "1")
 
 // ============================================
 // DOM ELEMENTS
@@ -61,18 +60,16 @@ let inputCompas;
 let compasUpBtn;
 let compasDownBtn;
 let inputCycle;
-let cycleDigit;
 let timeline;
 let timelineWrapper;
+let scrollEl;                 // #timelineScroll — contenidor amb overflow-x
 let playBtn;
 let resetBtn;
 let randomBtn;
 let randomMenu;
-let totalLengthDigit;        // Pastilla "Longitud" (total) — fora del cercle
-let centerCountDigit;        // Dígit del centre del donut — només conteig
-let superscriptController;   // Shared module for cycle superscripts
-let totalLengthController;   // Total (pastilla Longitud)
-let centerCountController;   // Conteig de playback (centre del donut)
+let superscriptController;    // Superíndexs de cicle (mode linear, com App16)
+let totalLengthController;    // Pastilla "Longitud": total en repòs, conteig durant play
+let measureHeader;            // Capçalera "Compás" compartida (marcadors 1..cycles)
 
 // ============================================
 // STORAGE
@@ -128,130 +125,105 @@ if (typeof window !== 'undefined') {
 }
 
 // ============================================
-// TIMELINE CONTROLLER
+// TIMELINE RENDER
 // ============================================
 
+/**
+ * Cycles efectius per al render: mentre l'usuari encara no ha posat el
+ * Nº de compases, es mostra un sol compás (la pastilla Longitud, en canvi,
+ * només mostra el total quan hi ha tots dos valors).
+ */
+function getEffectiveCycles() {
+  return cycles ?? 1;
+}
+
+function getTotalPulses() {
+  if (pulsosCompas === null) return 0;
+  return pulsosCompas * getEffectiveCycles();
+}
 
 /**
- * Render the circular timeline — fully self-contained, no controller.
- * Sets the `.circular` class on timeline + wrapper, wipes any prior content,
- * and paints the pulse-numbers on the cream ring.
+ * Render de la línia sencera: números amb superíndex per compás (mode
+ * linear del cycle-superscript), marcador final `·` i capçalera "Compás"
+ * amb un marcador numerat per compás. L'amplada del contingut d'scroll
+ * es governa amb --total-pulses (vegeu styles.css).
  */
 function renderTimeline() {
   if (!timeline) return;
 
-  // Ensure circular classes (so CSS geometry applies).
-  timeline.classList.add('circular');
-  timelineWrapper?.classList.add('circular');
+  // Fora les classes del donut circular (redisseny lineal).
+  timeline.classList.remove('circular');
+  timelineWrapper?.classList.remove('circular');
 
-  // Wipe prior pulse dots / numbers / bars.
   timeline.innerHTML = '';
   numberEls = [];
+  lastNumberEl = null;
 
-  if (pulsosCompas === null) return;
+  const totalPulses = getTotalPulses();
+  timelineWrapper?.style.setProperty('--total-pulses', String(totalPulses));
 
-  renderPulseNumbers();
-}
-
-/**
- * No-op empty state: renderTimeline above already clears everything when
- * pulsosCompas is null. Kept for API parity with other apps.
- */
-function renderEmptyTimeline() {
-  renderTimeline();
-}
-
-/**
- * Render pulse numbers on the circular timeline — el donut i la geometria viuen
- * al mòdul compartit `circular-timeline-ring.js` (reutilitzat per App1 en mode
- * loop). App17 hi posa el seu detall propi: el superíndex de mòdul `i¹`.
- * `numberEls` es manté com a estat viu per al highlight de playback.
- */
-function renderPulseNumbers() {
-  if (!timeline || pulsosCompas === null) return;
-  numberEls = renderCircularRingNumbers(timeline, {
-    count: pulsosCompas,
-    label: (i) => `${i}<sup>1</sup>`
-  });
-}
-
-// ============================================
-// CYCLE COUNTER
-// ============================================
-
-/**
- * Show total cycles (when stopped) - just shows the cycles value
- */
-function showTotalCycles() {
-  if (!cycleDigit) return;
-
-  if (cycles === null || pulsosCompas === null) {
-    cycleDigit.innerHTML = '';
-  } else {
-    cycleDigit.innerHTML = String(cycles);
+  if (totalPulses === 0) {
+    measureHeader?.render(null, 0);
+    return;
   }
 
-  cycleDigit.classList.remove('playing-zero', 'playing-active');
+  for (let i = 0; i < totalPulses; i++) {
+    // createNumberElement posa el superíndex del compás i marca cycle-start.
+    const label = superscriptController.createNumberElement(i);
+    label.style.setProperty('--pulse-left', `calc((100% - 2 * var(--tl-inset)) * ${i / totalPulses})`);
+    timeline.appendChild(label);
+    numberEls.push(label);
+  }
 
-  // Update total length display
-  updateTotalLength();
-}
+  // Marcador final: `·` amb doble barra al límit dret de la zona útil.
+  const endLabel = document.createElement('div');
+  endLabel.className = 'pulse-number cycle-start cycle-end';
+  endLabel.textContent = '·';
+  endLabel.style.setProperty('--pulse-left', 'calc(100% - 2 * var(--tl-inset))');
+  endLabel.dataset.index = String(totalPulses);
+  timeline.appendChild(endLabel);
 
-/**
- * Cycle counter durant play: deshabilitat. Volem que la pastilla `cycle`
- * sigui un input pla — només mostra el valor que l'usuari ha entrat.
- * No swap d'input→dígit, no actualització del número durant la
- * reproducció. La funció es manté buida per no haver de tocar tots els
- * call-sites.
- */
-function updateCycleCounter(_newCycle) {
-  // No-op intencionat.
-}
-
-/**
- * Color del dígit per cicle: deshabilitat per evitar parpalleig
- * blau/taronja a cada pols (era confús). La pastilla manté el color
- * neutre durant play.
- */
-function updateCycleDigitColor(_step) {
-  // No-op intencionat — vegeu nota de `updateCycleCounter`.
+  measureHeader?.render(pulsosCompas, getEffectiveCycles());
 }
 
 // ============================================
-// TOTAL LENGTH DISPLAY (using shared module)
+// TOTAL LENGTH (pastilla "Longitud")
 // ============================================
 
-/**
- * Update total length display when NOT playing
- * Delegates to shared totalLengthController module
- */
 function updateTotalLength() {
-  if (totalLengthController) {
-    totalLengthController.showTotal();
-  }
+  totalLengthController?.showTotal();
 }
 
-/**
- * Update global step display during playback (1-indexed)
- * Delegates to shared totalLengthController module
- */
-function updateGlobalStep(localStep, cycleNumber) {
-  // El conteig de playback va al centre del donut (no a la pastilla Longitud).
-  if (centerCountController) {
-    centerCountController.updateGlobalStep(localStep, cycleNumber);
-  }
-}
+// ============================================
+// SCROLL
+// ============================================
 
 /**
- * Reset total length display after playback stops
- * Delegates to shared totalLengthController module
+ * Porta un compás a la vista amb un lliscament suau (mai un salt sec):
+ * el downbeat queda a tocar de la vora esquerra amb 3/4 de pols de
+ * context del compás anterior. No fa res si tot cap sense scroll.
  */
-function resetTotalLengthDisplay() {
-  // En aturar (fi de seqüència o stop de l'usuari) NO esborrem el conteig del
-  // centre: deixem l'últim número visible. Només treiem el color de playback.
-  // El botó Reset sí que el buida (vegeu handleReset).
-  if (centerCountController) {
-    centerCountController.clearPlayingColors();
+function scrollToMeasure(measureIndex, { animated = true } = {}) {
+  if (!scrollEl || !timeline || !pulsosCompas) return;
+  const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+  if (maxScroll <= 0) return;
+
+  let target = 0;
+  if (measureIndex > 0) {
+    const el = numberEls[measureIndex * pulsosCompas];
+    if (!el) return;
+    const pulseSpacing = timeline.clientWidth / Math.max(getTotalPulses(), 1);
+    // offsetLeft del número = centre del pols dins .timeline; el marge del
+    // timeline (banda groga) s'afegeix via timeline.offsetLeft.
+    target = timeline.offsetLeft + el.offsetLeft - pulseSpacing * 0.75;
+    target = Math.max(0, Math.min(maxScroll, target));
+  }
+
+  if (Math.abs(scrollEl.scrollLeft - target) < 2) return;
+  if (animated) {
+    smoothScrollTo(scrollEl, target, 'left', SCROLL_GLIDE_MS, 'easeInOut');
+  } else {
+    scrollEl.scrollLeft = target;
   }
 }
 
@@ -274,40 +246,33 @@ function flashMissingInput(element) {
 // HIGHLIGHTING
 // ============================================
 
-let lastNumberEl = null;
-
-function highlightNumber(pulseIndex) {
-  // LH-01: referència directa per índex — abans dos querySelector(All) de
-  // document per pols sobre uns elements que renderPulseNumbers ja tenia.
-  if (lastNumberEl) lastNumberEl.classList.remove('active', 'active-zero');
-  const numberEl = numberEls[pulseIndex] || null;
-  if (numberEl) {
-    numberEl.classList.add(pulseIndex === 0 ? 'active-zero' : 'active');
-  }
+/**
+ * Highlight del pols actiu per índex ABSOLUT (mode linear: cada pols té el
+ * seu número únic, sense mòdul visual).
+ */
+function highlightPulse(step) {
+  if (lastNumberEl) lastNumberEl.classList.remove('active');
+  const numberEl = numberEls[step] || null;
+  if (numberEl) numberEl.classList.add('active');
   lastNumberEl = numberEl;
 }
 
-function highlightCycleCircle(_step) {
-  // Halo per pols deshabilitat a propòsit — vegeu nota de
-  // `updateCycleCounter`. Mantenim la funció (i el timeout cleanup) per
-  // no haver de tocar tots els call-sites; netegem qualsevol classe
-  // residual per si algun camí l'havia deixat aplicada.
-  const cycleCircle = document.querySelector('.pl-secondary.cycle-circle');
-  if (!cycleCircle) return;
-
-  if (cycleHighlightTimeout) {
-    clearTimeout(cycleHighlightTimeout);
-    cycleHighlightTimeout = null;
-  }
-  cycleCircle.classList.remove('active', 'active-zero');
+/**
+ * Marca el compás en curs a la capçalera (cercle groc al marcador actiu).
+ * `measureIndex` és 0-based; null neteja.
+ */
+function highlightMeasureMarker(measureIndex) {
+  const track = document.querySelector('#measureHeader .measure-header__track');
+  if (!track) return;
+  track.querySelectorAll('.measure-marker.is-current').forEach(m => m.classList.remove('is-current'));
+  if (measureIndex === null) return;
+  track.querySelector(`.measure-marker[data-cycle="${measureIndex}"]`)?.classList.add('is-current');
 }
 
 function clearHighlights() {
-  numberEls.forEach(n => n.classList.remove('active', 'active-zero'));
+  numberEls.forEach(n => n.classList.remove('active'));
   lastNumberEl = null;
-  // Clear cycle circle highlight
-  const cycleCircle = document.querySelector('.pl-secondary.cycle-circle');
-  cycleCircle?.classList.remove('active', 'active-zero');
+  highlightMeasureMarker(null);
 }
 
 // ============================================
@@ -335,18 +300,13 @@ async function handlePlay() {
   if (!audioInstance) return;
 
   isPlaying = true;
-  currentCycle = 1;
-  currentStep = -1;
 
-  // Show cycle-1 superscripts on every pulse number from the first beat.
-  if (superscriptController) superscriptController.updateAll(1);
+  // Comencem sempre des de l'inici de la línia.
+  if (scrollEl) scrollEl.scrollLeft = 0;
+  clearHighlights();
 
   // Update play button state
   playBtn?.classList.add('active');
-
-  // La pastilla `cycle` es manté com a input pla durant tota la
-  // reproducció — no canviem a "digit mode" (vegeu nota a
-  // `updateCycleCounter`).
   const iconPlay = playBtn?.querySelector('.icon-play');
   const iconStop = playBtn?.querySelector('.icon-stop');
   if (iconPlay) iconPlay.style.display = 'none';
@@ -356,11 +316,9 @@ async function handlePlay() {
   if (randomBtn) randomBtn.disabled = true;
 
   const intervalSec = 60 / (bpmController?.getValue() || DEFAULT_BPM);
-
-  // Total pulses = pulsosCompas * cycles
   const totalPulses = pulsosCompas * cycles;
 
-  // Configure Measure system: P0 sounds at 0, pulsosCompas, pulsosCompas*2, etc.
+  // Sistema Measure: P0 sona a 0, pulsosCompas, pulsosCompas*2, ...
   audioInstance.configureMeasure(pulsosCompas, totalPulses);
   audioInstance.setMeasureEnabled(p0Enabled);
 
@@ -370,29 +328,24 @@ async function handlePlay() {
     new Set(),    // No selected pulses
     false,        // NO loop (finite cycles)
     (step) => {
-      currentStep = step;
+      highlightPulse(step);
 
-      // Get pulse position within current cycle (for circular timeline highlight)
       const pulseInCycle = step % pulsosCompas;
-
-      highlightNumber(pulseInCycle);
-      highlightCycleCircle(step);
-      updateCycleDigitColor(step);
-
-      // Calculate current cycle number (1-indexed)
       const cycleNumber = Math.floor(step / pulsosCompas) + 1;
 
-      // Update global step in total length display
-      updateGlobalStep(pulseInCycle, cycleNumber);
+      // Conteig global (1..total) a la pastilla Longitud.
+      totalLengthController?.updateGlobalStep(pulseInCycle, cycleNumber);
 
-      // Update cycle counter and superscripts when hitting a new cycle start (except first)
-      if (step > 0 && step % pulsosCompas === 0) {
-        updateCycleCounter(cycleNumber);
-        if (superscriptController) superscriptController.updateAll(cycleNumber);
+      // Downbeat: marca el compás a la capçalera i llisca-hi l'scroll.
+      if (pulseInCycle === 0) {
+        highlightMeasureMarker(cycleNumber - 1);
+        scrollToMeasure(cycleNumber - 1);
       }
     },
     () => {
-      // onComplete callback - delay 590ms to let last pulse ring out
+      // onComplete fires right after the worklet emits the final pulse, but
+      // the scheduled click sample is still ringing out. Defer the stop just
+      // long enough for the last click to finish.
       setTimeout(() => {
         audio?.stop();
         stopPlayback(false);
@@ -407,8 +360,9 @@ async function handlePlay() {
  */
 function stopPlayback(forceStop = true) {
   isPlaying = false;
-  currentStep = -1;
 
+  // Only force stop if user clicked stop (not on natural completion)
+  // The audio engine already handles the delay to let the last pulse finish
   if (forceStop) {
     audio?.stop();
   }
@@ -420,31 +374,25 @@ function stopPlayback(forceStop = true) {
   if (iconPlay) iconPlay.style.display = 'block';
   if (iconStop) iconStop.style.display = 'none';
 
-  // Show input instead of cycle digit
-  const cycleCircle = document.querySelector('.pl-secondary.cycle-circle');
-  cycleCircle?.classList.remove('playing');
-
   // Re-enable random button after playback
   if (randomBtn) randomBtn.disabled = false;
 
   clearHighlights();
 
-  // Reset superscripts back to cycle 1 (always visible).
-  if (superscriptController) superscriptController.reset();
-
-  // Reset total length display (clear playback colors)
-  resetTotalLengthDisplay();
-
-  // Show total cycles again (stopped state)
-  showTotalCycles();
+  // La pastilla Longitud torna a mostrar el total.
+  totalLengthController?.reset();
 }
 
 // ============================================
-// PULSOS COMPÁS INPUT HANDLING
+// COMPÁS INPUT HANDLING
 // ============================================
 
-function handleCompasChange(newValue, triggerAutoJump = false) {
-  // Clear any pending auto-jump
+function handleCompasChange(newValue, opts = {}) {
+  // `opts.lenient` marca una edició en curs (event 'input'): un "1" pot ser
+  // el prefix de 10-12, així que no avisem ni esborrem res — la validació
+  // estricta arriba al blur, a l'ENTER o quan venç el timer d'auto-salt.
+  // `opts.autoJump` salta el focus a l'input Cycle en confirmar un valor
+  // vàlid (el flux de tecleig Compás→Cycle de sempre).
   if (autoJumpTimer) {
     clearTimeout(autoJumpTimer);
     autoJumpTimer = null;
@@ -454,7 +402,7 @@ function handleCompasChange(newValue, triggerAutoJump = false) {
   if (newValue === '' || newValue === null || newValue === undefined) {
     pulsosCompas = null;
     renderTimeline();
-    showTotalCycles();
+    updateTotalLength();
     return;
   }
 
@@ -470,16 +418,29 @@ function handleCompasChange(newValue, triggerAutoJump = false) {
     return;
   }
 
+  // Prefix possible de 10-12 mentre s'escriu: estat pendent (línia buida).
+  // Si el segon dígit no arriba, el timer aplica la validació estricta.
+  if (opts.lenient && parsed === 1) {
+    pulsosCompas = null;
+    renderTimeline();
+    updateTotalLength();
+    autoJumpTimer = setTimeout(() => {
+      autoJumpTimer = null;
+      handleCompasChange(inputCompas?.value ?? '');
+    }, AUTO_JUMP_DELAY);
+    return;
+  }
+
   // Validate range
-  if (parsed < MIN_PULSOS) {
-    showValidationWarning(inputCompas, `El mínimo es <strong>${MIN_PULSOS}</strong>`, 2000);
+  if (parsed < MIN_COMPAS) {
+    showValidationWarning(inputCompas, `El mínimo es <strong>${MIN_COMPAS}</strong>`, 2000);
     if (inputCompas) {
       inputCompas.value = '';
       inputCompas.focus();
     }
     return;
-  } else if (parsed > MAX_PULSOS) {
-    showValidationWarning(inputCompas, `El máximo es <strong>${MAX_PULSOS}</strong>`, 2000);
+  } else if (parsed > MAX_COMPAS) {
+    showValidationWarning(inputCompas, `El máximo es <strong>${MAX_COMPAS}</strong>`, 2000);
     if (inputCompas) {
       inputCompas.value = '';
       inputCompas.focus();
@@ -490,45 +451,26 @@ function handleCompasChange(newValue, triggerAutoJump = false) {
     if (inputCompas) inputCompas.value = pulsosCompas;
   }
 
-  // Re-render timeline
   renderTimeline();
-
-  // Show total cycles
-  showTotalCycles();
-
-  // Save state
+  updateTotalLength();
   saveState();
 
-  // Auto-jump to inputCycle (only when typing digits). Espera intel·ligent
-  // (model App30/31): només un dígit únic que ENCARA pot formar un Compás
-  // vàlid de 2 dígits (parsed*10 ≤ MAX_PULSOS) espera pel possible 2n dígit;
-  // la resta salta directe a Cycle sense esperar.
-  if (triggerAutoJump && inputCycle) {
-    if (autoJumpTimer) { clearTimeout(autoJumpTimer); autoJumpTimer = null; }
-    const canGrow = /^\d$/.test(newValue) && parsed * 10 <= MAX_PULSOS;
-    if (canGrow) {
-      autoJumpTimer = setTimeout(() => {
-        inputCycle.focus();
-        inputCycle.select();
-        autoJumpTimer = null;
-      }, AUTO_JUMP_DELAY);
-    } else {
-      inputCycle.focus();
-      inputCycle.select();
-    }
+  if (opts.autoJump && inputCycle) {
+    inputCycle.focus();
+    inputCycle.select();
   }
 }
 
 function incrementCompas() {
-  const current = pulsosCompas ?? (MIN_PULSOS - 1);
-  if (current < MAX_PULSOS) {
+  const current = pulsosCompas ?? (MIN_COMPAS - 1);   // primer clic des de buit → MIN_COMPAS
+  if (current < MAX_COMPAS) {
     handleCompasChange(current + 1);
   }
 }
 
 function decrementCompas() {
-  const current = pulsosCompas ?? (MIN_PULSOS + 1);
-  if (current > MIN_PULSOS) {
+  const current = pulsosCompas ?? (MIN_COMPAS + 1);   // primer clic des de buit → MIN_COMPAS
+  if (current > MIN_COMPAS) {
     handleCompasChange(current - 1);
   }
 }
@@ -538,54 +480,64 @@ function decrementCompas() {
 // ============================================
 
 function handleCycleChange(newValue) {
+  // Mateix patró que el compás: fora de rang → avís amb el límit i input
+  // buit perquè l'usuari entri un valor acceptat (res de clamp silenciós).
   // Handle empty input
   if (newValue === '' || newValue === null || newValue === undefined) {
     cycles = null;
     if (inputCycle) inputCycle.value = '';
-    showTotalCycles();
+    renderTimeline();
+    updateTotalLength();
     return;
   }
 
   const parsed = parseInt(newValue, 10);
 
-  if (isNaN(parsed) || parsed < MIN_CYCLES) {
-    cycles = MIN_CYCLES;
-  } else if (parsed > MAX_CYCLES) {
-    cycles = MAX_CYCLES;
-  } else {
-    cycles = parsed;
+  if (isNaN(parsed)) {
+    showValidationWarning(inputCycle, 'Introduce un número válido', 2000);
+    if (inputCycle) {
+      inputCycle.value = '';
+      inputCycle.focus();
+    }
+    return;
   }
 
+  if (parsed < MIN_CYCLES) {
+    showValidationWarning(inputCycle, `El mínimo es <strong>${MIN_CYCLES}</strong>`, 2000);
+    if (inputCycle) {
+      inputCycle.value = '';
+      inputCycle.focus();
+    }
+    return;
+  } else if (parsed > MAX_CYCLES) {
+    showValidationWarning(inputCycle, `El máximo es <strong>${MAX_CYCLES}</strong>`, 2000);
+    if (inputCycle) {
+      inputCycle.value = '';
+      inputCycle.focus();
+    }
+    return;
+  }
+
+  cycles = parsed;
   if (inputCycle) inputCycle.value = cycles;
-  showTotalCycles();
+  renderTimeline();
+  updateTotalLength();
   saveState();
 }
-
-function incrementCycle() {
-  const current = cycles ?? (MIN_CYCLES - 1);
-  if (current < MAX_CYCLES) {
-    handleCycleChange(current + 1);
-  }
-}
-
-function decrementCycle() {
-  const current = cycles ?? (MIN_CYCLES + 1);
-  if (current > MIN_CYCLES) {
-    handleCycleChange(current - 1);
-  }
-}
-
 
 // ============================================
 // RANDOM
 // ============================================
 
 function handleRandom() {
-  const maxPulsos = parseInt(document.getElementById('randPulsosMax')?.value || '12', 10);
-  const maxCycles = parseInt(document.getElementById('randCyclesMax')?.value || '8', 10);
+  const maxPulsosInput = parseInt(document.getElementById('randPulsosMax')?.value || String(MAX_COMPAS), 10);
+  const maxCyclesInput = parseInt(document.getElementById('randCyclesMax')?.value || String(MAX_CYCLES), 10);
 
-  const newPulsos = Math.floor(Math.random() * (Math.min(maxPulsos, MAX_PULSOS) - MIN_PULSOS + 1)) + MIN_PULSOS;
-  const newCycles = Math.floor(Math.random() * (Math.min(maxCycles, MAX_CYCLES) - MIN_CYCLES + 1)) + MIN_CYCLES;
+  const maxPulsos = Math.min(Math.max(maxPulsosInput, MIN_COMPAS), MAX_COMPAS);
+  const maxCycles = Math.min(Math.max(maxCyclesInput, MIN_CYCLES), MAX_CYCLES);
+
+  const newPulsos = Math.floor(Math.random() * (maxPulsos - MIN_COMPAS + 1)) + MIN_COMPAS;
+  const newCycles = Math.floor(Math.random() * (maxCycles - MIN_CYCLES + 1)) + MIN_CYCLES;
 
   handleCompasChange(newPulsos);
   handleCycleChange(newCycles);
@@ -598,28 +550,20 @@ function handleRandom() {
 function handleReset() {
   stopPlayback();
 
-  // Reset pulsos to empty
   pulsosCompas = null;
   if (inputCompas) {
     inputCompas.value = '';
     inputCompas.focus();
   }
 
-  // Reset cycles to empty (not default)
   cycles = null;
   if (inputCycle) {
     inputCycle.value = '';
   }
 
-  // Show empty circular timeline (just the circle, no pulses)
-  renderEmptyTimeline();
-
-  // El botó Reset SÍ que buida el conteig del centre a "--" (a diferència de
-  // l'stop/fi de seqüència, que el manté).
-  centerCountController?.reset();
-
-  // Clear cycle display
-  showTotalCycles();
+  renderTimeline();
+  updateTotalLength();
+  if (scrollEl) scrollEl.scrollLeft = 0;
 }
 
 // ============================================
@@ -627,18 +571,17 @@ function handleReset() {
 // ============================================
 
 function saveState() {
+  // Compás i Cycle comencen sempre buits (flux d'aprenentatge); només
+  // persistim la configuració del menú random.
   preferenceStorage.save({
-    pulsosCompas,
-    cycles,
-    randPulsosMax: parseInt(document.getElementById('randPulsosMax')?.value || '12', 10),
-    randCyclesMax: parseInt(document.getElementById('randCyclesMax')?.value || '8', 10)
+    randPulsosMax: parseInt(document.getElementById('randPulsosMax')?.value || String(MAX_COMPAS), 10),
+    randCyclesMax: parseInt(document.getElementById('randCyclesMax')?.value || String(MAX_CYCLES), 10)
   });
 }
 
 function loadState() {
   const prefs = preferenceStorage.load();
 
-  // Load random settings
   if (prefs?.randPulsosMax) {
     const randInput = document.getElementById('randPulsosMax');
     if (randInput) randInput.value = prefs.randPulsosMax;
@@ -646,11 +589,6 @@ function loadState() {
   if (prefs?.randCyclesMax) {
     const randInput = document.getElementById('randCyclesMax');
     if (randInput) randInput.value = prefs.randCyclesMax;
-  }
-
-  // Load cycles (pulsos always starts empty)
-  if (prefs?.cycles) {
-    cycles = prefs.cycles;
   }
 }
 
@@ -664,7 +602,6 @@ async function initializeApp() {
   compasUpBtn = document.getElementById('compasUp');
   compasDownBtn = document.getElementById('compasDown');
   inputCycle = document.getElementById('inputCycle');
-  cycleDigit = document.getElementById('cycleDigit');
   timeline = document.getElementById('timeline');
   timelineWrapper = document.getElementById('timelineWrapper');
   playBtn = document.getElementById('playBtn');
@@ -672,42 +609,26 @@ async function initializeApp() {
   randomBtn = document.getElementById('randomBtn');
   randomMenu = document.getElementById('randomMenu');
 
-  // Build the total-length center display inside the timeline wrapper
-  let totalLengthBlock = document.getElementById('totalLengthCenter');
-  if (timelineWrapper && !totalLengthBlock) {
-    totalLengthBlock = document.createElement('div');
-    totalLengthBlock.id = 'totalLengthCenter';
-    totalLengthBlock.className = 'total-length-center';
-    totalLengthBlock.innerHTML = `
-      <div class="circle">
-        <span class="total-length__digit" id="centerCountDigit">--</span>
-      </div>
-    `;
-    timelineWrapper.appendChild(totalLengthBlock);
-  }
-  // Pastilla "Longitud" (total) — viu a `.inputs` (index.html); el centre del
-  // donut només fa el conteig de playback.
-  totalLengthDigit = document.getElementById('totalLengthDigit');
-  centerCountDigit = document.getElementById('centerCountDigit');
+  // Contenidor d'scroll: capçalera "Compás" + timeline scrollen solidàries.
+  // #timelineScroll > .tl-scroll-content > (#measureHeader + #timeline)
+  if (timelineWrapper && timeline && !document.getElementById('timelineScroll')) {
+    scrollEl = document.createElement('div');
+    scrollEl.id = 'timelineScroll';
+    const content = document.createElement('div');
+    content.className = 'tl-scroll-content';
+    scrollEl.appendChild(content);
+    timelineWrapper.insertBefore(scrollEl, timeline);
 
-  // Re-render pulse numbers (positions + font-size) whenever the circular
-  // timeline canvia de mida — el wrapper té width/height: clamp(16rem, 34vw,
-  // 22rem), per tant es comprimeix amb la finestra. Sense aquest observer,
-  // els pulse-numbers queden posicionats i amb font-size del primer render.
-  if (timeline && typeof ResizeObserver !== 'undefined') {
-    const ro = new ResizeObserver(() => {
-      // renderPulseNumbers usa rAF internament i NO crea elements de flow
-      // (els .pulse-number són position: absolute), així que no dispara
-      // un loop d'observació.
-      if (pulsosCompas !== null) renderPulseNumbers();
-    });
-    ro.observe(timeline);
+    const headerEl = document.createElement('section');
+    headerEl.id = 'measureHeader';
+    headerEl.className = 'measure-header is-empty';
+    content.appendChild(headerEl);
+    content.appendChild(timeline);   // mou el #timeline existent dins l'scroll
+
+    measureHeader = createMeasureHeader({ container: headerEl, labelText: 'Compás' });
   }
 
-  // Move BPM to controls row (Play | BPM | Random | Reset) and move the
-  // .controls element OUT of .timeline-wrapper so it doesn't inherit the
-  // circular wrapper's absolute positioning (which would stack the buttons
-  // at the center of the ring).
+  // Move BPM to controls row (Play | BPM | Random | Reset)
   const bpmParam = document.getElementById('bpmParam');
   const controls = document.querySelector('.controls');
   if (controls && bpmParam) {
@@ -723,11 +644,6 @@ async function initializeApp() {
     if (randomBtnEl) controls.appendChild(randomBtnEl);
     if (randomMenuEl) controls.appendChild(randomMenuEl);
     if (resetBtnEl) controls.appendChild(resetBtnEl);
-
-    // Move controls to be a sibling of timelineWrapper (below the ring).
-    if (timelineWrapper?.parentNode && controls.parentNode === timelineWrapper) {
-      timelineWrapper.parentNode.insertBefore(controls, timelineWrapper.nextSibling);
-    }
   }
 
   // Create BPM controller
@@ -742,74 +658,51 @@ async function initializeApp() {
   });
   bpmController.attach();
 
-  // Create superscript controller (circular mode - all numbers share same superscript)
+  // Superíndexs per posició (mode linear): 0¹..0².. com App16 multi-compás.
   superscriptController = createCycleSuperscript({
     timeline,
-    mode: 'circular'
+    getPulsosPerCycle: () => pulsosCompas || 1,
+    mode: 'linear'
   });
 
-  // Pastilla "Longitud": mostra NOMÉS el total (pulsosCompas × cycles).
+  // Pastilla "Longitud": total (pulsosCompas × cycles) en repòs; durant el
+  // playback fa de comptador global 1..total (updateGlobalStep).
   totalLengthController = createTotalLengthDisplay({
-    digitElement: totalLengthDigit,
+    digitElement: document.getElementById('totalLengthDigit'),
     getTotal: () => (pulsosCompas && cycles) ? pulsosCompas * cycles : null,
     getPulsosPerCycle: () => pulsosCompas || 1
   });
 
-  // Centre del donut: NOMÉS conteig de playback. `getTotal: () => null` fa que
-  // showTotal()/reset() mostrin sempre "--" quan no es reprodueix.
-  centerCountController = createTotalLengthDisplay({
-    digitElement: centerCountDigit,
-    getTotal: () => null,
-    getPulsosPerCycle: () => pulsosCompas || 1
-  });
-
-  // Load state
+  // Load state (només configuració del menú random)
   loadState();
 
-  // Ensure pulsos input is empty on start
-  if (inputCompas) {
-    inputCompas.value = '';
-  }
+  // Compás i Cycle comencen sempre buits
+  if (inputCompas) inputCompas.value = '';
   pulsosCompas = null;
-
-  // Ensure cycles input is empty on start
-  if (inputCycle) {
-    inputCycle.value = '';
-  }
+  if (inputCycle) inputCycle.value = '';
   cycles = null;
 
-  // Show cycles counter (will be empty)
-  showTotalCycles();
-
-  // Render empty circular timeline (just the circle, no numbers/pulses)
-  renderEmptyTimeline();
+  renderTimeline();
+  updateTotalLength();
 
   // Give focus to pulsos input
   inputCompas?.focus();
 
-  // Pulsos Compás input events
+  // Compás input events: tolerant mentre s'escriu, estricte al blur/ENTER.
   inputCompas?.addEventListener('input', (e) => {
-    // Trigger auto-jump when user types a digit
     const isDigitTyped = e.inputType === 'insertText' && /^[0-9]$/.test(e.data);
-    handleCompasChange(e.target.value, isDigitTyped);
+    handleCompasChange(e.target.value, { lenient: true, autoJump: isDigitTyped });
   });
 
   inputCompas?.addEventListener('keydown', (e) => {
     // ENTER confirma el compás i salta al cycle (com l'auto-salt, però immediat).
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    if (autoJumpTimer) { clearTimeout(autoJumpTimer); autoJumpTimer = null; }
-    handleCompasChange(inputCompas.value);
-    inputCycle?.focus();
-    inputCycle?.select();
+    handleCompasChange(inputCompas.value, { autoJump: true });
   });
 
   inputCompas?.addEventListener('blur', () => {
-    // Clear auto-jump timer on blur
-    if (autoJumpTimer) {
-      clearTimeout(autoJumpTimer);
-      autoJumpTimer = null;
-    }
+    // El focus ja ha marxat: validació estricta sense salt.
     handleCompasChange(inputCompas.value);
   });
 
@@ -819,11 +712,12 @@ async function initializeApp() {
   });
 
   inputCycle?.addEventListener('keydown', (e) => {
-    // ENTER confirma el cycle i treu el focus (sense autoplay).
+    // ENTER confirma el cycle i treu el focus (sense autoplay). Si el valor
+    // era invàlid, l'avís l'ha buidat i el focus es queda per reintentar.
     if (e.key !== 'Enter') return;
     e.preventDefault();
     handleCycleChange(inputCycle.value);
-    inputCycle.blur();
+    if (inputCycle.value !== '') inputCycle.blur();
   });
 
   inputCycle?.addEventListener('blur', () => {
@@ -874,24 +768,13 @@ async function initializeApp() {
     });
   }
 
-  // Initialize cycle highlight toggle
-  const cycleHighlightToggle = document.getElementById('cycleHighlightToggle');
-  if (cycleHighlightToggle) {
-    const savedHighlight = localStorage.getItem('app17:cycleHighlight');
-    cycleHighlightEnabled = savedHighlight !== null ? savedHighlight === 'true' : true;
-    cycleHighlightToggle.checked = cycleHighlightEnabled;
-    cycleHighlightToggle.addEventListener('change', () => {
-      cycleHighlightEnabled = cycleHighlightToggle.checked;
-      localStorage.setItem('app17:cycleHighlight', String(cycleHighlightEnabled));
-    });
-  }
-
   // Register factory reset
   registerFactoryReset({
     storage: preferenceStorage,
     onBeforeReload: () => {
       stopPlayback();
       localStorage.removeItem('app17:p1Toggle');
+      // Clau del toggle de cycle highlight del disseny circular retirat.
       localStorage.removeItem('app17:cycleHighlight');
       localStorage.removeItem(MIXER_STORAGE_KEY);
     }

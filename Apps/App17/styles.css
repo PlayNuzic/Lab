@@ -1,4 +1,9 @@
-/* App17 - Módulo Temporal - Círculo - Nuzic Theme */
+/* App17 - Módulo Temporal - línia amb scroll (redisseny des del donut circular)
+   Base visual App16 (capçalera "Compás" + franja crema + bandes grogues),
+   ampliada a diversos compases (fins a 6) dins un contenidor d'scroll
+   horitzontal. La capçalera i la timeline scrollen SOLIDÀRIES dins
+   #timelineScroll; l'auto-scroll de playback (salt suau per compás) el fa
+   el JS amb smoothScrollTo. */
 
 html, body {
   margin: 0;
@@ -18,41 +23,30 @@ html, body {
 /* ========== INPUTS SECTION ==========
    Columna: Compás (param--large--dual) a dalt i pastilla "Longitud" a sota,
    centrats. El `gap` reserva l'espai de l'etiqueta absoluta "Nº de compases"
-   (abbr--secondary) que penja sota el cercle gran. Compactem el padding per
-   encabir la pastilla nova entre el títol i els controls sense desplaçar-los. */
+   (abbr--secondary) que penja sota el cercle gran. */
 body[data-visual="nuzic"].app17 .inputs {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  /* El gap reserva l'espai de l'etiqueta absoluta "Nº de compases" que penja
-     sota el cercle gran, perquè la pastilla "Longitud" hi quedi clarament a
-     sota sense solapar-s'hi. !important per guanyar el `row-gap` compartit del
-     tema (nuzic-theme .inputs). */
   flex-wrap: nowrap !important;
   row-gap: clamp(1.5rem, 3.4vw, 2.1rem) !important;
   padding: 0.25rem 0;
 }
 
-/* Pastilla "Longitud" (total) — info-pure com a App19/20, centrada sota el
-   bloc del Compás. */
 body[data-visual="nuzic"].app17 .inputs .param.longitud {
   margin: 0;
 }
 
-/* Comprimim els marges del donut (el compartit és 3.5rem dalt i baix) per
-   recuperar l'alçada que ocupa la nova pastilla "Longitud" → els controls no es
-   desplacen ni cauen sota la pantalla. */
-body[data-visual="nuzic"].app17 .timeline-wrapper.circular {
-  margin-top: clamp(0.4rem, 1.6vw, 1.1rem) !important;
-  margin-bottom: clamp(0.4rem, 1.6vw, 1.1rem) !important;
+/* "Nº de compases" més a prop del cercle: el tema el penja a
+   clamp(0rem, 1.5vw, 1.1rem) del cercle; aquí el nou màxim és 0.5rem i
+   el pendent vw s'escala en proporció (1.5 × 0.5/1.1 ≈ 0.7vw). Mateixa
+   especificitat que la regla del tema + càrrega posterior → guanya. */
+body[data-visual="nuzic"] .param.param--large--dual .pl-secondary .abbr--secondary {
+  top: calc(100% + clamp(0rem, 0.7vw, 0.5rem)) !important;
 }
 
-/* The BPM + Compás pastilla combo lives in .inputs; BPM moves to .controls
-   in JS. Compás uses the shared `.param--large--dual` variant defined in
-   libs/shared-ui/nuzic-theme.css — no per-app pill overrides. */
-
-/* ========== FLASH WARNING ========== */
+/* ========== FLASH WARNING (Play sense valors) ========== */
 .param--large--dual .pl-primary.flash-warning,
 .param--large--dual .pl-secondary.flash-warning {
   animation: flashWarning 1s ease;
@@ -66,113 +60,162 @@ body[data-visual="nuzic"].app17 .timeline-wrapper.circular {
   20%, 40%, 60%, 80% { box-shadow: none; }
 }
 
-/* ========== CYCLE COUNTER (playback digit) ========== */
-.pl-secondary.cycle-circle.playing input {
-  display: none;
+/* ==========================================================================
+   ARQUITECTURA D'SCROLL — capçalera + timeline en un sol contenidor
+   --------------------------------------------------------------------------
+   .timeline-wrapper                (flow normal, declara les vars)
+     #timelineScroll                (overflow-x: auto)
+       .tl-scroll-content           (amplada = max(100%, polsos × amplada mín.))
+         #measureHeader             (component compartit measure-header)
+         #timeline                  (franja crema; bandes grogues via ::before/::after)
+
+   Geometria: el #timeline té marges laterals de --com-band-w; les bandes
+   grogues es pinten FORA de la seva caixa (left: -band / left: 100%), així
+   tot (label, bandes, track) viatja junt amb l'scroll. Els centres dels
+   polsos van d'`--tl-inset` a `100% − --tl-inset` de l'amplada del
+   timeline, i el track de la capçalera usa el MATEIX sistema de
+   coordenades perquè els marcadors caiguin exactament sobre els downbeats.
+   ========================================================================== */
+.timeline-wrapper {
+  --com-band-w: clamp(4rem, 7vw, 5.5rem);
+  --com-band-h: clamp(1.75rem, 3.2vw, 2.25rem);
+  --com-band-gap: 0.75rem;
+  /* El component measure-header usa --tl-side-pad com a marge lateral:
+     igualant-lo a la banda, capçalera i timeline comparteixen amplada. */
+  --tl-side-pad: var(--com-band-w);
+  /* Respir entre la banda groga i el centre del primer/últim pols. */
+  --tl-inset: 1.5rem;
+  /* Amplada mínima per pols: per sota, apareix l'scroll. */
+  --pulse-min-w: 4.5rem;
+  margin: 1rem 0;
 }
 
-.pl-secondary.cycle-circle .cycle-counter__digit {
-  display: none;
+#timelineScroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* El gest tàctil horitzontal ha de poder arrossegar la línia. */
+  touch-action: pan-x;
+}
+
+.tl-scroll-content {
+  position: relative;
+  /* Si tots els polsos hi caben, ocupa el 100% (idèntic a App16);
+     si no, creix i activa l'scroll. --total-pulses el posa el JS. */
+  width: max(100%, calc(2 * var(--com-band-w) + 2 * var(--tl-inset) + var(--total-pulses, 0) * var(--pulse-min-w)));
+  /* Respir inferior per als ticks que sobresurten de la franja. */
+  padding: 0.25rem 0 1.25rem;
+  box-sizing: border-box;
+}
+
+/* Timeline: franja crema del tema, amb marges laterals reservats per a
+   les bandes grogues. Sense les extensions de box-shadow d'App16 (aquí
+   les bandes abutten directament la franja). */
+body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline {
+  width: calc(100% - 2 * var(--com-band-w));
+  margin: 0 var(--com-band-w);
+  box-shadow: none;
+  /* El base posa touch-action:none (drag de selecció); aquí volem pan. */
+  touch-action: pan-x;
+}
+
+/* Banda groga esquerra — enganxada a la franja, sota el label "Compás". */
+body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline::before {
+  display: block;
+  content: '';
   position: absolute;
-  inset: 0;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Ubuntu', sans-serif;
-  font-weight: 700;
-  font-size: clamp(0.8rem, 2.4vw, 1.5rem);
-  color: var(--nuzic-dark);
-  line-height: 1;
+  top: 0;
+  left: calc(-1 * var(--com-band-w));
+  width: var(--com-band-w);
+  height: 100%;
+  background: var(--nuzic-yellow);
+  border-radius: 4px 0 0 4px;
+  z-index: 1;
+  pointer-events: none;
+  transform: none;
 }
 
-.pl-secondary.cycle-circle.playing .cycle-counter__digit {
-  display: flex;
+/* Endcap dret — tancament groc després de l'últim pols. */
+body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline::after {
+  display: block;
+  content: '';
+  position: absolute;
+  inset: auto;
+  opacity: 1;
+  border: 0;
+  top: 0;
+  left: 100%;
+  right: auto;
+  width: var(--com-band-w);
+  height: 100%;
+  background: var(--nuzic-yellow);
+  border-radius: 0 4px 4px 0;
+  z-index: 1;
+  pointer-events: none;
+  transform: none;
 }
 
-/* ========== CIRCULAR TIMELINE — nuzic theme ==========
-   El crom base del donut (wrapper quadrat, donut cream, ticks, números,
-   highlight) viu ara a libs/shared-ui/nuzic-theme.css (compartit amb App1 en
-   mode loop), i la geometria dels números a libs/app-common/
-   circular-timeline-ring.js. Aquí queda només el que és propi d'App17: els
-   overrides d'embed (sota) i el total-length centrat. */
-
-/* Embed mode (Sistema Interactivo, iframe quadrat 1/1):
-   l'iframe sovint cau a 450-600px d'alt; el header `.inputs` + cercle 256px
-   + marges 3.5rem×2 + controls excedeixen aquesta alçada i `overflow:hidden`
-   retalla els `.controls`. En embed:
-   - eliminem el marge vertical fix (centrat per `margin:auto` del flex pare).
-   - lliguem la mida del cercle també a `vh` per encongir-se quan l'alçada
-     manda. Es manté `aspect-ratio: 1` → quadrat sempre. */
-html[data-embed="true"] body[data-visual="nuzic"] .timeline-wrapper.circular {
-  width: min(clamp(12rem, 34vw, 22rem), 60vh) !important;
-  height: min(clamp(12rem, 34vw, 22rem), 60vh) !important;
-  margin: auto !important;
+/* Posició dels números: --pulse-left (JS) és el desplaçament dins la zona
+   útil [inset, 100%−inset]; el translate(-50%) del tema centra el número. */
+.timeline .pulse-number {
+  left: calc(var(--tl-inset) + var(--pulse-left, 0%)) !important;
 }
 
-/* ============================================================================
-   VERTICAL MODE — alineat amb el breakpoint del sistema (`max-width: 900px`)
-   ----------------------------------------------------------------------------
-   Quan el sistema apila app + text al paso 13, l'iframe pot rebre amplades
-   600-900px però alçades modestes (~aspect 1/1 → 600-900px). El header
-   `.inputs` (BPM + Compás) + cercle + controls (play/loop/tap/random)
-   excedeixen el `100vh` del `main` (`overflow: hidden` retalla els
-   controls). Estretem encara més la cota d'alçada del cercle (50vh) i
-   compactem els paddings perquè càpiga sense scroll.
-   ============================================================================ */
-@media (max-width: 900px) {
-  html[data-embed="true"] body[data-visual="nuzic"] .timeline-wrapper.circular {
-    width: min(clamp(10rem, 34vw, 18rem), 50vh) !important;
-    height: min(clamp(10rem, 34vw, 18rem), 50vh) !important;
-    /* Ancorem el cercle a dalt enlloc del centre vertical del `main`.
-       Amb scroll vertical actiu (`overflow-y: auto` a `main`, vegeu
-       `embed.css`), si centrem el cercle quan el contingut total
-       (header + cercle + controls) supera l'alçada, la part de dalt
-       quedaria fora del rang d'scroll. Mateix patró que App18/23/24. */
-    margin-top: 0 !important;
-    margin-bottom: auto !important;
-  }
-
-  /* Compacta el header de pastilles + reset al sistema vertical. Allibera
-     vh per al cercle i els controls. */
-  html[data-embed="true"] body[data-visual="nuzic"].app17 .inputs {
-    padding: 0.25rem 0;
-  }
+/* ========== CAPÇALERA "Compás" — overrides del component compartit ==========
+   El label ocupa la columna de la banda groga (fora del box de la
+   capçalera, igual que la banda ::before de la timeline de sota); el track
+   comparteix el sistema de coordenades dels polsos (inset per banda). */
+.timeline-wrapper {
+  --com-band-track-right: var(--tl-inset);
 }
 
+.timeline-wrapper .measure-header__label {
+  left: calc(-1 * var(--com-band-w));
+}
 
+.timeline-wrapper .measure-header__track {
+  left: var(--tl-inset);
+}
 
-/* ========== TOTAL LENGTH — centered inside the ring ========== */
-.total-length-center {
+/* Línia vertical baixant de cada marcador fins a la timeline (estil App16). */
+.timeline-wrapper .measure-marker__circle::after {
+  content: '';
   position: absolute;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-  z-index: 5;
+  width: 2px;
+  height: calc(100% + 0.75rem + 0.75rem);
+  background: var(--nuzic-yellow);
+  border-radius: 1px;
+  transform: translate(-50%, 0);
+  z-index: -1;
 }
 
-.total-length-center .circle {
-  /* Cercle visual eliminat: només actua com a wrapper transparent
-     perquè els dígits queden centrats al centre del cercle gran. */
-  width: auto;
-  height: auto;
-  border: 0;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Barra final del track: arriba just al límit superior de la timeline. */
+.timeline-wrapper .measure-header__end-bar {
+  height: calc(100% + var(--com-band-gap) - 0.7rem);
 }
 
-.total-length-center .total-length__digit {
-  font-family: 'Ubuntu', sans-serif;
-  font-weight: 700;
-  font-size: clamp(1.4rem, 2.6vw, 1.8rem);
-  color: var(--nuzic-dark);
-  line-height: 1;
+/* Compás actiu durant el playback: el cercle del marcador s'omple de groc. */
+.timeline-wrapper .measure-marker.is-current .measure-marker__circle {
+  background: var(--nuzic-yellow);
 }
 
+/* ========== PULSE NUMBER HIGHLIGHT (barra daurada, com App16) ========== */
+.timeline .pulse-number.active {
+  background: var(--nuzic-yellow, #FFBB33);
+  border-radius: 2px;
+  padding: 0.1rem 0.3rem;
+  color: var(--nuzic-dark, #43433b) !important;
+  transition: background 0.1s ease;
+}
+
+.timeline .pulse-number.active::before,
+.timeline .pulse-number.active::after {
+  background: var(--nuzic-yellow, #FFBB33) !important;
+  opacity: 1 !important;
+}
+
+/* ========== PASTILLA "Longitud" — total en repòs, conteig durant play ==== */
 .total-length__digit.playing-zero { color: var(--nuzic-yellow); }
 .total-length__digit.playing-active { color: var(--nuzic-dark); }
 
@@ -189,11 +232,56 @@ html[data-embed="true"] body[data-visual="nuzic"] .timeline-wrapper.circular {
   100% { transform: rotateX(0deg); }
 }
 
-[data-theme="dark"] .total-length-center .circle {
-  background: transparent;
-  border-color: transparent;
+[data-theme="dark"] .total-length__digit.playing-active {
+  color: #eee8d8;
 }
 
-[data-theme="dark"] .total-length-center .total-length__digit {
-  color: #eee8d8;
+/* ============================================================================
+   EMBED (pas 13 del sistema, iframe 2/1)
+   ----------------------------------------------------------------------------
+   L'alçada de l'iframe (≈ amplada/2) és justa per a la columna
+   inputs + línia + controls: en desktop (~977×488) el contingut natural
+   feia ~545px i el `overflow: hidden` d'embed.css tallava els controls.
+   Compactem NOMÉS marges verticals (el gruix era el margin-top de 40px
+   de `.inputs` heretat del layout standalone) — l'app fora del sistema
+   no canvia. Per sota de 900px d'amplada d'iframe, embed.css ja dona
+   `overflow-y: auto` al main d'app17 com a xarxa de seguretat.
+   ============================================================================ */
+html[data-embed="true"] body[data-visual="nuzic"].app17 .inputs {
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+html[data-embed="true"] body[data-visual="nuzic"].app17 .timeline-wrapper {
+  margin: 0.25rem 0;
+}
+
+html[data-embed="true"] body[data-visual="nuzic"].app17 .tl-scroll-content {
+  /* Els ticks inferiors necessiten 14px (10px de tick + 4px de marge). */
+  padding-bottom: 0.875rem;
+}
+
+html[data-embed="true"] body[data-visual="nuzic"].app17 .controls {
+  margin-top: 0.25rem;
+}
+
+/* ============================================================================
+   VERTICAL MODE — alineat amb el breakpoint del sistema (`max-width: 900px`)
+   ----------------------------------------------------------------------------
+   Al pas 13 el sistema apila app + text: l'iframe (aspect 2/1) rep amplades
+   petites. Compactem bandes i paddings com App16 perquè hi càpiga; l'scroll
+   absorbeix el que no hi cap.
+   ============================================================================ */
+@media (max-width: 900px) {
+  .timeline-wrapper {
+    --com-band-w: clamp(3rem, 7vw, 5rem);
+    --com-band-h: clamp(1.5rem, 3vw, 2rem);
+    --com-band-gap: 0.5rem;
+    --pulse-min-w: 3.5rem;
+  }
+
+  body[data-visual="nuzic"].app17 .inputs {
+    padding: 0.25rem 0;
+    row-gap: clamp(1.2rem, 3vw, 1.6rem) !important;
+  }
 }
