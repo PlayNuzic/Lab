@@ -21,9 +21,12 @@
      depth-blur     → --px-bl                                        (per capa)
      color-shift    → --px-cs-hue --px-cs-sat --px-cs-bri            (per capa)
      inertia        → --px-tr-dur --px-tr-ease --px-tr-delay         (per capa)
+     bg-dim         → --px-bgd-sym --px-bgd-img                     (al slide)
      mask-zoom, gradient-drift, marquee, spotlight, grain, text-reveal,
      app-reveal     → regles pròpies scoped a .slide--parallax-lab (secció
                       "Tècniques" al final d'aquest fitxer, una per bloc).
+     focus-mode     → cap canal CSS: escriu style.opacity de les frases a
+                      cada frame (vegeu el comentari de la tècnica).
 
    El motor (parallax-lab.js) publica el progrés a --px-progress (0..1) a
    l'arrel del slide i emet 'sistema:parallax-progress'. */
@@ -443,4 +446,19 @@ body[data-editable="true"] .slide--parallax-lab .slide__title .px-txr-char{
    és precisament la sensació de profunditat. */
 .slide--parallax-lab .parallax-frases > p{
   transition: none;
+}
+
+
+/* ---- bg-dim ----
+   Abaixa els símbols i la imatge del fons perquè no competeixin amb el
+   text. Els fallbacks són els valors base de parallax.css, de manera que
+   una var absent = cap canvi. L'especificitat (0,3,1) guanya tant la
+   regla base .parallax-layer (0,1,0) com la del @media de 900px, sense
+   necessitat de !important. NO es toca cap canal de transform: el
+   moviment de les capes segueix intacte. */
+.slide--parallax-lab.px-bgd .parallax-layer{
+  opacity: var(--px-bgd-sym, 0.12);
+}
+.slide--parallax-lab.px-bgd .parallax-img{
+  opacity: var(--px-bgd-img, 0.10);
 }

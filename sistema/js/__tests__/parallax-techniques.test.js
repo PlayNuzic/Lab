@@ -281,3 +281,131 @@ describe('P-06 — compositor de filter escopat a .px-filter', () => {
     capes().forEach(l => expect(l.classList.contains('px-filter')).toBe(false));
   });
 });
+
+// ── Legibilitat: focus-mode + bg-dim ────────────────────────────────────
+// Les dues tècniques que netegen els parallax de frases llargues (intro
+// global i coda). focus-mode és l'única del registre que escriu
+// style.opacity de les frases: ho fa a propòsit (el motor la reescriu a
+// cada frame i cap variable CSS la podria guanyar), i el test en fixa el
+// contracte — opacity sí, transform i filter mai.
+describe('focus-mode + bg-dim — legibilitat de frases llargues', () => {
+  const focusMode = TECNIQUES.find(t => t.id === 'focus-mode');
+  const bgDim = TECNIQUES.find(t => t.id === 'bg-dim');
+
+  function harness(nFrases = 5) {
+    document.body.innerHTML = '';
+    const slideEl = document.createElement('article');
+    slideEl.className = 'slide slide--parallax slide--parallax-lab';
+    const ps = Array.from({ length: nFrases }, (_, i) => `<p>frase ${i}</p>`).join('');
+    slideEl.innerHTML = `
+      <div class="parallax-bg" aria-hidden="true">
+        <div class="parallax-img" data-depth="0.12"></div>
+        <span class="parallax-layer" data-depth="0.25">N</span>
+      </div>
+      <div class="parallax-content">
+        <div class="parallax-frases prose">${ps}</div>
+      </div>`;
+    document.body.appendChild(slideEl);
+    let subs = [];
+    const ctx = {
+      reduced: false,
+      progress: () => 0,
+      onProgress(cb) {
+        subs.push(cb);
+        return () => { subs = subs.filter(s => s !== cb); };
+      },
+      emet: (t, detail) => subs.forEach(cb => cb(t, detail)),
+      _subs: () => subs,
+    };
+    const frases = [...slideEl.querySelectorAll('.parallax-frases > p')];
+    return { slideEl, ctx, frases };
+  }
+
+  test('totes dues són moviment:false — legibilitat, no moviment', () => {
+    expect(focusMode.moviment).toBe(false);
+    expect(bgDim.moviment).toBe(false);
+  });
+
+  test('focus-mode tanca la corba: activa a 1, veïnes al rastre', () => {
+    const { slideEl, ctx, frases } = harness(5);
+    focusMode.apply(slideEl, { duresa: 2, rastre: 0.04 }, ctx);
+    ctx.emet(0, { t: 0, active: 0, total: 5 });          // primera frase activa
+
+    expect(Number(frases[0].style.opacity)).toBeCloseTo(1, 3);
+    // |d| >= 1 → rastre pla, molt per sota del 0.19-0.26 del motor.
+    expect(Number(frases[1].style.opacity)).toBeCloseTo(0.04, 3);
+    expect(Number(frases[4].style.opacity)).toBeCloseTo(0.04, 3);
+  });
+
+  test('focus-mode manté el fos encreuat a mig gest (no és un tall sec)', () => {
+    const { slideEl, ctx, frases } = harness(5);
+    focusMode.apply(slideEl, { duresa: 2, rastre: 0.04 }, ctx);
+    ctx.emet(0.125, { t: 0.125, active: 0, total: 5 });  // pos = 0.5: entre dues
+
+    const a = Number(frases[0].style.opacity);
+    const b = Number(frases[1].style.opacity);
+    expect(a).toBeCloseTo(b, 3);                          // simètric al mig
+    expect(a).toBeGreaterThan(0.04);                      // per sobre del rastre
+    expect(a).toBeLessThan(1);
+  });
+
+  test('focus-mode escriu opacity però mai transform ni filter', () => {
+    const { slideEl, ctx, frases } = harness(4);
+    focusMode.apply(slideEl, paramsPerDefecte(focusMode), ctx);
+    ctx.emet(0.34, { t: 0.34, active: 1, total: 4 });
+    frases.forEach(p => {
+      expect(p.style.opacity).not.toBe('');
+      expect(p.style.transform).toBe('');
+      expect(p.style.filter).toBe('');
+    });
+  });
+
+  test('focus-mode: cleanup desubscriu i torna l\'opacitat al motor', () => {
+    const { slideEl, ctx, frases } = harness(4);
+    focusMode.apply(slideEl, paramsPerDefecte(focusMode), ctx);
+    expect(ctx._subs()).toHaveLength(1);
+    focusMode.cleanup(slideEl);
+    expect(ctx._subs()).toHaveLength(0);
+    frases.forEach(p => expect(p.style.opacity).toBe(''));
+    expect(() => focusMode.cleanup(slideEl)).not.toThrow();   // idempotent
+  });
+
+  test('focus-mode: apply és idempotent (no acumula subscripcions)', () => {
+    const { slideEl, ctx } = harness(4);
+    focusMode.apply(slideEl, paramsPerDefecte(focusMode), ctx);
+    focusMode.apply(slideEl, { duresa: 3, rastre: 0.1 }, ctx);
+    expect(ctx._subs()).toHaveLength(1);
+  });
+
+  test('focus-mode: slide sense frases és un no-op net', () => {
+    document.body.innerHTML = '';
+    const buit = document.createElement('article');
+    buit.className = 'slide--parallax-lab';
+    document.body.appendChild(buit);
+    const ctx = { reduced: false, progress: () => 0, onProgress: () => () => {} };
+    expect(() => focusMode.apply(buit, paramsPerDefecte(focusMode), ctx)).not.toThrow();
+  });
+
+  test('bg-dim escriu els seus canals al slide i no toca les capes', () => {
+    const { slideEl } = harness();
+    bgDim.apply(slideEl, { simbols: 0.03, imatge: 0.05 });
+    expect(slideEl.classList.contains('px-bgd')).toBe(true);
+    expect(slideEl.style.getPropertyValue('--px-bgd-sym')).toBe('0.03');
+    expect(slideEl.style.getPropertyValue('--px-bgd-img')).toBe('0.05');
+    // L'opacitat la posa el CSS per especificitat: cap estil inline a les capes.
+    slideEl.querySelectorAll('.parallax-bg [data-depth]').forEach(l => {
+      expect(l.style.opacity).toBe('');
+      expect(l.style.transform).toBe('');
+    });
+  });
+
+  test('bg-dim: cleanup treu classe i canals, i és idempotent', () => {
+    const { slideEl } = harness();
+    bgDim.apply(slideEl, paramsPerDefecte(bgDim));
+    bgDim.cleanup(slideEl);
+    expect(slideEl.classList.contains('px-bgd')).toBe(false);
+    expect(slideEl.style.getPropertyValue('--px-bgd-sym')).toBe('');
+    expect(slideEl.style.getPropertyValue('--px-bgd-img')).toBe('');
+    expect(() => bgDim.cleanup(slideEl)).not.toThrow();
+  });
+});

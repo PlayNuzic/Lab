@@ -52,6 +52,27 @@ function configPerDefecte() {
 // torna. Les entrades on:false amb params conserven els valors afinats
 // perquè, en activar-les al panell, ja surtin a punt.
 const PRESETS = {
+  // Paso 1 — intro global. Frases llargues: focus-mode tanca la corba
+  // d'opacitat i bg-dim abaixa els símbols gegants del fons, els dos
+  // problemes de legibilitat d'aquest slide. Afinat al constructor.
+  1: {
+    'scroll-depth':    { on: true,  params: {} },
+    'focus-mode':      { on: true,  params: { duresa: 2, rastre: 0.05 } },
+    'bg-dim':          { on: true,  params: {} },
+    'app-reveal':      { on: false, params: { fraseAparicio: 8, escalaInicial: 1, durada: 0.5 } },
+  },
+  // Paso 2 — intro de Posiciones (cuinat des de l'export del panell):
+  // el plano entra a l'última frase, la buida.
+  2: {
+    'scroll-depth':    { on: true,  params: {} },
+    'app-reveal':      { on: true,  params: { fraseAparicio: 8, escalaInicial: 1, durada: 0.5 } },
+  },
+  // Paso 11 — Módulos (cuinat des de l'export del panell).
+  11: {
+    'scroll-depth':    { on: true,  params: {} },
+    'mask-zoom':       { on: true,  params: {} },
+    'app-reveal':      { on: false, params: { fraseAparicio: 2 } },
+  },
   22: {
     'scroll-depth':    { on: true,  params: {} },
     'multi-speed':     { on: true,  params: { factor: 2, dispersio: 0.5 } },
@@ -67,6 +88,35 @@ const PRESETS = {
     'marquee':         { on: true,  params: { velocitat: 120, mida: 110 } },
     'spotlight':       { on: true,  params: { radi: 50, forca: 0.05 } },
     'app-reveal':      { on: false, params: { fraseAparicio: 5, escalaInicial: 0.6 } },
+  },
+  // Pasos 28.5/28.7 — Parallax Lab (cuinat des de l'export del panell).
+  // Les entrades on:false conserven els params afinats.
+  28.5: {
+    'scroll-depth':    { on: true,  params: { amplX: 95, amplY: 90, rotacio: 30, zoom: 0.8 } },
+    'multi-speed':     { on: false, params: { factor: 1, dispersio: 0 } },
+    'mouse-tilt':      { on: false, params: { intensitat: 19 } },
+    'zoom-drift':      { on: false, params: {} },
+    'inertia':         { on: false, params: {} },
+    'gradient-drift':  { on: false, params: {} },
+    'mask-zoom':       { on: false, params: { escalaInicial: 20, escalaFinal: 675 } },
+    'spotlight':       { on: false, params: {} },
+    'float-drift':     { on: false, params: {} },
+  },
+  28.7: {
+    'scroll-depth':    { on: true,  params: {} },
+    'zoom-drift':      { on: true,  params: { intensitat: 1.5 } },
+    'mask-zoom':       { on: true,  params: { fons: 1, escalaFinal: 150 } },
+    'app-reveal':      { on: false, params: { fraseAparicio: 5 } },
+  },
+  // Paso 29 — coda: mateixa recepta que la intro (paso 1), que té el
+  // mateix problema de frases llargues. L'entrada app-reveal hi és per
+  // paritat amb el paso 1, però a la coda és inert: el slide no declara
+  // cap app, així que no hi ha ranura on revelar-la.
+  29: {
+    'scroll-depth':    { on: true,  params: {} },
+    'focus-mode':      { on: true,  params: { duresa: 2, rastre: 0.05 } },
+    'bg-dim':          { on: true,  params: {} },
+    'app-reveal':      { on: false, params: { fraseAparicio: 8, escalaInicial: 1, durada: 0.5 } },
   },
 };
 // Clon profund: mai retornem la referència viva del preset (evitem que una

@@ -1104,6 +1104,110 @@ const marquee = {
   },
 };
 
+// ── focus-mode ──────────────────────────────────────────────────────────
+// Legibilitat en slides de text llarg (intro global, coda): amb frases de
+// 4-5 línies, les veïnes que el motor deixa a opacitat 0.19-0.26 se
+// solapen amb l'activa i el conjunt es fa il·legible. Aquesta tècnica
+// re-pinta l'opacitat de cada frase amb una corba molt més tancada, de
+// manera que només la frase activa (i el seu entorn immediat, mentre
+// llisca) queda visible.
+//
+// Excepció documentada al principi "cap tècnica escriu style.*": aquí SÍ
+// que s'escriu style.opacity. El motor la reescriu a cada frame dins de
+// pintaFrases(), així que una variable CSS no la podria guanyar mai; el
+// nostre listener corre just DESPRÉS (publica() s'emet al final del
+// frame), de manera que la nostra corba és l'última a escriure. Només es
+// toca opacity — mai transform ni filter, que sí que són canals composats
+// (i filter, a més, cau sota LP-07: el desenfoc el segueix portant el
+// motor, un sol cop per canvi de frase).
+const estatFM = new WeakMap();
+const ultimProgresFM = new WeakMap();
+
+const focusMode = {
+  id: 'focus-mode',
+  nom: 'Modo foco',
+  descripcio: 'Cierra la curva de opacidad de las frases para que solo la activa se lea: las vecinas caen a un rastro tenue en lugar de superponerse. Pensado para slides con frases largas, donde el texto de fondo y el de primer plano se mezclan.',
+  moviment: false,
+  params: [
+    { key: 'duresa', label: 'Dureza del foco',      min: 0.5, max: 4,    step: 0.1,  def: 2 },
+    { key: 'rastre', label: 'Rastro de las demás',  min: 0,   max: 0.3,  step: 0.01, def: 0.04 },
+  ],
+  apply(slideEl, cfg, ctx) {
+    focusMode.cleanup(slideEl);
+    const frases = [...slideEl.querySelectorAll('.parallax-frases > p')];
+    if (!frases.length) return;                        // no-op net (regla 8)
+    const duresa = cfg.duresa ?? 2;
+    const rastre = cfg.rastre ?? 0.04;
+
+    // op(d) = rastre + (1 − rastre) · (1 − min(1, |d|))^duresa
+    // |d| = 0 → 1 (activa) · |d| ≥ 1 → rastre. Contínua: el fos encreuat
+    // del gest es conserva, només que molt més tancat que el del motor.
+    const pinta = (pos) => {
+      frases.forEach((el, j) => {
+        const abs = Math.min(1, Math.abs(j - pos));
+        const op = rastre + (1 - rastre) * Math.pow(1 - abs, duresa);
+        el.style.opacity = op.toFixed(3);
+      });
+    };
+
+    const st = { frases, unsub: null };
+    st.unsub = ctx.onProgress((t, d) => {
+      const total = d && typeof d.total === 'number' ? d.total : frases.length;
+      const pos = t * Math.max(1, total - 1);
+      ultimProgresFM.set(slideEl, pos);
+      pinta(pos);
+    });
+    estatFM.set(slideEl, st);
+
+    // Re-apply per canvi de slider: repinta amb la posició coneguda perquè
+    // el canvi es vegi sense haver d'esperar el pròxim gest.
+    pinta(ultimProgresFM.get(slideEl) ?? 0);
+  },
+  cleanup(slideEl) {
+    const st = estatFM.get(slideEl);
+    if (!st) return;                                   // apply mai cridat → no-op segur
+    try { st.unsub?.(); } catch {}
+    // Deixem el motor com a únic amo de l'opacitat: el pròxim frame la
+    // reescriu amb la corba original.
+    st.frases.forEach(el => el.style.removeProperty('opacity'));
+    estatFM.delete(slideEl);
+  },
+};
+
+// ── bg-dim ──────────────────────────────────────────────────────────────
+// L'altra meitat del problema de legibilitat: els símbols del fons
+// (.parallax-layer, opacitat 0.12 a parallax.css) i la imatge opcional
+// (.parallax-img, 0.10) són enormes i, darrere d'un paràgraf llarg, es
+// llegeixen com si fossin text. Aquesta tècnica els abaixa sense tocar-ne
+// el moviment: escriu només els seus canals i la regla viu a
+// parallax-lab.css, que guanya per especificitat (cap !important).
+const estatBD = new WeakMap();
+
+const bgDim = {
+  id: 'bg-dim',
+  nom: 'Fondo atenuado',
+  descripcio: 'Baja la opacidad de los símbolos y de la imagen del fondo sin tocar su movimiento, para que no compitan con el texto. Útil en las slides de frases largas, donde los símbolos gigantes se cruzan con los párrafos.',
+  moviment: false,
+  params: [
+    { key: 'simbols', label: 'Opacidad de los símbolos', min: 0, max: 0.12, step: 0.005, def: 0.04 },
+    { key: 'imatge',  label: 'Opacidad de la imagen',    min: 0, max: 0.2,  step: 0.01,  def: 0.04 },
+  ],
+  apply(slideEl, cfg) {
+    bgDim.cleanup(slideEl);
+    slideEl.style.setProperty('--px-bgd-sym', String(cfg.simbols ?? 0.04));
+    slideEl.style.setProperty('--px-bgd-img', String(cfg.imatge ?? 0.04));
+    slideEl.classList.add('px-bgd');
+    estatBD.set(slideEl, true);
+  },
+  cleanup(slideEl) {
+    if (!estatBD.get(slideEl)) return;
+    slideEl.classList.remove('px-bgd');
+    slideEl.style.removeProperty('--px-bgd-sym');
+    slideEl.style.removeProperty('--px-bgd-img');
+    estatBD.delete(slideEl);
+  },
+};
+
 // ── app-reveal (workflow verificada, model opus) ──
 // Estat local d'app-reveal: unsub del progrés, la ranura i el seu iframe
 // (creat un sol cop — P-26) i si ara mateix està revelada. Un SEGON WeakMap
@@ -1219,7 +1323,7 @@ const appReveal = {
   },
 };
 
-// L'array que llegeixen el motor i el panell — les 15 tècniques completes,
+// L'array que llegeixen el motor i el panell — les 17 tècniques completes,
 // en l'ordre canònic que fixa l'ordre d'aplicació (i de pintat dels overlays).
 export const TECNIQUES = [
   scrollDepth,
@@ -1236,6 +1340,8 @@ export const TECNIQUES = [
   textReveal,
   marquee,
   spotlight,
+  focusMode,
+  bgDim,
   appReveal,
 ];
 

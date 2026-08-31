@@ -302,7 +302,7 @@ body[data-theme="dark"] .iframe-frame:has(.iframe-placeholder){ background: #2a2
    dues vegades les versions antigues d'aquestes regles. */
 
 /* App15 (Intervalos en el Plano Musical): el plànol iS-iT necessita
-   una mica més d'alçada per mostrar bé la sucesión sense escurçar-se. */
+   una mica més d'alçada per mostrar bé la secuencia sense escurçar-se. */
 .slide[data-app="App15"] .iframe-frame{ max-height: 1200px; }
 
 /* Apps d'escala App21-App23 — pugem el cap a 800px perquè a pantalles

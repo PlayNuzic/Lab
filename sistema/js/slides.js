@@ -20,7 +20,7 @@ const DENSITY_KEY = 'sistema.densityByPaso';  // { [paso]: 'compact'|'cozy'|'loo
 const DEFAULT_DENSITY = 'cozy';  // 'Normal' — cas base sense regla CSS especial
 const OVERRIDES_KEY = 'sistema.overrides';
 const OVERRIDES_VERSION_KEY = 'sistema.overrides.version';
-const OVERRIDES_VERSION = 5;  // v5: paso 1 → 1.5 (1·B ocult); el nou paso 1 és l'intro parallax
+const OVERRIDES_VERSION = 7;  // v7: paso 0→1, 1→2; l'antic paso 2 s'elimina (fusionat al 2)
 
 // Easter eggs: passos/capítols amagats, cadascun amb el seu flag
 // individual. Un pas amagat porta `hidden: true` + `flag: '<nom>'` al
@@ -38,7 +38,7 @@ const HIDDEN_FLAGS = {
   intro1b: {
     storageKey: 'sistema.introBUnlocked',
     closeLabel: 'Cerrar paso 1·B',
-    section: 'descubriendo',
+    section: 'intro',
   },
   //   lab → pasos 28.5/28.7 (Parallax Lab, banc de proves del constructor
   //   de tècniques parallax; vegeu parallax-lab.js)
@@ -127,6 +127,20 @@ function migrateOverridesV5(stored) {
   return out;
 }
 
+// v7 (2026-08-31): la intro global passa de paso 0 a paso 1 i l'antic
+// paso 1 ("Las posiciones") a paso 2. L'antic paso 2 desapareix: el seu
+// text ja vivia sencer dins del nou paso 2, així que la seva config
+// s'esborra en comptes de reassignar-se. La resta (3..29) no es mou.
+function migrateOverridesV7(stored) {
+  const out = {};
+  for (const [k, v] of Object.entries(stored)) {
+    const n = Number(k);
+    if (n === 2) continue;          // pas eliminat: config descartada
+    out[n === 0 ? 1 : n === 1 ? 2 : n] = v;
+  }
+  return out;
+}
+
 // Text overrides (edit-mode persistence). Structure:
 //   { [paso]: { title?: string, text?: string, tipsTitle?: string, tips?: string } }
 // Each field stores the edited HTML (innerHTML for rich text, textContent for
@@ -146,6 +160,7 @@ function applyPasoMigrations(stored, ver) {
   if (ver < 3) out = migrateOverridesV3(out);
   if (ver < 4) out = migrateOverridesV4(out);
   if (ver < 5) out = migrateOverridesV5(out);
+  if (ver < 7) out = migrateOverridesV7(out);
   return out;
 }
 
@@ -158,6 +173,11 @@ function loadOverrides(){
     const ver = Number(localStorage.getItem(OVERRIDES_VERSION_KEY)) || 1;
     if (ver < OVERRIDES_VERSION) {
       stored = applyPasoMigrations(stored, ver);
+      // v6 (2026-08-31): tots els textos del Sistema s'han reescrit des del
+      // document "NUZIC Textos SI". Qualsevol override d'edit-mode anterior
+      // és d'un text que ja no existeix i taparia el nou, així que es
+      // descarta. Les densitats (DENSITY_KEY) no s'hi toquen: són layout.
+      if (ver < 6) stored = {};
       // El bump de la versió el fa loadOverrides per últim (després de
       // loadDensityByPaso, que també llegeix el ver per saber si migrar).
       localStorage.setItem(OVERRIDES_VERSION_KEY, String(OVERRIDES_VERSION));
