@@ -70,8 +70,7 @@ class TimelineProcessor extends AudioWorkletProcessor {
       case 'setBpm':
       case 'setTempo': {
         const intervalSec = msg.interval ? +msg.interval : (msg.bpm ? 60 / (+msg.bpm) : 0);
-        const align = (msg.align === 'immediate' || msg.align === 'cycle') ? msg.align
-          : 'nextPulse';
+        const align = msg.align === 'immediate' ? 'immediate' : 'nextPulse';
         const rampMs = Math.max(0, +msg.rampMs || 0);
         if (intervalSec > 0) {
           const rampSamples = Math.round((rampMs / 1000) * this.sr);
@@ -274,12 +273,6 @@ class TimelineProcessor extends AudioWorkletProcessor {
     this.currentStep = this.loop && this.totalBeats > 0
       ? (this.currentStep + 1) % this.totalBeats
       : (this.currentStep + 1);
-
-    if (this.loop && this.currentStep === 0) {
-      if (this.pendingTempoChange && this.pendingTempoChange.align === 'cycle') {
-        this._applyPendingTempoChange();
-      }
-    }
   }
 
   _applyPendingTempoChange() {
@@ -291,8 +284,8 @@ class TimelineProcessor extends AudioWorkletProcessor {
 
   _scheduleTempoChange({ targetSpb, rampSamples, align }) {
     if (!(targetSpb > 0)) return;
-    const normalizedAlign = align === 'cycle' ? 'cycle'
-      : (align === 'immediate' ? 'immediate' : 'nextPulse');
+    // 'immediate' o 'nextPulse'; l'antiga 'cycle' es va retirar (A-10).
+    const normalizedAlign = align === 'immediate' ? 'immediate' : 'nextPulse';
     const change = {
       targetSpb,
       rampSamples: Math.max(0, Number.isFinite(rampSamples) ? rampSamples : 0),
@@ -355,9 +348,6 @@ class TimelineProcessor extends AudioWorkletProcessor {
         while (this.measurePhaseBeats >= this.totalBeats) {
           this.measurePhaseBeats -= this.totalBeats;
           this.nextCycleIndex = 0;
-          if (this.pendingTempoChange && this.pendingTempoChange.align === 'cycle') {
-            this._applyPendingTempoChange();
-          }
         }
       }
 

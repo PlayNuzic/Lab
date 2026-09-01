@@ -1858,10 +1858,12 @@ export class TimelineAudio {
 
   setTempo(bpm, opts = {}) {
     if (!Number.isFinite(+bpm) || bpm <= 0) return;
+    // Alineacions vàlides: 'immediate' i 'nextPulse'. L'antiga 'cycle' es va
+    // retirar (A-10, 2026-08-31): cap app la usava i tenia dues semàntiques
+    // divergents entre el fil principal i el worklet. Qualsevol altre valor
+    // cau a 'nextPulse'.
     const requestedAlign = typeof opts.align === 'string' ? opts.align : 'nextPulse';
-    const align = (requestedAlign === 'immediate' || requestedAlign === 'cycle')
-      ? requestedAlign
-      : 'nextPulse';
+    const align = requestedAlign === 'immediate' ? 'immediate' : 'nextPulse';
     const rampMs = Number.isFinite(opts.rampMs) ? Math.max(0, +opts.rampMs) : 80;
     const interval = 60 / Math.max(1e-6, +bpm || 120);
 
@@ -2453,49 +2455,16 @@ export class TimelineAudio {
   _computePendingTempo({ interval, align }) {
     if (!Number.isFinite(interval) || interval <= 0) return null;
     if (!this.isPlaying) return null;
-
+    // Només 'nextPulse' arriba aquí ('immediate' s'aplica en sec a setTempo;
+    // l'antiga 'cycle' es va retirar — A-10, 2026-08-31).
+    if (align !== 'nextPulse') return null;
     const lastStep = Number.isFinite(this._lastAbsoluteStep) ? this._lastAbsoluteStep : null;
-    if (align === 'nextPulse') {
-      if (lastStep == null) return null;
-      return {
-        interval,
-        align,
-        effectiveStep: lastStep + 1
-      };
-    }
-
-    // A-10 (documentat 2026-07-09, DECISIÓ PENDENT — no tocar sense llegir
-    // això): align 'cycle' té DUES semàntiques divergents. Aquí (fil
-    // principal) el llindar es calcula al proper múltiple del NUMERADOR de
-    // cicle en PASSOS ABSOLUTS (free-running, sense wrap); el worklet, en
-    // canvi, aplica el canvi al WRAP DE MESURA (measurePhaseBeats, espai
-    // embolcallat) — frontera diferent i espai diferent. Avui és API latent
-    // (cap caller passa align:'cycle'; tots usen 'nextPulse'), així que la
-    // divergència no té efecte viu. Si mai s'activa: o bé es corregeix
-    // aquesta banda al wrap de mesura, o bé es degrada/elimina l'opció —
-    // tria de producte. NO "arreglar" només una banda: aquesta funció es
-    // comparteix amb la branca 'nextPulse' viva de totes les apps.
-    if (align === 'cycle') {
-      const numerator = Number.isFinite(this._cycleConfig?.numerator) ? this._cycleConfig.numerator : null;
-      if (lastStep == null || !(numerator > 0)) {
-        if (lastStep == null) return null;
-        return {
-          interval,
-          align: 'nextPulse',
-          effectiveStep: lastStep + 1
-        };
-      }
-      let firstStep = Math.floor((lastStep + 1) / numerator) * numerator;
-      if (firstStep <= lastStep) firstStep += numerator;
-      const lastOldStep = firstStep - 1;
-      return {
-        interval,
-        align,
-        effectiveStep: lastOldStep
-      };
-    }
-
-    return null;
+    if (lastStep == null) return null;
+    return {
+      interval,
+      align,
+      effectiveStep: lastStep + 1
+    };
   }
 
   _evaluatePendingTempo() {

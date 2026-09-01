@@ -22,7 +22,21 @@ té editor), coda tal com està. Fets després: "sucesión" → "secuencia" a
 Apps/index.html, comentaris) i paso 11 sense app (fora `apps`/`aspect` de
 la matriu i l'entrada app-reveal del PRESET).
 
-Pendents coneguts documentats al codi (re-obrir quan toqui): A-03+T-04
-(ear-training, dorment), A-10 (align 'cycle', decisió de producte), A-05
-risc 2 (comptabilitat melòdica), A-08 (re-init d'instruments post
-context-closed).
+Pendents del motor de so (auditoria 2026-07-06), decidits el 2026-08-31:
+- **A-03 + T-04** (ear-training, dorment): es deixa com està.
+- **A-10** (`align: 'cycle'`): **RETIRAT** — cap app el passava (les 9-35 van
+  per `updateTransport` amb `'nextPulse'`) i tenia dues semàntiques
+  divergents entre fils. Qualsevol `align` que no sigui `'immediate'` cau a
+  `'nextPulse'`. Nivell 1, diff aprovat per l'usuari.
+- **A-05 risc 2** (comptabilitat melòdica): revisat, **no tocar**. L'únic
+  efecte és que, després d'un final natural + `play()` immediat + canvi de
+  tempo dins la primera finestra, es tallen notes residuals de la seqüència
+  anterior que encara no havien començat — cas estretíssim i defensable;
+  arreglar-ho vol etiquetar veus per sessió al hot path del SamplerPool.
+- **A-08** (instruments melòdics post context 'closed'): **no tocar ara**.
+  El rítmic ja es recupera i `setInstrument()` ja re-alinea piano/flauta
+  quan torna a cridar-se; el forat és només si l'app no el torna a cridar.
+  'closed' només el provoca un WebView Android (escriptori mai; iOS fa
+  suspended/interrupted, gestionat): no es pot provar, i el fix toca el
+  camí de reproducció de 16 apps. Reobrir si un dispositiu real mostra
+  "Play visible però mut".
