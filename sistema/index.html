@@ -45,7 +45,37 @@
     </div>
   </nav>
 
+  <!-- Notes discretes a racons oposats: guia de navegació (esquerra) i
+       privacitat (dreta). El panell de la guia és estàtic; nav-guide.js
+       només l'obre/tanca. Els fragments .nav-guide__kb (teclat) s'amaguen en
+       pantalla tàctil sense ratolí (nav.css). -->
+  <button class="sistema-guide-link" id="btn-guia" type="button"
+          aria-expanded="false" aria-controls="nav-guide">Cómo navegar</button>
   <a class="sistema-privacy-link" href="privacidad.html">Privacidad</a>
+
+  <div class="nav-guide" id="nav-guide" role="dialog" aria-labelledby="nav-guide-title" hidden>
+    <div class="nav-guide__head">
+      <h2 class="nav-guide__title" id="nav-guide-title">Cómo navegar</h2>
+      <button type="button" class="nav-guide__close" aria-label="Cerrar la guía">×</button>
+    </div>
+    <p>El Sistema se recorre <b>paso a paso</b>, en capítulos. Hay dos tipos de paso:</p>
+    <dl>
+      <dt class="nav-guide__tipo nav-guide__tipo--lectura">Pasos de lectura</dt>
+      <dd>Texto en movimiento sobre un fondo animado, para leer <b>frase a frase</b>. Cada gesto —rueda del ratón, deslizar con dos dedos o en la pantalla<span class="nav-guide__kb">, teclas <kbd>↑</kbd> <kbd>↓</kbd></span>— avanza o retrocede <b>una frase</b>. Clic en una frase para ir a ella. Después de la última, sigue bajando y entra el paso siguiente.</dd>
+      <dt class="nav-guide__tipo nav-guide__tipo--app">Pasos con app</dt>
+      <dd>La app y su texto están a la vista desde el principio: no hay frases que avanzar. Lee, prueba la app (dale al play, toca sus controles) y pasa al siguiente con <span class="nav-guide__kb"><kbd>→</kbd> o </span>el botón <span class="nav-guide__btn">›</span>.</dd>
+    </dl>
+    <dl>
+      <dt>Cambiar de paso</dt>
+      <dd>Botones <span class="nav-guide__btn">‹</span> <span class="nav-guide__btn">›</span> de la barra<span class="nav-guide__kb"> o teclas <kbd>←</kbd> <kbd>→</kbd></span>. Los segmentos de la barra de progreso son los pasos del capítulo actual: toca uno para saltar a él.</dd>
+      <dt>Capítulos</dt>
+      <dd>Pulsa el título del centro de la barra de menú de navegación (capítulo · paso) para abrir el índice<span class="nav-guide__kb"> (<kbd>↑</kbd> <kbd>↓</kbd> y <kbd>Enter</kbd>)</span> y saltar a otro capítulo.</dd>
+      <dt>Enlace directo</dt>
+      <dd>Añade <code>?paso=12</code> a la dirección de la página para abrir ese paso (útil para compartirlo).</dd>
+      <dt class="nav-guide__kb"><kbd>Esc</kbd></dt>
+      <dd class="nav-guide__kb">Cierra el índice y esta guía.</dd>
+    </dl>
+  </div>
 
   <aside class="tweaks" id="tweaks" hidden>
     <div class="tweaks__head" id="tweaks-head">
@@ -98,6 +128,7 @@
 <script type="module" src="js/tweaks.js"></script>
 <script type="module" src="js/parallax-builder.js"></script>
 <script type="module" src="js/consent.js"></script>
+<script type="module" src="js/nav-guide.js"></script>
 <script type="module" src="js/analytics.js"></script>
 </body>
 </html>

@@ -1,17 +1,17 @@
-// Parallax Lab — motor del layout 'P-parallax-lab' (els 5 intros de
-// producció 1/7/11/17/22 + els 2 labs ocults 28.5/28.7).
+// Parallax Lab — motor del layout 'P-parallax-lab' (pasos de producció
+// 1/2/7/11/17/22/29 + els 2 labs ocults 28.5/28.7).
 //
 // Reprodueix el mode seqüencial de frases del parallax real però delega TOT
 // el moviment de fons a les tècniques del registre (parallax-techniques.js),
 // que escriuen variables CSS composades per parallax-lab.css. El motor:
-//   1. Cableja frases + gestos (roda/swipe/clic) — CÒPIA DELIBERADA de la
-//      lògica de wireParallax (slides.js). Aquesta duplicació venia de quan
-//      el Lab encara es construïa (juliol 2026) i no es volia arriscar el
-//      comportament dels passos reals; ara el Lab és estable i en producció
-//      (1/7/11/17/22 ja l'usen) i wireParallax fa doble papel: fallback
-//      real si window.__parallaxLab no existeix (vegeu slides.js render()).
-//      Els dos poden evolucionar; si es toca la lògica de gestos, revisar-la
-//      als dos llocs (no simplificar sense verificar-los junts).
+//   1. Cableja frases + gestos amb un DRIVER NATIU de scroll-snap (overlay
+//      .parallax-driver amb una cel·la per frase, més una cel·la d'app si
+//      app-reveal és actiu i una de sortida cap al paso següent). El
+//      navegador fa el snap (roda, trackpad, tàctil, momentum); el motor
+//      només pinta segons scrollTop i tradueix clic/tecles a scrollTo.
+//      Des del 2026-08-31 NO comparteix lògica amb wireParallax (slides.js),
+//      que queda només com a fallback si window.__parallaxLab no existeix
+//      (vegeu slides.js render()).
 //   2. Publica el progrés: --px-progress a l'arrel del slide + CustomEvent
 //      'sistema:parallax-progress' — les tècniques s'hi subscriuen via ctx.
 //   3. Gestiona el cicle de vida de les tècniques (apply/cleanup) segons la

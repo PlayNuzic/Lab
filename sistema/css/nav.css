@@ -5,23 +5,170 @@
    - centered title/section in cream
 */
 
-/* Accés permanent a la política de privacitat: nota discreta a baix a la
-   dreta, sempre visible (presa o no la decisió) perquè l'usuari pugui tornar
-   a privacidad.html i canviar/retirar el consentiment. Quan surt el banner
-   de consentiment (només sense decisió), aquest la tapa i ja ofereix el seu
-   propi enllaç, així que no cal veure-la en aquell moment. */
-.sistema-privacy-link {
+/* Notes discretes sobre la barra, a racons oposats: la guia de navegació
+   («Cómo navegar», un <button>) a baix a l'ESQUERRA i l'accés permanent a la
+   política de privacitat a baix a la DRETA, sempre visible perquè l'usuari
+   pugui tornar a privacidad.html i canviar/retirar el consentiment. Quan surt
+   el banner de consentiment (només sense decisió), aquest les tapa i ja
+   ofereix el seu propi enllaç, així que no cal veure-les en aquell moment. */
+.sistema-privacy-link,
+.sistema-guide-link {
   position: fixed;
-  right: var(--sp-2);
   bottom: calc(var(--nav-h) + var(--sp-1));
   z-index: 20;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
   font-family: var(--font-display);
   font-size: 0.72em;
+  line-height: 1.4; /* explícit als dos: els textos queden a la mateixa alçada */
   color: var(--muted);
   opacity: 0.6;
   text-decoration: none;
+  cursor: pointer;
 }
+.sistema-privacy-link { right: var(--sp-2); }
 .sistema-privacy-link:hover { opacity: 1; text-decoration: underline; }
+
+/* La guia ha de veure's (sense molestar): un «?» rodó del mateix verd menta
+   que els botons de la barra + text una mica més fosc que Privacidad. Sense
+   marc; el cercle fa exactament l'alçada de línia (1.4em) perquè no alci el
+   text respecte de «Privacidad» a l'altre extrem. */
+.sistema-guide-link {
+  left: var(--sp-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  color: var(--fg-soft);
+  opacity: 0.85;
+}
+.sistema-guide-link::before {
+  content: '?';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4em;
+  height: 1.4em;
+  border-radius: 50%;
+  background: var(--nuzic-green-light);
+  color: var(--nuzic-dark);
+  font-weight: 700;
+  line-height: 1;
+}
+.sistema-guide-link:hover,
+.sistema-guide-link[aria-expanded="true"] { opacity: 1; color: var(--fg); }
+.sistema-guide-link:hover::before,
+.sistema-guide-link[aria-expanded="true"]::before { background: var(--nuzic-green); }
+
+/* Panell de la guia: targeta petita desplegada sobre l'enllaç. No és un modal
+   (no bloqueja res: les fletxes segueixen navegant). L'obre/tanca
+   nav-guide.js (Esc, clic a fora, × o el mateix enllaç). En pantalla tàctil
+   sense ratolí s'amaguen els fragments de teclat (.nav-guide__kb). */
+.nav-guide {
+  box-sizing: border-box; /* width inclou padding: en mòbil no surt per la dreta */
+  position: fixed;
+  left: var(--sp-2);
+  bottom: calc(var(--nav-h) + var(--sp-1) + 1.8em);
+  z-index: 21;
+  width: min(27rem, calc(100vw - 2 * var(--sp-2)));
+  max-height: calc(100vh - var(--nav-h) - 4 * var(--sp-2));
+  max-height: calc(100dvh - var(--nav-h) - 4 * var(--sp-2));
+  overflow-y: auto;
+  padding: var(--sp-3);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  font-family: var(--font-body);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+}
+.nav-guide__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.nav-guide__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1em;
+  font-weight: 700;
+}
+.nav-guide__close {
+  margin: 0;
+  padding: 0 0.2em;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 1.5em;
+  line-height: 1;
+  cursor: pointer;
+}
+.nav-guide__close:hover { color: var(--fg); }
+.nav-guide p { margin: var(--sp-2) 0 0; }
+.nav-guide dl { margin: 0; }
+.nav-guide dt {
+  margin-top: var(--sp-2);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+.nav-guide dd { margin: 0.15em 0 0; color: var(--fg-soft); }
+/* Punt de color davant dels dos tipus de paso (lectura = vermell, app = blau). */
+.nav-guide__tipo::before {
+  content: '';
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  margin-right: 0.45em;
+  border-radius: 50%;
+  vertical-align: 0.05em;
+  background: var(--nuzic-red);
+}
+.nav-guide__tipo--app::before { background: var(--nuzic-blue); }
+.nav-guide kbd {
+  display: inline-block;
+  padding: 0 0.4em;
+  border: 1px solid var(--rule);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--fg) 6%, var(--bg));
+  color: var(--fg);
+  font-family: var(--font-display);
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+.nav-guide code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+  color: var(--fg);
+}
+/* Rèplica en miniatura dels botons rodons ‹ › de la barra. */
+.nav-guide__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4em;
+  height: 1.4em;
+  border-radius: 50%;
+  background: var(--nuzic-green-light);
+  color: var(--nuzic-dark);
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: -0.25em;
+}
+@media (hover: none) and (pointer: coarse) {
+  .nav-guide__kb { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .nav-guide:not([hidden]) { animation: nav-guide-in 0.18s ease-out; }
+}
+@keyframes nav-guide-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
 
 /* Banner de consentiment (RGPD): barra sòbria per sobre de tot (tweaks és
    z-index 30) fins que l'usuari decideix; s'enganxa just sobre la nav. */

@@ -2,11 +2,12 @@
 
 Cap tasca activa.
 
-Última tasca completada: **Sistema — textos del document "NUZIC Textos SI" i
-scroll del parallax** (2026-08-31). Commits a main `eee0ea7b`, `509f4ce0`,
-`b038eefb` (cap pujat a origin). Acta amb el detall de les quatre tandes:
+Última tasca completada: **Sistema — guia de navegació «Cómo navegar» +
+sincronització de docs** (2026-09-01), pendent de commit. Acta:
+`docs/session-history/2026-09-01-sistema-guia-navegacio-i-docs.md`.
+Anterior: textos "NUZIC Textos SI" i scroll del parallax (2026-08-31), acta
 `docs/session-history/2026-08-31-sistema-textos-nuzic-si-i-scroll-parallax.md`.
-Suite: 90/1496.
+Suite: 91/1502.
 
 ## Pendent
 
