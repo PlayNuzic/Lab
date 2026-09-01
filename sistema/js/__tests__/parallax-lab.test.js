@@ -119,12 +119,16 @@ describe('Parallax Lab — motor (parallax-lab.js), reduced-motion ON', () => {
   });
 });
 
-// ── Frontera de frases: quan pot un gest canviar de paso ────────────────
-// Regla del motor, compartida per TOTS els slides P-parallax-lab (intro de
-// capítol, intro global i coda): recórrer les frases fins a l'última NO
-// canvia de paso, per llarga que sigui l'empenta. Només ho fa un gest NOU
-// —començat quan ja s'és al límit— que hi empenyi EDGE_ESCAPE_PX (340px)
-// de més. Enrere no s'escapa mai per gest.
+// ── Model de gest: un gest = una frase ──────────────────────────────────
+// Contracte del motor (compartit per TOTS els slides P-parallax-lab —
+// intro de capítol, intro global i coda):
+//   · una empenta mou exactament una frase, per llarga que sigui (la cua
+//     d'inèrcia del trackpad no n'afegeix cap més);
+//   · una empenta curta (< MIN_COMMIT) torna a l'origen: mai es queda
+//     entre frases;
+//   · a l'última frase no es canvia de paso en arribar-hi; només ho fa un
+//     gest NOU, fora del bloqueig d'arribada, que sumi EDGE_ESCAPE_PX;
+//   · enrere, a la primera, res.
 function harnessNav(nFrases) {
   document.body.innerHTML = '';
   const nav = document.createElement('div');
@@ -148,19 +152,36 @@ function harnessNav(nFrases) {
   };
 }
 
-describe('Parallax Lab — frontera de frases i canvi de paso', () => {
+describe('Parallax Lab — model de gest i frontera de frases', () => {
   let lab;
   let rellotge;   // el motor mesura els gestos amb performance.now(), que
                   // els fake timers de jest NO avancen: el controlem aquí.
 
-  // Un "gest": pausa prou llarga perquè el motor n'obri un de nou, la
-  // ràfega d'events de roda, i el drenatge del lerp (rAF) fins al repòs.
-  function gest(slideEl, deltaY, events = 6) {
-    rellotge += 400;                                   // > GEST_RESET_MS (250)
-    for (let i = 0; i < events; i++) {
-      slideEl.dispatchEvent(new WheelEvent('wheel', { deltaY, bubbles: true, cancelable: true }));
-    }
+  // Progrés publicat pel motor (0 = primera frase, 1 = última).
+  function progres(slideEl) {
+    return parseFloat(slideEl.style.getPropertyValue('--px-progress')) || 0;
+  }
+  // Posició en frases, derivada del progrés.
+  function frase(slideEl, total) {
+    return Math.round(progres(slideEl) * (total - 1) * 1000) / 1000;
+  }
+
+  // Drena rAF (molla) i timers (tancament de gest) fins al repòs.
+  function drena() {
     for (let i = 0; i < 200; i++) jest.advanceTimersByTime(16);
+  }
+  // Ràfega d'events de roda dins d'un mateix gest (mateix instant).
+  function rafega(slideEl, deltes) {
+    for (const dy of deltes) {
+      slideEl.dispatchEvent(new WheelEvent('wheel', { deltaY: dy, bubbles: true, cancelable: true }));
+    }
+  }
+  // Un GEST sencer: pausa que n'obre un de nou (i supera el bloqueig
+  // d'arribada), la ràfega, i el drenatge fins al repòs.
+  function gest(slideEl, deltes) {
+    rellotge += 500;                                   // > GEST_GAP_MS i > ARRIVAL_LOCK_MS
+    rafega(slideEl, Array.isArray(deltes) ? deltes : [deltes]);
+    drena();
   }
 
   beforeEach(async () => {
@@ -184,15 +205,67 @@ describe('Parallax Lab — frontera de frases i canvi de paso', () => {
     delete window.__sistemaState;
   });
 
-  // Progrés publicat pel motor a l'arrel del slide (0 = primera frase,
-  // 1 = última). Serveix per portar el slide al límit sense passar-se:
-  // un cop hi és, el gest SEGÜENT ja pot escapar.
-  function progres(slideEl) {
-    return parseFloat(slideEl.style.getPropertyValue('--px-progress')) || 0;
-  }
+  test('una empenta llarga avança exactament una frase', () => {
+    const { slideEl } = harnessNav(7);
+    lab.wire(slideEl, { paso: 1, apps: [] });
+    gest(slideEl, [300, 300, 300, 300, 300, 300]);     // 1800px en un sol gest
+    expect(frase(slideEl, 7)).toBe(1);
+  });
+
+  test('una empenta curta (< MIN_COMMIT) torna a la frase d\'origen', () => {
+    const { slideEl } = harnessNav(7);
+    lab.wire(slideEl, { paso: 1, apps: [] });
+    gest(slideEl, [20]);                               // 20px < 0.12 · 260
+    expect(frase(slideEl, 7)).toBe(0);
+  });
+
+  test('una empenta moderada (≥ MIN_COMMIT) avança una frase: mai queda a mig camí', () => {
+    const { slideEl } = harnessNav(7);
+    lab.wire(slideEl, { paso: 1, apps: [] });
+    gest(slideEl, [60]);                               // 60px = 0.23 frases → compromet
+    expect(frase(slideEl, 7)).toBe(1);
+  });
+
+  test('la cua d\'inèrcia (deltes decreixents) no afegeix frases', () => {
+    const { slideEl } = harnessNav(7);
+    lab.wire(slideEl, { paso: 1, apps: [] });
+    gest(slideEl, [300, 220, 160, 110, 70, 40, 20, 10, 5]);
+    expect(frase(slideEl, 7)).toBe(1);
+  });
+
+  test('una empenta nova enmig de la cua (delta que puja de cop) és un gest nou', () => {
+    const { slideEl } = harnessNav(7);
+    lab.wire(slideEl, { paso: 1, apps: [] });
+    gest(slideEl, [300, 60, 30, 12, 8, 6, 200, 200]);  // 200 > 6·1.4+4
+    expect(frase(slideEl, 7)).toBe(2);
+  });
+
+  test('un gest enrere torna una frase; dos gestos endavant en avancen dues', () => {
+    const { slideEl } = harnessNav(7);
+    lab.wire(slideEl, { paso: 1, apps: [] });
+    gest(slideEl, 300);
+    gest(slideEl, 300);
+    expect(frase(slideEl, 7)).toBe(2);
+    gest(slideEl, -300);
+    expect(frase(slideEl, 7)).toBe(1);
+  });
+
+  test('step(±1) per teclat mou una frase i a la frontera escapa', () => {
+    const { slideEl, next, prev } = harnessNav(3);
+    const clicksNext = jest.fn(); next.addEventListener('click', clicksNext);
+    const clicksPrev = jest.fn(); prev.addEventListener('click', clicksPrev);
+    const ctrl = lab.wire(slideEl, { paso: 1, apps: [] });
+    ctrl.step(1); drena();
+    expect(frase(slideEl, 3)).toBe(1);
+    ctrl.step(1); drena();
+    ctrl.step(1); drena();                             // ja a l'última → paso següent
+    expect(clicksNext).toHaveBeenCalledTimes(1);
+    ctrl.step(-1); drena(); ctrl.step(-1); drena(); ctrl.step(-1); drena();
+    expect(clicksPrev).toHaveBeenCalledTimes(1);
+  });
 
   // Recorre les frases a base de gestos fins al límit, comprovant a cada
-  // pas que no s'ha canviat de paso. Retorna els gestos que ha calgut.
+  // pas que no s'ha canviat de paso.
   function finsAlLimit(slideEl, clicks) {
     let n = 0;
     while (progres(slideEl) < 1 && n < 25) {
@@ -209,10 +282,7 @@ describe('Parallax Lab — frontera de frases i canvi de paso', () => {
     const clicks = jest.fn();
     next.addEventListener('click', clicks);
     lab.wire(slideEl, { paso: 1, apps: [] });
-
-    // Inclou el gest que CREUA fins a l'última frase: com que va començar
-    // abans del límit, tampoc no escapa.
-    finsAlLimit(slideEl, clicks);
+    expect(finsAlLimit(slideEl, clicks)).toBe(6);      // exactament un gest per frase
     expect(clicks).not.toHaveBeenCalled();
   });
 
@@ -221,20 +291,31 @@ describe('Parallax Lab — frontera de frases i canvi de paso', () => {
     const clicks = jest.fn();
     next.addEventListener('click', clicks);
     lab.wire(slideEl, { paso: 1, apps: [] });
-
     finsAlLimit(slideEl, clicks);
-    gest(slideEl, 180, 3);                               // 540px > EDGE_ESCAPE_PX (340)
+    gest(slideEl, [200, 200]);                         // 400px > EDGE_ESCAPE_PX (380)
     expect(clicks).toHaveBeenCalledTimes(1);
   });
 
-  test('al límit, una empenta curta NO escapa (cal superar EDGE_ESCAPE_PX)', () => {
-    const { slideEl, next } = harnessNav(5);             // com la coda
+  test('al límit, una empenta curta NO escapa (fa goma i torna)', () => {
+    const { slideEl, next } = harnessNav(5);           // com la coda
     const clicks = jest.fn();
     next.addEventListener('click', clicks);
     lab.wire(slideEl, { paso: 29, apps: [] });
-
     finsAlLimit(slideEl, clicks);
-    gest(slideEl, 100, 3);                               // 300px < 340px
+    gest(slideEl, [100, 100]);                         // 200px < 380px
+    expect(clicks).not.toHaveBeenCalled();
+    expect(progres(slideEl)).toBe(1);                  // la goma s'ha recollit
+  });
+
+  test('acabat d\'arribar a l\'última frase, el rebot immediat no escapa (bloqueig d\'arribada)', () => {
+    const { slideEl, next } = harnessNav(5);
+    const clicks = jest.fn();
+    next.addEventListener('click', clicks);
+    lab.wire(slideEl, { paso: 29, apps: [] });
+    finsAlLimit(slideEl, clicks);
+    rellotge += 300;                                   // > GEST_GAP_MS però < ARRIVAL_LOCK_MS
+    rafega(slideEl, [300, 300]);                       // 600px: escaparia si no hi hagués bloqueig
+    drena();
     expect(clicks).not.toHaveBeenCalled();
   });
 
@@ -243,8 +324,8 @@ describe('Parallax Lab — frontera de frases i canvi de paso', () => {
     const clicks = jest.fn();
     prev.addEventListener('click', clicks);
     lab.wire(slideEl, { paso: 29, apps: [] });
-
-    for (let i = 0; i < 6; i++) gest(slideEl, -300);
+    for (let i = 0; i < 4; i++) gest(slideEl, -300);
     expect(clicks).not.toHaveBeenCalled();
+    expect(progres(slideEl)).toBe(0);
   });
 });

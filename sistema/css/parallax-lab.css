@@ -111,7 +111,14 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: min(720px, 82%);
+  /* Ocupa gairebé tot l'espai: el 94% de l'amplada del slide o el que
+     permeti el 86% de l'alçada útil del viewport (el que sigui menor), de
+     manera que amb qualsevol aspecte la ranura cap sencera sense sortir
+     del slide. --px-ar-ratio (w/h numèric) la fixa el motor a la creació
+     de la ranura, perquè calc() no pot dividir el "4 / 3" de aspect-ratio.
+     La línia amb vh és el fallback de navegadors sense dvh. */
+  width: min(94%, calc((100vh  - var(--nav-h) - 2 * var(--slide-pad-y)) * 0.86 * var(--px-ar-ratio, 1.3333)));
+  width: min(94%, calc((100dvh - var(--nav-h) - 2 * var(--slide-pad-y)) * 0.86 * var(--px-ar-ratio, 1.3333)));
   aspect-ratio: var(--px-ar-aspect, 4 / 3);
   transform: translate(-50%, -50%);
   z-index: 3;

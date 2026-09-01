@@ -301,8 +301,10 @@ body[data-theme="dark"] .iframe-frame:has(.iframe-placeholder){ background: #2a2
    `data-paso`: les renumeracions de passos (v3, v4) ja havien desfasat
    dues vegades les versions antigues d'aquestes regles. */
 
-/* App15 (Intervalos en el Plano Musical): el plànol iS-iT necessita
-   una mica més d'alçada per mostrar bé la secuencia sense escurçar-se. */
+/* App12 (El par Pulso-Nota) i App15 (Intervalos en el Plano Musical):
+   els dos plànols de secuencia necessiten més alçada per mostrar-la bé
+   sense escurçar-se — i han de veure's iguals (pasos 6 i 10). */
+.slide[data-app="App12"] .iframe-frame,
 .slide[data-app="App15"] .iframe-frame{ max-height: 1200px; }
 
 /* Apps d'escala App21-App23 — pugem el cap a 800px perquè a pantalles

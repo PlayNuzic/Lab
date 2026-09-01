@@ -52,17 +52,29 @@ function configPerDefecte() {
 // torna. Les entrades on:false amb params conserven els valors afinats
 // perquè, en activar-les al panell, ja surtin a punt.
 const PRESETS = {
-  // Paso 1 — intro global. Frases llargues: focus-mode tanca la corba
-  // d'opacitat i bg-dim abaixa els símbols gegants del fons, els dos
-  // problemes de legibilitat d'aquest slide. Afinat al constructor.
+  // Paso 1 — intro global. Recepta afinada al constructor: focus-mode
+  // tanca la corba d'opacitat de les frases i bg-dim + depth-blur allunyen
+  // el fons, els dos problemes de legibilitat d'aquest slide; mouse-tilt,
+  // text-reveal i marquee hi posen el moviment. Les entrades on:false
+  // conserven els params afinats per poder-les encendre al panell.
   1: {
     'scroll-depth':    { on: true,  params: {} },
+    'multi-speed':     { on: false, params: { factor: 3, dispersio: 0.6 } },
+    'mouse-tilt':      { on: true,  params: { intensitat: 30, suavitat: 0.3 } },
+    'float-drift':     { on: false, params: { amplitud: 16 } },
+    'depth-blur':      { on: true,  params: { maxBlur: 3.5, corba: 1.6 } },
+    'color-shift':     { on: false, params: {} },
+    'zoom-drift':      { on: false, params: { intensitat: 1.5 } },
+    'inertia':         { on: false, params: {} },
+    'text-reveal':     { on: true,  params: { durada: 2, esglaonat: 60 } },
+    'marquee':         { on: true,  params: { velocitat: 120, mida: 70, opacitat: 0.03 } },
     'focus-mode':      { on: true,  params: { duresa: 2, rastre: 0.05 } },
     'bg-dim':          { on: true,  params: {} },
     'app-reveal':      { on: false, params: { fraseAparicio: 8, escalaInicial: 1, durada: 0.5 } },
   },
-  // Paso 2 — intro de Posiciones (cuinat des de l'export del panell):
-  // el plano entra a l'última frase, la buida.
+  // Paso 2 — intro de Posiciones (cuinat des de l'export del panell): amb
+  // 7 frases, el motor acota fraseAparicio 8 a l'última, de manera que el
+  // plano entra just amb la crida a l'acció.
   2: {
     'scroll-depth':    { on: true,  params: {} },
     'app-reveal':      { on: true,  params: { fraseAparicio: 8, escalaInicial: 1, durada: 0.5 } },
@@ -271,120 +283,167 @@ function wire(slideEl, slide) {
     if (hint) hint.classList.add('is-hidden');
   }
 
-  // ── Scroll lliure ────────────────────────────────────────────────────
-  // El gest ja no dispara passos discrets: acumula sobre `target` (0..1)
-  // i un bucle rAF hi fa perseguir `cur` amb lerp — l'usuari condueix, el
-  // motor només suavitza. Tot el que penja del progrés es pinta CONTINU
-  // des de `cur`: les frases amb les mateixes postures que wireParallax
-  // (les corbes empalmen amb els valors discrets originals a |d|=1) i les
-  // tècniques via --px-progress + esdeveniment. La frase activa es deriva
-  // amb histèresi; en parar el gest, snap suau a la frase més propera
-  // (àncora de lectura). A les fronteres cal una sobre-empenta acumulada
-  // per saltar de paso (adéu al canvi de pas accidental). Les fletxes
-  // (step) mantenen el pas discret; amb reduced-motion el lerp és sec.
+  // ── Model de gest: un gest = una frase ───────────────────────────────
+  // Reescriptura 2026-08-31 (la versió anterior —scroll lliure amb fre
+  // exponencial per frase, snap diferit i escapada per sobre-empenta—
+  // s'havia sobretreballat: quedava a mig camí entre frases, el snap
+  // arribava tard i a la frontera tan aviat no deixava saltar com
+  // saltava sol). El model d'ara és el d'un stepper amb previsualització:
+  //
+  //   · Un GEST (empenta de roda o de dit) mou exactament UNA frase. Mentre
+  //     dura, la posició segueix el gest fins a +1 (previsualització), de
+  //     manera que es veu on va; en acabar, es COMPROMET: si ha passat de
+  //     MIN_COMMIT avança, si no torna a l'origen. Mai queda entre frases.
+  //   · El gest s'acaba quan el delta ja porta TAIL_EVENTS events baixant
+  //     (la cua d'inèrcia del trackpad, que no és cap intenció nova) o
+  //     quan hi ha GEST_GAP_MS de silenci. La cua es consumeix sense
+  //     efecte; una empenta NOVA enmig de la cua (delta que puja de cop)
+  //     compta com a gest nou. Roda de ratolí: una ràfega de cremallera
+  //     = un gest.
+  //   · Frontera: a l'última frase, un gest endavant fa una goma petita
+  //     (pista visual) i, si suma EDGE_ESCAPE_PX, canvia de paso — però
+  //     mai durant ARRIVAL_LOCK_MS després d'arribar-hi (el rebot de la
+  //     mateixa mà no pot escapar). Enrere, a la primera, res.
+  //   · El moviment el fa una molla críticament esmorteïda (posició +
+  //     velocitat): arrenca i para suau, sense el cop inicial del lerp.
+  //     Amb reduced-motion és sec.
+  //
+  // Tot es mesura en FRASES (pos 0..total-1); el progrés publicat (t) és
+  // pos/denom. Les frases es pinten contínues des de `pos` (mateixes
+  // postures que wireParallax) i la frase activa es deriva amb histèresi.
   const total = frases.length;
-  const denom = Math.max(1, total - 1);
-  const PX_PER_FRASE = 300;      // px de gest per recórrer una frase
-  const SUAVITAT = 0.16;         // factor de lerp per frame
-  const SNAP_MS = 450;           // repòs abans del snap a la frase propera
-  const EDGE_ESCAPE_PX = 340;    // sobre-empenta per canviar de paso
-  const EDGE_RESET_MS = 600;     // pausa que buida la sobre-empenta
-  const HYST = 0.1;              // histèresi del canvi de frase (en frases)
-  const GEST_RESET_MS = 250;     // pausa (o canvi de sentit) que obre un gest nou
-  const FRE_PER_FRASE = 0.55;    // fracció d'empenta que sobreviu cada frase recorreguda
+  const ultima = total - 1;
+  const denom = Math.max(1, ultima);
 
-  let target = 0;
-  let cur = 0;
+  const PX_PER_FRASE = 260;      // px de gest per recórrer una frase sencera
+  const MIN_COMMIT = 0.12;       // fracció de frase que compta com a empenta
+  const GEST_GAP_MS = 220;       // silenci que tanca un gest
+  const TAIL_EVENTS = 3;         // events baixant seguits = cua d'inèrcia
+  const EDGE_ESCAPE_PX = 380;    // empenta, ja al límit, per canviar de paso
+  const EDGE_HINT = 0.12;        // goma màxima més enllà de l'última (frases)
+  const ARRIVAL_LOCK_MS = 450;   // en arribar a l'última, escapada bloquejada
+  const STIFF = 200;             // molla: rigidesa (1/s²)
+  const DAMP = 28;               // molla: esmorteïment (≈ crític: 2·√STIFF)
+  const HYST = 0.1;              // histèresi del canvi de frase activa
+
+  let pos = 0;                   // posició visual (frases)
+  let posT = 0;                  // objectiu de la molla (frases; pot ser fraccionari en previsualització)
+  let frase = 0;                 // última frase COMPROMESA (sempre entera)
+  let vel = 0;                   // velocitat (frases/s)
   let rafId = null;
-  let snapTimer = null;
-  let edgePx = 0;
-  let lastEdgeTime = 0;
-  let lastWheelTime = 0;
-  let gestOrigen = 0;        // ancoratge del pressupost (en frases)
-  let gestSign = 0;
-  let gestAlLimit = false;   // el gest va COMENÇAR a l'última frase?
+  let lastFrame = 0;
+  let gest = null;               // gest de roda en curs (vegeu onWheel)
+  let gapTimer = null;
+  let arribadaLimit = -Infinity; // performance.now() de l'últim aterratge a l'última frase
+
+  const clampPos = (n) => Math.max(0, Math.min(ultima, n));
 
   // Postures contínues de les frases (mateixa coreografia que wireParallax,
-  // intocable per a les tècniques). Durant el gest NOMÉS s'escriuen
+  // intocable per a les tècniques). Durant el moviment NOMÉS s'escriuen
   // transform i opacity (compositables): les corbes empalmen amb els
   // valors discrets originals a |d|=1.
-  function pintaFrases(pos) {
-    frases.forEach((p, j) => {
-      const d = j - pos;
+  function pintaFrases(p) {
+    frases.forEach((el, j) => {
+      const d = j - p;
       const abs = Math.abs(d);
       const op = abs <= 1 ? 1 - abs * 0.81 : Math.max(0.07, 0.26 - abs * 0.07);
       const esc = abs <= 1 ? 1 - abs * 0.32 : 0.68;
-      p.style.opacity = op.toFixed(3);
-      p.style.transform = `translateY(calc(-50% + ${(d * 19).toFixed(2)}vh)) scale(${esc.toFixed(3)})`;
+      el.style.opacity = op.toFixed(3);
+      el.style.transform = `translateY(calc(-50% + ${(d * 19).toFixed(2)}vh)) scale(${esc.toFixed(3)})`;
     });
   }
 
   // Blur, z-index i is-active NOMÉS quan canvia la frase assentada (LP-07:
   // escriure filter a cada frame re-rasteritza el text amb will-change
-  // actiu i a Chrome pot fer desaparèixer la frase mentre es mou — l'
-  // artefacte exacte que va motivar la regla). Un sol cop per canvi de
-  // frase = comportament idèntic al parallax discret original.
+  // actiu i a Chrome pot fer desaparèixer la frase mentre es mou). Un sol
+  // cop per canvi de frase = comportament idèntic al parallax discret.
   function pintaEstatics() {
-    frases.forEach((p, j) => {
+    frases.forEach((el, j) => {
       const abs = Math.abs(j - active);
-      p.classList.toggle('is-active', abs === 0);
-      p.style.filter = abs === 0 ? 'none' : `blur(${Math.min(abs * 1.6, 4)}px)`;
-      p.style.zIndex = String(10 - abs);
+      el.classList.toggle('is-active', abs === 0);
+      el.style.filter = abs === 0 ? 'none' : `blur(${Math.min(abs * 1.6, 4)}px)`;
+      el.style.zIndex = String(10 - abs);
     });
   }
 
   function publica() {
-    const t = Math.max(0, Math.min(1, cur));
+    const t = Math.max(0, Math.min(1, pos / denom));
     slideEl.style.setProperty('--px-progress', String(t));
     slideEl.dispatchEvent(new CustomEvent('sistema:parallax-progress', {
       detail: { t, active, total },
     }));
   }
 
-  function frame() {
+  function frame(now) {
     rafId = null;
     if (actiu?.slideEl !== slideEl) return;  // el render ens ha substituït
-    cur += (target - cur) * (reduced ? 1 : SUAVITAT);
-    if (Math.abs(target - cur) < 0.0006) cur = target;
-    const pos = cur * denom;
-    const cand = Math.max(0, Math.min(total - 1, Math.round(pos)));
+    // dt real, acotat: una pestanya en segon pla no pot fer un salt.
+    const dt = Math.min(1 / 30, Math.max(1 / 120, ((now - lastFrame) / 1000) || 1 / 60));
+    lastFrame = now;
+    if (reduced) {
+      pos = posT; vel = 0;
+    } else {
+      const acc = (posT - pos) * STIFF - vel * DAMP;
+      vel += acc * dt;
+      pos += vel * dt;
+      if (Math.abs(posT - pos) < 0.0005 && Math.abs(vel) < 0.003) { pos = posT; vel = 0; }
+    }
+    const cand = clampPos(Math.round(pos));
     if (cand !== active && Math.abs(pos - active) > 0.5 + HYST) {
       active = cand;
       pintaEstatics();
     }
     pintaFrases(pos);
     publica();
-    if (cur !== target) rafId = requestAnimationFrame(frame);
+    if (pos !== posT) rafId = requestAnimationFrame(frame);
   }
   function arrenca() {
-    if (rafId == null) rafId = requestAnimationFrame(frame);
+    if (rafId == null) {
+      lastFrame = performance.now();
+      rafId = requestAnimationFrame(frame);
+    }
   }
 
-  function programaSnap() {
-    clearTimeout(snapTimer);
-    snapTimer = setTimeout(() => {
-      target = Math.max(0, Math.min(total - 1, Math.round(target * denom))) / denom;
-      arrenca();
-    }, SNAP_MS);
+  // Compromet una frase sencera. Si hi aterra des d'una altra, arma el
+  // bloqueig d'escapada de l'última (quedar-s'hi no el renova). Es
+  // compara amb la frase compromesa, no amb posT: la previsualització ja
+  // pot haver deixat posT a l'última abans del compromís.
+  function vesA(n) {
+    const nova = clampPos(n);
+    if (nova === ultima && frase !== ultima) arribadaLimit = performance.now();
+    frase = nova;
+    posT = nova;
+    arrenca();
   }
 
-  // Pas discret (fletxes de teclat i API): glissa fins a la frase veïna;
-  // a la frontera escapem al paso adjacent, com el parallax real. go()
-  // és privat de slides.js: usem els botons públics de la nav (un botó
-  // disabled ignora .click(), que replica el no-op als extrems).
+  // Tanca el gest de roda en curs: avança si l'empenta ha estat prou
+  // deliberada, si no torna a l'origen. Al límit només recull la goma.
+  function commit() {
+    clearTimeout(gapTimer);
+    if (!gest || gest.committed) return;
+    gest.committed = true;
+    if (actiu?.slideEl !== slideEl) return;
+    if (gest.alLimit) { posT = clampPos(posT); arrenca(); return; }
+    const frac = Math.min(1, gest.acc / PX_PER_FRASE);
+    vesA(gest.anchor + gest.sign * (frac >= MIN_COMMIT ? 1 : 0));
+  }
+
+  // Pas discret (fletxes de teclat i API): a la frontera escapem al paso
+  // adjacent, com el parallax real. go() és privat de slides.js: usem els
+  // botons públics de la nav (un botó disabled ignora .click(), que
+  // replica el no-op als extrems).
   function step(delta) {
     if (estat()?.editable) return false;
-    const next = Math.round(target * denom) + delta;
-    if (next >= total) { document.getElementById('btn-next')?.click(); return true; }
+    const next = Math.round(posT) + delta;
+    if (next > ultima) { document.getElementById('btn-next')?.click(); return true; }
     if (next < 0) { document.getElementById('btn-prev')?.click(); return true; }
     hideHint();
-    clearTimeout(snapTimer);
-    target = next / denom;
-    arrenca();
+    gest = null;
+    clearTimeout(gapTimer);
+    vesA(next);
     return true;
   }
 
-  // ── Roda: acumulació contínua (scroll lliure) ──
   slideEl.addEventListener('wheel', (e) => {
     if (estat()?.editable) return;
     e.preventDefault();
@@ -395,43 +454,52 @@ function wire(slideEl, slide) {
     hideHint();
     const now = performance.now();
     const sign = dy > 0 ? 1 : -1;
-    // Un "gest" = una empenta: una pausa o un canvi de sentit n'obren un
-    // de nou i re-ancoren el pressupost i el permís d'escapada. La cua
-    // d'inèrcia del trackpad pertany al MATEIX gest que la va llençar.
-    if (now - lastWheelTime > GEST_RESET_MS || sign !== gestSign) {
-      gestOrigen = target * denom;
-      gestSign = sign;
-      gestAlLimit = sign > 0 && (total === 1 || target >= 1);
-    }
-    lastWheelTime = now;
+    const abs = Math.abs(dy);
 
-    // Frontera ENDAVANT (última frase): només escapa un gest COMENÇAT al
-    // límit — la cua d'una llençada que hi acaba d'arribar no compta.
-    // Frontera ENRERE (primera frase): el gest NO escapa mai de paso
-    // (només fletxa ↑ o botó de nav).
-    if (sign > 0 && (total === 1 || target >= 1)) {
-      if (!gestAlLimit) return;
-      if (now - lastEdgeTime > EDGE_RESET_MS) edgePx = 0;
-      lastEdgeTime = now;
-      edgePx += dy;
-      if (edgePx >= EDGE_ESCAPE_PX) {
-        edgePx = 0;
+    // Gest nou: silenci, canvi de sentit, o —dins la cua d'un gest ja
+    // compromès— un delta que puja de cop (una empenta nova; la cua
+    // d'inèrcia només baixa). L'àncora és la frase on l'objectiu
+    // ARRODONEIX: un gest abandonat a mig camí (canvi de sentit) queda
+    // resolt cap a la frase més propera, sense rebots.
+    const fresh = !gest
+      || now - gest.last > GEST_GAP_MS
+      || sign !== gest.sign
+      || (gest.committed && abs > gest.lastAbs * 1.4 + 4);
+    if (fresh) {
+      const anchor = clampPos(Math.round(posT));
+      gest = {
+        sign, anchor, acc: 0, last: now, lastAbs: abs, decay: 0, committed: false,
+        alLimit: sign > 0 ? anchor >= ultima : anchor <= 0,
+      };
+    } else {
+      gest.decay = abs < gest.lastAbs ? gest.decay + 1 : 0;
+      gest.last = now;
+      gest.lastAbs = abs;
+    }
+    clearTimeout(gapTimer);
+    if (gest.committed) return;                         // cua del mateix gest
+    gapTimer = setTimeout(commit, GEST_GAP_MS);
+
+    if (gest.alLimit) {
+      // Enrere a la primera: res. Endavant a l'última: goma de pista i,
+      // amb prou empenta (i fora del bloqueig d'arribada), paso següent.
+      if (sign < 0 || now - arribadaLimit < ARRIVAL_LOCK_MS) { gest.committed = true; return; }
+      gest.acc += abs;
+      posT = ultima + Math.min(EDGE_HINT, (gest.acc / PX_PER_FRASE) * 0.3);
+      arrenca();
+      if (gest.acc >= EDGE_ESCAPE_PX) {
+        gest.committed = true;
+        posT = ultima;
         document.getElementById('btn-next')?.click();
       }
       return;
     }
-    if (sign < 0 && target <= 0) { edgePx = 0; return; }
-    edgePx = 0;
-    // Inèrcia que es perd frase a frase (GTA): l'empenta mai es bloqueja,
-    // però cada frase recorreguda dins del MATEIX gest frena la resta
-    // (0.55^frases). Una llençada forta avança 2-3 frases perdent força a
-    // cada pas; un gest nou (pausa o canvi de sentit) recupera tota
-    // l'empenta.
-    const avanc = Math.abs(target * denom - gestOrigen);
-    const fre = Math.pow(FRE_PER_FRASE, avanc);
-    target = Math.max(0, Math.min(1, target + (dy * fre) / (PX_PER_FRASE * denom)));
+
+    gest.acc += abs;
+    const frac = Math.min(1, gest.acc / PX_PER_FRASE);
+    posT = gest.anchor + gest.sign * frac;              // previsualització
     arrenca();
-    programaSnap();
+    if (frac >= 1 || gest.decay >= TAIL_EVENTS) commit();
   }, { passive: false });
 
   // Clic sobre una frase atenuada: hi glissa directament.
@@ -439,49 +507,51 @@ function wire(slideEl, slide) {
     p.addEventListener('click', () => {
       if (estat()?.editable || i === active) return;
       hideHint();
-      clearTimeout(snapTimer);
-      target = i / denom;
-      arrenca();
+      gest = null;
+      clearTimeout(gapTimer);
+      vesA(i);
     });
   });
 
-  // Tàctil: arrossegament directe (el dit mana, mateixa escala que la
-  // roda), snap en deixar anar; l'excés d'arrossegament més enllà de
-  // l'última frase escapa al paso següent (enrere mai per gest — mateix
-  // criteri que la roda).
-  let touchY = null;
-  let touchTarget = 0;
-  let touchExces = 0;        // en unitats de t, amb signe
-  let touchAlLimit = false;  // el toc va començar a l'última frase?
+  // Tàctil: el dit arrossega la previsualització (mateixa escala que la
+  // roda, acotada a ±1 frase des de l'origen) i en deixar anar es
+  // compromet amb el mateix criteri. A l'última frase l'excés fa goma i,
+  // si passa del llindar (i del bloqueig d'arribada), escapa; enrere mai.
+  const TOUCH_ESCAPE_PX = 90;
+  let touch = null;  // { y0, anchor, alLimit, exces }
   slideEl.addEventListener('touchstart', (e) => {
     if (estat()?.editable) return;
-    touchY = e.touches[0].clientY;
-    touchTarget = target;
-    touchExces = 0;
-    touchAlLimit = total === 1 || target >= 1;
-    clearTimeout(snapTimer);
+    const anchor = clampPos(Math.round(posT));
+    touch = { y0: e.touches[0].clientY, anchor, alLimit: anchor >= ultima, exces: 0 };
+    gest = null;
+    clearTimeout(gapTimer);
   }, { passive: true });
   slideEl.addEventListener('touchmove', (e) => {
-    if (touchY == null || estat()?.editable) return;
+    if (!touch || estat()?.editable) return;
     hideHint();
-    const dy = touchY - e.touches[0].clientY;           // dit amunt = avançar
-    // El dit és manipulació directa (sense inèrcia): mapeig 1:1, sense
-    // fre. El cru es conserva per mesurar l'excés a la frontera.
-    const cru = touchTarget + dy / (PX_PER_FRASE * denom);
-    target = total === 1 ? 0 : Math.max(0, Math.min(1, cru));
-    touchExces = cru - target;
+    const dy = touch.y0 - e.touches[0].clientY;         // dit amunt = avançar
+    const frac = Math.max(-1, Math.min(1, dy / PX_PER_FRASE));
+    if (touch.alLimit && frac > 0) {
+      touch.exces = dy;
+      posT = ultima + Math.min(EDGE_HINT, frac * 0.3);
+    } else {
+      touch.exces = 0;
+      posT = clampPos(touch.anchor + frac);
+    }
     arrenca();
   }, { passive: true });
   slideEl.addEventListener('touchend', () => {
-    if (touchY == null) return;
-    touchY = null;
-    const excesPx = touchExces * PX_PER_FRASE * denom;  // amb signe: només endavant
-    if (touchAlLimit && excesPx > 90) {
+    if (!touch) return;
+    const t = touch;
+    touch = null;
+    if (t.alLimit && t.exces > TOUCH_ESCAPE_PX
+        && performance.now() - arribadaLimit >= ARRIVAL_LOCK_MS) {
+      posT = ultima;
       document.getElementById('btn-next')?.click();
-    } else {
-      programaSnap();
+      return;
     }
-    touchExces = 0;
+    const frac = clampPos(posT) - t.anchor;
+    vesA(t.anchor + (Math.abs(frac) >= MIN_COMMIT ? Math.sign(frac) : 0));
   }, { passive: true });
 
   // Ranura per a app-reveal (Lab B): contenidor buit i amagat; la tècnica
@@ -491,7 +561,12 @@ function wire(slideEl, slide) {
     slot.className = 'parallax-app-slot';
     slot.dataset.app = slide.apps[0];
     slot.hidden = true;
-    if (slide.aspect) slot.style.setProperty('--px-ar-aspect', slide.aspect.replace('/', ' / '));
+    if (slide.aspect) {
+      slot.style.setProperty('--px-ar-aspect', slide.aspect.replace('/', ' / '));
+      // Ràtio numèrica (w/h) per al càlcul d'amplada des de l'alçada al CSS.
+      const [w, h] = slide.aspect.split('/').map(Number);
+      if (w > 0 && h > 0) slot.style.setProperty('--px-ar-ratio', (w / h).toFixed(4));
+    }
     slideEl.appendChild(slot);
   }
 

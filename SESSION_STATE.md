@@ -79,4 +79,35 @@ verificació al navegador i de tres decisions de l'usuari** (vegeu sota).
   mecanisme per a tots els P-parallax-lab: la intro i la coda no tenen
   cap comportament propi. Suite: 90/1489 (+13).
 
+### Tercera tanda (2026-08-31, mateixa sessió) — panell tweaks i scroll
+- **Colors intro/coda**: `--px-accent` vermell (`--nuzic-red`, l'únic to
+  que cap capítol usa) a `[data-section="intro"]` i `"coda"` (parallax.css).
+- **Negreta dins la frase**: la frase activa passa de 700 a **400** i
+  `<b>/<strong>` a 700 + accent. Ubuntu només ve en 400/700: amb l'activa
+  en 700 tota la frase semblava negreta. Afecta TOTS els parallax.
+- **Model de gest reescrit** (parallax-lab.js `wire()`): stepper amb
+  previsualització — un gest = una frase; segueix el dit fins a +1;
+  compromet en acabar (≥ MIN_COMMIT 0.12 avança, si no torna); la cua
+  d'inèrcia (3 deltes baixant) es consumeix sense efecte; empenta nova
+  dins la cua (delta > 1.4× + 4) = gest nou. Frontera: goma de pista
+  (EDGE_HINT 0.12) i escapada només amb ≥ EDGE_ESCAPE_PX (380) fora del
+  bloqueig d'arribada (ARRIVAL_LOCK_MS 450); enrere mai. Moviment per
+  **molla críticament esmorteïda** (STIFF 200 / DAMP 28) en lloc del lerp.
+  Retirats: fre exponencial 0.55^n, snap diferit 450ms, EDGE_RESET.
+  Tàctil: mateix model (±1 des de l'origen, TOUCH_ESCAPE_PX 90).
+- **Ranura d'app-reveal gran**: `width: min(94%, (alçada útil)·0.86·ratio)`;
+  el motor fixa `--px-ar-ratio` numèric a la ranura (calc no divideix "4 / 3").
+- **App12 = App15**: `max-height: 1200px` també per a App12 (paso 6).
+  App11 (paso 5, mateix plànol) segueix al 700 per defecte — no demanat.
+- **Export cuinat**: només canviava el paso 4 (línia nova als tips: "Pulsa
+  sobre los números de la línea sonora…"). Paso 2, density i parallaxFx
+  ja eren idèntics.
+- Tests del motor reescrits per al model nou: 12 casos (empenta llarga =
+  1 frase, curta torna, cua no suma, empenta nova dins la cua, teclat,
+  frontera, bloqueig d'arribada, enrere mai). Suite: 90/1497.
+
 ### Pendent de l'usuari
+- **Verificar l'scroll al navegador** (trackpad i ratolí): el model nou no
+  s'ha provat en execució real, només amb el motor sota jsdom. Constants a
+  afinar si cal: PX_PER_FRASE 260, MIN_COMMIT 0.12, EDGE_ESCAPE_PX 380,
+  ARRIVAL_LOCK_MS 450, STIFF/DAMP 200/28.

@@ -12,6 +12,11 @@
 .slide--parallax[data-section="ampliando"]   { --px-accent: var(--nuzic-green);  --px-soft: var(--nuzic-green-light); }
 .slide--parallax[data-section="fraccionando"]{ --px-accent: var(--nuzic-yellow); --px-soft: var(--nuzic-yellow-light); }
 .slide--parallax[data-section="escalas"]     { --px-accent: var(--nuzic-pink);   --px-soft: var(--nuzic-pink-light); }
+/* Intro global i coda: els dos extrems del recorregut comparteixen el
+   vermell, l'únic to de la paleta que cap capítol fa servir — així es
+   llegeixen com a "fora de capítol". Canviar-ho és tocar aquesta línia. */
+.slide--parallax[data-section="intro"]       { --px-accent: var(--nuzic-red);    --px-soft: var(--nuzic-red-light); }
+.slide--parallax[data-section="coda"]        { --px-accent: var(--nuzic-red);    --px-soft: var(--nuzic-red-light); }
 
 .slide--parallax{
   position: relative;
@@ -154,13 +159,17 @@ body[data-theme="dark"] .slide--parallax{
   cursor: pointer;
 }
 .parallax-frases > p.is-active{
-  font-weight: 700;
   cursor: default;
 }
-/* Èmfasi en color d'accent, fosquejat cap al fg per garantir contrast
-   (el groc d'Ampliando pur seria il·legible sobre blanc). */
+/* Èmfasi: pes 700 + color d'accent, fosquejat cap al fg per garantir
+   contrast (el groc d'Ampliando pur seria il·legible sobre blanc). La
+   frase activa va en pes normal (400) precisament perquè la negreta d'una
+   paraula es vegi: Ubuntu només ve en 400 i 700, així que si l'activa
+   anés en 700 tota la frase semblaria en negreta i l'èmfasi es perdia. */
+.parallax-frases > p{ font-weight: 400; }
 .parallax-frases p b,
 .parallax-frases p strong{
+  font-weight: 700;
   color: color-mix(in srgb, var(--px-accent) 60%, var(--fg));
 }
 

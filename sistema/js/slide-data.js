@@ -95,7 +95,7 @@ export const layouts = {
 export const slideMatrix = [
   // Paso 1 — intro GLOBAL del Sistema (no és intro de capítol): secció
   // pròpia 'intro'. Mateix motor parallax que les intros de capítol.
-  { paso:1,    section:'intro',        title:'Música en movimiento',                                 layout:'P-parallax-lab', apps:['App11A'], aspect:'4/3', parallax:{ symbols:['0 1 2 3', 'P', 'N', 'iT', 'iS'] } },
+  { paso:1,    section:'intro',        title:'Música en movimiento',                                 layout:'P-parallax-lab', apps:['App11A'], aspect:'4/3', density:'compact', parallax:{ symbols:['0 1 2 3', 'P', 'N', 'iT', 'iS'] } },
   // 1·B — l'antiga intro amb vídeo, oculta rere el flag individual
   // `intro1b` (5 clicks al badge del paso 1, secció "Introducción").
   { paso:1.5,  section:'intro',        title:'¿Sabías que los números son el adn de la música?', layout:'A-intro', density:'loose', hidden:true, flag:'intro1b' },
@@ -148,16 +148,22 @@ export const slideMatrix = [
 // <p> — el renderer les converteix en blocs que s'activen amb el mouse.
 //
 export const slideContent = {
-  // Paso 1 — intro GLOBAL del Sistema (parallax). Text propi de l'usuari
-  // (2026-08-31); substitueix la DIAPO 1 del document.
+  // Paso 1 — intro GLOBAL del Sistema (parallax). Text cuinat des de
+  // l'export del panell: fon la DIAPO 1 del document amb el text propi de
+  // l'usuari. L'últim <p>, buit, és una frase de respir al final —
+  // `app-reveal` està desactivat en aquest pas, així que no hi entra cap app.
   1: {
-    text: `<p>La música sucede en el tiempo. Escuchamos cómo una melodía sube, baja, avanza, se detiene o vuelve a empezar.</p>
-<p>El <b>Sistema Nuzic</b> nace para hacer visible cómo se mueve la música y describirla con precisión.</p>
-<p>Para ello utilizamos los <b>números</b> como una herramienta para entender el funcionamiento de la música: situar los sonidos, medir las distancias, organizar las estructuras que se repiten y transformar una idea musical sin perder las relaciones que le dan forma.</p>
-<p>El punto de partida es sencillo: si la música es movimiento, podemos describirla respondiendo dos preguntas fundamentales: ¿<b>Dónde</b> ocurre cada sonido? ¿<b>Cuándo</b> ocurre?</p>
-<p>A lo largo de este recorrido aprenderemos a situar los sonidos mediante <b>posiciones</b>; a describir su movimiento mediante <b>intervalos</b>; a organizar estructuras extensas mediante <b>módulos</b>; a explorar el interior del pulso mediante <b>fracciones</b>, y a escoger distintos universos sonoros mediante <b>escalas</b>.</p>
+    text: `<p>¿Te gustaría saber cómo se relacionan los números con la música?</p>
+<p>El <b>Sistema Nuzic</b> usa los números para explicar, crear y transformar la música.</p>
 <p>No reducimos la música a unos números. Utilizamos los números para descubrir las relaciones que hacen que la música se mueva y se transforme.</p>
-<p>Escucha, observa y prueba. El recorrido empieza en un punto.</p>`,
+<p>Parte de una idea muy bella: que la música es movimiento, y, por lo tanto, cada melodía, cada ritmo se pueden contar y medir. </p>
+<p>¿Y cómo se describe un movimiento? </p>
+<p>Contestando dos preguntas: <b>dónde</b> ocurre y <b>cuándo</b> ocurre.</p>
+<p>Piensa en una persona a lo largo de un día. Para reconstruir su recorrido bastan tres datos: los lugares por donde ha pasado, el camino que ha recorrido para llegar de un lugar a otro y un mapa donde dibujarlo todo. Con la música ocurre lo mismo.</p>
+<p>Cada sonido es un punto. La música es un viaje de un punto a otro. Recorrer la distancia entre estos puntos produce el <b>movimiento</b> de la música.</p>
+<p>A lo largo de este recorrido aprenderemos a situar los sonidos mediante posiciones; a describir su movimiento mediante intervalos; a organizar estructuras mediante módulos; a explorar el interior del pulso mediante fracciones, y a escoger distintos universos sonoros mediante escalas.</p>
+<p><b>Escucha, observa y prueba. El recorrido empieza en un punto. </b></p>
+<p><b></b></p>`,
   },
   // 1·B — contingut original del pas 1 (vídeo + text complet).
   1.5: {
@@ -169,18 +175,17 @@ export const slideContent = {
   },
   // Paso 2 — DIAPO 2, segona part (els dos eixos) + tips.
   // Paso 2 — intro parallax de Posiciones: la DIAPO 2 sencera. Text
-  // cuinat des de l'export del panell tweaks (overrides["1"]). L'últim
-  // <p>, buit a propòsit, és la frase on `app-reveal` fa entrar el plano
-  // (PRESETS[2].app-reveal.fraseAparicio = 8) sense text al davant.
+  // cuinat des de l'export del panell. Set frases: `app-reveal` porta
+  // fraseAparicio 8, que el motor acota a min(8, total-1) = l'última — el
+  // plano entra amb la crida a l'acció, ja no en una frase buida.
   2: {
     text: `<p>Para que la música se mueva, debe haber un <b>punto de partida</b>.</p>
 <p>Antes de avanzar, saltar o repetirse, cada sonido ocupa una <b>posición</b>.</p>
 <p>Y una posición se define con dos datos: qué suena y cuándo suena; es decir, una <mark class="hl-pink">nota</mark> y un <mark class="hl-yellow">pulso</mark>, el sonido y el tiempo.</p>
-<p>Empecemos por poner cada sonido en su sitio.</p>
-<p>Para hacerlo, construiremos un <b>plano</b>.</p>
+<p>Empecemos por poner cada sonido en su sitio. <strong>Para hacerlo, construiremos un </strong><b>plano</b><strong>.</strong></p>
 <p>Partimos de dos ejes que son dos líneas numéricas: una línea horizontal que representa el paso del <mark class="hl-yellow">tiempo</mark> y otra línea vertical que representa los <mark class="hl-pink">sonidos</mark>.</p>
-<p>Ambas se encuentran en el punto de inicio, formando así el plano musical: el lugar donde se describe la música que suena.<br><br><b>Tienes ese plano a un scroll: dale al play y escucha moverse la música.</b></p>
-<p><br></p>`,
+<p>Ambas se encuentran en el punto de inicio, formando así el plano musical: el lugar donde se describe la música que suena.<br></p>
+<p><b>Tienes ese plano a un scroll: dale al play y escucha moverse la música.</b></p>`,
   },
   3: {
     text: `<p>La <mark class="hl-yellow">línea temporal</mark> es el eje horizontal y nos permite <mark class="hl-yellow">medir el tiempo</mark> en la música.</p>
@@ -201,11 +206,10 @@ export const slideContent = {
 <p>A la nota de salida le damos el número <b>0</b>. A partir de ahí, cada nota recibe un número que nos permite identificarla.</p>
 <p>Colocamos la <mark class="hl-pink">línea sonora</mark> como eje vertical para formar un plano junto con la <mark class="hl-yellow">línea temporal</mark>. Así podemos ver fácilmente la <b>altura</b> de cada nota: las notas más graves quedan abajo y las más agudas, arriba.</p>
 <p>Una melodía aparece cuando las notas se ordenan en el tiempo. Pueden subir y bajar de una altura a otra, o repetirse.</p>
-<p><mark class="hl-box">La <b>línea temporal</b> (horizontal) nos dice <b>cuándo</b> suena una nota.<br>La <b>línea sonora</b> (vertical) nos dice <b>qué</b> nota suena.<br>Juntas forman el <b>plano musical</b>.</mark></p>
-<h3>Ahora ya tenemos el plano: el mapa donde podremos medir el movimiento de la música.</h3>`,
+<p><mark class="hl-box">La <b>línea temporal</b> (horizontal) nos dice <b>cuándo</b> suena una nota.<br>La <b>línea sonora</b> (vertical) nos dice <b>qué</b> nota suena.<br>Juntas forman el <b>plano musical</b>.</mark></p>`,
     tipsTitle: 'Prueba Práctica',
     tips: `<p>La app muestra la línea sonora con 12 notas (0–11). En ella puedes escuchar melodías.</p>
-<p><strong>Uso básico:</strong> En la primera interacción, suena la escala cromática completa. A partir de la segunda, pulsa ▶️ para reproducir melodías de 6 notas aleatorias.</p>`,
+<p><strong>Uso básico:</strong> En la primera interacción, suena la escala cromática completa. A partir de la segunda, pulsa ▶️ para reproducir melodías de 6 notas aleatorias.<br>Pulsa sobre los números de la línea sonora para reproducir su nota.</p>`,
   },
   5: {
     text: `<p>Hemos colocado la <mark class="hl-yellow">línea temporal</mark> en horizontal y la <mark class="hl-pink">línea sonora</mark> en vertical, y así hemos creado un plano: el espacio donde podemos representar la música.</p>
