@@ -825,6 +825,11 @@ function render(){
   // Build slide
   const slideEl = document.createElement('article');
   slideEl.className = 'slide';
+  // Entrada animada (slides.css): des de baix en avançar, des de dalt en
+  // retrocedir — el paso següent "continua" l'scroll. Cap classe en un
+  // salt directe (menú, URL, càrrega).
+  if (state.navDir > 0) slideEl.classList.add('slide--entra-avall');
+  else if (state.navDir < 0) slideEl.classList.add('slide--entra-amunt');
   slideEl.dataset.layout = slide.layout;
   slideEl.dataset.density = getPasoDensity(state.paso);
   slideEl.dataset.paso = slide.paso;
@@ -1135,7 +1140,11 @@ function go(delta){
   const idx = list.indexOf(state.paso);
   if (idx === -1) return;
   const next = list[idx + delta];
+  // Direcció del canvi: el render fa entrar el paso nou des de baix
+  // (endavant) o des de dalt (enrere). Un salt des del menú no en té.
+  state.navDir = Math.sign(delta);
   if (next != null) goTo(next);
+  state.navDir = 0;
 }
 
 // Easter egg: 5 clicks consecutius sobre el `.paso-badge` d'un pas d'una

@@ -480,3 +480,22 @@ body[data-theme="dark"] .slot-image{ background: #2a2a25; }
   object-fit: cover;
   display: block;
 }
+
+
+/* ---- Entrada del paso ----
+   En avançar amb la nav, la roda o el teclat, el paso nou entra des de
+   baix (continua el gest d'scroll); en retrocedir, des de dalt. Només
+   transform + opacity (compositables), curt, i res amb reduced-motion. */
+@keyframes slide-entra-avall{
+  from{ transform: translateY(6vh); opacity: 0; }
+  to{ transform: translateY(0); opacity: 1; }
+}
+@keyframes slide-entra-amunt{
+  from{ transform: translateY(-6vh); opacity: 0; }
+  to{ transform: translateY(0); opacity: 1; }
+}
+.slide--entra-avall{ animation: slide-entra-avall 0.42s cubic-bezier(0.22, 0.9, 0.3, 1) both; }
+.slide--entra-amunt{ animation: slide-entra-amunt 0.42s cubic-bezier(0.22, 0.9, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce){
+  .slide--entra-avall, .slide--entra-amunt{ animation: none; }
+}

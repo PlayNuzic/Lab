@@ -106,7 +106,50 @@ verificació al navegador i de tres decisions de l'usuari** (vegeu sota).
   1 frase, curta torna, cua no suma, empenta nova dins la cua, teclat,
   frontera, bloqueig d'arribada, enrere mai). Suite: 90/1497.
 
+### Quarta tanda (2026-08-31) — després del commit 509f4ce0 (NO committat)
+- **Scroll del parallax: scroll NATIU amb snap** (tercera i definitiva
+  reescriptura de `wire()`). Les dues versions a mà (scroll lliure amb fre;
+  stepper amb heurístiques de cua) van fallar contra el trackpad real: el
+  moment del sistema no és predictible des de JS (salta amunt en passar a
+  la fase de moment, dura fins a 1s, mai hi ha "pausa"). Ara un contenidor
+  invisible `.parallax-driver` (inset 0, z 2, entre frases i ranura d'app)
+  és un scroll container amb `scroll-snap-type: y mandatory` i cel·les
+  d'alçada 100% amb `scroll-snap-stop: always`: el navegador gestiona
+  moment i snap, un flick = una cel·la, cap heurística. Les frases es
+  pinten des de `scrollTop` (mateixa coreografia, mateix `--px-progress`).
+  - Cel·la d'APP: si el slide té `apps` i app-reveal és ON, cel·la extra
+    després de l'última frase (l'última frase es llegeix sencera; al scroll
+    següent entra l'app). Els textos NO porten `<p>` buits. Re-cablejat
+    automàtic en canviar app-reveal on/off (setConfig) i a syncActiu.
+  - Cel·la de SORTIDA: si hi ha paso següent, una més al final; entrar-hi
+    ≥ 0.6 canvia de paso (un cop). Enrere a la primera: res.
+  - Bloqueig d'entrada: `.is-locked` (pointer-events none) 700ms al néixer:
+    la cua del flick que ha canviat de paso cau al document.
+  - Cremallera del ratolí: un notch = una cel·la (deltaMode 1/2 o
+    wheelDeltaY múltiple de 120), a ritme NOTCH_MS 320; trackpad natiu.
+  - Clics sobre el driver es reenvien (frase → hi glissa; botó → click).
+  - Mode edició: driver `display:none`. Reduced motion: scroll sec.
+  - Límit conegut: amb `mida: 1` la ranura d'app tapa el driver → sobre
+    l'app la roda és de l'iframe; per sortir cal nav/teclat (o mida < 1).
+- **Entrada del paso** (tots els layouts): `state.navDir` a go(); classe
+  `slide--entra-avall/amunt` al render; keyframes a slides.css (6vh,
+  0.42s). Salt directe (menú/URL): sense animació.
+- **Paso 1 sense app**: `apps`/`aspect` fora de la fila del slideMatrix,
+  text sense el `<p>` buit (negretes noves de l'export), PRESET app-reveal
+  off. **Paso 2**: text sense el `<p>` buit; PRESET app-reveal ON
+  fraseAparicio 8 (= la cel·la d'app) i `mida: 1`.
+- **Export cuinat** (textos amb negretes noves): pasos 7, 17, 22 i 29 (el
+  29 arrenca "Llegados a este punto…"); PRESETS[11] mask-zoom → off. La
+  resta de l'export (2, 4, density, fx 1/2/28.5/28.7) ja era idèntica.
+- Tests del driver: 10 casos (cel·les, app, sortida, pintura, bloqueig,
+  step, cremallera, clics, re-cablejat). Suite: 90/1496.
+
 ### Pendent de l'usuari
+- **Verificar al navegador** (trackpad + ratolí + tàctil si es pot): un
+  flick = una frase; mai enganxat; intro → paso 2 sense passar la primera
+  frase del 2; paso 2: última frase sencera, l'app al scroll següent, i
+  com se'n surt amb `mida: 1` (només nav/teclat). **Restaurar** als pasos
+  1 i 2 (localStorage tapa PRESETS i textos).
 - **Verificar l'scroll al navegador** (trackpad i ratolí): el model nou no
   s'ha provat en execució real, només amb el motor sota jsdom. Constants a
   afinar si cal: PX_PER_FRASE 260, MIN_COMMIT 0.12, EDGE_ESCAPE_PX 380,

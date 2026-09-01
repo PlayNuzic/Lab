@@ -111,14 +111,15 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  /* Ocupa gairebé tot l'espai: el 94% de l'amplada del slide o el que
-     permeti el 86% de l'alçada útil del viewport (el que sigui menor), de
-     manera que amb qualsevol aspecte la ranura cap sencera sense sortir
-     del slide. --px-ar-ratio (w/h numèric) la fixa el motor a la creació
-     de la ranura, perquè calc() no pot dividir el "4 / 3" de aspect-ratio.
+  /* Ocupa una fracció --px-ar-size (la fixa app-reveal des del slider
+     "Tamaño"; 0.9 per defecte) de l'espai disponible: de l'amplada del
+     slide o de l'alçada útil del viewport, el que sigui menor, de manera
+     que amb qualsevol aspecte la ranura cap sencera sense sortir del
+     slide. --px-ar-ratio (w/h numèric) la fixa el motor a la creació de
+     la ranura, perquè calc() no pot dividir el "4 / 3" de aspect-ratio.
      La línia amb vh és el fallback de navegadors sense dvh. */
-  width: min(94%, calc((100vh  - var(--nav-h) - 2 * var(--slide-pad-y)) * 0.86 * var(--px-ar-ratio, 1.3333)));
-  width: min(94%, calc((100dvh - var(--nav-h) - 2 * var(--slide-pad-y)) * 0.86 * var(--px-ar-ratio, 1.3333)));
+  width: min(calc(100% * var(--px-ar-size, 0.9)), calc((100vh  - var(--nav-h) - 2 * var(--slide-pad-y)) * var(--px-ar-size, 0.9) * var(--px-ar-ratio, 1.3333)));
+  width: min(calc(100% * var(--px-ar-size, 0.9)), calc((100dvh - var(--nav-h) - 2 * var(--slide-pad-y)) * var(--px-ar-size, 0.9) * var(--px-ar-ratio, 1.3333)));
   aspect-ratio: var(--px-ar-aspect, 4 / 3);
   transform: translate(-50%, -50%);
   z-index: 3;
@@ -468,4 +469,40 @@ body[data-editable="true"] .slide--parallax-lab .slide__title .px-txr-char{
 }
 .slide--parallax-lab.px-bgd .parallax-img{
   opacity: var(--px-bgd-img, 0.10);
+}
+
+
+/* ---- Driver: scroll natiu amb snap ----
+   Contenidor invisible que cobreix el slide i és l'amo de l'scroll (vegeu
+   wire() a parallax-lab.js). Cada cel·la fa l'alçada del slide i és un
+   punt de snap on el moviment S'ATURA sempre (scroll-snap-stop: always):
+   un flick = una cel·la. Va entre les frases (z 1) i la ranura d'app
+   (z 3): sobre l'app, la roda és de l'app. touch-action pan-y perquè el
+   `none` del slide (pensat per a la pàgina) no bloquegi el dit aquí;
+   overscroll-behavior contain perquè al final no encadeni a la pàgina. */
+.slide--parallax-lab .parallax-driver{
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.slide--parallax-lab .parallax-driver::-webkit-scrollbar{ display: none; }
+/* Bloqueig d'entrada: sense punter, la cua del flick que ha canviat de paso
+   cau al document (que no fa scroll) i no mou la primera frase. */
+.slide--parallax-lab .parallax-driver.is-locked{ pointer-events: none; }
+.slide--parallax-lab .parallax-driver__cell{
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+/* Mode edició: el driver fora, per poder seleccionar i editar el text. */
+body[data-editable="true"] .slide--parallax-lab .parallax-driver{ display: none; }
+@media (prefers-reduced-motion: reduce){
+  .slide--parallax-lab .parallax-driver{ scroll-behavior: auto; }
 }

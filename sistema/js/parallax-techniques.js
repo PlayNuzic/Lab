@@ -1234,7 +1234,8 @@ const appReveal = {
   descripcio: 'La app entra en escena al alcanzar una frase concreta: el iframe se crea una sola vez y a partir de ahí solo se muestra u oculta, con una animación de aparición (escala y opacidad) que respeta reduce-motion.',
   moviment: false,
   params: [
-    { key: 'fraseAparicio', label: 'Frase de aparición', min: 1,   max: 8,   step: 1,    def: 3 },
+    { key: 'fraseAparicio', label: 'Frase de aparición', min: 1,   max: 16,  step: 1,    def: 3 },
+    { key: 'mida',          label: 'Tamaño (del espacio)', min: 0.5, max: 1,  step: 0.02, def: 0.9 },
     { key: 'escalaInicial', label: 'Escala inicial',      min: 0.6, max: 1,   step: 0.05, def: 0.85 },
     { key: 'durada',        label: 'Duración',            min: 0.2, max: 1.5, step: 0.1,  def: 0.6, unit: 's' },
   ],
@@ -1244,13 +1245,17 @@ const appReveal = {
     if (!slot) return;                                 // sense ranura (Lab A) → no-op net (regla 8)
 
     const fraseAparicio = cfg.fraseAparicio ?? 3;
+    const mida = cfg.mida ?? 0.9;
     const escalaInicial = cfg.escalaInicial ?? 0.85;
     const durada = cfg.durada ?? 0.6;
     const dataApp = slot.dataset.app || '';
 
     // Canals propis a la ranura (no és capa del compositor: el transform amb
-    // l'escala es recompon al CSS de la tècnica). NO toquem --px-ar-aspect,
-    // que el fixa el motor a la creació de la ranura.
+    // l'escala es recompon al CSS de la tècnica). NO toquem --px-ar-aspect
+    // ni --px-ar-ratio, que els fixa el motor a la creació de la ranura.
+    // --px-ar-size: fracció de l'espai disponible (amplada i alçada útil)
+    // que ocupa la ranura; el CSS en treu l'amplada respectant l'aspecte.
+    slot.style.setProperty('--px-ar-size', mida.toFixed(2));
     slot.style.setProperty('--px-ar-scale', escalaInicial.toFixed(3));
     slot.style.setProperty('--px-ar-dur', `${durada}s`);
     slot.classList.add('px-ar-armed');                 // marca la ranura com a gestionada (estat base d'entrada)
@@ -1316,6 +1321,7 @@ const appReveal = {
     if (slot) {                                        // segur encara que el slide ja no sigui al DOM
       slot.classList.remove('px-ar-on', 'px-ar-armed');
       slot.hidden = true;                              // amaga la ranura (l'iframe hi pot quedar dins)
+      slot.style.removeProperty('--px-ar-size');
       slot.style.removeProperty('--px-ar-scale');
       slot.style.removeProperty('--px-ar-dur');
     }

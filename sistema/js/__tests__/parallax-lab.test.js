@@ -119,21 +119,20 @@ describe('Parallax Lab — motor (parallax-lab.js), reduced-motion ON', () => {
   });
 });
 
-// ── Model de gest: un gest = una frase ──────────────────────────────────
-// Contracte del motor (compartit per TOTS els slides P-parallax-lab —
-// intro de capítol, intro global i coda):
-//   · una empenta mou exactament una frase, per llarga que sigui (la cua
-//     d'inèrcia del trackpad no n'afegeix cap més);
-//   · una empenta curta (< MIN_COMMIT) torna a l'origen: mai es queda
-//     entre frases;
-//   · a l'última frase no es canvia de paso en arribar-hi; només ho fa un
-//     gest NOU, fora del bloqueig d'arribada, que sumi EDGE_ESCAPE_PX;
-//   · enrere, a la primera, res.
-function harnessNav(nFrases) {
+// ── Driver: scroll natiu amb snap ───────────────────────────────────────
+// El motor ja no interpreta la roda: un contenidor natiu (.parallax-driver)
+// amb snap és l'amo de l'scroll i les frases es pinten des del seu
+// scrollTop. Aquí es prova el que SÍ que és nostre: les cel·les (text, app
+// i sortida), la pintura des de scrollTop, el bloqueig d'entrada, el pas
+// discret (teclat/cremallera), el canvi de paso per la cel·la de sortida i
+// el reenviament de clics. jsdom no fa layout: l'alçada de cel·la i el
+// scrollTo es simulen sobre el driver.
+function harnessNav(nFrases, { nextDisabled = false } = {}) {
   document.body.innerHTML = '';
   const nav = document.createElement('div');
   nav.innerHTML = '<button id="btn-prev"></button><button id="btn-next"></button>';
   document.body.appendChild(nav);
+  if (nextDisabled) document.getElementById('btn-next').disabled = true;
   const slideEl = document.createElement('article');
   slideEl.className = 'slide slide--parallax slide--parallax-lab';
   const ps = Array.from({ length: nFrases }, (_, i) => `<p>frase ${i}</p>`).join('');
@@ -152,46 +151,29 @@ function harnessNav(nFrases) {
   };
 }
 
-describe('Parallax Lab — model de gest i frontera de frases', () => {
+describe('Parallax Lab — driver (scroll natiu amb snap)', () => {
   let lab;
-  let rellotge;   // el motor mesura els gestos amb performance.now(), que
-                  // els fake timers de jest NO avancen: el controlem aquí.
+  const CELL = 500;
 
-  // Progrés publicat pel motor (0 = primera frase, 1 = última).
-  function progres(slideEl) {
-    return parseFloat(slideEl.style.getPropertyValue('--px-progress')) || 0;
+  // Cableja i prepara el driver per a jsdom: alçada de cel·la fixa i un
+  // scrollTo que mou scrollTop i emet 'scroll' (com faria el navegador).
+  function cableja(slideEl, slide) {
+    const ctrl = lab.wire(slideEl, slide);
+    const driver = slideEl.querySelector('.parallax-driver');
+    Object.defineProperty(driver, 'clientHeight', { value: CELL, configurable: true });
+    driver.scrollTo = ({ top }) => { driver.scrollTop = top; driver.dispatchEvent(new Event('scroll')); };
+    return { ctrl, driver };
   }
-  // Posició en frases, derivada del progrés.
-  function frase(slideEl, total) {
-    return Math.round(progres(slideEl) * (total - 1) * 1000) / 1000;
-  }
-
-  // Drena rAF (molla) i timers (tancament de gest) fins al repòs.
-  function drena() {
-    for (let i = 0; i < 200; i++) jest.advanceTimersByTime(16);
-  }
-  // Ràfega d'events de roda dins d'un mateix gest (mateix instant).
-  function rafega(slideEl, deltes) {
-    for (const dy of deltes) {
-      slideEl.dispatchEvent(new WheelEvent('wheel', { deltaY: dy, bubbles: true, cancelable: true }));
-    }
-  }
-  // Un GEST sencer: pausa que n'obre un de nou (i supera el bloqueig
-  // d'arribada), la ràfega, i el drenatge fins al repòs.
-  function gest(slideEl, deltes) {
-    rellotge += 500;                                   // > GEST_GAP_MS i > ARRIVAL_LOCK_MS
-    rafega(slideEl, Array.isArray(deltes) ? deltes : [deltes]);
-    drena();
-  }
+  function drena() { for (let i = 0; i < 10; i++) jest.advanceTimersByTime(16); }
+  function progres(slideEl) { return parseFloat(slideEl.style.getPropertyValue('--px-progress')) || 0; }
+  function cells(driver) { return [...driver.querySelectorAll('.parallax-driver__cell')]; }
 
   beforeEach(async () => {
     localStorage.clear();
     document.body.innerHTML = '';
     jest.resetModules();
     jest.useFakeTimers();
-    rellotge = 0;
-    jest.spyOn(performance, 'now').mockImplementation(() => rellotge);
-    window.requestAnimationFrame = (cb) => setTimeout(() => cb(rellotge), 16);
+    window.requestAnimationFrame = (cb) => setTimeout(() => cb(performance.now()), 16);
     window.cancelAnimationFrame = (id) => clearTimeout(id);
     window.__sistemaState = { editable: false };
     mockMatchMedia(false);
@@ -200,132 +182,149 @@ describe('Parallax Lab — model de gest i frontera de frases', () => {
   });
 
   afterEach(() => {
-    performance.now.mockRestore();
     jest.useRealTimers();
     delete window.__sistemaState;
   });
 
-  test('una empenta llarga avança exactament una frase', () => {
+  test('cel·les = frases + sortida (si hi ha paso següent); sense app si app-reveal és off', () => {
     const { slideEl } = harnessNav(7);
-    lab.wire(slideEl, { paso: 1, apps: [] });
-    gest(slideEl, [300, 300, 300, 300, 300, 300]);     // 1800px en un sol gest
-    expect(frase(slideEl, 7)).toBe(1);
+    const { driver } = cableja(slideEl, { paso: 1, apps: [] });
+    const cs = cells(driver);
+    expect(cs).toHaveLength(8);
+    expect(cs[7].classList.contains('parallax-driver__cell--sortida')).toBe(true);
+    expect(driver.querySelector('.parallax-driver__cell--app')).toBeNull();
   });
 
-  test('una empenta curta (< MIN_COMMIT) torna a la frase d\'origen', () => {
+  test('a l\'últim paso no hi ha cel·la de sortida', () => {
+    const { slideEl } = harnessNav(5, { nextDisabled: true });
+    const { driver } = cableja(slideEl, { paso: 29, apps: [] });
+    expect(cells(driver)).toHaveLength(5);
+    expect(driver.querySelector('.parallax-driver__cell--sortida')).toBeNull();
+  });
+
+  test('amb app i app-reveal actiu, s\'afegeix la cel·la d\'app després de l\'última frase', () => {
+    lab.setConfig(2, 'app-reveal', { on: true, params: { fraseAparicio: 8 } });
     const { slideEl } = harnessNav(7);
-    lab.wire(slideEl, { paso: 1, apps: [] });
-    gest(slideEl, [20]);                               // 20px < 0.12 · 260
-    expect(frase(slideEl, 7)).toBe(0);
+    const { driver } = cableja(slideEl, { paso: 2, apps: ['App11A'], aspect: '4/3' });
+    const cs = cells(driver);
+    expect(cs).toHaveLength(9);                        // 7 text + app + sortida
+    expect(cs[7].classList.contains('parallax-driver__cell--app')).toBe(true);
+    expect(cs[8].classList.contains('parallax-driver__cell--sortida')).toBe(true);
+    // El progrés arriba a 1 a la cel·la d'app (total = 8 → detail.total).
+    const rebuts = [];
+    slideEl.addEventListener('sistema:parallax-progress', e => rebuts.push(e.detail));
+    driver.scrollTo({ top: 7 * CELL }); drena();
+    expect(rebuts.at(-1)).toMatchObject({ t: 1, active: 7, total: 8 });
   });
 
-  test('una empenta moderada (≥ MIN_COMMIT) avança una frase: mai queda a mig camí', () => {
-    const { slideEl } = harnessNav(7);
-    lab.wire(slideEl, { paso: 1, apps: [] });
-    gest(slideEl, [60]);                               // 60px = 0.23 frases → compromet
-    expect(frase(slideEl, 7)).toBe(1);
+  test('l\'scroll pinta les frases des de scrollTop (posició contínua, activa amb histèresi)', () => {
+    const { slideEl } = harnessNav(5);
+    // Paso sense PRESET: el 1 porta focus-mode, que reescriu les opacitats.
+    const { driver } = cableja(slideEl, { paso: 3, apps: [] });
+    const frases = [...slideEl.querySelectorAll('.parallax-frases > p')];
+    driver.scrollTo({ top: 0.4 * CELL }); drena();
+    expect(progres(slideEl)).toBeCloseTo(0.1, 5);      // 0.4 / (5-1)
+    expect(frases[0].classList.contains('is-active')).toBe(true);   // encara la 0 (histèresi)
+    driver.scrollTo({ top: 1 * CELL }); drena();
+    expect(frases[1].classList.contains('is-active')).toBe(true);
+    expect(Number(frases[1].style.opacity)).toBe(1);
+    expect(Number(frases[0].style.opacity)).toBeCloseTo(0.19, 2);
   });
 
-  test('la cua d\'inèrcia (deltes decreixents) no afegeix frases', () => {
-    const { slideEl } = harnessNav(7);
-    lab.wire(slideEl, { paso: 1, apps: [] });
-    gest(slideEl, [300, 220, 160, 110, 70, 40, 20, 10, 5]);
-    expect(frase(slideEl, 7)).toBe(1);
+  test('el driver neix bloquejat (sense punter) i s\'allibera passat ENTRY_LOCK_MS', () => {
+    const { slideEl } = harnessNav(5);
+    const { driver } = cableja(slideEl, { paso: 2, apps: [] });
+    expect(driver.classList.contains('is-locked')).toBe(true);
+    jest.advanceTimersByTime(650);
+    expect(driver.classList.contains('is-locked')).toBe(true);
+    jest.advanceTimersByTime(100);
+    expect(driver.classList.contains('is-locked')).toBe(false);
   });
 
-  test('una empenta nova enmig de la cua (delta que puja de cop) és un gest nou', () => {
-    const { slideEl } = harnessNav(7);
-    lab.wire(slideEl, { paso: 1, apps: [] });
-    gest(slideEl, [300, 60, 30, 12, 8, 6, 200, 200]);  // 200 > 6·1.4+4
-    expect(frase(slideEl, 7)).toBe(2);
-  });
-
-  test('un gest enrere torna una frase; dos gestos endavant en avancen dues', () => {
-    const { slideEl } = harnessNav(7);
-    lab.wire(slideEl, { paso: 1, apps: [] });
-    gest(slideEl, 300);
-    gest(slideEl, 300);
-    expect(frase(slideEl, 7)).toBe(2);
-    gest(slideEl, -300);
-    expect(frase(slideEl, 7)).toBe(1);
-  });
-
-  test('step(±1) per teclat mou una frase i a la frontera escapa', () => {
-    const { slideEl, next, prev } = harnessNav(3);
-    const clicksNext = jest.fn(); next.addEventListener('click', clicksNext);
-    const clicksPrev = jest.fn(); prev.addEventListener('click', clicksPrev);
-    const ctrl = lab.wire(slideEl, { paso: 1, apps: [] });
-    ctrl.step(1); drena();
-    expect(frase(slideEl, 3)).toBe(1);
-    ctrl.step(1); drena();
-    ctrl.step(1); drena();                             // ja a l'última → paso següent
-    expect(clicksNext).toHaveBeenCalledTimes(1);
-    ctrl.step(-1); drena(); ctrl.step(-1); drena(); ctrl.step(-1); drena();
-    expect(clicksPrev).toHaveBeenCalledTimes(1);
-  });
-
-  // Recorre les frases a base de gestos fins al límit, comprovant a cada
-  // pas que no s'ha canviat de paso.
-  function finsAlLimit(slideEl, clicks) {
-    let n = 0;
-    while (progres(slideEl) < 1 && n < 25) {
-      gest(slideEl, 300);
-      n += 1;
-      expect(clicks).not.toHaveBeenCalled();
-    }
-    expect(progres(slideEl)).toBe(1);
-    return n;
-  }
-
-  test('recórrer les frases fins a l\'última no canvia de paso (intro global, 7 frases)', () => {
-    const { slideEl, next } = harnessNav(7);
-    const clicks = jest.fn();
-    next.addEventListener('click', clicks);
-    lab.wire(slideEl, { paso: 1, apps: [] });
-    expect(finsAlLimit(slideEl, clicks)).toBe(6);      // exactament un gest per frase
+  test('entrar a la cel·la de sortida canvia de paso un sol cop', () => {
+    const { slideEl, next } = harnessNav(5);
+    const clicks = jest.fn(); next.addEventListener('click', clicks);
+    const { driver } = cableja(slideEl, { paso: 1, apps: [] });
+    driver.scrollTo({ top: 4 * CELL }); drena();       // última frase: res
     expect(clicks).not.toHaveBeenCalled();
-  });
-
-  test('un cop al límit, un gest nou amb prou empenta escapa al paso següent', () => {
-    const { slideEl, next } = harnessNav(7);
-    const clicks = jest.fn();
-    next.addEventListener('click', clicks);
-    lab.wire(slideEl, { paso: 1, apps: [] });
-    finsAlLimit(slideEl, clicks);
-    gest(slideEl, [200, 200]);                         // 400px > EDGE_ESCAPE_PX (380)
+    driver.scrollTo({ top: 4.3 * CELL }); drena();     // encara sota el llindar (0.6)
+    expect(clicks).not.toHaveBeenCalled();
+    driver.scrollTo({ top: 4.7 * CELL }); drena();
+    expect(clicks).toHaveBeenCalledTimes(1);
+    driver.scrollTo({ top: 5 * CELL }); drena();       // el snap acaba d'arribar: no repeteix
     expect(clicks).toHaveBeenCalledTimes(1);
   });
 
-  test('al límit, una empenta curta NO escapa (fa goma i torna)', () => {
-    const { slideEl, next } = harnessNav(5);           // com la coda
-    const clicks = jest.fn();
-    next.addEventListener('click', clicks);
-    lab.wire(slideEl, { paso: 29, apps: [] });
-    finsAlLimit(slideEl, clicks);
-    gest(slideEl, [100, 100]);                         // 200px < 380px
-    expect(clicks).not.toHaveBeenCalled();
-    expect(progres(slideEl)).toBe(1);                  // la goma s'ha recollit
+  test('step(±1) mou una cel·la i a la frontera escapa al paso adjacent', () => {
+    const { slideEl, next, prev } = harnessNav(3);
+    const clicksNext = jest.fn(); next.addEventListener('click', clicksNext);
+    const clicksPrev = jest.fn(); prev.addEventListener('click', clicksPrev);
+    const { ctrl, driver } = cableja(slideEl, { paso: 1, apps: [] });
+    ctrl.step(1); drena();
+    expect(driver.scrollTop).toBe(CELL);
+    ctrl.step(1); drena();
+    expect(driver.scrollTop).toBe(2 * CELL);
+    ctrl.step(1); drena();                             // ja a l'última → paso següent
+    expect(clicksNext).toHaveBeenCalledTimes(1);
+    ctrl.step(-1); ctrl.step(-1); ctrl.step(-1); drena();
+    expect(driver.scrollTop).toBe(0);
+    expect(clicksPrev).toHaveBeenCalledTimes(1);
   });
 
-  test('acabat d\'arribar a l\'última frase, el rebot immediat no escapa (bloqueig d\'arribada)', () => {
-    const { slideEl, next } = harnessNav(5);
-    const clicks = jest.fn();
-    next.addEventListener('click', clicks);
-    lab.wire(slideEl, { paso: 29, apps: [] });
-    finsAlLimit(slideEl, clicks);
-    rellotge += 300;                                   // > GEST_GAP_MS però < ARRIVAL_LOCK_MS
-    rafega(slideEl, [300, 300]);                       // 600px: escaparia si no hi hagués bloqueig
+  test('la cremallera del ratolí fa un pas per notch, a ritme limitat; el trackpad no s\'intercepta', () => {
+    const { slideEl } = harnessNav(5);
+    const { driver } = cableja(slideEl, { paso: 1, apps: [] });
+    jest.spyOn(performance, 'now').mockReturnValue(1000);
+    const notch = (dy) => {
+      const e = new WheelEvent('wheel', { deltaY: dy, deltaMode: 0, bubbles: true, cancelable: true });
+      Object.defineProperty(e, 'wheelDeltaY', { value: -dy * 1.2 });   // múltiple de 120 (Chrome)
+      driver.dispatchEvent(e);
+      return e;
+    };
+    expect(notch(100).defaultPrevented).toBe(true);
     drena();
-    expect(clicks).not.toHaveBeenCalled();
+    expect(driver.scrollTop).toBe(CELL);
+    notch(100); drena();                               // dins de NOTCH_MS: ignorat
+    expect(driver.scrollTop).toBe(CELL);
+    performance.now.mockReturnValue(1400);
+    notch(100); drena();
+    expect(driver.scrollTop).toBe(2 * CELL);
+    // Trackpad (wheelDeltaY no múltiple de 120): el navegador fa l'scroll natiu.
+    const tp = new WheelEvent('wheel', { deltaY: 37, deltaMode: 0, bubbles: true, cancelable: true });
+    Object.defineProperty(tp, 'wheelDeltaY', { value: -111 });
+    driver.dispatchEvent(tp);
+    expect(tp.defaultPrevented).toBe(false);
+    performance.now.mockRestore();
   });
 
-  test('a la primera frase, cap gest enrere canvia de paso', () => {
-    const { slideEl, prev } = harnessNav(5);
-    const clicks = jest.fn();
-    prev.addEventListener('click', clicks);
-    lab.wire(slideEl, { paso: 29, apps: [] });
-    for (let i = 0; i < 4; i++) gest(slideEl, -300);
-    expect(clicks).not.toHaveBeenCalled();
-    expect(progres(slideEl)).toBe(0);
+  test('un clic sobre el driver arriba a la frase de sota (hi glissa) o al botó de sota (el prem)', () => {
+    const { slideEl } = harnessNav(4);
+    const boto = document.createElement('button');
+    boto.className = 'paso-badge';
+    const premut = jest.fn(); boto.addEventListener('click', premut);
+    slideEl.appendChild(boto);
+    const { driver } = cableja(slideEl, { paso: 1, apps: [] });
+    const frases = [...slideEl.querySelectorAll('.parallax-frases > p')];
+    document.elementFromPoint = jest.fn();             // jsdom no l'implementa
+    const sota = document.elementFromPoint;
+    sota.mockReturnValue(frases[2]);
+    driver.dispatchEvent(new MouseEvent('click', { clientX: 10, clientY: 10, bubbles: true }));
+    drena();
+    expect(driver.scrollTop).toBe(2 * CELL);
+    sota.mockReturnValue(boto);
+    driver.dispatchEvent(new MouseEvent('click', { clientX: 10, clientY: 10, bubbles: true }));
+    expect(premut).toHaveBeenCalledTimes(1);
+    delete document.elementFromPoint;
+  });
+
+  test('activar app-reveal des del panell re-cableja el driver amb la cel·la d\'app', () => {
+    const { slideEl } = harnessNav(3);
+    // Paso sense PRESET (el 2 ja porta app-reveal actiu de fàbrica).
+    cableja(slideEl, { paso: 3, apps: ['App11A'], aspect: '4/3' });
+    expect(cells(slideEl.querySelector('.parallax-driver'))).toHaveLength(4);   // 3 + sortida
+    lab.setConfig(3, 'app-reveal', { on: true });
+    expect(cells(slideEl.querySelector('.parallax-driver'))).toHaveLength(5);   // 3 + app + sortida
+    lab.setConfig(3, 'app-reveal', { on: false });
+    expect(cells(slideEl.querySelector('.parallax-driver'))).toHaveLength(4);
   });
 });

@@ -386,6 +386,21 @@ describe('focus-mode + bg-dim — legibilitat de frases llargues', () => {
     expect(() => focusMode.apply(buit, paramsPerDefecte(focusMode), ctx)).not.toThrow();
   });
 
+  test('app-reveal: `mida` va a --px-ar-size de la ranura i el cleanup el treu', () => {
+    document.body.innerHTML = '';
+    const slideEl = document.createElement('article');
+    slideEl.className = 'slide slide--parallax slide--parallax-lab';
+    slideEl.innerHTML = '<div class="parallax-frases"><p>a</p><p>b</p></div><div class="parallax-app-slot" data-app="App11A" hidden></div>';
+    document.body.appendChild(slideEl);
+    const slot = slideEl.querySelector('.parallax-app-slot');
+    const appReveal = TECNIQUES.find(t => t.id === 'app-reveal');
+    const ctx = { reduced: false, progress: () => 0, onProgress: () => () => {} };
+    appReveal.apply(slideEl, { ...paramsPerDefecte(appReveal), mida: 0.76 }, ctx);
+    expect(slot.style.getPropertyValue('--px-ar-size')).toBe('0.76');
+    appReveal.cleanup(slideEl);
+    expect(slot.style.getPropertyValue('--px-ar-size')).toBe('');
+  });
+
   test('bg-dim escriu els seus canals al slide i no toca les capes', () => {
     const { slideEl } = harness();
     bgDim.apply(slideEl, { simbols: 0.03, imatge: 0.05 });

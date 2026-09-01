@@ -95,7 +95,7 @@ export const layouts = {
 export const slideMatrix = [
   // Paso 1 — intro GLOBAL del Sistema (no és intro de capítol): secció
   // pròpia 'intro'. Mateix motor parallax que les intros de capítol.
-  { paso:1,    section:'intro',        title:'Música en movimiento',                                 layout:'P-parallax-lab', apps:['App11A'], aspect:'4/3', density:'compact', parallax:{ symbols:['0 1 2 3', 'P', 'N', 'iT', 'iS'] } },
+  { paso:1,    section:'intro',        title:'Música en movimiento',                                 layout:'P-parallax-lab', density:'compact', parallax:{ symbols:['0 1 2 3', 'P', 'N', 'iT', 'iS'] } },
   // 1·B — l'antiga intro amb vídeo, oculta rere el flag individual
   // `intro1b` (5 clicks al badge del paso 1, secció "Introducción").
   { paso:1.5,  section:'intro',        title:'¿Sabías que los números son el adn de la música?', layout:'A-intro', density:'loose', hidden:true, flag:'intro1b' },
@@ -148,10 +148,9 @@ export const slideMatrix = [
 // <p> — el renderer les converteix en blocs que s'activen amb el mouse.
 //
 export const slideContent = {
-  // Paso 1 — intro GLOBAL del Sistema (parallax). Text cuinat des de
-  // l'export del panell: fon la DIAPO 1 del document amb el text propi de
-  // l'usuari. L'últim <p>, buit, és una frase de respir al final —
-  // `app-reveal` està desactivat en aquest pas, així que no hi entra cap app.
+  // Paso 1 — intro GLOBAL del Sistema (parallax, sense app). Text cuinat
+  // des de l'export del panell: fon la DIAPO 1 del document amb el text
+  // propi de l'usuari.
   1: {
     text: `<p>¿Te gustaría saber cómo se relacionan los números con la música?</p>
 <p>El <b>Sistema Nuzic</b> usa los números para explicar, crear y transformar la música.</p>
@@ -161,9 +160,8 @@ export const slideContent = {
 <p>Contestando dos preguntas: <b>dónde</b> ocurre y <b>cuándo</b> ocurre.</p>
 <p>Piensa en una persona a lo largo de un día. Para reconstruir su recorrido bastan tres datos: los lugares por donde ha pasado, el camino que ha recorrido para llegar de un lugar a otro y un mapa donde dibujarlo todo. Con la música ocurre lo mismo.</p>
 <p>Cada sonido es un punto. La música es un viaje de un punto a otro. Recorrer la distancia entre estos puntos produce el <b>movimiento</b> de la música.</p>
-<p>A lo largo de este recorrido aprenderemos a situar los sonidos mediante posiciones; a describir su movimiento mediante intervalos; a organizar estructuras mediante módulos; a explorar el interior del pulso mediante fracciones, y a escoger distintos universos sonoros mediante escalas.</p>
-<p><b>Escucha, observa y prueba. El recorrido empieza en un punto. </b></p>
-<p><b></b></p>`,
+<p>A lo largo de este recorrido aprenderemos a situar los sonidos mediante <b>posiciones</b>; a describir su movimiento mediante <b>intervalos</b>; a organizar estructuras mediante <b>módulos</b>; a explorar el interior del pulso mediante <b>fracciones</b>, y a escoger distintos universos sonoros mediante <b>escalas</b>.</p>
+<p>Escucha, observa y prueba. El recorrido empieza en un punto. </p>`,
   },
   // 1·B — contingut original del pas 1 (vídeo + text complet).
   1.5: {
@@ -174,15 +172,16 @@ export const slideContent = {
     text: `<p>Bienvenido al Sistema Interactivo Nuzic, un método pedagógico que te ayudará a comprender la música a partir de los números. Estás a punto de recorrer la música desde cero: empezarás descubriendo que todo lo que suena se puede contar y medir.</p><p>Asociamos los números a elementos de la música como notas, pulsos o intervalos, y así podemos describir y analizar cualquier música. </p><p>Podemos unir estos números en secuencias y crear ritmos y melodías.</p>`,
   },
   // Paso 2 — DIAPO 2, segona part (els dos eixos) + tips.
-  // Paso 2 — intro parallax de Posiciones: la DIAPO 2 sencera. Text
-  // cuinat des de l'export del panell. Set frases: `app-reveal` porta
-  // fraseAparicio 8, que el motor acota a min(8, total-1) = l'última — el
-  // plano entra amb la crida a l'acció, ja no en una frase buida.
+  // Paso 2 — intro parallax de Posiciones: la DIAPO 2 sencera, cuinada
+  // des de l'export del panell. L'app no necessita cap <p> buit: el driver
+  // afegeix la cel·la d'app després de l'última frase (app-reveal actiu al
+  // PRESET), així la crida a l'acció es llegeix sencera i al scroll
+  // següent entra el plano.
   2: {
     text: `<p>Para que la música se mueva, debe haber un <b>punto de partida</b>.</p>
 <p>Antes de avanzar, saltar o repetirse, cada sonido ocupa una <b>posición</b>.</p>
 <p>Y una posición se define con dos datos: qué suena y cuándo suena; es decir, una <mark class="hl-pink">nota</mark> y un <mark class="hl-yellow">pulso</mark>, el sonido y el tiempo.</p>
-<p>Empecemos por poner cada sonido en su sitio. <strong>Para hacerlo, construiremos un </strong><b>plano</b><strong>.</strong></p>
+<p>Empecemos por poner cada sonido en su sitio. Para hacerlo, construiremos un<strong> </strong><b>plano</b><strong>.</strong></p>
 <p>Partimos de dos ejes que son dos líneas numéricas: una línea horizontal que representa el paso del <mark class="hl-yellow">tiempo</mark> y otra línea vertical que representa los <mark class="hl-pink">sonidos</mark>.</p>
 <p>Ambas se encuentran en el punto de inicio, formando así el plano musical: el lugar donde se describe la música que suena.<br></p>
 <p><b>Tienes ese plano a un scroll: dale al play y escucha moverse la música.</b></p>`,
@@ -237,11 +236,11 @@ export const slideContent = {
   // Pas intro parallax — Intervalos.
   7: {
     text: `<p>Ya sabemos situar los sonidos en un mapa.</p>
-<p>Pero una melodía no se reconoce solo por los lugares que ocupa, sino por las distancias que recorren sus notas.</p>
+<p>Pero una melodía no se reconoce solo por los lugares que ocupa, sino por las <b>distancias</b> que recorren sus notas.</p>
 <p>Ahora vamos a medir cómo se mueven esas notas. Para eso, usamos <b>intervalos</b>.</p>
 <p>El intervalo temporal (<b>iT</b>) mide la duración de un sonido.</p>
 <p>El intervalo sonoro (<b>iS</b>) mide la distancia entre dos sonidos.</p>
-<p>La duración y la distancia nos permiten oír el movimiento de la música y ver el contorno de la melodía.</p>`,
+<p>La <b>duración</b> y la <b>distancia</b> nos permiten oír el movimiento de la música y ver el contorno de la melodía.</p>`,
   },
   8: {
     text: `<p>¿Recordáis que llamábamos <b>paso temporal</b> a la distancia entre dos pulsos consecutivos? Pues el <b>intervalo temporal</b> (<b>iT</b>) mide la cantidad de pasos temporales que dura un sonido, es decir, la distancia que hay entre dos pulsos.</p>
@@ -350,11 +349,11 @@ export const slideContent = {
   },
   // Pas intro parallax — Fracciones.
   17: {
-    text: `<p>Acabamos de ver cómo los módulos amplían el plano.</p>
-<p>Ahora vamos a acercarnos al plano para observar lo que ocurre dentro de cada pulso.</p>
+    text: `<p>Acabamos de ver cómo los <b>módulos</b> amplían el plano.</p>
+<p>Ahora vamos a <b>acercarnos</b> al plano para observar lo que ocurre dentro de cada pulso.</p>
 <p>Igual que entre el 1 y el 2 hay infinitos números, entre un pulso y el siguiente hay infinitas posibilidades rítmicas.</p>
 <p>Acércate: divide el pulso y las descubrirás.</p>
-<p>Verás que fraccionar la pulsación crea nuevas velocidades.</p>
+<p>Verás que <b>fraccionar</b> la pulsación crea nuevas velocidades.</p>
 <p>Prueba ritmos con los pulsos fraccionados. Aquí es donde el tiempo se pone interesante. ¿Lo fraccionamos?</p>`,
   },
   18: {
@@ -429,9 +428,9 @@ export const slideContent = {
   // Pas intro parallax — Escalas.
   22: {
     text: `<p>Hasta ahora hemos tenido todas las notas disponibles.</p>
-<p>Pero componer también consiste en escoger qué notas queremos utilizar.</p>
+<p>Pero componer también consiste en <b>escoger</b> qué notas queremos utilizar.</p>
 <p>En cada registro contamos con doce notas, pero a lo largo de la historia los músicos han seleccionado distintos grupos de notas por su manera de combinarse. Así nacieron las <b>escalas</b>.</p>
-<p>Las escalas nos dan paletas de colores sonoros, cada una con su propio carácter.</p>
+<p>Las <b>escalas</b> nos dan paletas de colores sonoros, cada una con su propio carácter.</p>
 <p>Cambia la escala de una melodía y verás cómo su carácter también cambia: se vuelve más alegre o misterioso; más luminoso u oscuro.</p>
 <p>Elegir una escala (por ejemplo, la escala mayor) es elegir un universo sonoro. Entra y escúchalas.</p>`,
   },
@@ -525,9 +524,9 @@ export const slideContent = {
   },
   // Paso 29 — CODA (parallax). Text de tancament del document.
   29: {
-    text: `<p>Hasta aquí hemos definido los espacios por donde se mueve la música: los puntos por los que pasa, las distancias que recorre, los ciclos que la organizan, las fracciones que multiplican el tiempo y las escalas que le dan color.</p>
+    text: `<p>Llegados a este punto hemos definido los espacios por donde se mueve la música: los <b>puntos</b> por los que pasa, las <b>distancias</b> que recorre, los <b>ciclos</b> que la organizan, las <b>fracciones</b> que multiplican el tiempo y las <b>escalas</b> que le dan color.</p>
 <p>Con estas herramientas puedes ver una melodía, medirla, transformarla y crear otras nuevas.</p>
-<p>Porque entender la música en movimiento no consiste solo en ponerle números: consiste en descubrir las relaciones que hacen que suene.</p>
+<p>Porque entender la <b>música en movimiento</b> no consiste solo en ponerle números: consiste en descubrir las relaciones que hacen que suene.</p>
 <p>Este es el punto de partida. El sistema Nuzic continúa con nuevas formas de organizar, combinar y transformar la música.</p>
 <p>Si practicas estos procesos de abstracción mentalmente, se amplía tu intuición musical. Se expande tu imaginación auditiva.</p>`,
   },
