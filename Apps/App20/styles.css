@@ -532,16 +532,17 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
   align-items: stretch;
 }
 
-/* Individual cell — rectangular (no square): a diferència de la resta
-   d'editors, App20 mostra notació de registre "NrR" (fins a "11r6", 4
-   caràcters), que no cap en una cel·la quadrada d'1.8em. Per això ampliem
-   l'amplada a 2.7em (mantenint l'alçada d'1.8em) i NO usem aspect-ratio.
-   N i iT comparteixen amplada → les columnes queden alineades. */
+/* Individual cell — regla d'App15 (unificada a App12/15/20/34/35) però
+   rectangular 3:2: App20 mostra notació de registre "NrR" (fins a "11r6",
+   4 caràcters), que no cap en una cel·la quadrada. width 6% amb
+   aspect-ratio 3/2 → la MATEIXA alçada que la cel·la quadrada del 4% de la
+   resta d'apps, i 1.5× d'amplada. Sense alçada fixa ni `flex: 0 0 auto`
+   (stretch de la fila; amb moltes cel·les s'encongeixen fins al
+   min-width). N i iT comparteixen amplada → les columnes queden alineades. */
 .nit-editor-cell {
-  width: 2.7em;
-  height: 1.8em;
-  min-width: 2.7em;
-  flex: 0 0 auto;
+  width: calc(6%);
+  min-width: 1.875rem;
+  aspect-ratio: 3 / 2;
   border: none;
   text-align: center;
   color: #43433b;

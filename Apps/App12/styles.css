@@ -118,15 +118,15 @@ html, body {
 }
 
 .editor-cell {
-  /* Cel·la dimensionada a partir del número: width en `em` (relatiu al
-     font de la pròpia cel·la) → la cel·la s'adapta al número. 1.8em fa
-     que el dígit ompli ~55% i la cel·la no es desbordi. */
-  width: 1.8em;
-  height: 1.8em;
-  min-width: 1.8em;
-  flex: 0 0 auto;
+  /* Regla d'App15, unificada a totes les apps-plànol amb editor de dues
+     línies (App12/15/20/34/35): la cel·la és el 4% del contenidor (creix
+     amb la pantalla, no amb la font) i queda quadrada per aspect-ratio +
+     stretch de la fila — sense alçada fixa ni `flex: 0 0 auto`, així amb
+     moltes cel·les s'encongeixen fins al min-width en lloc de desbordar. */
+  width: calc(4%);
+  min-width: 1.25rem;
   box-sizing: border-box;
-  aspect-ratio: 1;  /* keep square */
+  aspect-ratio: 1;
   text-align: center;
   color: #43433b;
   font-size: clamp(1rem, 1.6vw, 1.5rem);
