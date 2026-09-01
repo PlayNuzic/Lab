@@ -1,4 +1,4 @@
-// App28: Sucesion de Pulsos Fraccionados Simples
+// App28: Secuencia de Pulsos Fraccionados Simples
 // Basat en App26 + pulseSeq editor per seleccionar pulsos
 // Lg=6 fix, BPM=85 fix, numerador=1 fix, denominador editable (1-8)
 // Bi-direccionalitat: timeline <-> pulseSeq

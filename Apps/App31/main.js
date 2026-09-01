@@ -1,4 +1,4 @@
-// App31: Sucesión de iTs Fraccionados Complejos
+// App31: Secuencia de iTs Fraccionados Complejos
 // Basat en App30, amb numerador editable (2-6) — Lg = numerador (dinàmic)
 // BPM=60 default, playback en loop
 // Bi-direccionalitat: timeline ↔ editor iT cel·lular

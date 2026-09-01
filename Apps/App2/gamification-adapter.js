@@ -1,5 +1,5 @@
 /**
- * Adaptador de Gamificación para App2 - Sucesión de Pulsos
+ * Adaptador de Gamificación para App2 - Secuencia de Pulsos
  * Conecta los eventos específicos de la aplicación con el sistema de gamificación
  */
 

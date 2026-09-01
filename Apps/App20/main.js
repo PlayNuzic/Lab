@@ -1,4 +1,4 @@
-// App20: Plano y sucesión N-iT
+// App20: Plano y secuencia N-iT
 // Grid 2D (plano-modular) + nuzic N-iT zigzag editor
 
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
@@ -2111,7 +2111,7 @@ function bindElements() {
 }
 
 function initApp() {
-  console.log('Initializing App20: Plano y sucesión N-iT (MODULAR)');
+  console.log('Initializing App20: Plano y secuencia N-iT (MODULAR)');
 
   // Setup piano preload in background (reduces latency on first play)
   setupPianoPreload({ delay: 300 });

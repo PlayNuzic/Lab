@@ -1,4 +1,4 @@
-// App30: Sucesión de iTs Fraccionados Simples
+// App30: Secuencia de iTs Fraccionados Simples
 // Basat en App28/App13, utilitza iT-seq en lloc de pulse-seq
 // Lg=6 fix, BPM=70 fix, numerador=1 fix, denominador editable (1-8)
 // Bi-direccionalitat: timeline <-> iT-seq

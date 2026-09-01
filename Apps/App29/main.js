@@ -1,4 +1,4 @@
-// App29: Sucesion de Pulsos Fraccionados Complejos
+// App29: Secuencia de Pulsos Fraccionados Complejos
 // Basat en App27 + pulseSeq editor per seleccionar pulsos
 // Lg = numerador (dinàmic, 2-6), dibuixa 1 cicle de la fracció
 // BPM=70 fix, denominador editable (2-8)

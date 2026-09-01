@@ -1,4 +1,4 @@
-// App15: Plano y Sucesión de Intervalos
+// App15: Plano y Secuencia de Intervalos
 // Extended version of App12 that works with intervals (iS-iT) instead of absolute positions
 
 import { createMusicalGrid } from '../../libs/musical-grid/index.js';
@@ -1566,7 +1566,7 @@ function createNuzicIntervalEditor(gridContainer) {
 // ========== INITIALIZATION ==========
 
 async function initializeApp() {
-  console.log('Initializing App15: Plano y Sucesión de Intervalos...');
+  console.log('Initializing App15: Plano y Secuencia de Intervalos...');
 
   // Setup piano preload in background (reduces latency on first play)
   setupPianoPreload({ delay: 300 });

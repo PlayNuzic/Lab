@@ -1,4 +1,4 @@
-// App12: Plano-Sucesión - 2D Step Sequencer with dual N+P sequences
+// App12: Plano-Secuencia - 2D Step Sequencer with dual N+P sequences
 // Uses musical-grid module for 2D grid visualization
 // (editor N-P inline; el createGridEditor de matrix-seq es va eliminar — no s'usava)
 
@@ -933,7 +933,7 @@ function injectGridEditor() {
 // ========== INITIALIZATION ==========
 
 async function init() {
-  console.log('Initializing App12: Plano-Sucesión...');
+  console.log('Initializing App12: Plano-Secuencia...');
 
   // Setup piano preload in background (reduces latency on first play)
   setupPianoPreload({ delay: 300 });

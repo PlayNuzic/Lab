@@ -1,4 +1,4 @@
-// App35: Plano con Fracción Compleja y sucesión N-iT
+// App35: Plano con Fracción Compleja y secuencia N-iT
 // Basat en App34 (N-iT editor inline d'App20) + adaptacions d'App33 (complex).
 // Lg = floor(BASE_LG/n) * n variable; numerador n=2-6, denominador d=2-8.
 // Grid 2D amb 12 notes (0-11) + soundline + editor N-iT sota el grid.

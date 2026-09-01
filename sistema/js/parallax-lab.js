@@ -81,11 +81,11 @@ const PRESETS = {
     'app-reveal':      { on: true,  params: { fraseAparicio: 8, mida: 1, escalaInicial: 1, durada: 0.5 } },
   },
   // Paso 11 — Módulos (cuinat des de l'export del panell): mask-zoom
-  // apagat, la imatge de fons queda com a capa suau sense màscara.
+  // apagat, la imatge de fons queda com a capa suau sense màscara. El
+  // slide no declara cap app (2026-08-31), així que no hi ha app-reveal.
   11: {
     'scroll-depth':    { on: true,  params: {} },
     'mask-zoom':       { on: false, params: {} },
-    'app-reveal':      { on: false, params: { fraseAparicio: 2 } },
   },
   22: {
     'scroll-depth':    { on: true,  params: {} },

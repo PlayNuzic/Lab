@@ -110,7 +110,7 @@ export const slideMatrix = [
   { paso:8,  section:'intervalos',   title:'El intervalo temporal',                                       layout:'E-app-text-left', apps:['App13'], aspect:'2/1', group:'timeline-simple', density:'compact' },
   { paso:9,  section:'intervalos',   title:'El intervalo sonoro',                                         layout:'B-app-left', apps:['App14'],  aspect:'2/3', group:'timeline-vertical', density:'compact' },
   { paso:10, section:'intervalos',   title:'Intervalos en el Plano Musical',                              layout:'B-app-left', apps:['App15'],  aspect:'4/3', group:'plano-simple' },
-  { paso:11, section:'ampliando',    title:'Ampliando el plano: Círculos y Módulos',                      layout:'P-parallax-lab', apps:['App17'], aspect:'1/1', parallax:{ symbols:['0 1 2', 'P(3¹)', 'r4', '0 1 2 3'] } },
+  { paso:11, section:'ampliando',    title:'Ampliando el plano: Círculos y Módulos',                      layout:'P-parallax-lab', parallax:{ symbols:['0 1 2', 'P(3¹)', 'r4', '0 1 2 3'] } },
   { paso:12, section:'ampliando',    title:'El compás: el módulo temporal',                               layout:'E-app-text-left', apps:['App16'],  aspect:'2/1', group:'timeline-complex', density:'compact' },
   { paso:13, section:'ampliando',    title:'La línea temporal con compás',                                layout:'B-app-left', apps:['App17'],  aspect:'2/1', group:'timeline-complex', density:'compact' },
   { paso:14, section:'ampliando',    title:'El registro de octava: el módulo de las notas',               layout:'B-app-left', apps:['App18'],  aspect:'6/5', group:'timeline-vertical', density:'compact' },
