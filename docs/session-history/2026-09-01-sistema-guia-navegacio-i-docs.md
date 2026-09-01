@@ -98,6 +98,10 @@ Colors de la vista de graph (`.obsidian/graph.json`, opció `--colors` del matei
 un per comunitat (`tag:#comunitat/…`, 107 famílies), to per família (angle d'or sobre el rànquing
 de mida) i claredat diferent entre germanes; la resta de paràmetres de la vista es conserven i
 l'anterior (37 grups amb etiquetes `community/…` obsoletes) queda a obsoletes.
+La lògica viu a [docs/graphify-vault-colors.py](../graphify-vault-colors.py) (genèric: qualsevol
+vault graphify) i el sync de Nuzic+Code hi delega; aplicat també a `Nuzic Teoria Core` (13
+comunitats) i `Nuzic teoria` (27 comunitats, 22 famílies; «Estructura i Forma» amb dues etiquetes
+unides per OR), que no tenien cap grup de color.
 
 ## Pendent
 
