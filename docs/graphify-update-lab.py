@@ -2,7 +2,7 @@
 """Update incremental (només AST, sense LLM) de la porció Lab/ del graph del Corpus.
 
 Execució (cwd = Corpus, intèrpret de graphify):
-    cd ~/Documents/Nuzic/Corpus && "$(cat graphify-out/.graphify_python)" /Users/workingburcet/Lab/docs/graphify-update-lab.py
+    cd ~/Documents/Nuzic/Corpus && "$(cat graphify-out/.graphify_python)" /Users/workingburcet/Lab/docs/graphify-update-lab.py [--all]
 
 Per què no serveix `graphify update` ni el runbook `/graphify --update` tal qual:
   - el graph del Corpus guarda els nodes del Lab amb source_file 'Lab/<rel>' i ids
@@ -19,7 +19,7 @@ de veïns → fitxer → directori (fitxers de test nous: 'Codi: <stem>' al cub 
 comprova invariants, fa backup de graph.json + manifest.json i escriu. Els fitxers
 exclosos via .graphifyignore (docs font docx/xlsx, aquest script) no s'indexen.
 """
-import json, shutil, time, collections, sys
+import json, re, shutil, time, collections, sys, subprocess
 from pathlib import Path
 from graphify.detect import detect_incremental, save_manifest
 from graphify.extract import extract
@@ -40,7 +40,8 @@ sidecars_abans = (LAB / 'graphify-out').exists()
 r = detect_incremental(LAB, kind='ast')
 if (LAB / 'graphify-out').exists() and not sidecars_abans:
     print(f'ATENCIÓ: detect() ha creat {LAB}/graphify-out (sidecars de conversió): revisa .graphifyignore')
-changed = [Path(f) for f in r['new_files'].get('code', [])]
+# --all: re-extreu TOTS els fitxers de codi (p.ex. per recuperar arestes d'import perdudes en rebuilds antics)
+changed = [Path(f) for f in (r['files'] if '--all' in sys.argv else r['new_files']).get('code', [])]
 deleted = [str(d) for d in r.get('deleted_files', [])]
 del_rel = {'Lab/' + Path(d).resolve().relative_to(LAB).as_posix() for d in deleted}
 n_del = sum(1 for n in old['nodes'] if n.get('source_file') in del_rel)
@@ -100,6 +101,13 @@ by_file, by_dir = collections.defaultdict(collections.Counter), collections.defa
 for i, p in pair.items():
     sf = G.nodes[i].get('source_file') or ''; by_file[sf][p] += 1; by_dir[dir_of(sf)][p] += 1
 nous = sorted(g_ids - old_ids); pend = list(nous)
+# id nou però mateix (source_file, label) que un node vell (id re-clavat, p.ex. 'main' → 'main_js' o 'f' → 'f()'):
+# hereta el parell del node vell abans que la majoria de veïns, així cap comunitat es perd per un canvi d'esquema d'ids
+def nlabel(x): return re.sub(r'\(\)$', '', str(x or ''))
+old_by_key = {(n.get('source_file'), nlabel(n.get('label'))): (cid(n.get('community')), n.get('community_name') or 'Community ?') for n in old['nodes']}
+for i in list(pend):
+    k = (G.nodes[i].get('source_file'), nlabel(G.nodes[i].get('label')))
+    if k in old_by_key: pair[i] = old_by_key[k]; pend.remove(i)
 for i in list(pend):  # fitxer de test nou → nom propi, com la resta de tests
     sf = G.nodes[i].get('source_file') or ''
     if sf.endswith('.test.js') and not by_file.get(sf):
@@ -121,7 +129,9 @@ for i, (c, _) in pair.items(): communities[c].append(i)
 
 # 5) escriptura a un temporal, noms per node, comprovacions, backup i swap
 tmp = OUT / 'graph.json.new'
-assert to_json(G, dict(communities), str(tmp), force=True, built_at_commit=None)
+try: head = subprocess.run(['git', '-C', str(LAB), 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True, timeout=10).stdout.strip() or None
+except Exception: head = None
+assert to_json(G, dict(communities), str(tmp), force=True, built_at_commit=head)
 new = json.loads(tmp.read_text(encoding='utf-8'))
 for n in new['nodes']: n['community'], n['community_name'] = pair[n['id']]
 tmp.write_text(json.dumps(new, indent=2, ensure_ascii=False), encoding='utf-8'); new_text = tmp.read_text(encoding='utf-8')

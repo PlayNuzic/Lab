@@ -5,3 +5,4 @@
 # - L'script d'update del graph no és codi del Lab: no s'ha d'indexar a si mateix.
 docs/textos ideas sistema nuzic/
 docs/graphify-update-lab.py
+docs/graphify-vault-sync.py

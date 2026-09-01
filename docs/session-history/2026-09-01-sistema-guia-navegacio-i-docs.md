@@ -74,6 +74,27 @@ fitxers esborrats es passa en forma `Lab/…` (build_merge no relativitza l'abso
 entrades excloses surten del manifest. Backups intermedis `*-194149` i `*-194528` al Corpus
 són prescindibles (el pre-sessió és `*-193729`).
 
+## 4. Graph: re-extracció completa + vault d'Obsidian «Nuzic+Code»
+
+En preparar el vault es va veure que el rebuild del 17/07 havia perdut un terç de les arestes
+d'import del Lab (3.625 al 03/07 → 2.435; 16 fitxers sense cap import, 111 amb menys). Amb
+`graphify-update-lab.py --all` (re-extracció AST dels 429 fitxers de codi, ids estables,
+comunitats heretades també per (source_file, label) quan canvia l'esquema d'id) queden 8.483
+nodes / 19.872 edges i 3.438 arestes d'import. Backups `*-preupdate-20260901-200525`.
+
+El vault `Nuzic+Code` (8.823 fitxers) no és un export pla de graphify: reorganitzat a mà el 05/07
+(notes de codi a `CODI/`, etiquetes `comunitat/…`, noms de comunitat curats per node) i encara
+al 05/07 en contingut (el 17/07 només s'hi van afegir 132 notes). `graphify export obsidian`
+hauria duplicat les notes de codi a l'arrel i posat «Community N». Script propi
+[docs/graphify-vault-sync.py](../graphify-vault-sync.py): només nodes `Lab/`, estat id→nota al
+vault (`.nuzic_lab_vault_state.json`, noms de fitxer estables encara que canviï el label),
+format byte-a-byte del vault (2.677 notes van sortir idèntiques), nodes nous a `CODI/`, notes de
+nodes desapareguts i `_COMMUNITY_` òrfenes (noms del 05/07 que ja no existeixen) retirades a
+`graphify-out/Nuzic+Code-obsoletes/<ts>/`, notes de comunitat reescrites si canvien els membres.
+Resultat: 31 creades, 3.708 actualitzades (connexions 3.638, comunitat 3.173, location 917),
+14 + 41 retirades, 73 notes de comunitat, 0 enllaços trencats, segona passada sense canvis.
+Els vaults `Nuzic teoria` i `Nuzic Teoria Core` (graphs propis, sincronitzats el 27/08) no es toquen.
+
 ## Pendent
 
 - Paso 13 (text): revisió amb altres persones (usuari).
