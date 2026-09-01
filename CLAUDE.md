@@ -109,4 +109,5 @@ Caveats (be honest about them):
 - To refresh Lab's slice, run the dedicated script (cwd must be the Corpus dir):
   `cd ~/Documents/Nuzic/Corpus && "$(cat graphify-out/.graphify_python)" /Users/workingburcet/Lab/docs/graphify-update-lab.py`
   It re-extracts only changed code files, keeps the `Lab/…` paths and `lab_…` ids, **inherits** the ~280 curated community names (never re-clusters) and backs up `graph.json` + `manifest.json` first. Do **not** use `graphify update`, `/graphify --update` or `cluster-only` on this graph directly: they would re-key the Lab ids (duplicating every node) and/or replace the community names with "Community NNN".
+  `.graphifyignore` (repo root) keeps `docs/textos ideas sistema nuzic/` (docx/xlsx sources — otherwise `detect()` regenerates `graphify-out/converted/` sidecars inside Lab) and the script itself out of the graph.
 - graphify Python interpreter: `~/.local/share/uv/tools/graphifyy/bin/python3`

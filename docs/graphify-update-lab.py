@@ -16,7 +16,8 @@ codi canviats (cache a Corpus/graphify-out/cache), normalitza rutes/ids a la
 convenció Lab/, fa build_merge (substitució per fitxer) sense root ni dedup difús,
 conserva els hyperedges tal com eren, assigna comunitat als nodes nous per majoria
 de veïns → fitxer → directori (fitxers de test nous: 'Codi: <stem>' al cub -1),
-comprova invariants, fa backup de graph.json + manifest.json i escriu.
+comprova invariants, fa backup de graph.json + manifest.json i escriu. Els fitxers
+exclosos via .graphifyignore (docs font docx/xlsx, aquest script) no s'indexen.
 """
 import json, shutil, time, collections, sys
 from pathlib import Path
@@ -34,8 +35,11 @@ old_text = GRAPH.read_text(encoding='utf-8'); old = json.loads(old_text)
 old_nodes = {n['id']: n for n in old['nodes']}; old_ids = set(old_nodes); old_hyper = old.get('hyperedges', [])
 print(f"graph vell: {len(old_nodes)} nodes, {len(old['links'])} edges, {len(old_hyper)} hyperedges")
 
-# 1) detecció (manifest relatiu a Lab)
+# 1) detecció (manifest relatiu a Lab; .graphifyignore del Lab s'aplica abans de convertir res)
+sidecars_abans = (LAB / 'graphify-out').exists()
 r = detect_incremental(LAB, kind='ast')
+if (LAB / 'graphify-out').exists() and not sidecars_abans:
+    print(f'ATENCIÓ: detect() ha creat {LAB}/graphify-out (sidecars de conversió): revisa .graphifyignore')
 changed = [Path(f) for f in r['new_files'].get('code', [])]
 deleted = [str(d) for d in r.get('deleted_files', [])]
 del_rel = {'Lab/' + Path(d).resolve().relative_to(LAB).as_posix() for d in deleted}
@@ -73,7 +77,8 @@ if res_ids and old_replaced:
 prev_nodes = len(old_ids) - len(old_replaced) + len(res_ids - (old_ids - old_replaced))
 
 # 3) merge sense root (els nodes vells d'altres repos amb ruta absoluta no s'han de re-clavar) ni dedup difús
-G = build_merge([res], graph_path=GRAPH, prune_sources=deleted or None, directed=bool(old.get('directed', False)), dedup=False)
+# prune en forma 'Lab/…' (= source_file dels nodes): build_merge no sabria relativitzar l'absoluta
+G = build_merge([res], graph_path=GRAPH, prune_sources=sorted(del_rel) or None, directed=bool(old.get('directed', False)), dedup=False)
 g_ids = set(G.nodes); dropped = old_ids - g_ids; added = g_ids - old_ids
 print(f"merge: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges | perduts {len(dropped)} | afegits {len(added)}")
 for i in sorted(dropped): print('   -', i, '|', old_nodes[i].get('label'), '|', old_nodes[i].get('source_file'))
@@ -129,4 +134,9 @@ ts = time.strftime('%Y%m%d-%H%M%S')
 shutil.copy2(GRAPH, OUT / f'graph.json.bak-preupdate-{ts}'); shutil.copy2(OUT / 'manifest.json', OUT / f'manifest.json.bak-preupdate-{ts}')
 tmp.replace(GRAPH)
 save_manifest(r['files'], root=LAB, kind='ast')
+# save_manifest només poda entrades de fitxers que ja no són al disc; els exclosos (ignorats)
+# hi són i tornarien a sortir com a 'esborrats' a cada run: fora del manifest.
+mp = OUT / 'manifest.json'; m = json.loads(mp.read_text(encoding='utf-8'))
+for d in deleted: m.pop(Path(d).resolve().relative_to(LAB).as_posix(), None)
+mp.write_text(json.dumps(m, indent=2, ensure_ascii=False), encoding='utf-8')
 print(f'ESCRIT: graph.json i manifest.json (backups *-preupdate-{ts}). Recorda: GRAPH_REPORT.md/graph.html no es regeneren.')

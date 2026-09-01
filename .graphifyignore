@@ -1,0 +1,7 @@
+# graphify (graph del Corpus, porció Lab/): què NO s'ha d'indexar ni convertir.
+# Sintaxi gitignore, ancorada al Lab; es fusiona amb .gitignore (aquest guanya).
+# - Documents font docx/xlsx: detect() els convertiria a graphify-out/converted/
+#   (sidecars esborrats al commit 5e96bfe7) cada cop que s'escaneja el Lab.
+# - L'script d'update del graph no és codi del Lab: no s'ha d'indexar a si mateix.
+docs/textos ideas sistema nuzic/
+docs/graphify-update-lab.py

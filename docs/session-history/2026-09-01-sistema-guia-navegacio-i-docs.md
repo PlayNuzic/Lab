@@ -67,6 +67,12 @@ ids de fitxer antics sense `_js`; 28 nous, nav-guide inclòs), edges 18423 → 1
 d'edges paral·lels en Graph simple), 39 hyperedges, 424 fitxers Lab/, cap nom de comunitat
 perdut (els 6 del cub -1 restaurats per node), `built_at_commit de2694b4`. Backups
 `*-preupdate-20260901-193729`. CLAUDE.md al dia.
+Dos efectes laterals detectats en provar l'script i tancats amb `.graphifyignore` (arrel del
+Lab): `detect()` regenerava els sidecars `graphify-out/converted/` a partir dels docx de
+`docs/textos ideas sistema nuzic/`, i indexava el propi script (6 nodes, podats). La poda de
+fitxers esborrats es passa en forma `Lab/…` (build_merge no relativitza l'absoluta) i les
+entrades excloses surten del manifest. Backups intermedis `*-194149` i `*-194528` al Corpus
+són prescindibles (el pre-sessió és `*-193729`).
 
 ## Pendent
 
