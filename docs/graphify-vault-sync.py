@@ -21,6 +21,7 @@ Què fa (només nodes amb source_file 'Lab/…'; la teoria i els altres repos no
     llista de membres (o no existeixen).
 """
 import json, os, re, sys, time, shutil, collections, difflib
+sys.dont_write_bytecode = True  # l'import de graphify-vault-colors.py no ha de deixar __pycache__ al repo
 from pathlib import Path
 
 CORPUS = Path('/Users/workingburcet/Documents/Nuzic/Corpus'); OUT = CORPUS / 'graphify-out'
