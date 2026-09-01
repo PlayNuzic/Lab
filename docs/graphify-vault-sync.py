@@ -2,8 +2,10 @@
 """Sincronitza les notes de CODI del Lab al vault d'Obsidian «Nuzic+Code» amb graph.json del Corpus.
 
 Ús (cwd = Corpus):
-    cd ~/Documents/Nuzic/Corpus && python3 /Users/workingburcet/Lab/docs/graphify-vault-sync.py [--dry-run] \
+    cd ~/Documents/Nuzic/Corpus && python3 /Users/workingburcet/Lab/docs/graphify-vault-sync.py [--dry-run] [--colors] \
         [--seed-from graphify-out/graph.json.bak-…]     # només la primera vegada (lliga notes existents a ids)
+    --colors: a més, regenera els grups de color de la vista de graph (.obsidian/graph.json), un per
+              comunitat (query tag:#comunitat/…), amb el mateix to per família («Motor àudio (Tone.js) (N)»…).
 
 Per què no `graphify export obsidian`: el vault es va reorganitzar a mà el 05/07 (notes de codi
 a CODI/, etiquetes `comunitat/…`, noms de comunitat curats per node); l'exportador escriuria
@@ -201,10 +203,12 @@ print('  crear (mostra):', [Path(mapping[i]).stem for i in plan_nodes['crear'][:
 print('  comunitats:', [(str(n), a) for n, _, a in plan_comm])
 print('  sense nota destí (mostra):', [(nodes.get(k, {}).get('label', k), nodes.get(k, {}).get('source_file')) for k in list(unres)[:6]])
 for kind, rel, d in diffs: print(f'--- diff [{kind}] {rel} ---'); print(d[:1200])
-if DRY: print('DRY-RUN: res escrit.'); sys.exit(0)
+ts = time.strftime('%Y%m%d-%H%M%S')
+if DRY:
+    if '--colors' in sys.argv: groups, nfam = color_groups(); print(f'colors (dry-run): {len(groups)} grups en {nfam} famílies')
+    print('DRY-RUN: res escrit.'); sys.exit(0)
 
 # ── escriptura ──
-ts = time.strftime('%Y%m%d-%H%M%S')
 for i in gone:
     src = VAULT / mapping[i]
     if src.exists(): dst = OBSOLETS / ts / mapping[i]; dst.parent.mkdir(parents=True, exist_ok=True); shutil.move(str(src), str(dst))
@@ -215,4 +219,38 @@ for name, fn, _ in plan_comm: (VAULT / fn).write_text(render_comm(name)[1], enco
 for fn in stale_comm:
     dst = OBSOLETS / ts / fn; dst.parent.mkdir(parents=True, exist_ok=True); shutil.move(str(VAULT / fn), str(dst))
 STATE.write_text(json.dumps({'ids': mapping, 'nodes': {i: {'source_file': nodes[i].get('source_file'), 'label': nodes[i].get('label')} for i in mapping}, 'generated': ts, 'graph_built_at_commit': g.get('built_at_commit')}, indent=1, ensure_ascii=False), encoding='utf-8')
+def color_groups():
+    """Un grup de color per comunitat (tags reals de les notes), to per família, claredat per germana."""
+    import colorsys, hashlib
+    tags_by, size = collections.defaultdict(set), collections.Counter()
+    for p in list(VAULT.glob('*.md')) + list(CODI.glob('*.md')):
+        if p.name.startswith('_COMMUNITY_'): continue
+        t = p.read_text(encoding='utf-8', errors='ignore'); c = re.search(r'^community: "(.*)"$', t, re.M)
+        if not c: continue
+        name = c.group(1).replace('\\"', '"'); size[name] += 1
+        tags_by[name].update(re.findall(r'(?:^  - |#)(comunitat/\S+)', t, re.M))
+    fam = lambda n: re.sub(r'\s*\(\d+\)$', '', n)
+    families = collections.defaultdict(list)
+    for n in size: families[fam(n)].append(n)
+    ranked = sorted(families, key=lambda f: (-sum(size[n] for n in families[f]), f))
+    groups = []
+    for rank, f in enumerate(ranked):
+        hue = (rank * 0.618033988749895) % 1.0          # angle d'or: famílies veïnes al rànquing, tons ben separats
+        sibs = sorted(families[f], key=lambda n: (-size[n], n))
+        for k, n in enumerate(sibs):
+            light = 0.55 if len(sibs) == 1 else 0.42 + 0.24 * (k % 5) / 4   # germanes: mateix to, claredat diferent
+            r, g_, b = colorsys.hls_to_rgb(hue, light, 0.62)
+            rgb = (int(r * 255) << 16) | (int(g_ * 255) << 8) | int(b * 255)
+            q = ' OR '.join(f'tag:#{t}' for t in sorted(tags_by[n]))
+            if q: groups.append({'query': q, 'color': {'a': 1, 'rgb': rgb}})
+    return groups, len(families)
+if '--colors' in sys.argv:
+    gj = VAULT / '.obsidian' / 'graph.json'
+    cfg = json.loads(gj.read_text(encoding='utf-8')) if gj.exists() else {}
+    groups, nfam = color_groups()
+    print(f"colors: {len(groups)} grups (1 per comunitat) en {nfam} famílies; abans n'hi havia {len(cfg.get('colorGroups', []))}")
+    if not DRY:
+        if gj.exists(): dst = OBSOLETS / ts / '.obsidian' / 'graph.json'; dst.parent.mkdir(parents=True, exist_ok=True); shutil.copy2(gj, dst)
+        cfg['colorGroups'] = groups; gj.parent.mkdir(exist_ok=True); gj.write_text(json.dumps(cfg, indent=2, ensure_ascii=False), encoding='utf-8')
+        print(f'ESCRIT: {gj} (còpia de l\'anterior a {OBSOLETS / ts}/.obsidian/)')
 print(f"ESCRIT: {len(plan_nodes['crear'])} creades, {len(plan_nodes['actualitzar'])} actualitzades, {len(gone)} retirades a {OBSOLETS / ts if gone else '—'}, {len(plan_comm)} notes de comunitat escrites, {len(stale_comm)} òrfenes retirades; estat desat.")

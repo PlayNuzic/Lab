@@ -94,6 +94,10 @@ nodes desapareguts i `_COMMUNITY_` òrfenes (noms del 05/07 que ja no existeixen
 Resultat: 31 creades, 3.708 actualitzades (connexions 3.638, comunitat 3.173, location 917),
 14 + 41 retirades, 73 notes de comunitat, 0 enllaços trencats, segona passada sense canvis.
 Els vaults `Nuzic teoria` i `Nuzic Teoria Core` (graphs propis, sincronitzats el 27/08) no es toquen.
+Colors de la vista de graph (`.obsidian/graph.json`, opció `--colors` del mateix script): 293 grups,
+un per comunitat (`tag:#comunitat/…`, 107 famílies), to per família (angle d'or sobre el rànquing
+de mida) i claredat diferent entre germanes; la resta de paràmetres de la vista es conserven i
+l'anterior (37 grups amb etiquetes `community/…` obsoletes) queda a obsoletes.
 
 ## Pendent
 
