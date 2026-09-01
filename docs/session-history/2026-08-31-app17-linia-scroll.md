@@ -92,9 +92,11 @@ pulsos/cycles (sempre comencen buits; només es desen els màxims del random).
   **"Módulo Temporal - Pulsos por compás"** (`<title>` + renderApp; nota:
   escrit amb l'accent castellà "compás" per coherència amb la UI de l'app).
   També a les tarjetes d'`Apps/index.html`.
-- "Nº de compases" més a prop del cercle: override App17 de l'offset del
-  tema `clamp(0rem, 1.5vw, 1.1rem)` → `clamp(0rem, 0.7vw, 0.5rem)` (màxim
-  0.5rem provat per l'usuari a l'inspector; pendent vw escalat en proporció).
+- "Nº de compases" més a prop del cercle: offset `clamp(0rem, 1.5vw, 1.1rem)`
+  → `clamp(0rem, 0.7vw, 0.5rem)` (màxim 0.5rem provat per l'usuari a
+  l'inspector; pendent vw escalat en proporció). Va néixer com a override
+  local d'App17 i després es va promoure al tema — vegeu l'acta
+  `2026-08-31-abbr-compases-al-tema.md`.
 - **Pas 13 tallat per sota (fix)**: en embed desktop el contingut feia
   ~545px i l'iframe 2/1 en dona ~488 (`overflow: hidden` d'embed.css
   tallava els controls; el pas 12/App16 cabia perquè té menys columna

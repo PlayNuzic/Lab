@@ -1984,10 +1984,13 @@ body[data-visual="nuzic"] .param.param--large--dual .pl-secondary {
    Apunta al `inputCycle` (mini-pastilla blanca dins del cercle groc).
    `.pl-secondary` ja té `position: relative` — l'offset `top: 100% + N`
    col·loca la label fora del cercle (la mini-pastilla està situada
-   cap al fons del cercle, així que un offset moderat ja la treu). */
+   cap al fons del cercle, així que un offset moderat ja la treu).
+   L'offset era clamp(0rem, 1.5vw, 1.1rem); ajustat (2026-08) perquè
+   l'etiqueta quedi ben lligada al cercle. Val per als tres consumidors
+   de la pastilla dual — App17, App19 i App20 — que la volen igual. */
 body[data-visual="nuzic"] .param.param--large--dual .pl-secondary .abbr--secondary {
   position: absolute !important;
-  top: calc(100% + clamp(0rem, 1.5vw, 1.1rem)) !important;
+  top: calc(100% + clamp(0rem, 0.7vw, 0.5rem)) !important;
   /* La mini-pastilla `.pl-secondary` està horitzontalment centrada al
      cercle groc (flex-direction: column al .circle), així que el seu
      `left: 0` ja queda alineat amb el centre del conjunt. No cal

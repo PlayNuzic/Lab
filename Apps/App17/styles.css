@@ -38,14 +38,6 @@ body[data-visual="nuzic"].app17 .inputs .param.longitud {
   margin: 0;
 }
 
-/* "Nº de compases" més a prop del cercle: el tema el penja a
-   clamp(0rem, 1.5vw, 1.1rem) del cercle; aquí el nou màxim és 0.5rem i
-   el pendent vw s'escala en proporció (1.5 × 0.5/1.1 ≈ 0.7vw). Mateixa
-   especificitat que la regla del tema + càrrega posterior → guanya. */
-body[data-visual="nuzic"] .param.param--large--dual .pl-secondary .abbr--secondary {
-  top: calc(100% + clamp(0rem, 0.7vw, 0.5rem)) !important;
-}
-
 /* ========== FLASH WARNING (Play sense valors) ========== */
 .param--large--dual .pl-primary.flash-warning,
 .param--large--dual .pl-secondary.flash-warning {
