@@ -52,6 +52,22 @@ una finestra mínima de 500 px i retalla la captura (`innerWidth=500`, verificat
 el `box-sizing: border-box` igualment calia (362 px + padding hauria desbordat a 390 px reals).
 Text del panell retocat per l'usuari a mà («barra de menú de navegación»).
 
+## 3. Graph graphify (Corpus) — porció Lab/ refrescada
+
+`~/Documents/Nuzic/Corpus/graphify-out/graph.json` estava al 17/07. Ni `graphify update` ni el
+runbook `/graphify --update` servien tal qual: l'extractor 0.9.4 re-deriva els ids a partir de
+l'arrel (`users_workingburcet_lab_…` o `sistema_js_…`) i el graph guarda `lab_…`/`Lab/…`; i
+re-clusteritzar hauria esborrat els ~280 `community_name` curats (només 37 són a
+`.graphify_labels.json`). Script propi: [docs/graphify-update-lab.py](../graphify-update-lab.py)
+(detect_incremental kind=ast → extract seqüencial amb cache al Corpus → normalització Lab/ →
+build_merge sense root ni dedup → hyperedges conservats → comunitats heretades per veïns/fitxer/
+directori → asserts → backup → swap → save_manifest root=Lab kind=ast). Resultat: 21 fitxers
+re-extrets, nodes 8475 → 8483 (20 perduts, tots de fitxers re-extrets: refactor App16/App17 i
+ids de fitxer antics sense `_js`; 28 nous, nav-guide inclòs), edges 18423 → 18373 (col·lapse
+d'edges paral·lels en Graph simple), 39 hyperedges, 424 fitxers Lab/, cap nom de comunitat
+perdut (els 6 del cub -1 restaurats per node), `built_at_commit de2694b4`. Backups
+`*-preupdate-20260901-193729`. CLAUDE.md al dia.
+
 ## Pendent
 
 - Paso 13 (text): revisió amb altres persones (usuari).

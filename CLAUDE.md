@@ -104,10 +104,9 @@ returns results (the error line, if any, is harmless).
 
 Caveats (be honest about them):
 
-- The searchable graph lives in the **Corpus** project, not here: `~/Documents/Nuzic/Corpus/graphify-out/graph.json` (verified: indexes all 403 Lab **source** files — every `.js`/`.json` under `Lab/…`, deduplicated, each appearing exactly once under the canonical `Lab/<path>` form). Nuance: those 403 are 336 `Lab/libs/` + 62 `Lab/Apps/` + 5 outside Apps/libs (`package.json`, `sistema/js/…`, `docs/*.mjs`) — so it's "all source", not strictly "across Apps + libs". **CSS (67 files) and HTML (41 files) are NOT indexed** (it's an AST graph of code) — for styling/markup questions, read the files directly.
-- The graph is a **snapshot** (last reindexed once). For brand-new or just-edited code, fall back
-  to reading the actual files — the graph won't have those changes until re-indexed.
-- To refresh Lab's slice: from the Corpus dir run `graphify /Users/workingburcet/Lab --update`
-  (re-extracts changed files). Note: `cluster-only`/`export obsidian` regenerate community names
-  as "Community NNN" and need re-labelling afterwards.
+- The searchable graph lives in the **Corpus** project, not here: `~/Documents/Nuzic/Corpus/graphify-out/graph.json` (verified 2026-09-01: indexes 424 Lab **source** files — every `.js`/`.json` under `Lab/…`, each appearing exactly once under the canonical `Lab/<path>` form: 344 `Lab/libs/` + 64 `Lab/Apps/` + 14 `Lab/sistema/js/` + `package.json` + `docs/*.mjs`). **CSS and HTML are NOT indexed** (it's an AST graph of code) — for styling/markup questions, read the files directly.
+- The graph is a **snapshot** (Lab slice last refreshed 2026-09-01 at commit `de2694b4`, AST-only). For brand-new or just-edited code, fall back to reading the actual files — the graph won't have those changes until re-indexed.
+- To refresh Lab's slice, run the dedicated script (cwd must be the Corpus dir):
+  `cd ~/Documents/Nuzic/Corpus && "$(cat graphify-out/.graphify_python)" /Users/workingburcet/Lab/docs/graphify-update-lab.py`
+  It re-extracts only changed code files, keeps the `Lab/…` paths and `lab_…` ids, **inherits** the ~280 curated community names (never re-clusters) and backs up `graph.json` + `manifest.json` first. Do **not** use `graphify update`, `/graphify --update` or `cluster-only` on this graph directly: they would re-key the Lab ids (duplicating every node) and/or replace the community names with "Community NNN".
 - graphify Python interpreter: `~/.local/share/uv/tools/graphifyy/bin/python3`
