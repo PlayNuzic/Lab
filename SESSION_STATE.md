@@ -2,12 +2,13 @@
 
 Cap tasca activa.
 
-Última tasca completada: **Sistema — guia de navegació «Cómo navegar» +
-sincronització de docs** (2026-09-01), pendent de commit. Acta:
+Última tasca completada: **Analítica per al test d'usuari (Clarity: events
+nous, ?tester=, segments i embuts) + kit de documents del test** (2026-09-02),
+commitejat a main (pendent de push). Acta:
+`docs/session-history/2026-09-02-analytics-test-usuari-clarity.md`.
+Anterior: guia de navegació «Cómo navegar» + docs (2026-09-01), acta
 `docs/session-history/2026-09-01-sistema-guia-navegacio-i-docs.md`.
-Anterior: textos "NUZIC Textos SI" i scroll del parallax (2026-08-31), acta
-`docs/session-history/2026-08-31-sistema-textos-nuzic-si-i-scroll-parallax.md`.
-Suite: 91/1502.
+Suite: 92/1534.
 
 ## Pendent
 
