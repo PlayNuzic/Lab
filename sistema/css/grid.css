@@ -102,7 +102,7 @@
      ~195px d'alt a 391px d'ample, insuficient per encabir timeline +
      controls. min-height força una alçada útil; els apps amb aspect alt
      (app10 2/3, scale 3/2) ja superen aquest mínim per la seva ràtio. */
-  .iframe-frame{ min-height: 320px; }
+  .iframe-frame:not([data-resized]){ min-height: 320px; }
 }
 
 /* Fins a 900px la pàgina fa scroll sota la nav fixa i la franja d'enllaços

@@ -369,6 +369,20 @@ body[data-theme="dark"] .iframe-frame:has(.iframe-placeholder){ background: #2a2
        inline de app:resize guanya quan és més gran. */
     min-height: 320px !important;
   }
+  .slide:not(.slide--no-expand) .iframe-frame[data-resized] { min-height: 0 !important; }
+
+  /* Apps de mida fixa (NO_EXPAND) en mòbil: l'aspecte d'escriptori (4/3,
+     6/5) dóna 375-420px d'alçada a 390-500px d'ample, insuficient per a
+     la línia sonora d'App18 (paso 14) o per al plànol amb registres
+     d'App19/App20 (pasos 15/16, que demanaven girar el mòbil) i el
+     plànol d'escala d'App25/App25B (pasos 27/28, files xafades). Un
+     aspecte vertical com el d'App10 (5/9, paso 4) els dóna l'alçada que
+     necessiten; el cap de 700px de .iframe-frame continua aplicant-se. */
+  .slide[data-app="App18"] .iframe-frame { --iframe-aspect: 5 / 9 !important; }
+  .slide[data-app="App19"] .iframe-frame,
+  .slide[data-app="App20"] .iframe-frame,
+  .slide[data-app="App25"] .iframe-frame,
+  .slide[data-app="App25B"] .iframe-frame { --iframe-aspect: 2 / 3 !important; }
 }
 
 .iframe-placeholder{

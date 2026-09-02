@@ -121,6 +121,23 @@ unides per OR), que no tenien cap grup de color.
   l'app en carregar (App15 al paso 10). Ara només tanca si el punter és sobre un iframe (clic real
   dins d'una app); 2 tests nous (8 al fitxer).
 
+## 6. Mòbil: alçades dels iframes (pasos 3, 14, 15/16, 27/28)
+
+Dues causes de fons, verificades amb captures a 500px (mínim de Chrome headless) i un *harness*
+que reprodueix el mode vertical del Sistema (`scratchpad/cap/harness.html?app=AppX`):
+- **Paso 3 (App9) amb franja buida**: `embed-mode.js` mesurava `documentElement.scrollHeight`,
+  que mai baixa de l'alçada de l'iframe; amb el mínim de 320px del Sistema l'app "informava" 320
+  encara que el contingut fes 187. Ara mesura la caixa del `body` (+ marges) i, quan arriba
+  `app:resize`, `slides.js` marca el frame (`data-resized`) i el mínim de 320px deixa d'aplicar-se
+  (grid.css/slides.css). Afecta totes les apps que s'expandeixen.
+- **Apps de mida fixa (NO_EXPAND) amb aspecte d'escriptori**: a ≤900px conservaven 4/3 o 6/5 →
+  375-420px d'alçada. App18 (paso 14) → 5/9 com App10 (línia sonora sencera); App19/App20
+  (pasos 15/16) → 2/3 i fora `requiresLandscape` (el plànol amb registres cap sense girar el mòbil,
+  com als pasos 5/6/10); App25/App25B (pasos 27/28) → 2/3 (files del plànol d'escala llegibles).
+  Només CSS del Sistema (`slides.css`, regles per `data-app` dins del media ≤900px).
+- Pendent de decidir (proposat a l'usuari): numerals dels pulsos fraccionats en pantalles estretes
+  (pasos 18-21, timeline compartida de les apps de fracció).
+
 ## Pendent
 
 - Paso 13 (text): revisió amb altres persones (usuari).

@@ -1377,6 +1377,8 @@ window.addEventListener('message', (e) => {
     const frame = f.closest('.iframe-frame');
     if (frame && Number.isFinite(e.data.height)) {
       frame.style.height = `${e.data.height}px`;
+      // Amb alçada real, el mínim de 320px (grid.css/slides.css) ja no cal.
+      frame.dataset.resized = '1';
     }
     return;
   }

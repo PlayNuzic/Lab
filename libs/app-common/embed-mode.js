@@ -55,10 +55,17 @@ if (new URLSearchParams(location.search).has('embed')) {
   // Mateix patró que els iframe-resize libraries clàssics.
   function notifyParentResize() {
     if (document.documentElement.getAttribute('data-system-vertical') !== 'true') return;
-    const h = Math.max(
-      document.documentElement.scrollHeight,
-      document.body?.scrollHeight || 0
-    );
+    // No fem servir documentElement.scrollHeight: mai és inferior a
+    // l'alçada del viewport de l'iframe, així que amb el mínim de 320px
+    // del Sistema l'app "informava" 320 encara que el contingut fes 200 i
+    // quedava una franja buida sota l'app (paso 3). En mode vertical el
+    // body té height:auto (embed.css): la seva caixa + marges és el
+    // contingut real.
+    const body = document.body;
+    const cs = body ? getComputedStyle(body) : null;
+    const h = body
+      ? Math.ceil(body.getBoundingClientRect().height + parseFloat(cs.marginTop || 0) + parseFloat(cs.marginBottom || 0))
+      : document.documentElement.scrollHeight;
     try {
       window.parent.postMessage({ type: 'app:resize', height: h }, '*');
     } catch {
