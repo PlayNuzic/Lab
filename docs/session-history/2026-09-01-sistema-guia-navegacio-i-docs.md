@@ -103,6 +103,24 @@ vault graphify) i el sync de Nuzic+Code hi delega; aplicat també a `Nuzic Teori
 comunitats) i `Nuzic teoria` (27 comunitats, 22 famílies; «Estructura i Forma» amb dues etiquetes
 unides per OR), que no tenien cap grup de color.
 
+## 5. Guia ampliada, tooltips a la plantilla i franja de peu per a mòbil
+
+- Guia: dues seccions plegades per defecte (`<details>`), «Botones de las apps» (icones SVG reals
+  copiades de `libs/app-common/template.js` en xip rodó, Lg·V·T amb la fórmula Lg/V = T/60, Loop,
+  Tap Tempo, Random, Reset, Sonido) i «Colores y cajas» (caixa verda «Prueba…» = què provar, caixa
+  blava = idea clau, rosa = dimensió sonora / groc = dimensió temporal — convenció 100% consistent
+  als textos). Panell a 30rem i espaiat més compacte perquè els dos títols plegats es vegin a la
+  primera pantalla a 900px d'alçada.
+- `template.js` (17 apps): `title` a Play/Stop, Loop, Tap Tempo, Random, Reset, Sonido, ▲▼ de
+  Lg/V/T i als tres commutadors de so.
+- Mòbil: «Cómo navegar» i «Privacidad» ja no floten sobre el text (captura de l'usuari, paso 10):
+  van dins d'una franja fixa `.sistema-footlinks` sobre la nav, transparent i sense capturar clics en
+  escriptori, opaca a ≤900px, amb el `body` reservant nav + franja (grid.css; abans només ≤480px).
+  Mesurat a 500px: últim contingut a 679px, franja a 705px.
+- Bug trobat amb les captures: el tancament de la guia per `blur` s'activava amb l'auto-focus de
+  l'app en carregar (App15 al paso 10). Ara només tanca si el punter és sobre un iframe (clic real
+  dins d'una app); 2 tests nous (8 al fitxer).
+
 ## Pendent
 
 - Paso 13 (text): revisió amb altres persones (usuari).

@@ -5,17 +5,27 @@
    - centered title/section in cream
 */
 
-/* Notes discretes sobre la barra, a racons oposats: la guia de navegació
-   («Cómo navegar», un <button>) a baix a l'ESQUERRA i l'accés permanent a la
-   política de privacitat a baix a la DRETA, sempre visible perquè l'usuari
-   pugui tornar a privacidad.html i canviar/retirar el consentiment. Quan surt
-   el banner de consentiment (només sense decisió), aquest les tapa i ja
-   ofereix el seu propi enllaç, així que no cal veure-les en aquell moment. */
+/* Notes discretes sobre la barra: la guia de navegació («Cómo navegar», un
+   <button>) a l'esquerra i la privacitat a la dreta, dins d'una franja fixa
+   just sobre la nav. En escriptori la franja és transparent i no captura
+   clics (pointer-events); en pantalles que fan scroll (≤900px) és opaca i el
+   body reserva la seva alçada (grid.css), així el text mai no hi passa per
+   sota. Quan surt el banner de consentiment (z 40), aquest la tapa. */
+.sistema-footlinks {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--nav-h);
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-1) var(--sp-2);
+  pointer-events: none;
+}
 .sistema-privacy-link,
 .sistema-guide-link {
-  position: fixed;
-  bottom: calc(var(--nav-h) + var(--sp-1));
-  z-index: 20;
+  pointer-events: auto;
   margin: 0;
   padding: 0;
   border: 0;
@@ -28,7 +38,6 @@
   text-decoration: none;
   cursor: pointer;
 }
-.sistema-privacy-link { right: var(--sp-2); }
 .sistema-privacy-link:hover { opacity: 1; text-decoration: underline; }
 
 /* La guia ha de veure's (sense molestar): un «?» rodó del mateix verd menta
@@ -36,7 +45,6 @@
    marc; el cercle fa exactament l'alçada de línia (1.4em) perquè no alci el
    text respecte de «Privacidad» a l'altre extrem. */
 .sistema-guide-link {
-  left: var(--sp-2);
   display: inline-flex;
   align-items: center;
   gap: 0.45em;
@@ -60,6 +68,9 @@
 .sistema-guide-link[aria-expanded="true"] { opacity: 1; color: var(--fg); }
 .sistema-guide-link:hover::before,
 .sistema-guide-link[aria-expanded="true"]::before { background: var(--nuzic-green); }
+@media (max-width: 900px) {
+  .sistema-footlinks { background: var(--bg); border-top: 1px solid var(--rule); }
+}
 
 /* Panell de la guia: targeta petita desplegada sobre l'enllaç. No és un modal
    (no bloqueja res: les fletxes segueixen navegant). L'obre/tanca
@@ -71,7 +82,7 @@
   left: var(--sp-2);
   bottom: calc(var(--nav-h) + var(--sp-1) + 1.8em);
   z-index: 21;
-  width: min(27rem, calc(100vw - 2 * var(--sp-2)));
+  width: min(30rem, calc(100vw - 2 * var(--sp-2)));
   max-height: calc(100vh - var(--nav-h) - 4 * var(--sp-2));
   max-height: calc(100dvh - var(--nav-h) - 4 * var(--sp-2));
   overflow-y: auto;
@@ -83,7 +94,7 @@
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
   font-family: var(--font-body);
   font-size: var(--fs-small);
-  line-height: 1.45;
+  line-height: 1.4;
 }
 .nav-guide__head {
   display: flex;
@@ -111,7 +122,7 @@
 .nav-guide p { margin: var(--sp-2) 0 0; }
 .nav-guide dl { margin: 0; }
 .nav-guide dt {
-  margin-top: var(--sp-2);
+  margin-top: 10px;
   font-family: var(--font-display);
   font-weight: 700;
 }
@@ -160,6 +171,60 @@
   line-height: 1;
   vertical-align: -0.25em;
 }
+/* Seccions plegables (botons de les apps, colors i caixes): tancades per
+   defecte perquè la primera pantalla de la guia continuï sent curta. */
+.nav-guide__more { margin-top: var(--sp-2); border-top: 1px solid var(--rule); padding-top: var(--sp-1); }
+.nav-guide__more summary {
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--fg);
+  list-style: none;
+}
+.nav-guide__more summary::-webkit-details-marker { display: none; }
+.nav-guide__more summary::before { content: '▸'; display: inline-block; width: 1em; color: var(--muted); }
+.nav-guide__more[open] summary::before { content: '▾'; }
+.nav-guide__more p { margin: 0.25em 0 0; color: var(--fg-soft); }
+/* Icones reals de la plantilla de les apps (libs/app-common/template.js) en xip rodó. */
+.nav-guide__app {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7em;
+  height: 1.7em;
+  border-radius: 50%;
+  background: var(--nuzic-green-light);
+  color: var(--nuzic-dark);
+  font-size: 0.95em;
+  vertical-align: -0.45em;
+  margin-right: 0.2em;
+}
+.nav-guide__app svg { width: 52%; height: 52%; }
+.nav-guide__app--dark { background: var(--nuzic-dark); color: var(--nuzic-light); }
+.nav-guide__pill {
+  display: inline-block;
+  padding: 0 0.45em;
+  border: 2px solid var(--nuzic-yellow);
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85em;
+  color: var(--nuzic-dark);
+  background: var(--nuzic-yellow-light);
+  margin-right: 0.2em;
+}
+.nav-guide__swatch {
+  display: inline-block;
+  width: 1.4em;
+  height: 0.9em;
+  border-radius: 3px;
+  vertical-align: -0.1em;
+  margin-right: 0.2em;
+}
+.nav-guide__swatch--tips { background: var(--tips-bg); border: 1px solid var(--tips-border); }
+.nav-guide__swatch--box { background: var(--nuzic-blue-light); }
+.nav-guide mark.hl-pink { background: var(--nuzic-pink-light); color: var(--nuzic-dark); padding: 0 0.2em; }
+.nav-guide mark.hl-yellow { background: var(--nuzic-yellow-light); color: var(--nuzic-dark); padding: 0 0.2em; }
 @media (hover: none) and (pointer: coarse) {
   .nav-guide__kb { display: none; }
 }

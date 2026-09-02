@@ -70,9 +70,18 @@ describe('guia de navegació', () => {
     expect(document.activeElement).not.toBe(btn);
   });
 
-  test('perdre el focus de la finestra (clic dins d\'un iframe) tanca', () => {
+  test('perdre el focus amb el punter sobre un iframe (clic dins d\'una app) tanca', () => {
+    const iframe = document.createElement('iframe'); document.body.appendChild(iframe);
     api.open();
+    iframe.dispatchEvent(new Event('mouseover', { bubbles: true }));
     window.dispatchEvent(new Event('blur'));
     expect(panel.hidden).toBe(true);
+  });
+
+  test('perdre el focus sense punter sobre cap iframe (auto-focus d\'una app en carregar) NO tanca', () => {
+    api.open();
+    document.getElementById('fora').dispatchEvent(new Event('mouseover', { bubbles: true }));
+    window.dispatchEvent(new Event('blur'));
+    expect(panel.hidden).toBe(false);
   });
 });

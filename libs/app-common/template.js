@@ -73,15 +73,15 @@ export function renderApp({
           <span class="abbr">T</span>
           <div class="circle"><span class="unit" id="unitT">segundos</span>${led('ledT')}<input id="inputT" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="decimal">
             <div class="spinner">
-              <button id="inputTUp" class="spin up" type="button" aria-label="Incrementar T"></button>
-              <button id="inputTDown" class="spin down" type="button" aria-label="Decrementar T"></button>
+              <button id="inputTUp" class="spin up" type="button" aria-label="Incrementar T" title="Incrementar T (segundos)"></button>
+              <button id="inputTDown" class="spin down" type="button" aria-label="Decrementar T" title="Decrementar T (segundos)"></button>
             </div></div>
         </div>`;
   const toggleMarkup = [];
 
   if (showPulseToggle) {
     toggleMarkup.push(`<div class="control-sound-toggle-container control-sound-toggle-container--pulse">
-          <button id="${PULSE_TOGGLE_BTN_ID}" class="control-sound-toggle control-sound-toggle--pulse active" type="button" aria-pressed="true" aria-label="Alternar pulso">
+          <button id="${PULSE_TOGGLE_BTN_ID}" class="control-sound-toggle control-sound-toggle--pulse active" type="button" aria-pressed="true" aria-label="Alternar pulso" title="Sonido de los pulsos">
             <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
               <defs>
                 <path id="controlPulseLabelPath" d="M 15 129 A 90 90 0 0 1 64 56" />
@@ -97,7 +97,7 @@ export function renderApp({
 
   if (showSelectedToggle) {
     toggleMarkup.push(`<div class="control-sound-toggle-container control-sound-toggle-container--selected">
-          <button id="${SELECTED_TOGGLE_BTN_ID}" class="control-sound-toggle control-sound-toggle--selected active" type="button" aria-pressed="true" aria-label="Alternar seleccionado">
+          <button id="${SELECTED_TOGGLE_BTN_ID}" class="control-sound-toggle control-sound-toggle--selected active" type="button" aria-pressed="true" aria-label="Alternar seleccionado" title="Sonido de los seleccionados">
             <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
               <defs>
                 <!-- Corba per al text centrada al segment del mig -->
@@ -115,7 +115,7 @@ export function renderApp({
 
   if (showCycleToggle) {
     toggleMarkup.push(`<div class="control-sound-toggle-container control-sound-toggle-container--cycle">
-          <button id="${CYCLE_TOGGLE_BTN_ID}" class="control-sound-toggle control-sound-toggle--cycle active" type="button" aria-pressed="true" aria-label="Alternar subdivisión">
+          <button id="${CYCLE_TOGGLE_BTN_ID}" class="control-sound-toggle control-sound-toggle--cycle active" type="button" aria-pressed="true" aria-label="Alternar subdivisión" title="Sonido de las subdivisiones">
             <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
               <defs>
                 <path id="controlCycleLabelPath" d="M 152 66 A 76 76 0 0 1 175 96" />
@@ -246,7 +246,7 @@ ${togglesMarkup}
     </details>
     <h1>${gamificationToggleButton}<span class="top-bar-title-text">${title}</span>${notationToggleButton}</h1>
     <div class="sound-wrapper">
-      <button id="muteBtn" class="sound" aria-label="Sonido"></button>
+      <button id="muteBtn" class="sound" aria-label="Sonido" title="Sonido: silenciar o activar; volumen"></button>
       <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" />
     </div>
   </header>
@@ -257,8 +257,8 @@ ${togglesMarkup}
           <span class="abbr">Lg</span>
           <div class="circle"><span class="unit" id="unitLg">Pulsos</span>${led('ledLg')}<input id="inputLg" type="number" min="1" step="1" />
             <div class="spinner">
-              <button id="inputLgUp" class="spin up" type="button" aria-label="Incrementar Lg"></button>
-              <button id="inputLgDown" class="spin down" type="button" aria-label="Decrementar Lg"></button>
+              <button id="inputLgUp" class="spin up" type="button" aria-label="Incrementar Lg" title="Incrementar Lg (pulsos)"></button>
+              <button id="inputLgDown" class="spin down" type="button" aria-label="Decrementar Lg" title="Decrementar Lg (pulsos)"></button>
             </div>
           </div>
         </div>
@@ -266,8 +266,8 @@ ${togglesMarkup}
           <span class="abbr">V</span>
           <div class="circle"><span class="unit" id="unitV">BPM</span>${led('ledV')}<input id="inputV" type="number" min="1" step="1" />
             <div class="spinner">
-              <button id="inputVUp" class="spin up" type="button" aria-label="Incrementar V"></button>
-              <button id="inputVDown" class="spin down" type="button" aria-label="Decrementar V"></button>
+              <button id="inputVUp" class="spin up" type="button" aria-label="Incrementar V" title="Incrementar V (BPM)"></button>
+              <button id="inputVDown" class="spin down" type="button" aria-label="Decrementar V" title="Decrementar V (BPM)"></button>
             </div>
           </div>
         </div>
@@ -288,7 +288,7 @@ ${togglesMarkup}
       <div class="controls">
 
       <!-- Layout circular: Play Button solo, Sound Toggles como hermanos -->
-      <button id="playBtn" class="play" aria-label="Play">
+      <button id="playBtn" class="play" aria-label="Play" title="Play / Stop">
         <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
           <path d="M73 39c-14.8-9-33 2.5-33 19v396c0 16.5 18.2 28 33 19l305-198c13.3-8.6 13.3-29.4 0-38L73 39z"/>
         </svg>
@@ -299,14 +299,14 @@ ${togglesMarkup}
       ${soundToggleMarkup}
 
       <!-- Loop Button -->
-      <button id="loopBtn" class="loop" aria-label="Loop" aria-pressed="false">
+      <button id="loopBtn" class="loop" aria-label="Loop" title="Loop: repetir en bucle" aria-pressed="false">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.2 -5.2 62.4 62.4" fill="currentColor" transform="matrix(-1 0 0 -1 0 0)">
     <path d="M47.2,32.6c0,0.1,0,0.1-0.1,0.2c-0.3,0.9-0.5,1.8-0.9,2.6c-0.4,0.9-0.8,1.9-1.3,2.7c-1,1.8-2.2,3.4-3.6,4.8 c-1.4,1.4-3,2.7-4.7,3.7c-1.7,1-3.6,1.9-5.6,2.4c-2,0.6-4.1,0.8-6.2,0.8C12.3,50,2,39.7,2,27.1S12.3,4.2,24.9,4.2 c4.3,0,8.3,1.2,11.7,3.2c0,0,0,0,0,0c1.7,1,3.2,2.2,4.5,3.5c0.4,0.3,0.7,0.6,1,1c0.8,0.6,1.3,0.2,1.3-0.8V3.6C43.4,2.8,44.2,2,45,2 h3.2c0.9,0,1.6,0.8,1.7,1.6v19.6c0,0.8-0.6,1.4-1.4,1.4H28.9c-0.9,0-1.5-0.6-1.5-1.5v-3.3c0-0.9,0.8-1.6,1.6-1.6h7.5 c0.6,0,1.2-0.2,1.4-0.5c-2.9-4-7.6-6.6-13-6.6c-8.9,0-16,7.2-16,16s7.2,16,16,16c7,0,12.9-4.4,15.1-10.6c0,0,0.3-1.4,1.4-1.4 c1.1,0,3.8,0,4.6,0c0.7,0,1.3,0.5,1.3,1.2C47.2,32.4,47.2,32.5,47.2,32.6z"/>
   </svg>
 </button>
 
       <!-- Tap Tempo Button -->
-      <button id="tapTempoBtn" class="tap" aria-label="Tap Tempo">
+      <button id="tapTempoBtn" class="tap" aria-label="Tap Tempo" title="Tap Tempo: marca el pulso con 3 toques">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512.003 512.003" fill="currentColor" stroke="currentColor">
     <path d="M136.533,247.596c0-4.71-3.823-8.533-8.533-8.533c-61.167,0-110.933-49.766-110.933-110.933 C17.067,66.962,66.833,17.196,128,17.196s110.933,49.766,110.933,110.933c0,16.904-3.703,33.135-11.008,48.23 c-2.048,4.241-0.273,9.344,3.968,11.401c4.25,2.057,9.344,0.282,11.401-3.968C251.725,166.359,256,147.637,256,128.129 c0-70.579-57.421-128-128-128S0,57.55,0,128.129s57.421,128,128,128C132.71,256.129,136.533,252.307,136.533,247.596z"/>
     <path d="M511.369,407.758c-8.491-20.787-10.402-35.977-12.254-50.662c-2.517-20.002-5.129-40.678-23.791-72.465l-50.884-86.639 c-8.38-14.268-29.175-19.772-43.648-11.554c-4.591,2.594-8.44,6.417-11.204,10.982c-11.853-15.838-34.21-20.753-51.9-10.709 c-8.243,4.676-14.387,11.913-17.587,20.625c-12.407-9.609-30.02-11.392-44.484-3.174c-8.294,4.71-14.464,12.015-17.638,20.804 l-74.522-101.931c-14.182-19.678-32.913-25.609-50.082-15.855c-8.516,4.83-14.293,12.109-16.7,21.06 c-2.662,9.941-0.879,20.966,5.197,31.317l116.378,182.775c2.534,3.977,7.808,5.154,11.785,2.62 c3.977-2.534,5.146-7.808,2.62-11.784L116.437,150.657c-3.584-6.11-4.753-12.501-3.277-17.988 c1.203-4.506,4.113-8.081,8.636-10.641c9.353-5.325,18.722-1.63,27.853,11.042l91.836,125.611 c2.68,3.669,7.774,4.591,11.571,2.091c3.797-2.492,4.975-7.526,2.671-11.452c-2.987-5.094-3.797-11.025-2.278-16.7 c1.545-5.777,5.308-10.615,10.59-13.619c10.931-6.187,24.926-2.526,31.206,8.166l7.825,13.338 c2.381,4.07,7.603,5.419,11.682,3.038c4.062-2.381,5.427-7.612,3.038-11.674l-0.009-0.017c-2.987-5.086-3.797-11.017-2.27-16.691 c1.545-5.777,5.308-10.607,10.598-13.611c10.914-6.212,24.9-2.534,31.189,8.175l11.742,19.985 c2.398,4.07,7.62,5.427,11.682,3.038c4.062-2.389,5.419-7.612,3.038-11.674l-0.017-0.026c-1.843-3.149-2.287-6.972-1.271-10.778 c1.033-3.874,3.49-7.151,6.741-8.994c6.443-3.652,16.802-0.964,20.514,5.35l50.876,86.647 c16.896,28.757,19.063,45.995,21.581,65.954c1.775,14.123,3.61,28.681,10.667,47.966l-150.409,85.376 c-55.441-58.615-158.788-112.691-210.782-126.379c-9.242-2.441-25.89-7.663-28.988-8.627l1.254-4.352 c3.268-11.998,29.227-26.658,41.498-23.467l36.873,9.719c4.582,1.195,9.225-1.519,10.428-6.076 c1.203-4.557-1.519-9.225-6.076-10.419l-36.881-9.728c-21.154-5.547-56.644,14.677-62.276,35.362l-1.399,4.838 c-0.085,0.299-0.154,0.614-0.213,0.922c-1.434,8.422,2.116,15.42,9.515,18.731c0.29,0.128,0.597,0.239,0.896,0.341 c0.828,0.256,20.258,6.417,31.019,9.259c51.43,13.542,155.085,68.156,207.087,126.336c1.664,1.86,4.002,2.842,6.366,2.842 c1.442,0,2.884-0.358,4.207-1.109l162.714-92.356C511.411,416.292,512.99,411.726,511.369,407.758z"/>
@@ -318,7 +318,7 @@ ${togglesMarkup}
       <span id="tapHelp" class="tap-help" style="display:none;">Se necesitan 3 clicks</span>
 
       <!-- Random Button -->
-      <button id="randomBtn" class="random" aria-label="Random">
+      <button id="randomBtn" class="random" aria-label="Random" title="Random: valores al azar">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor" stroke="currentColor">
     <path d="M449.531,105.602L288.463,8.989C278.473,2.994,267.235,0,256.01,0c-11.238,0-22.483,2.994-32.466,8.989 L62.475,105.602c-19.012,11.406-30.647,31.949-30.647,54.117v192.562c0,22.168,11.635,42.711,30.647,54.117l161.069,96.613 c9.982,5.988,21.228,8.989,32.466,8.989c11.226,0,22.463-3.001,32.453-8.989l161.069-96.613 c19.013-11.406,30.64-31.95,30.64-54.117V159.719C480.172,137.551,468.544,117.008,449.531,105.602z M250.599,492.733 c-6.028-0.745-11.929-2.713-17.32-5.949L72.209,390.171c-13.306-7.989-21.456-22.369-21.456-37.89V159.719 c0-6.022,1.235-11.862,3.518-17.234l196.328,117.76V492.733z M59.669,133.114c3.364-4.464,7.593-8.318,12.54-11.286l161.069-96.613 c6.995-4.196,14.85-6.29,22.731-6.29c7.868,0,15.724,2.095,22.718,6.29l161.069,96.613c4.942,2.968,9.184,6.821,12.54,11.286 L256.01,250.881L59.669,133.114z M461.253,352.281c0,15.521-8.15,29.901-21.456,37.89l-161.069,96.613 c-5.397,3.236-11.292,5.204-17.32,5.949V260.246l196.328-117.76c2.282,5.371,3.518,11.212,3.518,17.234V352.281z"/>
     <path d="M382.343,115.779c-9.828-7.284-26.022-7.465-36.159-0.416c-10.15,7.049-10.405,18.677-0.577,25.948 c9.828,7.277,26.022,7.466,36.159,0.416C391.917,134.671,392.172,123.057,382.343,115.779z"/>
@@ -345,7 +345,7 @@ ${togglesMarkup}
       </svg></h2>${randomMenuContent}</div>
 
       <!-- Reset Button -->
-      <button id="resetBtn" class="reset" aria-label="Reset">
+      <button id="resetBtn" class="reset" aria-label="Reset" title="Reset: vuelve al estado inicial">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -50 532 612" fill="currentColor">
     <path d="M308.229,51.853C308,23.183,284.751,0.017,256,0c-28.734,0.017-52,23.183-52.228,51.853 c-63.821,9.2-109.796,33.323-109.796,49.845v16.718c0,20.784,72.538,37.625,162.024,37.625c89.486,0,162.024-16.841,162.024-37.625 v-16.718C418.024,85.176,372.049,61.053,308.229,51.853z M256,48.065c-6.245,0-12.376,0.196-18.433,0.498 c0.735-3.715,2.547-6.996,5.144-9.616c3.445-3.437,8.049-5.494,13.289-5.51c5.257,0.017,9.845,2.073,13.306,5.51 c2.595,2.62,4.408,5.902,5.135,9.616C268.384,48.261,262.245,48.065,256,48.065z"/>
     <path d="M256,178.335c-89.486,0-162.024-16.841-162.024-37.625l18.53,316.253C112.506,478.506,167.233,512,256,512 c88.767,0,143.51-33.494,143.51-55.037l18.514-316.253C418.024,161.494,345.486,178.335,256,178.335z M158.588,421.682 l-6.661-195.134c4.465,1.02,9.249,1.878,14.269,2.743l6.752,197.878C167.763,425.436,162.988,423.567,158.588,421.682z M217.176,436.98l-3.609-202.278c4.637,0.318,9.339,0.629,14.123,0.784l3.608,202.98C226.433,438.074,221.722,437.6,217.176,436.98 z M294.824,436.98c-4.547,0.62-9.339,1.094-14.196,1.486l3.608-202.98c4.784-0.155,9.494-0.466,14.123-0.784L294.824,436.98z M353.412,421.682c-4.392,1.886-9.175,3.755-14.351,5.486l6.744-197.878c5.02-0.865,9.803-1.796,14.277-2.743L353.412,421.682z"/>

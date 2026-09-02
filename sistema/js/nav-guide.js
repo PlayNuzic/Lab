@@ -38,8 +38,12 @@ export function initNavGuide() {
     if (isOpen() && !panel.contains(e.target) && !btn.contains(e.target)) close({ refocus: false });
   });
   // Un clic dins d'un iframe (les apps) no arriba al document, però sí que fa
-  // perdre el focus a la finestra: ho aprofitem per tancar el panell.
-  window.addEventListener('blur', () => close({ refocus: false }));
+  // perdre el focus a la finestra. Només ho tractem com a clic si el punter és
+  // a sobre d'un iframe: les apps també fan .focus() sobre un input en
+  // carregar (App15, editors amb auto-focus) i això no ha de tancar la guia.
+  let sobreIframe = false;
+  document.addEventListener('mouseover', (e) => { sobreIframe = e.target?.tagName === 'IFRAME'; });
+  window.addEventListener('blur', () => { if (sobreIframe) close({ refocus: false }); });
 
   return { open, close, isOpen };
 }

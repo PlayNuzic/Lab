@@ -105,6 +105,9 @@
   .iframe-frame{ min-height: 320px; }
 }
 
-@media (max-width: 480px){
-  body{ padding-bottom: calc(var(--nav-h) + 16px); }
+/* Fins a 900px la pàgina fa scroll sota la nav fixa i la franja d'enllaços
+   de peu (nav.css, ~28px): el body reserva l'alçada de totes dues perquè
+   l'última línia del text es pugui llegir sencera. */
+@media (max-width: 900px){
+  body{ padding-bottom: calc(var(--nav-h) + 2 * var(--sp-1) + 22px); }
 }
