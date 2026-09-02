@@ -135,8 +135,20 @@ que reprodueix el mode vertical del Sistema (`scratchpad/cap/harness.html?app=Ap
   (pasos 15/16) → 2/3 i fora `requiresLandscape` (el plànol amb registres cap sense girar el mòbil,
   com als pasos 5/6/10); App25/App25B (pasos 27/28) → 2/3 (files del plànol d'escala llegibles).
   Només CSS del Sistema (`slides.css`, regles per `data-app` dins del media ≤900px).
-- Pendent de decidir (proposat a l'usuari): numerals dels pulsos fraccionats en pantalles estretes
-  (pasos 18-21, timeline compartida de les apps de fracció).
+- **Numerals fraccionats compactes (opció 1, triada per l'usuari)**: quan un subpols fa <22px
+  (`COMPACT_LABELS_BELOW_PX`), la línia passa a `labels-compact`: només marques; el numeral ".N"
+  apareix quan sona (.active) o en tocar la línia a prop seu (.peek, 1,5 s). Implementat a les dues
+  fàbriques compartides: `fraction-timeline.js` (App26-31, CSS a `fraction-editor-nuzic.css`) i
+  `plano-grid-editor.js` (App32-35, CSS a `plano-modular.css`; el llindar s'importa de la primera);
+  re-avaluació en render, `layout()`/`refreshCellWidth()` i ResizeObserver. Tests: +4 i +4.
+  Verificat amb el harness a 390px: App26 1/3 i App34 1/2 compactes, App26 1/2 a 500px normal.
+- **Cursa d'`app:resize` destapada pel canvi de mesura**: el Sistema envia `sistema:system-mode`
+  al `load` de l'iframe, sovint abans que main.js acabi de muntar línia i controls; l'única
+  alçada informada podia ser la del DOM a mig fer (App26: 170 en lloc de 265) i, com que ara
+  el mínim de 320 ja no la tapava, l'iframe tallava els controls. `embed-mode.js`: mesura amb
+  `body.scrollHeight` (+ marges; inclou el que desborda la caixa), re-mesures d'assentament a
+  120/400/1000/2500 ms, coalescència amb setTimeout (no rAF: no corre en segon pla) i re-mesura
+  en `resize`/`load`/`fonts.ready`. Seqüències verificades per a App9/16/26/28/30.
 
 ## Pendent
 

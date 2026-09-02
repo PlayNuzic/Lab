@@ -23,6 +23,14 @@
 
 import { gridFromOrigin } from './subdivision.js';
 
+/** Amplada mínima d'un subpols (px) perquè els numerals ".N" hi càpiguen.
+ *  Per sota, la línia passa a mode compacte (classe `labels-compact`):
+ *  només marques, i el numeral apareix quan sona (.active) o en tocar-lo
+ *  (.peek). CSS a fraction-editor-nuzic.css. Pensat per a mòbil dins del
+ *  Sistema (390px: 6 polsos → 1/3 = 21px, 1/4 = 16px). */
+export const COMPACT_LABELS_BELOW_PX = 22;
+export const PEEK_MS = 1500;
+
 /** Decoració per defecte: l'últim pols és el '·' de tancament de cicle. */
 export function decoratePulseWithEndDot(el, { index, lg }) {
   if (index === lg) {
@@ -39,7 +47,8 @@ export function createFractionTimeline(config = {}) {
     getDenominator,
     decoratePulse = decoratePulseWithEndDot,
     decorateSubdivision = null,
-    onAfterRender = null
+    onAfterRender = null,
+    compactLabelsBelow = COMPACT_LABELS_BELOW_PX
   } = config;
 
   if (!timeline) throw new Error('createFractionTimeline requires a timeline element');
@@ -131,6 +140,40 @@ export function createFractionTimeline(config = {}) {
     el.dataset.globalSubdiv = String(info.globalSubdiv);
   }
 
+  /** Mode compacte dels numerals segons l'amplada real d'un subpols.
+   *  Sense layout (clientWidth 0, p.ex. jsdom) no toca res. */
+  function updateLabelDensity() {
+    const w = timeline.clientWidth;
+    if (!w) return;
+    const perSub = w / Math.max(1, getLg() * getDenominator());
+    timeline.classList.toggle('labels-compact', perSub < compactLabelsBelow);
+  }
+
+  // En mode compacte, tocar la línia mostra 1,5 s el numeral del subpols
+  // més proper (les etiquetes tenen pointer-events:none: escoltem la línia).
+  let peekTimer = null;
+  timeline.addEventListener('pointerdown', (e) => {
+    if (!timeline.classList.contains('labels-compact') || !cycleLabels.length) return;
+    const rect = timeline.getBoundingClientRect();
+    if (!rect.width) return;
+    const lg = getLg();
+    const x = e.clientX - rect.left;
+    let best = null; let bestD = Infinity;
+    for (const l of cycleLabels) {
+      const dd = Math.abs((parseFloat(l.dataset.position) / lg) * rect.width - x);
+      if (dd < bestD) { bestD = dd; best = l; }
+    }
+    // Més lluny de mig subpols = has tocat un pols sencer: res a mostrar.
+    if (!best || bestD > rect.width / (lg * getDenominator()) / 2) return;
+    cycleLabels.forEach((l) => l.classList.remove('peek'));
+    best.classList.add('peek');
+    clearTimeout(peekTimer);
+    peekTimer = setTimeout(() => best.classList.remove('peek'), PEEK_MS);
+  });
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => updateLabelDensity()).observe(timeline);
+  }
+
   /** Percentatge horitzontal; la vertical és estàtica al CSS de cada app. */
   function layout() {
     const lg = getLg();
@@ -146,11 +189,13 @@ export function createFractionTimeline(config = {}) {
       const pos = parseFloat(label.dataset.position);
       label.style.left = (pos / lg) * 100 + '%';
     });
+    updateLabelDensity();
   }
 
   return {
     render,
     layout,
+    updateLabelDensity,
     getPulses: () => pulses,
     getCycleMarkers: () => cycleMarkers,
     getCycleLabels: () => cycleLabels

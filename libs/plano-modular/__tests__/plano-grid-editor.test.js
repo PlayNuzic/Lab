@@ -319,3 +319,55 @@ describe('plano-grid-editor', () => {
     });
   });
 });
+
+describe('numerals compactes (mòbil)', () => {
+  function buildWithWidth(width, fraction = { lg: 12, numerator: 1, denominator: 3 }) {
+    const dom = buildDomElements();
+    const context = {
+      getGridElements: () => dom,
+      getFraction: () => fraction,
+      initAudio: jest.fn(async () => null),
+      getBpm: () => 60,
+      getNotes: () => [],
+      onNoteCreated: jest.fn(),
+      getInfoDisplays: () => ({ sum: document.createElement('input'), available: document.createElement('input') }),
+      noteCount: 12
+    };
+    Object.defineProperty(dom.timelineContainer, 'clientWidth', { value: width, configurable: true });
+    const editor = createPlanoGridEditor(context);
+    editor.renderGridTimeline();
+    const row = dom.timelineContainer.querySelector('.plano-timeline-row');
+    row.getBoundingClientRect = () => ({ left: 0, top: 0, width, height: 30, right: width, bottom: 30 });
+    return { editor, row, dom };
+  }
+
+  test('sense layout (amplada 0) no activa res', () => {
+    const { row } = buildWithWidth(0);
+    expect(row.classList.contains('labels-compact')).toBe(false);
+  });
+
+  test('columna < 22px → compacte; ≥ 22px → normal (12 polsos × 1/3 = 36 columnes)', () => {
+    expect(buildWithWidth(500).row.classList.contains('labels-compact')).toBe(true);   // 13.9px
+    expect(buildWithWidth(1200).row.classList.contains('labels-compact')).toBe(false); // 33px
+  });
+
+  test('refreshCellWidth re-avalua el mode compacte', () => {
+    const { editor, row, dom } = buildWithWidth(1200);
+    Object.defineProperty(dom.timelineContainer, 'clientWidth', { value: 500, configurable: true });
+    editor.refreshCellWidth();
+    expect(row.classList.contains('labels-compact')).toBe(true);
+  });
+
+  test('en compacte, tocar la fila mostra 1,5 s el ".N" més proper; sobre un pols sencer, res', () => {
+    jest.useFakeTimers();
+    const { editor, row } = buildWithWidth(360); // 36 columnes → 10px per columna
+    const labels = editor.getFractionLabels();
+    row.dispatchEvent(new MouseEvent('pointerdown', { clientX: 10, bubbles: true })); // columna 1 = ".1" del pols 0
+    expect(labels[0].classList.contains('peek')).toBe(true);
+    jest.advanceTimersByTime(1600);
+    expect(labels[0].classList.contains('peek')).toBe(false);
+    row.dispatchEvent(new MouseEvent('pointerdown', { clientX: 30, bubbles: true })); // columna 3 = pols 1
+    expect(labels.some((l) => l.classList.contains('peek'))).toBe(false);
+    jest.useRealTimers();
+  });
+});

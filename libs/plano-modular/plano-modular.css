@@ -553,3 +553,18 @@
 .plano-hscroll-inner {
   height: 1px;
 }
+
+/* Numerals compactes (mòbil): plano-grid-editor.js posa `.labels-compact` a
+   la fila quan una columna fa menys de 22px. Els ".N" no es pinten — només
+   els polsos sencers —; el numeral apareix quan sona (.active del playback
+   de l'app o .plano-highlight) o en tocar la fila a prop seu (.peek, 1,5 s).
+   Especificitat (0,4,0) > `body[data-visual] .plano-timeline-number.plano-subdivision`. */
+.plano-timeline-row.labels-compact .plano-timeline-number.plano-subdivision { opacity: 0; }
+.plano-timeline-row.labels-compact .plano-timeline-number.plano-subdivision.active,
+.plano-timeline-row.labels-compact .plano-timeline-number.plano-subdivision.plano-highlight { opacity: 1; }
+.plano-timeline-row.labels-compact .plano-timeline-number.plano-subdivision.peek {
+  opacity: 1;
+  background: var(--nuzic-yellow-light, #ffeecc);
+  border-radius: 2px;
+  padding: 0 3px;
+}

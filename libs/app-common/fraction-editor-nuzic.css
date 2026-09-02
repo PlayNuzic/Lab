@@ -151,3 +151,18 @@ body[data-visual="nuzic"]
     ),
     var(--nuzic-yellow-light);
 }
+
+/* Numerals compactes (mòbil): quan un subpols fa menys de 22px,
+   fraction-timeline.js posa `.labels-compact` a la línia i els ".N" no
+   es pinten — només les marques —; el numeral apareix quan sona (.active,
+   estil groc de cada app) o en tocar la línia a prop seu (.peek, 1,5 s).
+   Els polsos sencers es veuen sempre. Especificitat > `.timeline .cycle-label`
+   de cada app. */
+.timeline.labels-compact .cycle-label { opacity: 0; }
+.timeline.labels-compact .cycle-label.active { opacity: 1; }
+.timeline.labels-compact .cycle-label.peek {
+  opacity: 1;
+  background: var(--nuzic-yellow-light, #ffeecc);
+  border-radius: 2px;
+  padding: 1px 4px;
+}

@@ -23,6 +23,7 @@
  */
 
 import { getTotalSubdivisions } from '../plano-fraccion/fraction-math.js';
+import { COMPACT_LABELS_BELOW_PX, PEEK_MS } from '../app-common/fraction-timeline.js';
 import { setupScrollSync } from './plano-scroll.js';
 
 /**
@@ -142,7 +143,27 @@ export function createPlanoGridEditor(context) {
     timelineRow.appendChild(endpointEl);
     integerLabels[lg] = endpointEl;
 
+    // Mode compacte dels numerals (mòbil): tocar la fila mostra 1,5 s el ".N"
+    // més proper. Mateix criteri que fraction-timeline.js (App26-31).
+    timelineRow.addEventListener('pointerdown', (e) => {
+      if (!timelineRow.classList.contains('labels-compact') || !fractionLabels.length) return;
+      const rect = timelineRow.getBoundingClientRect();
+      if (!rect.width) return;
+      const x = e.clientX - rect.left;
+      let best = null; let bestD = Infinity;
+      for (const l of fractionLabels) {
+        const dd = Math.abs((Number(l.dataset.colIndex) / columns) * rect.width - x);
+        if (dd < bestD) { bestD = dd; best = l; }
+      }
+      if (!best || bestD > rect.width / columns / 2) return;
+      fractionLabels.forEach((l) => l.classList.remove('peek'));
+      best.classList.add('peek');
+      clearTimeout(peekTimer);
+      peekTimer = setTimeout(() => best.classList.remove('peek'), PEEK_MS);
+    });
+
     container.appendChild(timelineRow);
+    updateLabelDensity();
 
     // Label "n/d" a la cantonada inferior-esquerra del `.plano-container`
     // (zona del triangle groc). El parent és el `.plano-container`, no el
@@ -172,7 +193,28 @@ export function createPlanoGridEditor(context) {
     const matrix = elements?.matrixContainer?.querySelector('.plano-matrix');
     const firstCell = matrix?.querySelector('.plano-cell');
     cachedCellWidth = firstCell?.offsetWidth || 40;
+    updateLabelDensity();
     return cachedCellWidth;
+  }
+
+  // ========== NUMERALS COMPACTES (MÒBIL) ==========
+
+  let peekTimer = null;
+
+  /**
+   * Quan una columna (un subpols) fa menys de COMPACT_LABELS_BELOW_PX, la
+   * fila de números passa a `labels-compact`: els ".N" no es mostren (CSS a
+   * plano-modular.css), només els polsos sencers; el numeral apareix quan
+   * sona (.active/.plano-highlight) o en tocar la fila (.peek). Sense layout
+   * (clientWidth 0, p.ex. jsdom) no toca res.
+   */
+  function updateLabelDensity() {
+    const elements = getGridElements();
+    const row = elements?.timelineContainer?.querySelector('.plano-timeline-row');
+    if (!row) return;
+    const w = row.clientWidth || elements.timelineContainer.clientWidth;
+    if (!w) return;
+    row.classList.toggle('labels-compact', w / Math.max(1, totalColumns()) < COMPACT_LABELS_BELOW_PX);
   }
 
   function getCellWidth() {
@@ -443,6 +485,7 @@ export function createPlanoGridEditor(context) {
     injectNpDots,
     refreshCellWidth,
     getCellWidth,
+    updateLabelDensity,
     syncGridScrolls,
     updateInfoDisplays,
     playNotePreview,

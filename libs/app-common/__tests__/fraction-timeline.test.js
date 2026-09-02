@@ -135,3 +135,49 @@ describe('createFractionHighlighter', () => {
     expect(onClear).toHaveBeenCalled();
   });
 });
+
+describe('numerals compactes (mòbil)', () => {
+  function buildWide({ width, lg = 6, d = 3 }) {
+    const { timeline, tl } = build({ lg, n: 1, d });
+    Object.defineProperty(timeline, 'clientWidth', { value: width, configurable: true });
+    timeline.getBoundingClientRect = () => ({ left: 0, top: 0, width, height: 40, right: width, bottom: 40 });
+    tl.render();
+    return { timeline, tl };
+  }
+
+  test('sense layout (clientWidth 0) no activa res', () => {
+    const { timeline, tl } = build({ lg: 6, n: 1, d: 4 });
+    tl.render();
+    expect(timeline.classList.contains('labels-compact')).toBe(false);
+  });
+
+  test('un subpols ≥ 22px manté els numerals; < 22px passa a compacte', () => {
+    // 600px / (6 polsos × 4) = 25px → normal
+    expect(buildWide({ width: 600, d: 4 }).timeline.classList.contains('labels-compact')).toBe(false);
+    // 600px / (6 × 5) = 20px → compacte
+    expect(buildWide({ width: 600, d: 5 }).timeline.classList.contains('labels-compact')).toBe(true);
+    // 390px / (6 × 3) = 21.7px → compacte (el cas real del mòbil)
+    expect(buildWide({ width: 390, d: 3 }).timeline.classList.contains('labels-compact')).toBe(true);
+  });
+
+  test('en compacte, tocar la línia mostra 1,5 s el numeral del subpols més proper', () => {
+    jest.useFakeTimers();
+    const { timeline, tl } = buildWide({ width: 390, d: 3 });
+    const labels = tl.getCycleLabels();
+    // subpols .1 del pols 0: posició 1/3 → x = (1/3)/6 × 390 = 21.7px
+    timeline.dispatchEvent(new MouseEvent('pointerdown', { clientX: 22, bubbles: true }));
+    expect(labels[0].classList.contains('peek')).toBe(true);
+    jest.advanceTimersByTime(1600);
+    expect(labels[0].classList.contains('peek')).toBe(false);
+    // tocar sobre un pols sencer (x = 65 = pols 1) no mostra cap numeral
+    timeline.dispatchEvent(new MouseEvent('pointerdown', { clientX: 65, bubbles: true }));
+    expect(labels.some((l) => l.classList.contains('peek'))).toBe(false);
+    jest.useRealTimers();
+  });
+
+  test('fora de compacte, tocar la línia no fa res', () => {
+    const { timeline, tl } = buildWide({ width: 600, d: 4 });
+    timeline.dispatchEvent(new MouseEvent('pointerdown', { clientX: 25, bubbles: true }));
+    expect(tl.getCycleLabels().some((l) => l.classList.contains('peek'))).toBe(false);
+  });
+});
