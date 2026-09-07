@@ -112,7 +112,7 @@ export const slideMatrix = [
   { paso:10, section:'intervalos',   title:'Intervalos en el Plano Musical',                              layout:'B-app-left', apps:['App15'],  aspect:'4/3', group:'plano-simple' },
   { paso:11, section:'ampliando',    title:'Ampliando el plano: Círculos y Módulos',                      layout:'P-parallax-lab', parallax:{ symbols:['0 1 2', 'P(3¹)', 'r4', '0 1 2 3'] } },
   { paso:12, section:'ampliando',    title:'El compás: el módulo temporal',                               layout:'E-app-text-left', apps:['App16'],  aspect:'2/1', group:'timeline-complex', density:'compact' },
-  { paso:13, section:'ampliando',    title:'La línea temporal con compás',                                layout:'B-app-left', apps:['App17'],  aspect:'2/1', group:'timeline-complex', density:'compact' },
+  { paso:13, section:'ampliando',    title:'La línea temporal con compás',                                layout:'B-app-left', apps:['App17'],  aspect:'2/1', group:'timeline-complex' },
   { paso:14, section:'ampliando',    title:'El registro de octava: el módulo de las notas',               layout:'B-app-left', apps:['App18'],  aspect:'6/5', group:'timeline-vertical', density:'compact' },
   { paso:15, section:'ampliando',    title:'El Plano Modular',                                            layout:'B-app-left', apps:['App19'],  aspect:'4/3', group:'plano-multi-pill' },
   { paso:16, section:'ampliando',    title:'El par N-iT en el Plano Modular',                             layout:'B-app-left', apps:['App20'],  aspect:'4/3', group:'plano-multi-pill', density:'compact' },
@@ -286,11 +286,11 @@ export const slideContent = {
       src: 'images/paso-11.jpg',
     },
     text: `<p>Ya podemos describir pequeños movimientos en la música.</p>
-<p>Para movimientos más extensos necesitamos organizar el tiempo y el sonido en estructuras que se repiten.</p>
+<p>Para movimientos más <b>extensos</b> necesitamos organizar el tiempo y el sonido en estructuras que se repiten.</p>
 <p>La realidad está llena de ciclos: las estaciones, las fases lunares, los meses, días y horas… Lo que se repite ordena el mundo.</p>
-<p>También en matemáticas la idea de "ciclo" es muy importante. Por ejemplo, en un <b>módulo</b> matemático los números vuelven a empezar después de alcanzar un cierto valor, como ocurre al llegar a las 12 en un reloj.</p>
+<p>También en matemáticas la idea de <b>"ciclo"</b> es muy importante. Por ejemplo, en un <b>módulo</b> matemático los números vuelven a empezar después de alcanzar un cierto valor, como ocurre al llegar a las 12 en un reloj.</p>
 <p>La música también usa módulos: el <b>compás</b> agrupa los pulsos y el <b>registro de octava</b> agrupa las notas.</p>
-<p>Con estos módulos puedes construir y manejar grandes estructuras musicales.</p>`,
+<p>Con estos <b>módulos</b> puedes construir y manejar grandes estructuras musicales.</p>`,
   },
   12: {
     text: `<p>El módulo temporal es el <b>compás</b>.</p>
@@ -306,13 +306,13 @@ export const slideContent = {
 <p><strong>Tip:</strong> La app muestra que el compás es un ciclo de números que se repiten. Usa + y − para cambiar el número de pulsos y observa cómo se adapta la línea sonora.</p>`,
   },
   13: {
-    text: `<p>Para entender el compás, contemplamos la <mark class="hl-yellow">línea temporal</mark> de manera <b>helicoidal</b>, es decir, una espiral en el tiempo. Cada vuelta corresponde a un compás.</p>
-<p>La división de cada vuelta dependerá de cuántos pulsos tenga el compás.</p>
-<p>Podemos repetir el compás las veces que queramos. La longitud de la línea temporal dependerá del número de pulsos del compás y de la cantidad de repeticiones del compás. Por ejemplo, un compás de 3 Pulsos y 5 repeticiones nos da una longitud de 15 pulsos.</p>`,
-    tipsTitle: 'Prueba la Línea Temporal con compás',
-    tips: `<p>Introduce un número en "Pulsos por Compás" y otro en "Nº de Compases". La app reproduce el ejemplo. Observa cómo cambia el superíndice en los mismos pulsos.</p>
+    text: `<p>Una vez definido qué compás usaremos, hay que decidir la <b>cantidad de compases</b> que queremos.</p>
+<p>Podemos repetir el compás las veces que queramos. La <b>longitud</b> de la <mark class="hl-yellow">línea temporal</mark> dependerá del número de pulsos del compás y de la cantidad de repeticiones del compás. Por ejemplo, un compás de 3 Pulsos y 5 repeticiones nos da una longitud de 15 pulsos.</p>
+<p>Para definir un pulso dentro del compás en la línea temporal, escribimos el número de pulso y como <b>superíndice</b> el número de compás en el que está.</p>`,
+    tipsTitle: 'Prueba la línea temporal con compás',
+    tips: `<p>Introduce un número en "Pulsos por Compás" y otro en "Nº de Compases". Puedes ver la longitud total encima de la línea. Observa cómo cambia el superíndice en los mismos pulsos.</p>
 <p>Pulsa ▶️ para reproducir, 🎲 para generar una secuencia aleatoria, 🗑 para reiniciar.</p>
-<p><strong>Tips:</strong> Compara esta representación con la de un solo compás del paso 12. Mismo concepto, dos visualizaciones. La música no avanza solo en línea, sino que gira para volver al siguiente punto de partida, creando espirales en el tiempo.</p>`,
+<p><strong>Tips:</strong> La longitud de la línea depende del tipo de compás y el número de compases. Si cambias uno de los números, cambia la longitud de la línea.</p>`,
   },
   14: {
     text: `<p>En Nuzic usamos <b>96 notas</b>, ordenadas de la más grave a la más aguda.</p>

@@ -86,6 +86,9 @@ const PRESETS = {
   11: {
     'scroll-depth':    { on: true,  params: {} },
     'mask-zoom':       { on: false, params: {} },
+    // Inert: el slide no declara cap app (2026-08-31). Es conserva amb els
+    // params afinats perquè, si algun dia hi torna, ja surti a punt.
+    'app-reveal':      { on: false, params: { fraseAparicio: 2 } },
   },
   22: {
     'scroll-depth':    { on: true,  params: {} },

@@ -2,19 +2,16 @@
 
 Cap tasca activa.
 
-Última tasca completada: **Analítica per al test d'usuari (Clarity: events
-nous, ?tester=, segments i embuts) + kit de documents del test** (2026-09-02),
-commitejat a main (pendent de push). Acta:
+Última tasca completada: **Paso 13 (text nou) + export del panell tweaks**
+(2026-09-07). Acta: `docs/session-history/2026-09-07-paso-13-i-export-tweaks.md`.
+Anterior: analítica del test d'usuari (Clarity) (2026-09-02), acta
 `docs/session-history/2026-09-02-analytics-test-usuari-clarity.md`.
-Anterior: guia de navegació «Cómo navegar» + docs (2026-09-01), acta
-`docs/session-history/2026-09-01-sistema-guia-navegacio-i-docs.md`.
 Suite: 92/1534.
 
 ## Pendent
 
-- **Paso 13** ("La línea temporal con compás"): el text ve d'una DIAPO que
-  descrivia el donut i App17 ja és lineal. L'usuari ho vol revisar amb
-  altra gent — no tocar mentrestant.
+- **Push**: main va per davant d'origin des del 2026-09-01 (fixos de mòbil,
+  guia de navegació, analítica del test d'usuari i el text del paso 13).
 
 Tancats el 2026-08-31 amb la prova a l'altre ordinador: ratolí amb
 cremallera i tàctil ("prou bé"), paso 2 i el seu títol, `mida: 1` de l'app
