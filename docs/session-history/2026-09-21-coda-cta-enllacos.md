@@ -34,6 +34,28 @@ Estil: `.parallax-frases p a` amb el color de les negretes (accent del capítol,
 coda) i subratllat. Verificat en headless: els tres `<a>` amb href i `target="_blank"`.
 Suite: **92 suites / 1536 tests**.
 
+## 3. Segona tanda: intro i coda reescrites, i el bug de «no surten les frases»
+
+L'usuari no veia els CTA ni prement «Restaurar paso» ni amb hard reset. Dues causes possibles,
+totes dues reals: el commit dels CTA encara no era a origin (GitHub Pages servia el text antic),
+i en local mana el `localStorage` — els textos que ell mateix havia desat des del panell tapen
+els del codi, i «Restaurar paso» només actua sobre el paso obert en aquell moment.
+
+Arreglat d'arrel amb el mecanisme que ja es va fer servir el 2026-08-31: `OVERRIDES_VERSION` 7 → 8
+amb `if (ver < 8) stored = {}` (es descarten els textos desats; les densitats no s'hi toquen).
+Verificat en headless sembrant l'escenari exacte —override de text al paso 1 i al 29 amb
+`sistema.overrides.version = 7`—: en carregar, `overrides={}`, versió 8 i el text nou a pantalla.
+
+Textos (còpia de l'usuari, del PDF "NUZIC Textos SI"):
+- **Paso 1**: la intro llarga («La música sucede en el tiempo…»), 7 frases, substitueix la versió
+  curta anterior. Negretes: Sistema Nuzic, Dónde/Cuándo i els cinc conceptes del recorregut.
+- **Paso 29**: la coda del PDF (5 frases) + les 3 CTA amb enllaç, reescrites per l'usuari
+  («Si te ha gustado esta introducción…», «Sigue creando música…», «Si eres docente…»).
+  Retocs meus, per revisar: «cxreación» → «creación», «desplegados» → «desplegadas» (concordança)
+  i, a la tercera, el segon dels dos punts convertit en coma.
+
+Suite: 92 suites / 1536 tests.
+
 ## Pendent
 
 - Push (main va per davant d'origin).

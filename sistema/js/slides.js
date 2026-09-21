@@ -20,7 +20,7 @@ const DENSITY_KEY = 'sistema.densityByPaso';  // { [paso]: 'compact'|'cozy'|'loo
 const DEFAULT_DENSITY = 'cozy';  // 'Normal' — cas base sense regla CSS especial
 const OVERRIDES_KEY = 'sistema.overrides';
 const OVERRIDES_VERSION_KEY = 'sistema.overrides.version';
-const OVERRIDES_VERSION = 7;  // v7: paso 0→1, 1→2; l'antic paso 2 s'elimina (fusionat al 2)
+const OVERRIDES_VERSION = 8;  // v8: intro (paso 1) i coda (paso 29) reescrites — els textos desats es descarten
 
 // Easter eggs: passos/capítols amagats, cadascun amb el seu flag
 // individual. Un pas amagat porta `hidden: true` + `flag: '<nom>'` al
@@ -178,6 +178,11 @@ function loadOverrides(){
       // és d'un text que ja no existeix i taparia el nou, així que es
       // descarta. Les densitats (DENSITY_KEY) no s'hi toquen: són layout.
       if (ver < 6) stored = {};
+      // v8 (2026-09-21): la intro (paso 1) i la coda (paso 29) s'han
+      // reescrit, i la coda porta els enllaços dels CTA. Un override
+      // d'edit-mode anterior taparia el text nou i l'usuari no té per què
+      // saber que ha de prémer "Restaurar paso": es descarta igual que a v6.
+      if (ver < 8) stored = {};
       // El bump de la versió el fa loadOverrides per últim (després de
       // loadDensityByPaso, que també llegeix el ver per saber si migrar).
       localStorage.setItem(OVERRIDES_VERSION_KEY, String(OVERRIDES_VERSION));
