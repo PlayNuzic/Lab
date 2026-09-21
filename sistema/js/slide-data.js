@@ -528,7 +528,10 @@ export const slideContent = {
 <p>Con estas herramientas puedes ver una melodía, medirla, transformarla y crear otras nuevas.</p>
 <p>Porque entender la <b>música en movimiento</b> no consiste solo en ponerle números: consiste en descubrir las relaciones que hacen que suene.</p>
 <p>Este es el punto de partida. El sistema Nuzic continúa con nuevas formas de organizar, combinar y transformar la música.</p>
-<p>Si practicas estos procesos de abstracción mentalmente, se amplía tu intuición musical. Se expande tu imaginación auditiva.</p>`,
+<p>Si practicas estos procesos de abstracción mentalmente, se amplía tu intuición musical. Se expande tu imaginación auditiva.</p>
+<p>Profundiza en el <a href="https://www.nuzic.org/sistema/" target="_blank" rel="noopener">sistema de Nodos</a>: cada dimensión —el tiempo, el sonido y la simbiosis entre ambos— desplegada a fondo.</p>
+<p>Compón con la app <a href="https://www.nuzic.org/App/" target="_blank" rel="noopener">Nuzic</a>: empieza con <em>Lite</em> y llega más lejos con <em>Pro</em>.</p>
+<p>Y ponlo en práctica con otros en <a href="https://playnuzic.com/" target="_blank" rel="noopener">PlayNuzic</a>, donde el sistema se aprende creando.</p>`,
   },
 };
 

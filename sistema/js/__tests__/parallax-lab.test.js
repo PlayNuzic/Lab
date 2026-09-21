@@ -317,6 +317,42 @@ describe('Parallax Lab — driver (scroll natiu amb snap)', () => {
     delete document.elementFromPoint;
   });
 
+  // CTA de la coda (paso 29): els enllaços viuen dins de les frases, i el
+  // driver, que tapa el slide, ha de deixar-los passar quan la frase ja és
+  // l'activa — i no abans (les atenuades no s'han llegit encara).
+  function ambEnllac(nFrases = 4) {
+    const { slideEl } = harnessNav(nFrases);
+    const { driver } = cableja(slideEl, { paso: 29, apps: [] });
+    const frases = [...slideEl.querySelectorAll('.parallax-frases > p')];
+    const a = document.createElement('a');
+    a.href = 'https://www.nuzic.org/sistema/';
+    a.textContent = 'sistema de Nodos';
+    frases[2].appendChild(a);
+    const seguit = jest.fn(e => e.preventDefault());
+    a.addEventListener('click', seguit);
+    document.elementFromPoint = jest.fn().mockReturnValue(a);   // jsdom no l'implementa
+    return { slideEl, driver, a, seguit };
+  }
+
+  test('clic a un enllaç de la frase ACTIVA: se segueix l\'enllaç', () => {
+    const { driver, seguit } = ambEnllac();
+    driver.scrollTo({ top: 2 * CELL });                          // frase 2 = activa
+    drena();
+    driver.dispatchEvent(new MouseEvent('click', { clientX: 10, clientY: 10, bubbles: true }));
+    expect(seguit).toHaveBeenCalledTimes(1);
+    expect(driver.scrollTop).toBe(2 * CELL);                     // no s'ha mogut
+    delete document.elementFromPoint;
+  });
+
+  test('clic a un enllaç d\'una frase ATENUADA: hi glissa, no navega', () => {
+    const { driver, seguit } = ambEnllac();                      // frase 0 = activa
+    driver.dispatchEvent(new MouseEvent('click', { clientX: 10, clientY: 10, bubbles: true }));
+    drena();
+    expect(seguit).not.toHaveBeenCalled();
+    expect(driver.scrollTop).toBe(2 * CELL);                     // hi ha portat
+    delete document.elementFromPoint;
+  });
+
   test('activar app-reveal des del panell re-cableja el driver amb la cel·la d\'app', () => {
     const { slideEl } = harnessNav(3);
     // Paso sense PRESET (el 2 ja porta app-reveal actiu de fàbrica).

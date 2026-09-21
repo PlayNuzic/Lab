@@ -173,6 +173,19 @@ body[data-theme="dark"] .slide--parallax{
   color: color-mix(in srgb, var(--px-accent) 60%, var(--fg));
 }
 
+/* Enllaços dins de les frases (els CTA de la coda): mateix color que les
+   negretes (accent del capítol) i subratllat perquè es vegi que s'hi pot
+   clicar. El driver del parallax els segueix quan la frase ja és l'activa
+   (parallax-lab.js). */
+.parallax-frases p a{
+  color: color-mix(in srgb, var(--px-accent) 60%, var(--fg));
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 2px;
+}
+.parallax-frases p a:hover{ color: var(--px-accent); }
+
 /* ---- Avís de scroll ---- */
 .parallax-scroll-hint{
   position: absolute;

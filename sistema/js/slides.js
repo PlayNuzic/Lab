@@ -206,8 +206,18 @@ function saveOverrides(o){
 // (children kept, wrapper removed) or, in the case of <span> with bold/italic
 // inline styles, converted to <strong>/<em>.
 const ALLOWED_RICH_TAGS = new Set([
-  'p','h2','h3','h4','strong','b','em','i','code','br','ul','ol','li','blockquote','sup','sub','mark'
+  'p','h2','h3','h4','strong','b','em','i','code','br','ul','ol','li','blockquote','sup','sub','mark','a'
 ]);
+
+/** Href acceptat per sanitizeHtml: http(s), mailto o ruta relativa del propi
+ *  lloc. Tot el que porti un altre esquema (javascript:, data:…) o sigui
+ *  relatiu al protocol (//host) es rebutja i l'enllaç es desempaqueta. */
+function isSafeHref(href){
+  if (!href) return false;
+  if (href.startsWith('//')) return false;
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(href);
+  return scheme ? /^(https?|mailto)$/i.test(scheme[1]) : true;
+}
 
 // Classes de ressaltat permeses sobre `<mark>` (marca de fons rosa/groc
 // afegida des del mode edició del panell tweaks). La resta d'atributs/
@@ -280,6 +290,25 @@ function sanitizeHtml(html){
         node.parentNode.replaceChild(replacement, node);
       } else {
         // Unwrap: move children into parent, remove the wrapper.
+        while (node.firstChild) node.parentNode.insertBefore(node.firstChild, node);
+        node.remove();
+      }
+      return;
+    }
+
+    // Un `<a>` conserva l'href si és segur (i surt amb target/rel quan és
+    // extern): els CTA de la coda viuen dins del text i el mode d'edició del
+    // panell no els ha de desactivar. Href no segur → queda només el text.
+    if (tag === 'a') {
+      const href = (node.getAttribute('href') || '').trim();
+      [...node.attributes].forEach(a => node.removeAttribute(a.name));
+      if (isSafeHref(href)) {
+        node.setAttribute('href', href);
+        if (/^https?:/i.test(href)) {
+          node.setAttribute('target', '_blank');
+          node.setAttribute('rel', 'noopener');
+        }
+      } else {
         while (node.firstChild) node.parentNode.insertBefore(node.firstChild, node);
         node.remove();
       }

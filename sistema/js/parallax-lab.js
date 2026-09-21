@@ -468,8 +468,14 @@ function wire(slideEl, slide) {
     driver.style.pointerEvents = '';
     if (!sota) return;
     const i = frases.indexOf(sota.closest('.parallax-frases > p'));
+    // Un enllaç dins d'una frase (els CTA de la coda) només se segueix quan
+    // la frase ja és l'activa: a les altres el clic hi porta primer, perquè
+    // estan atenuades i navegar des d'una frase que encara no s'ha llegit
+    // seria un salt en fals.
+    const enllac = sota.closest('a[href]');
+    if (enllac && (i < 0 || i === active)) { enllac.click(); return; }
     if (i >= 0) { if (i !== active) { hideHint(); scrollA(i); } return; }
-    sota.closest('button, a')?.click();
+    sota.closest('button')?.click();
   });
 
   // Ranura per a app-reveal (Lab B): contenidor buit i amagat; la tècnica
