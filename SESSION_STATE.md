@@ -2,16 +2,21 @@
 
 Cap tasca activa.
 
-Última tasca completada: **Paso 13 (text nou) + export del panell tweaks**
-(2026-09-07). Acta: `docs/session-history/2026-09-07-paso-13-i-export-tweaks.md`.
-Anterior: analítica del test d'usuari (Clarity) (2026-09-02), acta
-`docs/session-history/2026-09-02-analytics-test-usuari-clarity.md`.
-Suite: 92/1534.
+Última tasca completada: **Intro (paso 1) i coda (paso 29) reescrites, amb les
+3 CTA enllaçades; els textos desats al navegador deixen de tapar-les
+(OVERRIDES_VERSION 8)** (2026-09-21). Acta:
+`docs/session-history/2026-09-21-coda-cta-enllacos.md`.
+Anterior: test d'usuari v3 — documents i embut «Continuacion en frio» a Clarity
+(2026-09-15), sense canvis de codi, acta
+`docs/session-history/2026-09-15-test-usuari-v3-embut-continuacio.md`.
+Suite: 92/1536.
 
 ## Pendent
 
-- **Push**: main va per davant d'origin des del 2026-09-01 (fixos de mòbil,
-  guia de navegació, analítica del test d'usuari i el text del paso 13).
+- **Push**: main va per davant d'origin (intro i coda noves, CTA amb enllaços,
+  i la migració v8 que descarta els textos desats al navegador).
+- **Tips del paso 12**: el títol «Prueba los Intervalos Temporales» és heretat
+  del paso 8 (detectat a la revisió del 2026-09-16, acta del test v3).
 
 Tancats el 2026-08-31 amb la prova a l'altre ordinador: ratolí amb
 cremallera i tàctil ("prou bé"), paso 2 i el seu títol, `mida: 1` de l'app
