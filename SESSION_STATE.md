@@ -2,9 +2,11 @@
 
 Cap tasca activa.
 
-Última tasca completada: **Intro (paso 1) i coda (paso 29) reescrites, amb les
-3 CTA enllaçades; els textos desats al navegador deixen de tapar-les
-(OVERRIDES_VERSION 8)** (2026-09-21). Acta:
+Última tasca completada: **Una imatge pot ser una frase del parallax**
+(2026-09-21), amb el control «Imagen como frase» a Tweaks i la il·lustració del
+recorregut al paso 1. Acta: `docs/session-history/2026-09-21-imatge-com-a-frase.md`.
+Abans, el mateix dia: intro (paso 1) i coda (paso 29) reescrites amb les 3 CTA
+enllaçades i OVERRIDES_VERSION 8, acta
 `docs/session-history/2026-09-21-coda-cta-enllacos.md`.
 Anterior: test d'usuari v3 — documents i embut «Continuacion en frio» a Clarity
 (2026-09-15), sense canvis de codi, acta

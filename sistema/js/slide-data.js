@@ -157,6 +157,7 @@ export const slideContent = {
 <p>Para ello utilizamos los números como una herramienta para entender el funcionamiento de la música: situar los sonidos, medir las distancias, organizar las estructuras que se repiten y transformar una idea musical sin perder las relaciones que le dan forma.</p>
 <p>El punto de partida es sencillo: si la música es movimiento, podemos describirla respondiendo dos preguntas fundamentales: ¿<b>Dónde</b> ocurre cada sonido? ¿<b>Cuándo</b> ocurre?</p>
 <p>A lo largo de este recorrido aprenderemos a situar los sonidos mediante <b>posiciones</b>; a describir su movimiento mediante <b>intervalos</b>; a organizar estructuras extensas mediante <b>módulos</b>; a explorar el interior del pulso mediante <b>fracciones</b>, y a escoger distintos universos sonoros mediante <b>escalas</b>.</p>
+<p><img src="images/frases/recorrido.webp" alt="El recorrido del Sistema Nuzic: posiciones, intervalos, módulos, fracciones y escalas."></p>
 <p>No reducimos la música a unos números. Utilizamos los números para descubrir las relaciones que hacen que la música se mueva y se transforme.</p>
 <p>Escucha, observa y prueba. El recorrido empieza en un punto.</p>`,
   },

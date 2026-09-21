@@ -186,6 +186,31 @@ body[data-theme="dark"] .slide--parallax{
 }
 .parallax-frases p a:hover{ color: var(--px-accent); }
 
+/* Una frase pot ser una IMATGE en lloc de text: <p><img src="images/frases/…"
+   alt="…"></p>. És una frase més —el driver li dona la seva cel·la i el
+   focus-mode la fon com les altres—, i és independent de la imatge de FONS
+   del paso (content.image → .parallax-img), que viu a una altra capa i en
+   una altra carpeta (images/ vs images/frases/). */
+.parallax-frases > p:has(> img){
+  line-height: 0;          /* sense l'espai que deixaria la caixa de text */
+  text-align: center;
+}
+.parallax-frases > p > img{
+  display: inline-block;
+  width: auto;
+  height: auto;
+  max-width: min(100%, 60rem);
+  max-height: 58vh;
+  max-height: 58dvh;
+  border-radius: 12px;
+}
+/* En fosc, una il·lustració de fons clar enlluerna sobre el slide fosc i el
+   text que porta dibuixat (fosc) es perd: se li dona una targeta clara. */
+body[data-theme="dark"] .parallax-frases > p > img{
+  background: var(--nuzic-white);
+  padding: clamp(8px, 1.2vw, 18px);
+}
+
 /* ---- Avís de scroll ---- */
 .parallax-scroll-hint{
   position: absolute;

@@ -211,7 +211,7 @@ function saveOverrides(o){
 // (children kept, wrapper removed) or, in the case of <span> with bold/italic
 // inline styles, converted to <strong>/<em>.
 const ALLOWED_RICH_TAGS = new Set([
-  'p','h2','h3','h4','strong','b','em','i','code','br','ul','ol','li','blockquote','sup','sub','mark','a'
+  'p','h2','h3','h4','strong','b','em','i','code','br','ul','ol','li','blockquote','sup','sub','mark','a','img'
 ]);
 
 /** Href acceptat per sanitizeHtml: http(s), mailto o ruta relativa del propi
@@ -315,6 +315,24 @@ function sanitizeHtml(html){
         }
       } else {
         while (node.firstChild) node.parentNode.insertBefore(node.firstChild, node);
+        node.remove();
+      }
+      return;
+    }
+
+    // Una frase pot ser una IMATGE en lloc de text: <p><img …></p>, inserida
+    // des del panell (Tweaks → "Imagen como frase"). Es conserven src (si és
+    // segur) i alt. No té res a veure amb la imatge de FONS del paso
+    // (slide-data → content.image → .parallax-img): són capes diferents i
+    // els fitxers viuen separats (images/frases/ vs images/).
+    if (tag === 'img') {
+      const src = (node.getAttribute('src') || '').trim();
+      const alt = node.getAttribute('alt') || '';
+      [...node.attributes].forEach(a => node.removeAttribute(a.name));
+      if (isSafeHref(src)) {
+        node.setAttribute('src', src);
+        node.setAttribute('alt', alt);
+      } else {
         node.remove();
       }
       return;

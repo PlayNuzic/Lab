@@ -111,6 +111,11 @@ const btnHlClear = document.getElementById('tw-hl-clear');
 const btnClearFormat = document.getElementById('tw-clear-format');
 const btnExport = document.getElementById('tw-export');
 const btnResetPaso = document.getElementById('tw-reset-paso');
+const imgActions = document.getElementById('tw-img-actions');
+const inpImgSrc = document.getElementById('tw-img-src');
+const inpImgAlt = document.getElementById('tw-img-alt');
+const selImgPos = document.getElementById('tw-img-pos');
+const btnImgAdd = document.getElementById('tw-img-add');
 
 // Visibilitat del panell tweaks. Dues vies:
 //   1. `?tweaks=1` a la URL.
@@ -159,6 +164,7 @@ cbEdit.addEventListener('change', ()=>{
   document.body.dataset.editable = cbEdit.checked ? 'true' : 'false';
   editActions.hidden = !cbEdit.checked;
   if (editActions2) editActions2.hidden = !cbEdit.checked;
+  if (imgActions) { imgActions.hidden = !cbEdit.checked; syncImgPos(); }
   // P-26: contenteditable s'aplica al DOM viu — render() complet recreava
   // l'iframe de l'app embedada només per canviar un atribut.
   if (window.__sistemaApplyEdit) window.__sistemaApplyEdit();
@@ -219,6 +225,64 @@ btnExport.addEventListener('click', async ()=>{
   }
   console.log('[sistema] export JSON:\n', json);
 });
+// ── Imagen como frase ────────────────────────────────────────────────────
+// En un paso de parallax, una imatge pot ocupar el lloc d'una frase: és una
+// frase més, amb la seva cel·la de scroll, i el focus-mode la fon com les
+// altres. El motor no se'n assabenta (no hi ha cap tècnica nova): aquí només
+// es reescriu el text del paso amb un <p><img …></p> a la posició escollida,
+// i la resta del camí (override → export → slide-data) és el de sempre.
+// No confondre amb la imatge de FONS del paso, que viu a slide-data
+// (content.image) i es pinta a .parallax-img, una altra capa.
+function campFrases() {
+  return document.querySelector('.parallax-frases[data-field="text"]');
+}
+
+/** HTML interior de cada frase del paso actual, o null si no és parallax. */
+function frasesHtml() {
+  const camp = campFrases();
+  return camp ? [...camp.querySelectorAll(':scope > p')].map(p => p.innerHTML) : null;
+}
+
+/** Omple el selector de posició amb les frases del paso i, si el paso no és
+ *  de parallax, deixa el bloc inert (millor que amagar-lo: així es veu que
+ *  la funció existeix però aquí no aplica). */
+function syncImgPos() {
+  if (!selImgPos) return;
+  const frases = frasesHtml();
+  const n = frases ? frases.length : 0;
+  const previ = selImgPos.value;
+  selImgPos.innerHTML = '';
+  const opcio = (valor, text) => {
+    const o = document.createElement('option');
+    o.value = String(valor); o.textContent = text;
+    selImgPos.appendChild(o);
+  };
+  opcio(0, 'Al principio');
+  for (let i = 1; i <= n; i++) opcio(i, i === n ? 'Al final' : `Después de la frase ${i}`);
+  selImgPos.value = previ && Number(previ) <= n ? previ : String(n);
+  imgActions?.querySelectorAll('input, select, button')
+    .forEach(el => { el.disabled = !frases; });
+}
+
+const escAttr = (v) => String(v)
+  .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+  .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+btnImgAdd?.addEventListener('click', () => {
+  const src = inpImgSrc.value.trim();
+  const frases = frasesHtml();
+  if (!frases) return;
+  if (!src) { inpImgSrc.focus(); return; }
+  const pos = Math.max(0, Math.min(frases.length, Number(selImgPos.value) || 0));
+  frases.splice(pos, 0, `<img src="${escAttr(src)}" alt="${escAttr(inpImgAlt.value.trim())}">`);
+  S.overrides[S.paso] = {
+    ...(S.overrides[S.paso] || {}),
+    text: frases.map(html => `<p>${html}</p>`).join('\n'),
+  };
+  window.__sistemaSaveOverrides();
+  window.__sistemaRender();
+});
+
 btnResetPaso.addEventListener('click', ()=>{
   const p = S.paso;
   if (!S.overrides[p]) return;
@@ -236,4 +300,5 @@ btnResetPaso.addEventListener('click', ()=>{
 document.addEventListener('sistema:render', () => {
   selPaso.value = S.paso;
   selDensity.value = window.__sistemaGetDensity?.() ?? 'cozy';
+  syncImgPos();
 });

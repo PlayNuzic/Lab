@@ -104,6 +104,27 @@ body[data-theme="dark"] .tweaks__collapse:hover{ background: rgba(0,0,0,0.1); }
   flex-wrap: wrap;
   gap: 6px;
 }
+
+/* Bloc "Imagen como frase": el panell és estret, així que els camps van
+   apilats i el select + botó comparteixen l'última línia. */
+.tweaks__row--img{
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.tweaks__row--img input[type="text"]{
+  width: 100%;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 4px 6px;
+}
+.tweaks__img-go{ display: flex; gap: 6px; min-width: 0; }
+.tweaks__img-go select{ flex: 1; min-width: 0; }
 .tweaks__btn{
   appearance: none;
   border: 1px solid var(--rule);
