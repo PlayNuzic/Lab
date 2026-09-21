@@ -204,12 +204,6 @@ body[data-theme="dark"] .slide--parallax{
   max-height: 58dvh;
   border-radius: 12px;
 }
-/* En fosc, una il·lustració de fons clar enlluerna sobre el slide fosc i el
-   text que porta dibuixat (fosc) es perd: se li dona una targeta clara. */
-body[data-theme="dark"] .parallax-frases > p > img{
-  background: var(--nuzic-white);
-  padding: clamp(8px, 1.2vw, 18px);
-}
 
 /* ---- Avís de scroll ---- */
 .parallax-scroll-hint{

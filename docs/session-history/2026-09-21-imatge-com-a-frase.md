@@ -47,6 +47,31 @@ control del panell, conduït de punta a punta a un altre paso (7): amagat fora d
 7 opcions de posició, inserció després de la frase 2 → imatge a la frase 3, atributs escapats i
 override desat. Suite: 92 suites / 1536 tests.
 
+## Segona tanda: escollir entre quines frases surt la imatge
+
+El selector de posició només servia per **inserir**; un cop la imatge hi era, no hi havia manera
+de moure-la (i el bloc, amagat rere «Editar textos», tampoc es trobava). Ara:
+
+- El bloc **surt sempre** al panell, no només en mode edició: inserir o moure una imatge no
+  necessita el contenteditable.
+- A dalt de tot, la **llista de les imatges que ja té el paso**: nom del fitxer, un selector amb
+  la posició **actual** («Después de la frase 5») que en canviar-lo **mou** la imatge, i una ×
+  per treure-la. La posició es compta sempre sense la imatge mateixa, així «después de la frase
+  N» vol dir el mateix tant si la mous com si n'inserissis una de nova.
+- A sota, els camps per **afegir-ne** una altra (ruta, alt, posició, Insertar).
+
+Verificat en headless al paso 1: el bloc surt sense editar, la llista mostra «recorrido.webp ·
+Después de la frase 5», moure-la a «Después de la frase 2» la deixa com a frase 3, la × la treu
+(8 → 7 frases) i tornar-la a inserir «Al final» la deixa com a frase 8.
+
+## Mode fosc
+
+El Sistema **no tindrà mode fosc** (decisió d'identitat). No hi ha cap `prefers-color-scheme`:
+el fosc només s'activa des del selector «Tema» del panell, o sigui que cap visitant l'ha vist
+mai. S'ha retirat la regla de fosc que s'havia afegit per a les imatges de frase. Queden 10
+regles `data-theme="dark"` al Sistema (slides.css 8, parallax.css 1, tokens.css 1) més les del
+propi panell: retirar-les i treure el selector «Tema» és una neteja a part, pendent de decidir.
+
 ## Pendent
 
 - Push.

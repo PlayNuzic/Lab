@@ -115,6 +115,7 @@ const imgActions = document.getElementById('tw-img-actions');
 const inpImgSrc = document.getElementById('tw-img-src');
 const inpImgAlt = document.getElementById('tw-img-alt');
 const selImgPos = document.getElementById('tw-img-pos');
+const llistaImg = document.getElementById('tw-img-list');
 const btnImgAdd = document.getElementById('tw-img-add');
 
 // Visibilitat del panell tweaks. Dues vies:
@@ -164,7 +165,7 @@ cbEdit.addEventListener('change', ()=>{
   document.body.dataset.editable = cbEdit.checked ? 'true' : 'false';
   editActions.hidden = !cbEdit.checked;
   if (editActions2) editActions2.hidden = !cbEdit.checked;
-  if (imgActions) { imgActions.hidden = !cbEdit.checked; syncImgPos(); }
+  syncImgPos();   // el bloc d'imatge no depèn del mode edició, però el DOM sí
   // P-26: contenteditable s'aplica al DOM viu — render() complet recreava
   // l'iframe de l'app embedada només per canviar un atribut.
   if (window.__sistemaApplyEdit) window.__sistemaApplyEdit();
@@ -243,30 +244,89 @@ function frasesHtml() {
   return camp ? [...camp.querySelectorAll(':scope > p')].map(p => p.innerHTML) : null;
 }
 
-/** Omple el selector de posició amb les frases del paso i, si el paso no és
- *  de parallax, deixa el bloc inert (millor que amagar-lo: així es veu que
- *  la funció existeix però aquí no aplica). */
-function syncImgPos() {
-  if (!selImgPos) return;
-  const frases = frasesHtml();
-  const n = frases ? frases.length : 0;
-  const previ = selImgPos.value;
-  selImgPos.innerHTML = '';
-  const opcio = (valor, text) => {
-    const o = document.createElement('option');
-    o.value = String(valor); o.textContent = text;
-    selImgPos.appendChild(o);
+/** Desa les frases com a text del paso i re-renderitza. Mateix camí que
+ *  qualsevol altra edició: override → export → slide-data. */
+function desaFrases(frases) {
+  S.overrides[S.paso] = {
+    ...(S.overrides[S.paso] || {}),
+    text: frases.map(html => `<p>${html}</p>`).join('\n'),
   };
-  opcio(0, 'Al principio');
-  for (let i = 1; i <= n; i++) opcio(i, i === n ? 'Al final' : `Después de la frase ${i}`);
-  selImgPos.value = previ && Number(previ) <= n ? previ : String(n);
-  imgActions?.querySelectorAll('input, select, button')
-    .forEach(el => { el.disabled = !frases; });
+  window.__sistemaSaveOverrides();
+  window.__sistemaRender();
 }
 
 const escAttr = (v) => String(v)
   .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
   .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** Opcions "entre quines frases": 0 = al principi, n = al final. */
+function omplePosicions(sel, nFrases, valor) {
+  sel.innerHTML = '';
+  const opcio = (v, text) => {
+    const o = document.createElement('option');
+    o.value = String(v); o.textContent = text;
+    sel.appendChild(o);
+  };
+  opcio(0, 'Al principio');
+  for (let i = 1; i <= nFrases; i++) {
+    opcio(i, i === nFrases ? 'Al final' : `Después de la frase ${i}`);
+  }
+  sel.value = String(Math.max(0, Math.min(nFrases, Number(valor) || 0)));
+}
+
+/** Refresca el bloc amb l'estat del paso: les imatges que ja hi són (amb la
+ *  posició actual, que es pot canviar per moure-les) i el selector de
+ *  posició per a la següent. En un paso que no és de parallax queda inert. */
+function syncImgPos() {
+  if (!imgActions || !selImgPos) return;
+  const frases = frasesHtml();
+  const n = frases ? frases.length : 0;
+  if (llistaImg) llistaImg.innerHTML = '';
+
+  (frases || []).forEach((html, idx) => {
+    const src = (html.match(/<img[^>]*\ssrc="([^"]*)"/i) || [])[1];
+    if (src === undefined || !llistaImg) return;
+
+    const item = document.createElement('div');
+    item.className = 'tweaks__img-item';
+
+    const nom = document.createElement('span');
+    nom.className = 'tweaks__img-name';
+    nom.textContent = src.split('/').pop() || src;
+    nom.title = src;
+
+    // La posició es compta SENSE aquesta imatge: així "después de la frase N"
+    // vol dir el mateix tant si la mous com si n'inserissis una de nova.
+    const sel = document.createElement('select');
+    sel.title = 'Entre qué frases aparece';
+    omplePosicions(sel, Math.max(0, n - 1), idx);
+    sel.addEventListener('change', () => {
+      const mou = frasesHtml();
+      if (!mou) return;
+      const [img] = mou.splice(idx, 1);
+      mou.splice(Math.max(0, Math.min(mou.length, Number(sel.value) || 0)), 0, img);
+      desaFrases(mou);
+    });
+
+    const treu = document.createElement('button');
+    treu.type = 'button';
+    treu.className = 'tweaks__btn';
+    treu.textContent = '×';
+    treu.title = 'Quitar la imagen de este paso';
+    treu.addEventListener('click', () => {
+      const fora = frasesHtml();
+      if (!fora) return;
+      fora.splice(idx, 1);
+      desaFrases(fora);
+    });
+
+    item.append(nom, sel, treu);
+    llistaImg.appendChild(item);
+  });
+
+  omplePosicions(selImgPos, n, selImgPos.value === '' ? n : selImgPos.value);
+  [inpImgSrc, inpImgAlt, selImgPos, btnImgAdd].forEach(el => { if (el) el.disabled = !frases; });
+}
 
 btnImgAdd?.addEventListener('click', () => {
   const src = inpImgSrc.value.trim();
@@ -275,13 +335,13 @@ btnImgAdd?.addEventListener('click', () => {
   if (!src) { inpImgSrc.focus(); return; }
   const pos = Math.max(0, Math.min(frases.length, Number(selImgPos.value) || 0));
   frases.splice(pos, 0, `<img src="${escAttr(src)}" alt="${escAttr(inpImgAlt.value.trim())}">`);
-  S.overrides[S.paso] = {
-    ...(S.overrides[S.paso] || {}),
-    text: frases.map(html => `<p>${html}</p>`).join('\n'),
-  };
-  window.__sistemaSaveOverrides();
-  window.__sistemaRender();
+  desaFrases(frases);
 });
+
+// El render inicial de slides.js ja ha passat quan aquest mòdul s'executa
+// (l'ordre dels <script> és slides.js → tweaks.js), així que la primera
+// sincronització es fa aquí a mà; les següents venen per 'sistema:render'.
+syncImgPos();
 
 btnResetPaso.addEventListener('click', ()=>{
   const p = S.paso;

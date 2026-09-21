@@ -153,14 +153,17 @@
       <!-- Imagen como frase: en un paso de parallax, una imagen ocupa el
            lugar de una frase (con su propio scroll). Nada que ver con la
            imagen de fondo del paso, que vive en slide-data (content.image). -->
-      <div class="tweaks__row tweaks__row--img" id="tw-img-actions" hidden>
+      <div class="tweaks__row tweaks__row--img" id="tw-img-actions">
         <span>Imagen como frase</span>
+        <!-- Imágenes que ya tiene el paso: se pueden mover de sitio (entre qué
+             frases aparecen) o quitar. Se rellena desde tweaks.js. -->
+        <div id="tw-img-list"></div>
         <input type="text" id="tw-img-src" placeholder="images/frases/archivo.webp"
                title="Ruta dentro de sistema/ (o URL). Las imágenes de frase van en sistema/images/frases/.">
         <input type="text" id="tw-img-alt" placeholder="Descripción (alt)"
                title="Qué se ve en la imagen, para quien no pueda verla">
         <div class="tweaks__img-go">
-          <select id="tw-img-pos" title="Lugar de la imagen dentro del paso"></select>
+          <select id="tw-img-pos" title="Entre qué frases aparecerá la imagen"></select>
           <button type="button" id="tw-img-add" class="tweaks__btn">Insertar</button>
         </div>
       </div>
