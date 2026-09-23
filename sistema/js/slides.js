@@ -1,6 +1,6 @@
 // Slides renderer + navigation
 //
-// Reads the named layout (A-intro / B-app-left / C-text-top) from slide-data,
+// Reads the named layout (A-intro / B-text-left / E-app-text-left) from slide-data,
 // applies its grid-template-areas/rows inline, and renders only the slots the
 // slide declares (image, title, text, app, tips).
 
@@ -843,7 +843,7 @@ function render(){
   if (!slide) return;
   const section = getSection(slide.section);
   const content = slideContent[slide.paso] || fillerContent;
-  const layout = layouts[slide.layout] || layouts['B-app-left'];
+  const layout = layouts[slide.layout] || layouts['B-text-left'];
 
   // Nav
   NAV_SECTION.textContent = section.title;

@@ -44,6 +44,15 @@ Continuació de `2026-09-23-intro-coda-i-presets-unificats.md`.
 - Test nou: cursor de mà sobre un enllaç de la frase activa, es refà en canviar
   de frase.
 
+### Layout dels passos d'app: text a l'esquerra
+- Nou layout `B-text-left` (`"title app app" "text app app" "tips app app"`):
+  títol, text i tips a la 1a columna, app a les columnes 2-3.
+- Substitueix `B-app-left` i `D-app-narrow` (app a l'esquerra), que s'han
+  esborrat. Passos migrats: 4, 5, 6, 9, 10, 13, 14, 15, 16, 21, 21.5
+  (variant amagada del 21) i 23-28. Els de línia temporal ampla
+  (`E-app-text-left`: 3, 8, 12, 18-20) no canvien; en mòbil tot s'apila igual.
+- Paso 12: títol dels tips «Prueba el compás».
+
 ## Pendent / ofert
 - El text del lab 28.7 encara parla d'«una imagen de fondo».
 - Queden regles de mode fosc i el selector «Tema» (el SI no tindrà mode fosc).

@@ -153,7 +153,7 @@ body[data-theme="dark"] .paso-badge__close:hover{
 
 /* Text slot: fills its cell; text flows in 1 or 2 columns based on layout.
    Wide cells (C-text-top's full-width text row) → 2 columns.
-   Narrow cells (B-app-left text col) → 1 column.
+   Narrow cells (B-text-left text col) → 1 column.
 
    The page scrolls globally now (slide-stage is `min-height` instead of
    `height: 100vh`), so the prose has no internal scroll: it grows as
@@ -222,10 +222,6 @@ body[data-theme="dark"] .paso-badge__close:hover{
   color: var(--nuzic-dark);
 }
 body[data-theme="dark"] .slot-text code{ background: #2a2a25; color: var(--nuzic-light); }
-
-/* D-app-narrow (Pas 4 — Línea Sonora) gives the text 2 columns of width.
-   Prose flows in a single column for natural reading; sub-columns were
-   tried but felt cramped at narrow widths and unnecessary at wide ones. */
 
 /* Density modifier (tweaks panel) */
 .slide[data-density="compact"] .slot-text .prose{ font-size: calc(var(--fs-body) * 0.92); line-height: 1.38; }

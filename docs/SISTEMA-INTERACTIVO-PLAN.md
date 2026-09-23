@@ -6,7 +6,7 @@
 >
 > **Resum del que hi ha avui** (no cal llegir el pla sencer per saber com funciona):
 >
-> - **Layouts** definits a [`sistema/js/slide-data.js`](../sistema/js/slide-data.js): `A-intro`, `B-app-left`, `D-app-narrow`, `E-app-text-left`. No s'han fet servir els noms `2-col` / `3-col span-left` originals — s'han substituït per noms més descriptius.
+> - **Layouts** definits a [`sistema/js/slide-data.js`](../sistema/js/slide-data.js): `A-intro`, `B-text-left`, `E-app-text-left` (des del 2026-09-23 `B-text-left` substitueix `B-app-left` i `D-app-narrow`: text a l'esquerra, app a les columnes 2-3). No s'han fet servir els noms `2-col` / `3-col span-left` originals — s'han substituït per noms més descriptius.
 > - **Slide content-driven**: `.slide-stage` no té `min-height`, `.slide` no té `flex: 1`. Si el contingut és curt, l'stage és curt; si és llarg, la pàgina scrolla. Veure [`sistema/css/grid.css`](../sistema/css/grid.css).
 > - **Iframe sizing determinista**: `width: 100% + aspect-ratio (per slide) + max-height: 700px + margin: 0 auto`. Sense `flex: 1` per evitar conflictes amb aspect-ratio. Veure [`sistema/css/slides.css`](../sistema/css/slides.css).
 > - **Responsive**: una sola media query `@media (max-width: 900px)` col·lapsa a layout vertical. Mòbils i tablets en portrait → vertical; tablets en landscape i amunt → horitzontal.

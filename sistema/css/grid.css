@@ -38,7 +38,7 @@
   gap: var(--content-gap);
   grid-template-columns: 1fr 1fr 1fr;
   /* grid-template-areas and grid-template-rows are applied inline by slides.js
-     so each paso can use its own layout (A-intro, B-app-left, D-app-narrow). */
+     so each paso can use its own layout (A-intro, B-text-left, E-app-text-left). */
 }
 
 /* `min-width: 0` és imprescindible: per defecte els grid items tenen
@@ -63,11 +63,11 @@
   min-width: 0;
 }
 
-/* B-app-left: el row de tips és `1fr` (absorbeix l'espai sobrant) i la
+/* B-text-left: el row de tips és `1fr` (absorbeix l'espai sobrant) i la
    caixa verda s'enganxa al TOP del row → just sota el text teòric.
    Sense això, `align-self: end` la deixa al fons del slide quan l'app
    és gran (pasos 15/16 amb iframe alt). */
-.slide[data-layout="B-app-left"] .slot-tips {
+.slide[data-layout="B-text-left"] .slot-tips {
   align-self: start;
 }
 /* Alineem la vora superior de la caixa verda amb el TÍTOL del text

@@ -3,7 +3,7 @@
 Input original per a [`sistema/js/slide-data.js`](../sistema/js/slide-data.js) i briefing visual. Valors validats empíricament al [test harness](../tests/embed-test.html) amb `?embed=true`.
 
 > **Estat 2026-04-28** — la implementació ja està a `sistema/`. Els valors d'aquesta matriu (aspect, app, width per slot) **estan vigents** com a referència. Els noms de layout d'aquesta taula (`2-col-left`, `1-col-right`, etc.) van ser renombrats a la implementació final per noms més descriptius:
-> `2-col` (img+text) → `A-intro`; `2-col-left` → `B-app-left`; `1-col-right` → `D-app-narrow`; i un layout nou `E-app-text-left` específic per al Pas 4 (l'app ocupa la fila inferior a tota amplada).
+> `2-col` (img+text) → `A-intro`; `2-col-left` → `B-app-left`; `1-col-right` → `D-app-narrow`; i un layout nou `E-app-text-left` específic per al Pas 4 (l'app ocupa la fila inferior a tota amplada). Des del 2026-09-23, `B-app-left` i `D-app-narrow` s'han fusionat en `B-text-left` (text a la 1a columna, app a les columnes 2-3).
 > Els iframes reben `?embed=true`. El shared [libs/app-common/embed.css](../libs/app-common/embed.css) aplica automàticament: top-bar com a overlay discret (☰ visible al cantó superior esquerre), h1 amagat, main a 100vh, volum integrat a `.controls` o flotant. El Sistema afegeix overrides puntuals (app10 padding-right shift, app16 min-height, scale apps soundlines-area) — vegeu [APPS-ADAPTACIONS-IFRAME.md](APPS-ADAPTACIONS-IFRAME.md).
 
 ---

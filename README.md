@@ -42,7 +42,7 @@ Totes les apps embedides al Sistema usen tema visual `data-visual="nuzic"` amb `
 Capa de presentació narrativa que guia l'usuari pel mètode Nuzic mitjançant 27 slides combinant text teòric amb apps interactives embedides via iframe.
 
 - **Implementació**: [`sistema/`](sistema/) (HTML + ES2022 + CSS pur, sense build).
-- **Layouts**: `A-intro`, `B-app-left`, `D-app-narrow`, `E-app-text-left` definits a [`sistema/js/slide-data.js`](sistema/js/slide-data.js).
+- **Layouts**: `A-intro`, `B-text-left` (text a la 1a columna, app a la 2-3), `E-app-text-left` definits a [`sistema/js/slide-data.js`](sistema/js/slide-data.js).
 - **Responsive**: una sola media query `@media (max-width: 900px)` col·lapsa a vertical (mòbil + tablet portrait).
 - **Embed mode**: les apps reben `?embed=true` i el shared [`libs/app-common/embed.css`](libs/app-common/embed.css) oculta el top-bar i adapta visualment.
 - **Edit mode**: `?tweaks=1` activa edició inline dels textos amb persistència a localStorage. Veure [docs/SISTEMA-EDIT-MODE.md](docs/SISTEMA-EDIT-MODE.md).
