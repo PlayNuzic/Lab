@@ -51,23 +51,30 @@ function configPerDefecte() {
 // genèric. "Restaurar" esborra el localStorage del paso i, per tant, hi
 // torna. Les entrades on:false amb params conserven els valors afinats
 // perquè, en activar-les al panell, ja surtin a punt.
+// Els intros de parallax (2, 7, 11, 17, 22, 29) porten els mateixos valors a
+// les tècniques enceses: fons quiet (scroll-depth off) i la capa de
+// llegibilitat focus-mode + bg-dim + depth-blur, amb mouse-tilt i text-reveal
+// com a únic moviment. Es van unificar el 2026-09-23 prenent el paso 1 com a
+// referència, però s'escriuen paso a paso a posta: el paso 1 (intro global)
+// ha d'evolucionar pel seu compte. Un test comprova que els altres sis
+// segueixin iguals entre ells.
 const PRESETS = {
-  // Paso 1 — intro global. Recepta afinada al constructor: focus-mode
-  // tanca la corba d'opacitat de les frases i bg-dim + depth-blur allunyen
-  // el fons, els dos problemes de legibilitat d'aquest slide; mouse-tilt,
-  // text-reveal i marquee hi posen el moviment. Sense app (el slide no en
-  // declara cap). Les entrades on:false conserven els params afinats.
+  // Paso 1 — intro global. El fons es queda quiet (scroll-depth i marquee
+  // apagats des del 2026-09-23) i la legibilitat de les frases llargues la
+  // resolen focus-mode + bg-dim + depth-blur; mouse-tilt i text-reveal hi
+  // posen el moviment que queda. Sense app (el slide no en declara cap).
+  // Les entrades on:false conserven els params afinats.
   1: {
-    'scroll-depth':    { on: true,  params: {} },
+    'scroll-depth':    { on: false, params: {} },
     'multi-speed':     { on: false, params: { factor: 3, dispersio: 0.6 } },
-    'mouse-tilt':      { on: true,  params: { intensitat: 30, suavitat: 0.3 } },
+    'mouse-tilt':      { on: true,  params: { intensitat: 15, suavitat: 0.15 } },
     'float-drift':     { on: false, params: { amplitud: 16 } },
-    'depth-blur':      { on: true,  params: { maxBlur: 3.5, corba: 1.6 } },
+    'depth-blur':      { on: true,  params: { maxBlur: 2, corba: 1.6 } },
     'color-shift':     { on: false, params: {} },
     'zoom-drift':      { on: false, params: { intensitat: 1.5 } },
     'inertia':         { on: false, params: {} },
     'text-reveal':     { on: true,  params: { durada: 2, esglaonat: 60 } },
-    'marquee':         { on: true,  params: { velocitat: 120, mida: 70, opacitat: 0.03 } },
+    'marquee':         { on: false, params: { velocitat: 120, mida: 70, opacitat: 0.03 } },
     'focus-mode':      { on: true,  params: { duresa: 2, rastre: 0.05 } },
     'bg-dim':          { on: true,  params: {} },
     'app-reveal':      { on: false, params: { fraseAparicio: 8, escalaInicial: 1, durada: 0.5 } },
@@ -77,33 +84,65 @@ const PRESETS = {
   // actiu (fraseAparicio 8 = aquesta cel·la): la crida a l'acció es
   // llegeix sencera i al scroll següent entra el plano, a tot l'espai.
   2: {
-    'scroll-depth':    { on: true,  params: {} },
+    'scroll-depth':    { on: false, params: {} },
+    'mouse-tilt':      { on: true,  params: { intensitat: 15, suavitat: 0.15 } },
+    'depth-blur':      { on: true,  params: { maxBlur: 2, corba: 1.6 } },
+    'text-reveal':     { on: true,  params: { durada: 2, esglaonat: 60 } },
+    'focus-mode':      { on: true,  params: { duresa: 2, rastre: 0.05 } },
+    'bg-dim':          { on: true,  params: {} },
     'app-reveal':      { on: true,  params: { fraseAparicio: 8, mida: 1, escalaInicial: 1, durada: 0.5 } },
+  },
+  // Paso 7 — intro d'Intervalos. Abans no tenia preset i queia al defecte
+  // genèric (scroll-depth on); ara segueix la recepta dels altres intros.
+  7: {
+    'scroll-depth':    { on: false, params: {} },
+    'mouse-tilt':      { on: true,  params: { intensitat: 15, suavitat: 0.15 } },
+    'depth-blur':      { on: true,  params: { maxBlur: 2, corba: 1.6 } },
+    'text-reveal':     { on: true,  params: { durada: 2, esglaonat: 60 } },
+    'focus-mode':      { on: true,  params: { duresa: 2, rastre: 0.05 } },
+    'bg-dim':          { on: true,  params: {} },
   },
   // Paso 11 — Módulos (cuinat des de l'export del panell): mask-zoom
   // apagat, la imatge de fons queda com a capa suau sense màscara. El
   // slide no declara cap app (2026-08-31), així que no hi ha app-reveal.
   11: {
-    'scroll-depth':    { on: true,  params: {} },
+    'scroll-depth':    { on: false, params: {} },
+    'mouse-tilt':      { on: true,  params: { intensitat: 15, suavitat: 0.15 } },
+    'depth-blur':      { on: true,  params: { maxBlur: 2, corba: 1.6 } },
     'mask-zoom':       { on: false, params: {} },
-    // Inert: el slide no declara cap app (2026-08-31). Es conserva amb els
-    // params afinats perquè, si algun dia hi torna, ja surti a punt.
+    'text-reveal':     { on: true,  params: { durada: 2, esglaonat: 60 } },
+    'focus-mode':      { on: true,  params: { duresa: 2, rastre: 0.05 } },
+    'bg-dim':          { on: true,  params: {} },
     'app-reveal':      { on: false, params: { fraseAparicio: 2 } },
   },
+  // Paso 17 — intro de Fracciones, mateixa recepta que el 7 i l'11.
+  17: {
+    'scroll-depth':    { on: false, params: {} },
+    'mouse-tilt':      { on: true,  params: { intensitat: 15, suavitat: 0.15 } },
+    'depth-blur':      { on: true,  params: { maxBlur: 2, corba: 1.6 } },
+    'text-reveal':     { on: true,  params: { durada: 2, esglaonat: 60 } },
+    'focus-mode':      { on: true,  params: { duresa: 2, rastre: 0.05 } },
+    'bg-dim':          { on: true,  params: {} },
+  },
+  // Paso 22 — intro d'Escalas. Ve de la tanda de proves del Lab (d'aquí
+  // tantes entrades on:false amb params afinats); el 2026-09-23 s'alinea
+  // amb la resta d'intros: fons quiet i la mateixa capa de llegibilitat.
   22: {
-    'scroll-depth':    { on: true,  params: {} },
-    'multi-speed':     { on: true,  params: { factor: 2, dispersio: 0.5 } },
-    'mouse-tilt':      { on: false, params: {} },
-    'float-drift':     { on: true,  params: { amplitud: 4, durada: 15 } },
-    'depth-blur':      { on: false, params: { maxBlur: 5, corba: 1 } },
-    'color-shift':     { on: true,  params: {} },
-    'rotate-progress': { on: true,  params: {} },
+    'scroll-depth':    { on: false, params: {} },
+    'multi-speed':     { on: false, params: { factor: 2, dispersio: 0.5 } },
+    'mouse-tilt':      { on: true,  params: { intensitat: 15, suavitat: 0.15 } },
+    'float-drift':     { on: false, params: { amplitud: 4, durada: 15 } },
+    'depth-blur':      { on: true,  params: { maxBlur: 2, corba: 1.6 } },
+    'color-shift':     { on: false, params: {} },
+    'rotate-progress': { on: false, params: {} },
     'zoom-drift':      { on: false, params: { intensitat: 0 } },
-    'inertia':         { on: true,  params: { durada: 0.5, rebot: 0.6, esglaonat: 0.2 } },
+    'inertia':         { on: false, params: { durada: 0.5, rebot: 0.6, esglaonat: 0.2 } },
     'mask-zoom':       { on: false, params: { escalaInicial: 10, escalaFinal: 575, fons: 1 } },
-    'text-reveal':     { on: true,  params: {} },
-    'marquee':         { on: true,  params: { velocitat: 120, mida: 110 } },
-    'spotlight':       { on: true,  params: { radi: 50, forca: 0.05 } },
+    'text-reveal':     { on: true,  params: { durada: 2, esglaonat: 60 } },
+    'marquee':         { on: false, params: { velocitat: 120, mida: 110 } },
+    'spotlight':       { on: false, params: { radi: 50, forca: 0.05 } },
+    'focus-mode':      { on: true,  params: { duresa: 2, rastre: 0.05 } },
+    'bg-dim':          { on: true,  params: {} },
     'app-reveal':      { on: false, params: { fraseAparicio: 5, escalaInicial: 0.6 } },
   },
   // Pasos 28.5/28.7 — Parallax Lab (cuinat des de l'export del panell).
@@ -112,17 +151,17 @@ const PRESETS = {
     'scroll-depth':    { on: true,  params: { amplX: 95, amplY: 90, rotacio: 30, zoom: 0.8 } },
     'multi-speed':     { on: false, params: { factor: 1, dispersio: 0 } },
     'mouse-tilt':      { on: false, params: { intensitat: 19 } },
+    'float-drift':     { on: false, params: {} },
     'zoom-drift':      { on: false, params: {} },
     'inertia':         { on: false, params: {} },
     'gradient-drift':  { on: false, params: {} },
     'mask-zoom':       { on: false, params: { escalaInicial: 20, escalaFinal: 675 } },
     'spotlight':       { on: false, params: {} },
-    'float-drift':     { on: false, params: {} },
   },
   28.7: {
     'scroll-depth':    { on: true,  params: {} },
     'zoom-drift':      { on: true,  params: { intensitat: 1.5 } },
-    'mask-zoom':       { on: true,  params: { fons: 1, escalaFinal: 150 } },
+    'mask-zoom':       { on: true,  params: { escalaFinal: 150, fons: 1 } },
     'app-reveal':      { on: false, params: { fraseAparicio: 5 } },
   },
   // Paso 29 — coda: mateixa recepta que la intro (paso 1), que té el
@@ -130,7 +169,10 @@ const PRESETS = {
   // paritat amb el paso 1, però a la coda és inert: el slide no declara
   // cap app, així que no hi ha ranura on revelar-la.
   29: {
-    'scroll-depth':    { on: true,  params: {} },
+    'scroll-depth':    { on: false, params: {} },
+    'mouse-tilt':      { on: true,  params: { intensitat: 15, suavitat: 0.15 } },
+    'depth-blur':      { on: true,  params: { maxBlur: 2, corba: 1.6 } },
+    'text-reveal':     { on: true,  params: { durada: 2, esglaonat: 60 } },
     'focus-mode':      { on: true,  params: { duresa: 2, rastre: 0.05 } },
     'bg-dim':          { on: true,  params: {} },
     'app-reveal':      { on: false, params: { fraseAparicio: 8, escalaInicial: 1, durada: 0.5 } },

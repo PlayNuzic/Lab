@@ -53,20 +53,39 @@ describe('Parallax Lab — motor (parallax-lab.js), reduced-motion OFF', () => {
   });
 
   test('getConfig(22) retorna el preset i mai la referència viva', () => {
+    const original = lab.getConfig(22)['multi-speed'].params.factor;  // del preset, no fixat
     const a = lab.getConfig(22);
-    expect(a['multi-speed'].params.factor).toBe(2);
     a['multi-speed'].params.factor = 999; // mutació local del resultat
     const b = lab.getConfig(22); // segona crida: no pot arrossegar la mutació
-    expect(b['multi-speed'].params.factor).toBe(2);
+    expect(b['multi-speed'].params.factor).toBe(original);
   });
 
   test('setConfig materialitza el preset (configMutable) sense perdre la resta d\'entrades', () => {
+    // El valor de fàbrica es llegeix del preset en lloc de fixar-lo: els
+    // PRESETS es cuinen des del panell i canvien sovint; l'invariant que
+    // aquí es prova és que setConfig no toca la resta d'entrades.
+    const abans = lab.getConfig(22)['multi-speed'];
     lab.setConfig(22, 'mouse-tilt', { on: true });
     const all = lab.getConfigAll();
     expect(all[22]['mouse-tilt'].on).toBe(true);
-    // La resta del preset de fàbrica (p.ex. multi-speed) queda intacta.
-    expect(all[22]['multi-speed'].params.factor).toBe(2);
-    expect(all[22]['multi-speed'].on).toBe(true);
+    expect(all[22]['multi-speed']).toEqual(abans);
+  });
+
+  // Els intros de capítol i la coda porten els mateixos valors a les
+  // tècniques enceses (unificats el 2026-09-23 prenent el paso 1 com a
+  // referència). El paso 1 queda FORA de la comparació a posta: és la intro
+  // global i evoluciona pel seu compte. Si algun altre paso n'ha de
+  // divergir, que sigui una decisió explícita: treure'l d'INTROS aquí.
+  test('els intros de capítol i la coda comparteixen els mateixos valors', () => {
+    const RECEPTA = ['scroll-depth', 'mouse-tilt', 'depth-blur', 'text-reveal', 'focus-mode', 'bg-dim'];
+    const [primer, ...INTROS] = [2, 7, 11, 17, 22, 29];
+    const ref = lab.getConfig(primer);
+    INTROS.forEach((paso) => {
+      const cfg = lab.getConfig(paso);
+      RECEPTA.forEach((id) => {
+        expect({ paso, id, valor: cfg[id] }).toEqual({ paso, id, valor: ref[id] });
+      });
+    });
   });
 
   test('aleatori() genera valors dins [min, max] alineats al step', () => {
