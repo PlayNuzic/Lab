@@ -61,7 +61,7 @@ body[data-theme="dark"] .slide--parallax{
   pointer-events: none;
   z-index: 0;
 }
-/* Imatge opcional del pas (p.ex. Ampliando reutilitza paso-11.jpg).
+/* Imatge opcional de FONS del pas (slideContent[paso].image; cap intro en fa servir des del 2026-09-23).
    inset negatiu = marge de recorregut perquè el moviment exagerat no
    descobreixi les vores. */
 .parallax-img{
@@ -108,14 +108,9 @@ body[data-theme="dark"] .slide--parallax{
   flex: 0 0 auto;
   justify-content: flex-start;
 }
-/* Títol del capítol: clarament per sobre de les frases en jerarquia —
-   més gran, més compacte de línia i amb una barra d'accent a sota del
-   color del capítol. */
-.slide--parallax .slide__title{
-  font-size: clamp(38px, 3.5vw + 0.6rem, 68px);
-  line-height: 1.02;
-  letter-spacing: -0.015em;
-}
+/* Títol del paso: fa servir la regla base de .slide__title (slides.css:
+   --fs-h1 i negreta), igual que els passos amb app (2026-09-23). La barra
+   d'accent de sota el marca com a paso de lectura. */
 .slide--parallax .slide__title::after{
   content: '';
   display: block;
@@ -184,15 +179,18 @@ body[data-theme="dark"] .slide--parallax{
   text-underline-offset: 0.18em;
   text-decoration-thickness: 2px;
 }
-.parallax-frases p a:hover{ color: var(--px-accent); }
+/* El driver tapa el slide i el :hover no hi arriba sol: parallax-lab.js
+   posa .is-hover a l'enllaç que té el punter a sobre (i cursor de mà). */
+.parallax-frases p a:hover,
+.parallax-frases p a.is-hover{ color: var(--px-accent); }
 
 /* Una frase pot ser una IMATGE en lloc de text: <p><img src="images/frases/…"
    alt="…"></p>. És una frase més —el driver li dona la seva cel·la i el
    focus-mode la fon com les altres—, i és independent de la imatge de FONS
    del paso (content.image → .parallax-img), que viu a una altra capa i en
    una altra carpeta (images/ vs images/frases/). */
-.parallax-frases > p:has(> img){
-  line-height: 0;          /* sense l'espai que deixaria la caixa de text */
+.parallax-frases > p:has(> img):not(:has(> br)){
+  line-height: 0;          /* imatge SOLA: sense l'espai de la caixa de text */
   text-align: center;
 }
 .parallax-frases > p > img{
@@ -203,6 +201,34 @@ body[data-theme="dark"] .slide--parallax{
   max-height: 58vh;
   max-height: 58dvh;
   border-radius: 12px;
+}
+/* Imatge LLIGADA a una frase: <p>text<br><img …></p>. Frase i imatge
+   apareixen i se'n van juntes (la intro, paso 1). La imatge va a sota del
+   text i alineada amb ell, una mica més baixa que una imatge sola perquè
+   hi càpiga tot el conjunt. */
+.parallax-frases > p:has(> br + img) > img{
+  display: block;
+  margin: clamp(10px, 1.8vh, 22px) auto 0;   /* centrada a la frase */
+  max-height: 40vh;
+  max-height: 40dvh;
+}
+/* Imatge a TOT L'AMPLE del parallax (class="ample"), p.ex. el recorregut
+   sencer a «Aquí empieza el viaje». En pantalles baixes, en lloc de
+   desbordar, s'encongeix i es queda centrada (object-fit) sense deformar-se. */
+.parallax-frases > p > img.ample{
+  width: 100%;
+  max-width: 100%;
+  max-height: 60vh;
+  max-height: 60dvh;
+  object-fit: contain;
+}
+/* Pantalles baixes: la frase es centra verticalment (top:50%), i una imatge
+   tan alta la faria pujar fins al títol. */
+@media (max-height: 820px){
+  .parallax-frases > p > img.ample{
+    max-height: 44vh;
+    max-height: 44dvh;
+  }
 }
 
 /* ---- Avís de scroll ---- */

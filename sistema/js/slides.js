@@ -20,7 +20,7 @@ const DENSITY_KEY = 'sistema.densityByPaso';  // { [paso]: 'compact'|'cozy'|'loo
 const DEFAULT_DENSITY = 'cozy';  // 'Normal' — cas base sense regla CSS especial
 const OVERRIDES_KEY = 'sistema.overrides';
 const OVERRIDES_VERSION_KEY = 'sistema.overrides.version';
-const OVERRIDES_VERSION = 8;  // v8: intro (paso 1) i coda (paso 29) reescrites — els textos desats es descarten
+const OVERRIDES_VERSION = 9;  // v9: intro (paso 1) reescrita amb imatges — es descarta només el que hi hagi desat del paso 1
 
 // Easter eggs: passos/capítols amagats, cadascun amb el seu flag
 // individual. Un pas amagat porta `hidden: true` + `flag: '<nom>'` al
@@ -183,6 +183,10 @@ function loadOverrides(){
       // d'edit-mode anterior taparia el text nou i l'usuari no té per què
       // saber que ha de prémer "Restaurar paso": es descarta igual que a v6.
       if (ver < 8) stored = {};
+      // v9 (2026-09-23): la intro (paso 1) s'ha reescrit —títol nou i imatges
+      // lligades a les frases—. Un text o títol desat d'abans la taparia; la
+      // resta d'edicions del panell es conserven.
+      if (ver < 9) delete stored['1'];
       // El bump de la versió el fa loadOverrides per últim (després de
       // loadDensityByPaso, que també llegeix el ver per saber si migrar).
       localStorage.setItem(OVERRIDES_VERSION_KEY, String(OVERRIDES_VERSION));
@@ -325,13 +329,17 @@ function sanitizeHtml(html){
     // segur) i alt. No té res a veure amb la imatge de FONS del paso
     // (slide-data → content.image → .parallax-img): són capes diferents i
     // els fitxers viuen separats (images/frases/ vs images/).
+    // L'única classe que es conserva és `ample` (imatge a tot l'ample del
+    // parallax, vegeu parallax.css).
     if (tag === 'img') {
       const src = (node.getAttribute('src') || '').trim();
       const alt = node.getAttribute('alt') || '';
+      const ample = (node.getAttribute('class') || '').split(/\s+/).includes('ample');
       [...node.attributes].forEach(a => node.removeAttribute(a.name));
       if (isSafeHref(src)) {
         node.setAttribute('src', src);
         node.setAttribute('alt', alt);
+        if (ample) node.setAttribute('class', 'ample');
       } else {
         node.remove();
       }

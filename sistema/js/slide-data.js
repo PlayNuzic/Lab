@@ -95,7 +95,7 @@ export const layouts = {
 export const slideMatrix = [
   // Paso 1 — intro GLOBAL del Sistema (no és intro de capítol): secció
   // pròpia 'intro'. Mateix motor parallax que les intros de capítol.
-  { paso:1,    section:'intro',        title:'Música en movimiento',                                 layout:'P-parallax-lab', density:'compact', parallax:{ symbols:['0 1 2 3', 'P', 'N', 'iT', 'iS'] } },
+  { paso:1,    section:'intro',        title:'Introducción',                                         layout:'P-parallax-lab', density:'compact', parallax:{ symbols:['0 1 2 3', 'P', 'N', 'iT', 'iS'] } },
   // 1·B — l'antiga intro amb vídeo, oculta rere el flag individual
   // `intro1b` (5 clicks al badge del paso 1, secció "Introducción").
   { paso:1.5,  section:'intro',        title:'¿Sabías que los números son el adn de la música?', layout:'A-intro', density:'loose', hidden:true, flag:'intro1b' },
@@ -158,7 +158,12 @@ export const slideContent = {
 <p>¿Y cómo se describe un movimiento?</p>
 <p>Contestando dos preguntas: <b>dónde</b> ocurre y <b>cuándo</b> ocurre.</p>
 <p>Cada sonido es un punto. La música es el viaje de un punto a otro.</p>
-<p><img src="images/frases/recorrido.webp" alt="El recorrido del Sistema Nuzic: posiciones, intervalos, módulos, fracciones y escalas."></p>
+<p>Primero situamos los sonidos mediante <b>posiciones</b>.<br><img src="images/frases/recorrido-posiciones.webp" alt="Posiciones: tres puntos situados en el plano musical."></p>
+<p>Después describimos su movimiento mediante <b>intervalos</b>.<br><img src="images/frases/recorrido-intervalos.webp" alt="Intervalos: la distancia entre dos puntos, iS en altura e iT en tiempo."></p>
+<p>A continuación, organizamos las estructuras mediante <b>módulos</b>.<br><img src="images/frases/recorrido-modulos.webp" alt="Módulos: dos ciclos que se repiten."></p>
+<p>Ahora ya podemos explorar el interior del pulso mediante <b>fracciones</b>.<br><img src="images/frases/recorrido-fracciones.webp" alt="Fracciones: un pulso entero dividido en mitades y cuartos."></p>
+<p>Finalmente, escogemos distintos universos sonoros usando <b>escalas</b>.<br><img src="images/frases/recorrido-escalas.webp" alt="Escalas: un punto de partida que se abre a tres universos sonoros."></p>
+<p>Aquí empieza el viaje.<br><img class="ample" src="images/frases/recorrido.webp" alt="El recorrido del Sistema Nuzic: posiciones, intervalos, módulos, fracciones y escalas."></p>
 <p>Escucha, observa y prueba. La música empieza en un punto.</p>`,
   },
   // 1·B — contingut original del pas 1 (vídeo + text complet).
@@ -276,13 +281,9 @@ export const slideContent = {
 <p>Pulsa ▶️ para reproducir, 🎲 para generar una secuencia aleatoria, 🗑 para reiniciar.</p>
 <p><strong>Tip:</strong> En esta App se juega con distancias, en lugar de posiciones fijas. Es la diferencia entre decir "ve a la casilla 5" y "avanza 3 casillas desde la casilla 2" — el mismo destino, dos formas de pensarlo.</p>`,
   },
-  // Pas intro parallax — Módulos. La imatge es fa servir com a capa
-  // suau de fons darrere les frases (no com a bloc d'imatge del grid).
+  // Pas intro parallax — Módulos. Sense imatge de fons des del 2026-09-23
+  // (abans hi havia el rellotge, images/paso-11.jpg, ja esborrat).
   11: {
-    image: {
-      alt: 'Ilustración — Patrones, ciclos y módulos',
-      src: 'images/paso-11.jpg',
-    },
     text: `<p>Ya podemos describir pequeños movimientos en la música.</p>
 <p>Para movimientos más <b>extensos</b> necesitamos organizar el tiempo y el sonido en estructuras que se repiten.</p>
 <p>La realidad está llena de ciclos: las estaciones, las fases lunares, los meses, días y horas… Lo que se repite ordena el mundo.</p>
@@ -510,10 +511,6 @@ export const slideContent = {
 <p>Cuando una combinación te guste, <b>Copiar config</b> la guarda como JSON para fijarla en el código.</p>`,
   },
   28.7: {
-    image: {
-      alt: 'Imagen de fondo para probar técnicas de máscara y zoom',
-      src: 'images/paso-11.jpg',
-    },
     text: `<p>Este es el laboratorio <b>B</b>: igual que el A, pero con una <b>imagen de fondo</b> y una <b>app</b> disponibles.</p>
 <p>Las técnicas de máscara y zoom (<b>mask-zoom</b>, <b>zoom-drift</b>) lucen especialmente aquí.</p>
 <p>La técnica <b>app-reveal</b> hace aparecer la app en una frase concreta, como un momento interactivo del relato.</p>

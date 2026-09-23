@@ -226,14 +226,17 @@ btnExport.addEventListener('click', async ()=>{
   }
   console.log('[sistema] export JSON:\n', json);
 });
-// ── Imagen como frase ────────────────────────────────────────────────────
-// En un paso de parallax, una imatge pot ocupar el lloc d'una frase: és una
-// frase més, amb la seva cel·la de scroll, i el focus-mode la fon com les
-// altres. El motor no se'n assabenta (no hi ha cap tècnica nova): aquí només
-// es reescriu el text del paso amb un <p><img …></p> a la posició escollida,
-// i la resta del camí (override → export → slide-data) és el de sempre.
-// No confondre amb la imatge de FONS del paso, que viu a slide-data
-// (content.image) i es pinta a .parallax-img, una altra capa.
+// ── Imágenes del parallax ────────────────────────────────────────────────
+// Dins del text d'un paso de parallax, una imatge pot anar de dues maneres:
+//   · LLIGADA a una frase: <p>text<br><img …></p> — frase i imatge apareixen
+//     i se'n van juntes (és el que fa servir la intro, paso 1).
+//   · SOLA, com una frase més: <p><img …></p>, amb la seva cel·la de scroll.
+// El motor no se n'assabenta: aquí només es reescriu el text del paso, i la
+// resta del camí (override → export → slide-data) és el de sempre. No
+// confondre amb la imatge de FONS del paso (slide-data → content.image).
+const IMG_G = /<img\b[^>]*>/gi;
+const BR_G = /<br\s*\/?>/gi;
+
 function campFrases() {
   return document.querySelector('.parallax-frases[data-field="text"]');
 }
@@ -244,8 +247,45 @@ function frasesHtml() {
   return camp ? [...camp.querySelectorAll(':scope > p')].map(p => p.innerHTML) : null;
 }
 
-/** Desa les frases com a text del paso i re-renderitza. Mateix camí que
- *  qualsevol altra edició: override → export → slide-data. */
+/** Text visible d'una frase, sense imatges ni salts. */
+function textDe(html) {
+  return html.replace(IMG_G, '').replace(BR_G, ' ').replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ').trim();
+}
+
+/** Totes les imatges del paso, amb la frase on són i si hi van soles. */
+function imatgesDe(frases) {
+  const out = [];
+  frases.forEach((html, frase) => {
+    const sola = !textDe(html);
+    (html.match(IMG_G) || []).forEach((tag) => {
+      out.push({ frase, sola, tag, src: (tag.match(/\ssrc="([^"]*)"/i) || [])[1] || '' });
+    });
+  });
+  return out;
+}
+
+/** Treu una imatge de la seva frase (amb el <br> que la separava del text);
+ *  si la frase es queda sense res, desapareix. */
+function treuImatge(frases, frase, tag) {
+  const html = frases[frase];
+  const i = html.indexOf(tag);
+  if (i < 0) return;
+  const resta = html.slice(0, i).replace(/<br\s*\/?>\s*$/i, '') + html.slice(i + tag.length);
+  if (!textDe(resta) && !/<img\b/i.test(resta)) frases.splice(frase, 1);
+  else frases[frase] = resta;
+}
+
+/** Posa una imatge al destí: 'con:K' (lligada a la frase K) o 'sola:K'
+ *  (frase pròpia a la posició K, 0 = al principi). */
+function posaImatge(frases, desti, tag) {
+  const [mode, n] = String(desti).split(':');
+  const k = Number(n) || 0;
+  if (mode === 'con' && frases[k] !== undefined) frases[k] = `${frases[k]}<br>${tag}`;
+  else frases.splice(Math.max(0, Math.min(frases.length, k)), 0, tag);
+}
+
+/** Desa les frases com a text del paso i re-renderitza. */
 function desaFrases(frases) {
   S.overrides[S.paso] = {
     ...(S.overrides[S.paso] || {}),
@@ -259,53 +299,68 @@ const escAttr = (v) => String(v)
   .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
   .replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/** Opcions "entre quines frases": 0 = al principi, n = al final. */
-function omplePosicions(sel, nFrases, valor) {
-  sel.innerHTML = '';
-  const opcio = (v, text) => {
-    const o = document.createElement('option');
-    o.value = String(v); o.textContent = text;
-    sel.appendChild(o);
-  };
-  opcio(0, 'Al principio');
-  for (let i = 1; i <= nFrases; i++) {
-    opcio(i, i === nFrases ? 'Al final' : `Después de la frase ${i}`);
-  }
-  sel.value = String(Math.max(0, Math.min(nFrases, Number(valor) || 0)));
+/** Etiqueta curta d'una frase: número i inici del text (o el fitxer, si és
+ *  una imatge sola), perquè al selector es vegi de quina frase es parla. */
+function etiquetaFrase(html, k) {
+  const t = textDe(html);
+  if (t) return `${k + 1} · «${t.length > 28 ? `${t.slice(0, 28)}…` : t}»`;
+  const src = (html.match(/\ssrc="([^"]*)"/i) || [])[1] || '';
+  return `${k + 1} · [${src.split('/').pop() || 'imagen'}]`;
 }
 
-/** Refresca el bloc amb l'estat del paso: les imatges que ja hi són (amb la
- *  posició actual, que es pot canviar per moure-les) i el selector de
- *  posició per a la següent. En un paso que no és de parallax queda inert. */
+/** Destins possibles: lligada a qualsevol frase amb text, o sola en
+ *  qualsevol posició. Si el valor demanat ja no existeix, "al final". */
+function omplePosicions(sel, frases, valor) {
+  sel.innerHTML = '';
+  const grup = (label) => {
+    const g = document.createElement('optgroup');
+    g.label = label; sel.appendChild(g);
+    return g;
+  };
+  const opcio = (g, v, text) => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = text; g.appendChild(o);
+  };
+  const junt = grup('Junto a la frase');
+  frases.forEach((html, k) => { if (textDe(html)) opcio(junt, `con:${k}`, etiquetaFrase(html, k)); });
+  if (!junt.children.length) junt.remove();
+  const sola = grup('Como paso propio');
+  opcio(sola, 'sola:0', 'Al principio');
+  frases.forEach((html, k) => opcio(sola, `sola:${k + 1}`, `Después de ${etiquetaFrase(html, k)}`));
+  const valors = [...sel.options].map(o => o.value);
+  sel.value = valors.includes(valor) ? valor : `sola:${frases.length}`;
+}
+
+/** Refresca el bloc: una fila per imatge del paso (on apareix, canviable, i
+ *  ×) i el selector per a la següent. Si el paso no és de parallax, inert. */
 function syncImgPos() {
   if (!imgActions || !selImgPos) return;
   const frases = frasesHtml();
-  const n = frases ? frases.length : 0;
   if (llistaImg) llistaImg.innerHTML = '';
 
-  (frases || []).forEach((html, idx) => {
-    const src = (html.match(/<img[^>]*\ssrc="([^"]*)"/i) || [])[1];
-    if (src === undefined || !llistaImg) return;
+  (frases ? imatgesDe(frases) : []).forEach((img) => {
+    if (!llistaImg) return;
+    // Els destins es calculen sobre les frases SENSE aquesta imatge: és com
+    // quedaran just abans de tornar-la a posar on es triï.
+    const resta = [...frases];
+    treuImatge(resta, img.frase, img.tag);
 
     const item = document.createElement('div');
     item.className = 'tweaks__img-item';
-
     const nom = document.createElement('span');
     nom.className = 'tweaks__img-name';
-    nom.textContent = src.split('/').pop() || src;
-    nom.title = src;
+    nom.textContent = (img.src.split('/').pop() || img.src).replace(/\.(webp|png|jpe?g|gif|svg)$/i, '');
+    nom.title = img.src;
 
-    // La posició es compta SENSE aquesta imatge: així "después de la frase N"
-    // vol dir el mateix tant si la mous com si n'inserissis una de nova.
     const sel = document.createElement('select');
-    sel.title = 'Entre qué frases aparece';
-    omplePosicions(sel, Math.max(0, n - 1), idx);
+    sel.title = 'Dónde aparece la imagen';
+    omplePosicions(sel, resta, img.sola ? `sola:${img.frase}` : `con:${img.frase}`);
     sel.addEventListener('change', () => {
-      const mou = frasesHtml();
-      if (!mou) return;
-      const [img] = mou.splice(idx, 1);
-      mou.splice(Math.max(0, Math.min(mou.length, Number(sel.value) || 0)), 0, img);
-      desaFrases(mou);
+      const fr = frasesHtml();
+      if (!fr) return;
+      treuImatge(fr, img.frase, img.tag);
+      posaImatge(fr, sel.value, img.tag);
+      desaFrases(fr);
     });
 
     const treu = document.createElement('button');
@@ -314,17 +369,17 @@ function syncImgPos() {
     treu.textContent = '×';
     treu.title = 'Quitar la imagen de este paso';
     treu.addEventListener('click', () => {
-      const fora = frasesHtml();
-      if (!fora) return;
-      fora.splice(idx, 1);
-      desaFrases(fora);
+      const fr = frasesHtml();
+      if (!fr) return;
+      treuImatge(fr, img.frase, img.tag);
+      desaFrases(fr);
     });
 
     item.append(nom, sel, treu);
     llistaImg.appendChild(item);
   });
 
-  omplePosicions(selImgPos, n, selImgPos.value === '' ? n : selImgPos.value);
+  omplePosicions(selImgPos, frases || [], selImgPos.value);
   [inpImgSrc, inpImgAlt, selImgPos, btnImgAdd].forEach(el => { if (el) el.disabled = !frases; });
 }
 
@@ -333,8 +388,7 @@ btnImgAdd?.addEventListener('click', () => {
   const frases = frasesHtml();
   if (!frases) return;
   if (!src) { inpImgSrc.focus(); return; }
-  const pos = Math.max(0, Math.min(frases.length, Number(selImgPos.value) || 0));
-  frases.splice(pos, 0, `<img src="${escAttr(src)}" alt="${escAttr(inpImgAlt.value.trim())}">`);
+  posaImatge(frases, selImgPos.value, `<img src="${escAttr(src)}" alt="${escAttr(inpImgAlt.value.trim())}">`);
   desaFrases(frases);
 });
 

@@ -372,6 +372,41 @@ describe('Parallax Lab — driver (scroll natiu amb snap)', () => {
     delete document.elementFromPoint;
   });
 
+  // El driver tapa el slide: el cursor de mà i el :hover dels enllaços (CTA
+  // de la coda) els ha de posar el motor, i només a la frase activa.
+  test('cursor de mà sobre un enllaç de la frase activa; es refà en canviar de frase', () => {
+    const { slideEl } = harnessNav(3);
+    const { driver } = cableja(slideEl, { paso: 29, apps: [] });
+    const frases = [...slideEl.querySelectorAll('.parallax-frases > p')];
+    const enllac = (frase, left) => {
+      const a = document.createElement('a');
+      a.href = 'https://playnuzic.com/'; a.textContent = 'PlayNuzic';
+      a.getClientRects = () => [{ left, right: left + 100, top: 50, bottom: 80 }];
+      frases[frase].appendChild(a);
+      return a;
+    };
+    const a0 = enllac(0, 100);        // frase 0 = activa
+    const a2 = enllac(2, 300);        // frase 2, encara atenuada
+    const mou = (x, y) => driver.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: y, bubbles: true }));
+
+    mou(150, 60);
+    expect(driver.style.cursor).toBe('pointer');
+    expect(a0.classList.contains('is-hover')).toBe(true);
+
+    mou(350, 60);                     // sobre l'enllaç d'una frase no activa: res
+    expect(driver.style.cursor).toBe('');
+    expect(a0.classList.contains('is-hover')).toBe(false);
+    expect(a2.classList.contains('is-hover')).toBe(false);
+
+    driver.scrollTo({ top: 2 * CELL }); drena();   // el punter no es mou; la frase 2 passa a activa
+    expect(driver.style.cursor).toBe('pointer');
+    expect(a2.classList.contains('is-hover')).toBe(true);
+
+    driver.dispatchEvent(new MouseEvent('mouseleave'));
+    expect(driver.style.cursor).toBe('');
+    expect(a2.classList.contains('is-hover')).toBe(false);
+  });
+
   test('activar app-reveal des del panell re-cableja el driver amb la cel·la d\'app', () => {
     const { slideEl } = harnessNav(3);
     // Paso sense PRESET (el 2 ja porta app-reveal actiu de fàbrica).

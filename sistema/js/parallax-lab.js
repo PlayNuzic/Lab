@@ -447,6 +447,7 @@ function wire(slideEl, slide) {
     }
     pintaFrases(pos);
     publica();
+    if (punter) actualitzaHover();
     // Cel·la de sortida: en entrar-hi prou (el snap acabarà de portar-hi),
     // paso següent — un sol cop.
     if (ambSortida && !escapat && pos >= ultima + SORTIDA_LLINDAR) {
@@ -519,6 +520,33 @@ function wire(slideEl, slide) {
     if (i >= 0) { if (i !== active) { hideHint(); scrollA(i); } return; }
     sota.closest('button')?.click();
   });
+
+  // Cursor d'enllaç: com que el driver tapa el slide, ni el cursor de mà ni
+  // el :hover dels enllaços de les frases (els CTA de la coda) hi arriben
+  // sols. Es compara el punter amb les caixes dels enllaços de la frase
+  // ACTIVA —la mateixa regla que el clic— sense elementFromPoint ni tocar
+  // pointer-events a cada moviment. També es refà en canviar de frase, per si
+  // el punter es queda quiet mentre el scroll canvia la frase de sota.
+  let punter = null;
+  let enllacSota = null;
+  function enllacA(x, y) {
+    for (const a of frases[active]?.querySelectorAll('a[href]') || []) {
+      for (const r of a.getClientRects()) {
+        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return a;
+      }
+    }
+    return null;
+  }
+  function actualitzaHover() {
+    const a = punter && !estat()?.editable ? enllacA(punter.x, punter.y) : null;
+    if (a === enllacSota) return;
+    enllacSota?.classList.remove('is-hover');
+    enllacSota = a;
+    a?.classList.add('is-hover');
+    driver.style.cursor = a ? 'pointer' : '';
+  }
+  driver.addEventListener('mousemove', (e) => { punter = { x: e.clientX, y: e.clientY }; actualitzaHover(); });
+  driver.addEventListener('mouseleave', () => { punter = null; actualitzaHover(); });
 
   // Ranura per a app-reveal (Lab B): contenidor buit i amagat; la tècnica
   // hi injecta l'iframe (lazy, un sol cop) i el mostra segons el progrés.
