@@ -1,24 +1,31 @@
 # SESSION_STATE
 
-Cap tasca activa.
+## Tasca activa (no és codi del Lab)
 
-Última tasca completada: **Una imatge pot ser una frase del parallax**
-(2026-09-21), amb el control «Imagen como frase» a Tweaks i la il·lustració del
-recorregut al paso 1. Acta: `docs/session-history/2026-09-21-imatge-com-a-frase.md`.
-Abans, el mateix dia: intro (paso 1) i coda (paso 29) reescrites amb les 3 CTA
-enllaçades i OVERRIDES_VERSION 8, acta
-`docs/session-history/2026-09-21-coda-cta-enllacos.md`.
-Anterior: test d'usuari v3 — documents i embut «Continuacion en frio» a Clarity
-(2026-09-15), sense canvis de codi, acta
-`docs/session-history/2026-09-15-test-usuari-v3-embut-continuacio.md`.
-Suite: 92/1536.
+**Mapa arquitectònic global de Nuzic/PlayNuzic** (encàrrec de direcció, 2026-09-21).
+No toca cap fitxer del repo. L'estat de represa, les fases i els dossiers de recerca
+viuen FORA del repo (és públic): `~/Documents/Nuzic/Mapa Nuzic/ESTAT.md` — llegeix-lo
+primer i continua per la primera fase no tancada.
+
+## Codi del Lab
+
+Cap tasca de codi activa.
+
+Última tasca completada: **Pre-test del test d'usuari: guia, Zoom, Google Forms (script),
+segments de Clarity, guions v5 per passos i guió del pre-test PP-01** (2026-09-23), sense
+canvis de codi. Acta:
+`docs/session-history/2026-09-23-pretest-zoom-forms-clarity.md`.
+Anteriors, amb codi: el mateix dia, imatges lligades a frases
+(`docs/session-history/2026-09-23-imatges-lligades-a-frases.md`) i intro, coda i presets
+unificats (`docs/session-history/2026-09-23-intro-coda-i-presets-unificats.md`); el
+2026-09-21, imatge com a frase (`docs/session-history/2026-09-21-imatge-com-a-frase.md`) i
+coda amb CTA (`docs/session-history/2026-09-21-coda-cta-enllacos.md`). Test d'usuari v3
+(2026-09-15): `docs/session-history/2026-09-15-test-usuari-v3-embut-continuacio.md`.
 
 ## Pendent
 
 - **Push**: main va per davant d'origin (intro i coda noves, CTA amb enllaços,
   i la migració v8 que descarta els textos desats al navegador).
-- **Tips del paso 12**: el títol «Prueba los Intervalos Temporales» és heretat
-  del paso 8 (detectat a la revisió del 2026-09-16, acta del test v3).
 
 Tancats el 2026-08-31 amb la prova a l'altre ordinador: ratolí amb
 cremallera i tàctil ("prou bé"), paso 2 i el seu títol, `mida: 1` de l'app
