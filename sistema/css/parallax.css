@@ -124,17 +124,28 @@ body[data-theme="dark"] .slide--parallax{
 /* Escenari de frases: ocupa tot l'espai restant (tota l'amplada del
    slide). Les frases es col·loquen apilades al centre vertical; la
    posició/escala/opacitat exactes vénen per estil inline des de
-   setActive() (slides.js), aquí només la base i la transició. */
+   setActive() (slides.js), aquí només la base i la transició.
+   És contenidor de mida (container-type) perquè les imatges de les frases
+   es puguin limitar a l'alçada real de l'escenari (unitats cqh). */
 .parallax-frases{
   position: relative;
   flex: 1;
   min-height: 38vh;
+  /* Aire mínim sota el títol: la frase més alta queda com a molt aquí. */
+  margin-top: clamp(8px, 1.6vh, 18px);
+  container-type: size;
 }
+/* Cap frase no pot tapar el títol (2026-09-28). La frase es centra amb
+   top:50% + translateY(-50%), i si fos més alta que l'escenari en
+   sobresortiria per dalt, damunt del títol. Amb max-height:100% la CAIXA
+   mai és més alta que l'escenari: el centrat la deixa com a molt enganxada
+   a dalt, i el que no hi càpiga desborda només cap avall. */
 .parallax-frases > p{
   position: absolute;
   left: 0;
   right: 0;
   top: 50%;
+  max-height: 100%;
   margin: 0;
   font-family: var(--font-display);
   font-size: clamp(24px, 2.4vw + 0.7rem, 48px);
@@ -199,36 +210,34 @@ body[data-theme="dark"] .slide--parallax{
   height: auto;
   max-width: min(100%, 60rem);
   max-height: 58vh;
-  max-height: 58dvh;
+  max-height: min(58dvh, 100cqh);
   border-radius: 12px;
 }
 /* Imatge LLIGADA a una frase: <p>text<br><img …></p>. Frase i imatge
    apareixen i se'n van juntes (la intro, paso 1). La imatge va a sota del
-   text i alineada amb ell, una mica més baixa que una imatge sola perquè
-   hi càpiga tot el conjunt. */
+   text, centrada, i s'encongeix perquè text + imatge càpiguen a
+   l'escenari: li deixem l'alçada que queda un cop reservades dues línies de
+   text (2lh) i el marge. Si el text en fa més, el max-height de la frase
+   fa que desbordi cap avall, mai cap al títol. */
 .parallax-frases > p:has(> br + img) > img{
+  --px-img-marge: clamp(10px, 1.8vh, 22px);
   display: block;
-  margin: clamp(10px, 1.8vh, 22px) auto 0;   /* centrada a la frase */
+  margin: var(--px-img-marge) auto 0;
   max-height: 40vh;
-  max-height: 40dvh;
+  max-height: min(40dvh, 100cqh - 2lh - var(--px-img-marge));
 }
 /* Imatge a TOT L'AMPLE del parallax (class="ample"), p.ex. el recorregut
-   sencer a «Aquí empieza el viaje». En pantalles baixes, en lloc de
-   desbordar, s'encongeix i es queda centrada (object-fit) sense deformar-se. */
+   sencer a «Aquí empieza el viaje». Si l'escenari és baix s'encongeix
+   (el límit d'alçada ve de la regla de dalt) i es queda centrada
+   (object-fit) sense deformar-se. */
 .parallax-frases > p > img.ample{
   width: 100%;
   max-width: 100%;
-  max-height: 60vh;
-  max-height: 60dvh;
   object-fit: contain;
 }
-/* Pantalles baixes: la frase es centra verticalment (top:50%), i una imatge
-   tan alta la faria pujar fins al títol. */
-@media (max-height: 820px){
-  .parallax-frases > p > img.ample{
-    max-height: 44vh;
-    max-height: 44dvh;
-  }
+.parallax-frases > p:has(> br + img) > img.ample{
+  max-height: 60vh;
+  max-height: min(60dvh, 100cqh - 2lh - var(--px-img-marge));
 }
 
 /* ---- Avís de scroll ---- */
