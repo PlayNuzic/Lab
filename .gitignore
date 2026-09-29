@@ -3,6 +3,8 @@ node_modules
 # Claude Code: settings.json, hooks i skills es versionen; el que és personal, no.
 .claude/settings.local.json
 .claude/worktrees/
+# launch.json: servidors de previsualització de l'app d'escriptori, amb rutes del Mac.
+.claude/launch.json
 
 # LH-03: backups per sufix mai més al repo (git history ja arxiva)
 *.bak
