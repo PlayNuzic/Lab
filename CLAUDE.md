@@ -79,6 +79,7 @@ const audio = await initAudio();
 npm test                                    # Run all tests
 npm test -- --testPathPattern="module-name" # Specific module
 npm run smoke                               # Load every page in headless Chromium (catches app main.js errors)
+npm run smoke:setup                         # Once per machine: Chromium for the pinned Playwright
 npx http-server                             # Serve apps locally
 ```
 
