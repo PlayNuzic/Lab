@@ -13,7 +13,7 @@ async function main() {
   const root = process.env.CLAUDE_PROJECT_DIR || process.cwd();
   if (!file || !/\.(m?js)$/.test(file)) return;
   const rel = path.relative(root, path.resolve(root, file));
-  if (rel.startsWith('..') || rel.startsWith('node_modules') || rel.startsWith('.claude')) return;
+  if (rel.startsWith('..') || rel.startsWith('node_modules')) return;
   if (!existsSync(path.join(root, 'node_modules', '.bin', 'jest'))) return;
 
   const r = spawnSync(path.join(root, 'node_modules', '.bin', 'jest'),

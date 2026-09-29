@@ -8,6 +8,7 @@ Investigació i desenvolupament del mètode Nuzic per al ritme i el temps musica
 
 ```bash
 npm install        # Dependències (Jest, Playwright)
+npx playwright install chromium  # Només el primer cop, per a npm run smoke
 npm test           # Tests unitaris (Jest)
 npm run smoke      # Carrega totes les pàgines en Chromium i falla si hi ha errors
 npx http-server    # Serveix les apps i el Sistema localment
