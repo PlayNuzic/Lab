@@ -48,8 +48,33 @@ existien). Pujades des del Mac (23c9b33) i corregides:
   "modificables amb aprovació" (abans hi deia "MAI").
 - `.claude/launch.json` ignorat (rutes del Mac, Mapa Nuzic).
 
+## P2 (mateix dia)
+
+- `npm run smoke` (`tests/smoke.mjs`): arrel, catàleg, sistema i les 39 apps en Chromium
+  headless, xarxa externa bloquejada; falla amb errors de JS, de consola o recursos locals.
+  42/42 netes en ~23 s. Un import trencat a `Apps/App15/main.js`: Jest no el veu, el smoke sí.
+  `playwright` fixat a 1.56.1 (el Chromium del núvol). Job `smoke` a la CI.
+- Guies: fora `.claude-code/integration-config.yaml`; README sense `./setup.sh` (no existeix),
+  sense Babel (no s'usa) i sense recomptes; CLAUDE.md i MODULES.md sense recomptes;
+  ruta correcta de `docs/LAB_SYSTEM_RULES.md`.
+- graphify: de CLAUDE.md (8,8 → 5,0 KB) a `.claude/skills/graphify-lab/`.
+- Alberton (els dos repos), branca `claude/harness-p2`, **sense pujar** (l'app de GitHub de
+  Claude no hi és instal·lada): `tools/check_rules.py` + tests (vocabulari privat guardat com a
+  hashes, anglès al codi, noms de set a `devices/`, les 11 ops i el bind 127.0.0.1 del Remote
+  Script), CI `checks.yml` i hook `SessionStart` que diu que Live no és accessible al núvol.
+
+## P3
+
+- `tests/docs-paths.test.js`: les 99 rutes citades a guies i skills han d'existir (sensor
+  computacional de deriva).
+- Rutina "Deriva documental del Lab" (`trig_01QwdLyqDwYwwXwRmYFuogaz`): dilluns 8:52 (Madrid),
+  sessió nova que revisa guies i skills contra el codi i obre PR només de documentació. Creada
+  sense connectors: si no pot obrir la PR, puja la branca i deixa l'enllaç a l'informe.
+- mcp-for-live: `SESSION-LOG.md` de 661 a 310 línies; les entrades del 2 al 5 d'agost, intactes,
+  a `docs/history/` (branca `claude/harness-p2`, sense pujar).
+- CI del Lab: push només a main (abans cada push amb PR s'executava dues vegades).
+
 ## Pendent
 
-- P2: test de fum amb Chromium de les 39 apps (prototip: 21 s, 0 errors), neteja de
-  guies contradictòries (`.claude-code/integration-config.yaml`, xifres del README),
-  graphify de CLAUDE.md a una skill.
+- Instal·lar l'app de GitHub de Claude a l'organització Alberton-projects i pujar les dues
+  branques `claude/harness-p2` (o aplicar els patches des del Mac).

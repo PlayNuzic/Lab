@@ -10,9 +10,10 @@ Estat a 28/09/2026 (vespre): versió breu (v2) feta i corregida; la v1 és la ve
 
 ## Codi del Lab
 
-**Arnès de Claude Code (2026-09-29)**: P1 feta (permisos + hooks + CI) i les 4 skills
-del Lab al repo (`.claude/skills/`), revisades i corregides; `docs/agents-context.md`
-reescrit. Acta: `docs/session-history/2026-09-29-arnes-p1-hooks.md`. Pendent: P2 (vegeu l'acta).
+**Arnès de Claude Code (2026-09-29)**: P1, P2 i P3 fetes al Lab (PR
+https://github.com/PlayNuzic/Lab/pull/1). Acta: `docs/session-history/2026-09-29-arnes-p1-hooks.md`.
+**Pendent:** pujar la P2/P3 d'Alberton-projects (branques locals `claude/harness-p2`),
+bloquejada perquè l'app de GitHub de Claude no està instal·lada a l'organització.
 
 Última tasca completada: **Pre-test del test d'usuari: guia, Zoom, Google Forms (script),
 segments de Clarity, guions v5 per passos i guió del pre-test PP-01** (2026-09-23), sense
