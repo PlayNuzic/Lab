@@ -10,10 +10,15 @@ Estat a 28/09/2026 (vespre): versió breu (v2) feta i corregida; la v1 és la ve
 
 ## Codi del Lab
 
-**Arnès de Claude Code (2026-09-29)**: P1, P2 i P3 fetes al Lab (PR
-https://github.com/PlayNuzic/Lab/pull/1). Acta: `docs/session-history/2026-09-29-arnes-p1-hooks.md`.
-**Pendent:** pujar la P2/P3 d'Alberton-projects (branques locals `claude/harness-p2`),
-bloquejada perquè l'app de GitHub de Claude no està instal·lada a l'organització.
+**Arnès de Claude Code (2026-09-29)**: P1, P2 i P3 fetes al Lab i fusionades (PR
+https://github.com/PlayNuzic/Lab/pull/1, merge `9fdd0c3`). Acta:
+`docs/session-history/2026-09-29-arnes-p1-hooks.md`. Revisat des del Mac el mateix dia:
+`docs-paths` petava per un `.DS_Store` a `.claude/skills/` (arreglat, `9eb3905`).
+**Pendent:** pujar la P2/P3 d'Alberton-projects. Les branques `claude/harness-p2` només
+existeixen al contenidor de la sessió del núvol (session_019voUjYar4cLCZ6ywcQ6QKT), que
+també va enviar 3 patches. El push d'allà dona 403 perquè l'app de Claude **no està
+instal·lada a l'organització** (a 29/09 15:00 UTC, `gh api orgs/Alberton-projects/installations`
+torna `total 0`). Des del Mac sí que es pot pujar per SSH: amb els patches, `git am` + push + PR amb `gh`.
 
 Última tasca completada: **Pre-test del test d'usuari: guia, Zoom, Google Forms (script),
 segments de Clarity, guions v5 per passos i guió del pre-test PP-01** (2026-09-23), sense
@@ -28,8 +33,7 @@ coda amb CTA (`docs/session-history/2026-09-21-coda-cta-enllacos.md`). Test d'us
 
 ## Pendent
 
-- **Push**: main va per davant d'origin (intro i coda noves, CTA amb enllaços,
-  i la migració v8 que descarta els textos desats al navegador).
+- **Push**: `9eb3905` (fix de `docs-paths`) i aquest SESSION_STATE, només en local.
 
 Tancats el 2026-08-31 amb la prova a l'altre ordinador: ratolí amb
 cremallera i tàctil ("prou bé"), paso 2 i el seu títol, `mida: 1` de l'app
