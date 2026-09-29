@@ -15,7 +15,10 @@ const GUIDES = [
   'docs/agents-context.md',
   'docs/MODULES.md',
   'docs/LAB_SYSTEM_RULES.md',
-  ...readdirSync(path.join(ROOT, '.claude/skills')).map((s) => `.claude/skills/${s}/SKILL.md`),
+  // Només carpetes: al Mac hi apareix un .DS_Store.
+  ...readdirSync(path.join(ROOT, '.claude/skills'), { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => `.claude/skills/${d.name}/SKILL.md`),
 ];
 
 // Rutes que falten a propòsit, amb el motiu.
