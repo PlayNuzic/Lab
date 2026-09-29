@@ -10,7 +10,11 @@ Estat a 28/09/2026 (vespre): versió breu (v2) feta i corregida; la v1 és la ve
 
 ## Codi del Lab
 
-Cap tasca de codi activa.
+**Arnès de Claude Code (2026-09-29)**: P1 feta (permisos + hooks + CI), acta a
+`docs/session-history/2026-09-29-arnes-p1-hooks.md`. **Pendent (des del Mac):**
+copiar les 6 skills de `~/.claude/skills/` a `.claude/skills/`, revisar-les (repo
+públic) i alinear `/audio` i `docs/agents-context.md` amb els nivells de CLAUDE.md.
+Després, la P2 (vegeu l'acta).
 
 Última tasca completada: **Pre-test del test d'usuari: guia, Zoom, Google Forms (script),
 segments de Clarity, guions v5 per passos i guió del pre-test PP-01** (2026-09-23), sense
