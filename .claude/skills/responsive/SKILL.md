@@ -51,8 +51,10 @@ Compte: comprova primer si el pseudo-element ja porta contingut (els half-pills
 del fraction-editor usen `::after` per als glifs +/− → allà s'usa `::before`).
 
 ### 4. Variables CSS compartides (no hardcodejar)
-`--col-left`, `--col-right`, `--layout-gap`, `--select-color`, `--text-color`,
-i al tema nuzic els tokens `--nuzic-*` (nuzic-theme.css).
+`--layout-gap`, `--select-color`, `--text-color`, i al tema nuzic els tokens `--nuzic-*`
+(nuzic-theme.css). `--col-left`/`--col-right` són del layout de dues/tres columnes
+(`two-column-layout.css`), que la migració nuzic elimina (skill `nuzic-migrate`, Step 3):
+no les facis servir en apps noves.
 
 ### 5. Gestos tàctils
 - Pointer Events (no touch events): `pointerdown/move/up/cancel` amb guards de

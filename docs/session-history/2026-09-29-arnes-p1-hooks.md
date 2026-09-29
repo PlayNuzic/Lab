@@ -29,12 +29,27 @@ mecanismes). Anàlisi prèvia a la sessió: Lab + els dos repos d'Alberton-proje
 Suite sencera: 93 suites, 1566 tests. Hook de tests relacionats provat en verd
 (133 tests de `subdivision.js`) i en vermell (canvi injectat → `block` amb el test).
 
+## Skills al repo (mateix dia)
+
+Les skills del Lab ja eren a `~/Lab/.claude/skills/` (no a `~/.claude/skills/`, com deia
+`docs/agents-context.md`) i quedaven amagades pel `.gitignore`. Són 4: `aplicar-tweaks`,
+`creator`, `nuzic-migrate`, `responsive` (`ui`, `audio`, `modules` i `gamification` ja no
+existien). Pujades des del Mac (23c9b33) i corregides:
+
+- `creator`: importava `bindRhythmElements`, que no existeix → `bindAppRhythmElements(appId)`;
+  no totes les apps tenen `CLAUDE.md` (8 de 39).
+- `aplicar-tweaks`: enllaços relatius a `.claude/sistema/` → `../../../sistema/`; xifra de
+  tests fixa treta.
+- `nuzic-migrate`: "SESSION_STATE.md punt N" → acta de 2026-05-14 (on ara viu el
+  "Coneixement consolidat"); ruta del Mac a `nuzic_app` treta; enllaç relatiu; mida real.
+- `responsive`: `--col-left`/`--col-right` són del layout de columnes que la migració nuzic
+  elimina, no variables per a apps noves.
+- `docs/agents-context.md` reescrit: les 4 skills reals, els hooks i els Nivell 1 com a
+  "modificables amb aprovació" (abans hi deia "MAI").
+- `.claude/launch.json` ignorat (rutes del Mac, Mapa Nuzic).
+
 ## Pendent
 
-- Copiar al repo les 6 skills de `~/.claude/skills/` (ui, audio, modules, creator,
-  gamification, responsive) → `.claude/skills/`. Només es pot fer des del Mac.
-  En copiar-les, alinear `/audio` i `docs/agents-context.md` amb els nivells de
-  CLAUDE.md (ara hi diu "MAI" modificar els fitxers de Nivell 1).
 - P2: test de fum amb Chromium de les 39 apps (prototip: 21 s, 0 errors), neteja de
   guies contradictòries (`.claude-code/integration-config.yaml`, xifres del README),
   graphify de CLAUDE.md a una skill.

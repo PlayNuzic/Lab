@@ -9,7 +9,7 @@ You are creating a new app for the PlayNuzic Lab monorepo. Follow these steps st
 
 ## Before Starting
 1. Ask the user for: app number, concept, which existing app is closest in functionality
-2. Read the CLAUDE.md of the closest existing app to understand its structure
+2. Read the closest existing app (`index.html`, `main.js`, and its `CLAUDE.md` if it has one — only some apps do)
 3. Check `libs/` for ALL reusable components before writing any app-specific code
 
 ## File Structure
@@ -25,11 +25,11 @@ Apps/AppN/
 
 ## Required Initialization Pattern
 ```javascript
-import { bindRhythmElements } from '../../libs/app-common/dom.js';
+import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import TimelineAudio from '../../libs/sound/index.js';
 
-const { elements, leds, ledHelpers } = bindRhythmElements({...});
+const { elements, leds, ledHelpers } = bindAppRhythmElements('appN', { /* extra elements */ });
 const initAudio = createRhythmAudioInitializer({...});
 const audio = await initAudio();
 ```

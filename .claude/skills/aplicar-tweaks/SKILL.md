@@ -6,7 +6,7 @@ description: "Bakes the sistema/ tweaks-panel Export JSON into versioned code. U
 # /aplicar-tweaks — cuinar l'export del panell tweaks al codi
 
 El visor de slides (`sistema/`) desa les edicions del panell **tweaks** a `localStorage`
-(per navegador). El botó **Exportar** ([tweaks.js](../../sistema/js/tweaks.js)) empaqueta
+(per navegador). El botó **Exportar** ([tweaks.js](../../../sistema/js/tweaks.js)) empaqueta
 tot en un sol JSON amb tres seccions, cadascuna amb un destí fix al codi. Aquest skill
 agafa aquest JSON i reparteix cada secció al seu lloc, validat, **sense committar**.
 
@@ -30,10 +30,10 @@ claus hi ha i cuina només aquestes.
 
 | Secció | Destí al codi | Com |
 |---|---|---|
-| `overrides[paso].text` / `.tips` / `.tipsTitle` | `slideContent[paso]` a [slide-data.js](../../sistema/js/slide-data.js) | camps HTML; reemplaça el valor d'aquell paso |
+| `overrides[paso].text` / `.tips` / `.tipsTitle` | `slideContent[paso]` a [slide-data.js](../../../sistema/js/slide-data.js) | camps HTML; reemplaça el valor d'aquell paso |
 | `overrides[paso].title` | on aquell paso ja llegeix el títol | normalment el camp `title` de la fila del `slideMatrix`; **grepa primer** per confirmar si el paso el treu de `slideMatrix` o de `slideContent` |
 | `densityByPaso[paso]` | camp `density:` de la fila del `slideMatrix` d'aquell paso | afegeix/actualitza `density:'...'` a la fila |
-| `parallaxFx[paso]` | mapa `PRESETS` a [parallax-lab.js](../../sistema/js/parallax-lab.js) | una entrada per paso; ordre canònic de tècniques |
+| `parallaxFx[paso]` | mapa `PRESETS` a [parallax-lab.js](../../../sistema/js/parallax-lab.js) | una entrada per paso; ordre canònic de tècniques |
 
 ## Procediment
 
@@ -63,7 +63,7 @@ claus hi ha i cuina només aquestes.
    pasos que no hi surten ni facis `PRESETS = {...}` sencer de zero si ja en tenia d'altres.
 
 6. **Verifica**: `node --check` dels fitxers tocats + `NODE_OPTIONS=--experimental-vm-modules
-   npx jest` (baseline actual: 90 suites / 1496 tests). Per a `parallaxFx`, corre també el
+   npx jest` (tota la suite en verd). Per a `parallaxFx`, corre també el
    validador de rangs de sota.
 
 7. **No committis.** Deixa-ho a l'arbre de treball i resumeix a l'usuari què s'ha cuinat i on.

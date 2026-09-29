@@ -9,7 +9,7 @@ Migrate a PlayNuzic Lab app to the nuzic visual theme. Run with `/nuzic-migrate 
 
 ## How to navigate this skill
 
-The skill is large (~2640 lines, 15 Steps). It mixes three reading modes:
+The skill is large (~4260 lines, 15 Steps). It mixes three reading modes:
 
 1. **First-pass general knowledge** — concepts you should know BEFORE
    touching any app. These live in Steps 12-15 at the end of the file
@@ -101,8 +101,8 @@ Before starting, ALWAYS read:
 - `docs/nuzic-editor-migration.md` — Editor patterns, controls layout, learnings
 - `docs/nuzic-theme-roadmap.md` — Theme phases and selectors reference
 - `libs/shared-ui/nuzic-theme.css` — Shared theme (the source of truth)
-- `SESSION_STATE.md` — Cross-app refactor history. Section "Coneixement
-  consolidat" lists every shared module and pattern in use. Specific
+- `docs/session-history/2026-05-14-nuzic-migration-complete.md` — Cross-app refactor history
+  (archived from SESSION_STATE.md). Section "Coneixement consolidat" lists every shared module and pattern in use. Specific
   points worth reading: 25-26 (App21-24 baseline patterns), 35 (header
   symmetry + connection-renderer centering), 37 (vertical-mode on the
   Sistema), 40 (modular pills + import-collision lesson).
@@ -633,7 +633,8 @@ The shared `smoothScrollTo` supports:
 ## Step 7: Editor Migration (CORE TASK)
 
 This is the main work. Read `docs/nuzic-editor-migration.md` FIRST.
-Study `/Users/workingburcet/nuzic_app/App/NuzicCSS.css` and `RE_General.js` for reference.
+The original Nuzic app (`NuzicCSS.css`, `RE_General.js`) is the visual reference; it is not in
+this repo, so rely on `docs/nuzic-editor-migration.md` unless the user provides those files.
 
 **CRITICAL RULE: Visual stack is ALWAYS `timeline → editor → controls`.**
 No exceptions. In the layout (flex/grid column), the order is:
@@ -1234,7 +1235,7 @@ at the last pulse column are not clipped. This is handled globally.
 
 Apps de fraccions (App26–31) usen timeline standalone horitzontal + una fila
 addicional de ticks de subdivisió SOTA (no sobre) els pulse-numbers. Patró
-inspirat a Nuzic Main. Veure [docs/nuzic-editor-migration.md — S19](../../docs/nuzic-editor-migration.md).
+inspirat a Nuzic Main. Veure [docs/nuzic-editor-migration.md — S19](../../../docs/nuzic-editor-migration.md).
 
 **DOM generat per `renderTimeline()`** (dins `.timeline`):
 
@@ -1397,7 +1398,7 @@ refactor) are done. These three patterns make the Pfr editor align
 perfectly with the timeline above and play well with the selection
 system.
 
-Reference: SESSION_STATE.md punt 44. Commits 19acb5b (base),
+Reference: `docs/session-history/2026-05-14-nuzic-migration-complete.md` punt 44. Commits 19acb5b (base),
 e39b36e (label + cells), 6b36e33 (active-over-selected).
 
 #### Pattern A: Pfr label aligned vertically with left endcap
@@ -1802,7 +1803,7 @@ refactor) are done. These three patterns finalize the App30 visual:
 info-pills format, info-pills alignment with right endcap, and halter iT
 under the colored bar.
 
-Reference: SESSION_STATE.md punt 46. Commits d4329e8 → 32462f1.
+Reference: `docs/session-history/2026-05-14-nuzic-migration-complete.md` punt 46. Commits d4329e8 → 32462f1.
 
 #### Pattern A: Info pills format (no pill — caixa quadrada)
 
@@ -2853,7 +2854,7 @@ finishing layer** for apps de plànol: adapta el patró Step 7s d'apps
 standalone (fracció caixa groga + timeline cream amb endcaps) a la
 realitat estructural d'una `.plano-container` grid.
 
-Reference: SESSION_STATE.md punt 47. Commits 44eae90 (refactor base),
+Reference: `docs/session-history/2026-05-14-nuzic-migration-complete.md` punt 47. Commits 44eae90 (refactor base),
 fcfedda (cantonada + gap), 8c67347 (margin-top negatius), 2f15be9 /
 8fd1417 / 0512661 (polishing final).
 
@@ -3227,7 +3228,7 @@ fractions need three additional patterns: ghost-pulse dots, audio
 null-safety, and the same Step 7s.9 adaptations as standalone
 complex apps.
 
-Reference: SESSION_STATE.md punt 48. App33 in 8 iterations,
+Reference: `docs/session-history/2026-05-14-nuzic-migration-complete.md` punt 48. App33 in 8 iterations,
 expected 1-2 for App35 since pattern is mature.
 
 #### Pattern A: Step 7s.9 (gap: 0 + bar pseudo-element)
@@ -3426,7 +3427,7 @@ rectangle and adds the yellow `::before`/`::after` endcap squares to the
 timeline. **Apply after** the editor migration of 7n/7o/7q is done and
 playing correctly.
 
-**Reference**: SESSION_STATE.md punt 41 has the full commit log + lessons.
+**Reference**: `docs/session-history/2026-05-14-nuzic-migration-complete.md` punt 41 has the full commit log + lessons.
 Applied first in App26 (commit 6b23d3d).
 
 #### 0. Shared CSS variables on `body.appNN`
@@ -3821,7 +3822,7 @@ standalone que NO són de fracció (App13 "Intervalos Temporales", App16
 "Módulo Temporal - Línea"). Aquestes apps tenen estructures pròpies que
 requereixen petites adaptacions.
 
-Reference: SESSION_STATE punt 43. Commits cc121c4, 5ac4a0f (App13);
+Reference: `docs/session-history/2026-05-14-nuzic-migration-complete.md` punt 43. Commits cc121c4, 5ac4a0f (App13);
 e48a57a, 1f172cf, e6c1454 (App16).
 
 #### App13 pattern (timeline + interval bars + iT editor)
