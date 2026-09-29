@@ -17,7 +17,7 @@ mecanismes). Anàlisi prèvia a la sessió: Lab + els dos repos d'Alberton-proje
   - `PostToolUse` sobre Edit/Write → `.claude/hooks/related-tests.mjs`:
     `jest --findRelatedTests` (2-8 s). Si fallen, `decision: "block"` amb el detall;
     si el fitxer és de Nivell 1, recorda passar `npm test` sencer i ensenyar el diff.
-  - `SessionStart` → `.claude/hooks/session-start.sh`: `npm install` només si
+  - `SessionStart` → `.claude/hooks/session-start.sh`: `npm install --no-save` només si
     `CLAUDE_CODE_REMOTE=true` (síncron, ~10 s).
 - `.claude/hooks/nivell1.mjs`: llista única dels fitxers de Nivell 1.
 - `.github/workflows/test.yml`: `npm ci` + `npm test` a cada push i PR (Node 22).

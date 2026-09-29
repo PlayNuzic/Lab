@@ -9,4 +9,5 @@ fi
 
 cd "$CLAUDE_PROJECT_DIR"
 # npm install (no ci): aprofita l'estat del contenidor que es desa després del hook.
-npm install --no-audit --no-fund --loglevel=error
+# --no-save: no reescriu package-lock.json (si no, cada sessió deixaria el repo brut).
+npm install --no-save --no-audit --no-fund --loglevel=error
