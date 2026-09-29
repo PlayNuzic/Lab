@@ -10,17 +10,16 @@ Estat a 28/09/2026 (vespre): versió breu (v2) feta i corregida; la v1 és la ve
 
 ## Codi del Lab
 
-**Arnès de Claude Code (2026-09-29)**: P1, P2 i P3 fetes al Lab i fusionades (PR
-https://github.com/PlayNuzic/Lab/pull/1, merge `9fdd0c3`). Acta:
-`docs/session-history/2026-09-29-arnes-p1-hooks.md`. Revisat des del Mac el mateix dia:
-`docs-paths` petava per un `.DS_Store` a `.claude/skills/` (arreglat, `9eb3905`).
-**Pendent:** pujar la P2/P3 d'Alberton-projects. Les branques `claude/harness-p2` només
-existeixen al contenidor de la sessió del núvol (session_019voUjYar4cLCZ6ywcQ6QKT), que
-també va enviar 3 patches. El push d'allà dona 403 perquè l'app de Claude **no està
-instal·lada a l'organització** (a 29/09 15:00 UTC, `gh api orgs/Alberton-projects/installations`
-torna `total 0`). Des del Mac sí que es pot pujar per SSH: amb els patches, `git am` + push + PR amb `gh`.
+Cap tasca de codi activa.
 
-Última tasca completada: **Pre-test del test d'usuari: guia, Zoom, Google Forms (script),
+Última tasca completada: **Arnès de Claude Code** (2026-09-29), tancada del tot: Lab
+(https://github.com/PlayNuzic/Lab/pull/1, i `9eb3905` des del Mac per un `.DS_Store` a
+`.claude/skills/`) i Alberton-projects
+(https://github.com/Alberton-projects/alberton_devices-for-live/pull/1,
+https://github.com/Alberton-projects/alberton_mcp-for-live/pull/1), totes fusionades amb la
+CI en verd. Acta: `docs/session-history/2026-09-29-arnes-p1-hooks.md`.
+
+Anterior: **Pre-test del test d'usuari: guia, Zoom, Google Forms (script),
 segments de Clarity, guions v5 per passos i guió del pre-test PP-01** (2026-09-23), sense
 canvis de codi. Acta:
 `docs/session-history/2026-09-23-pretest-zoom-forms-clarity.md`.
