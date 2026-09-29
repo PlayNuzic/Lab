@@ -13,9 +13,10 @@ Es carreguen quan la tasca hi encaixa, o amb `/nom`.
 | `/creator` | Crear una app nova (`Apps/AppN/`) amb el patró d'inicialització estàndard i els mòduls de `libs/`. |
 | `/responsive` | Adaptar una app a mòbil i tàctil amb les convencions reals del repo (`clamp()`, `max-width: 600px/900px`, `pointer: coarse`). |
 | `/nuzic-migrate` | Migrar una app al tema visual nuzic (controls, timeline, soundline, editors). És llarga (~4260 línies): llegeix-ne primer la secció "How to navigate this skill". |
+| `/graphify-lab` | Preguntes d'arquitectura i de com es relacionen teoria Nuzic i codi, via el graf graphify. **Només al Mac** (el graf viu fora del repo); també refresca el graf i el vault d'Obsidian. |
 | `/aplicar-tweaks` | Passar al codi l'export JSON del panell tweaks del `sistema/` (textos, densitat, presets del parallax). No fa commit. |
 
-Les skills generals que no són del Lab (p. ex. `graphify`) viuen a `~/.claude/skills/`
+Les skills generals que no són del Lab (p. ex. l'eina `graphify` genèrica) viuen a `~/.claude/skills/`
 del Mac i no es versionen aquí.
 
 ## Permisos i hooks (`.claude/settings.json`, `.claude/hooks/`)
