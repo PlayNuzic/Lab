@@ -1,395 +1,43 @@
-# 🎭 Sistema de Skills - PlayNuzic Lab
+# Arnès de Claude Code — PlayNuzic Lab
 
-## ✨ Skills Reals de Claude Code
+Què rep Claude quan treballa al Lab, i on viu cada peça. Tot és al repo (`.claude/`),
+de manera que el tenen igual les sessions locals (Mac) i les del núvol (claude.ai/code).
+Les regles de fons són a `CLAUDE.md`; aquest document només descriu l'arnès.
 
-PlayNuzic Lab utilitza **Skills reals de Claude Code** ubicats a `~/.claude/skills/` per proporcionar assistència especialitzada per domini.
+## Skills (`.claude/skills/`)
 
-### Com Funciona
+Es carreguen quan la tasca hi encaixa, o amb `/nom`.
 
-Els Skills són comandes que pots invocar directament:
+| Skill | Per a què |
+|---|---|
+| `/creator` | Crear una app nova (`Apps/AppN/`) amb el patró d'inicialització estàndard i els mòduls de `libs/`. |
+| `/responsive` | Adaptar una app a mòbil i tàctil amb les convencions reals del repo (`clamp()`, `max-width: 600px/900px`, `pointer: coarse`). |
+| `/nuzic-migrate` | Migrar una app al tema visual nuzic (controls, timeline, soundline, editors). És llarga (~4260 línies): llegeix-ne primer la secció "How to navigate this skill". |
+| `/graphify-lab` | Preguntes d'arquitectura i de com es relacionen teoria Nuzic i codi, via el graf graphify. **Només al Mac** (el graf viu fora del repo); també refresca el graf i el vault d'Obsidian. |
+| `/aplicar-tweaks` | Passar al codi l'export JSON del panell tweaks del `sistema/` (textos, densitat, presets del parallax). No fa commit. |
 
-```
-/ui           → UI Skill (interfícies, components)
-/audio        → Audio Skill (àudio, timing, sync)
-/modules      → Modules Skill (arquitectura, refactoring)
-/creator      → Creator Skill (crear apps noves)
-/gamification → Gamification Skill (logros, badges)
-/responsive   → Responsive Skill (mobile, responsive)
-```
+Les skills generals que no són del Lab (p. ex. l'eina `graphify` genèrica) viuen a `~/.claude/skills/`
+del Mac i no es versionen aquí.
 
----
+## Permisos i hooks (`.claude/settings.json`, `.claude/hooks/`)
 
-## 📋 Els 6 Skills Disponibles
+| Peça | Què fa |
+|---|---|
+| `permissions.ask` | Editar un fitxer de Nivell 1 (llista a `.claude/hooks/nivell1.mjs`) demana confirmació. |
+| `PreToolUse` Bash → `guard-nivell1.mjs` | Demana confirmació si una ordre de shell pot escriure un fitxer de Nivell 1 (`sed -i`, redireccions, `mv`, `cp`, `rm`, `git checkout`…) o fa una edició massiva dins `libs/`. Heurístic: pregunta, mai no bloqueja. |
+| `PostToolUse` Edit/Write → `related-tests.mjs` | Passa `jest --findRelatedTests` sobre el fitxer editat (2-8 s). Si fallen, Claude rep l'error i l'ha d'arreglar abans de continuar. |
+| `SessionStart` → `session-start.sh` | Només al núvol: `npm install --no-save`, perquè els tests funcionin des del primer moment. |
 
-### 🎨 `/ui` - UI Skill
-**Especialitat:** Interfícies d'usuari, components visuals, experiència d'usuari
+`tests/claude-hooks.test.js` prova els hooks i comprova que la llista de Nivell 1 coincideix
+amb `permissions.ask`. La CI (`.github/workflows/test.yml`) passa `npm test` a cada push i PR.
 
-**Utilitza per:**
-- Crear components UI nous
-- Millorar components existents
-- Anàlisi de disseny
-- Millores d'UX i accessibilitat
+## Fitxers de Nivell 1
 
-**Capacitats especials:**
-- Detecta components duplicats automàticament
-- Coneix tots els components de `libs/shared-ui/`
-- Garanteix estètica minimalista consistent
-- Verifica responsive design
+Els defineix `CLAUDE.md` ("High-Risk Files"). **Es poden modificar**, però abans cal llegir-ne
+els tests, passar tota la suite i ensenyar el diff complet per aprovar-lo. L'arnès ho fa
+complir: demana confirmació abans de l'edició i, després, recorda el pas de la suite i el diff.
 
-**Exemple:**
-```
-/ui Necessito un selector de escales per App34
-```
+## Què és personal i no es versiona
 
-**Documentació completa:** `~/.claude/skills/ui/SKILL.md`
-
----
-
-### 🔊 `/audio` - Audio Skill
-**Especialitat:** Sistema d'àudio, timing precís, sincronització
-
-**Utilitza per:**
-- Optimització d'àudio
-- Debugging de timing
-- Configuració de veus
-- Performance d'àudio
-
-**⚠️ CRÍTIC - Fitxers Protegits:**
-- `libs/sound/timeline-processor.js`
-- `libs/app-common/subdivision.js`
-- `libs/app-common/audio-schedule.js`
-
-**Capacitats especials:**
-- Prevé automàticament modificacions als fitxers crítics
-- Proposa wrappers en lloc de modificacions directes
-- Coneix tot el sistema TimelineAudio
-- Expert en seqüenciadors (pulse-seq, matrix-seq, interval-sequencer)
-
-**Exemple:**
-```
-/audio Debug problema de sincronització a App22
-```
-
-**Documentació completa:** `~/.claude/skills/audio/SKILL.md`
-
----
-
-### 📦 `/modules` - Modules Skill
-**Especialitat:** Arquitectura, detecció de duplicació, refactoring
-
-**Utilitza per:**
-- Detectar codi duplicat
-- Extreure funcionalitat a `libs/`
-- Reorganitzar estructura de mòduls
-- Refactoritzar mantenint compatibilitat
-
-**Capacitats especials:**
-- Analitza automàticament duplicació entre Apps
-- Coneix els 43+ mòduls de `libs/app-common/`
-- Proposa extraccions a `libs/` quan detecta >70% similitud
-- Garanteix que tots els tests passen després de refactoritzar
-
-**Exemples recents d'èxit:**
-- Creació de `libs/matrix-seq/` (945 línies JS, 275 CSS, 18 tests)
-- Creació de `libs/musical-grid/` (565 línies JS, 357 CSS, 26 tests)
-- Creació de `libs/interval-sequencer/` (6 mòduls, ~1400 línies, 113 tests)
-
-**Exemple:**
-```
-/modules Analitza si puc extreure el sistema de notes a libs/
-```
-
-**Documentació completa:** `~/.claude/skills/modules/SKILL.md`
-
----
-
-### 🏗️ `/creator` - Creator Skill
-**Especialitat:** Crear aplicacions noves completes des de zero
-
-**Utilitza per:**
-- Generar apps completes (AppXX)
-- Crear features complexes noves
-- Implementar conceptes musicals nous
-
-**Capacitats especials:**
-- Coneix tots els patrons d'Apps existents (App1-App35+)
-- Utilitza templates optimitzats
-- Integra automàticament mòduls compartits
-- Garanteix estètica consistent
-
-**Workflow:**
-1. Analitza Apps similars
-2. Identifica mòduls reutilitzables
-3. Genera estructura completa (HTML + CSS + JS)
-4. Integra àudio, LEDs i controls
-5. Assegura responsive design
-
-**Exemple:**
-```
-/creator Crea App36: Sequencer de ritmes africans
-```
-
-**Documentació completa:** `~/.claude/skills/creator/SKILL.md`
-
----
-
-### 🎮 `/gamification` - Gamification Skill
-**Especialitat:** Logros (achievements), badges, motivació d'usuari
-
-**Utilitza per:**
-- Implementar sistema de logros
-- Crear badges i recompenses
-- Tracking de progrés
-- Motivació i engagement
-
-**Capacitats especials:**
-- Coneix tot el sistema de `libs/gamification/`
-- Proposa logros apropiats per cada tipus d'app
-- Implementa notificacions elegants i no invasives
-- Tot funciona offline (localStorage)
-
-**Filosofia:**
-- Opcional (mai obligatori)
-- Discret (no molesta l'experiència musical)
-- Local (sense servers)
-- Elegant (consistent amb estètica minimalista)
-
-**Exemple:**
-```
-/gamification Afegeix logros per App34 (ritmes zigzag)
-```
-
-**Documentació completa:** `~/.claude/skills/gamification/SKILL.md`
-
----
-
-### 📱 `/responsive` - Responsive Skill
-**Especialitat:** Mobile-first, adaptabilitat cross-device
-
-**Utilitza per:**
-- Fer apps responsive
-- Optimitzar per mobile
-- Touch interactions
-- Media queries i breakpoints
-
-**Capacitats especials:**
-- Filosofia mobile-first automàtica
-- Coneix tots els breakpoints estàndard
-- Garanteix controls tactils adequats (min 44x44px)
-- Verifica en múltiples dispositius
-
-**Breakpoints:**
-- Mobile: 320px - 767px (base)
-- Tablet: 768px - 1023px
-- Desktop: 1024px+
-- Large: 1440px+
-
-**Exemple:**
-```
-/responsive Optimitza App28 per mobile
-```
-
-**Documentació completa:** `~/.claude/skills/responsive/SKILL.md`
-
----
-
-## 🚀 Com Utilitzar els Skills
-
-### Sintaxi Bàsica
-```
-/skill [descripció de la tasca]
-```
-
-### Exemples Reals
-
-```bash
-# Crear Component UI
-/ui Crea un selector de tonalitats amb visualització de notes
-
-# Debug Àudio
-/audio Les veus de App15 es desincronitzen després de 30 segons
-
-# Detectar Duplicació
-/modules Revisa si el sistema de notes de App12, App15 i App22 es pot unificar
-
-# Nova App
-/creator App36: Visualitzador de polirítmies amb 4 veus independents
-
-# Afegir Gamificació
-/gamification Implementa logros per App34 (primera sessió, 10 ritmes, etc.)
-
-# Fer Responsive
-/responsive App29 no funciona bé en iPhone, corregeix-ho
-```
-
----
-
-## ⚠️ Regles Crítiques (TOTES LES SESSIONS)
-
-### 🚫 FITXERS INTOCABLES:
-Aquests fitxers són el core del sistema i **MAI** es poden modificar:
-
-- `libs/sound/timeline-processor.js` - Sistema de timing crític (AudioWorklet) + sincronització de veus
-- `libs/app-common/subdivision.js` - Càlculs d'intervals
-- `libs/app-common/audio-schedule.js` - Matemàtica de resync/look-ahead
-
-**Si cal canviar alguna cosa relacionada amb aquests fitxers:**
-✅ Crear wrappers o extensions
-✅ Utilitzar hooks i callbacks existents
-❌ NO modificar els fitxers directament
-
-### ✅ SEMPRE:
-1. **Mostrar codi ABANS de crear fitxers**
-2. **Esperar aprovació explícita (✅) de l'usuari**
-3. **Crear nous fitxers en comptes de modificar existents**
-4. **Escriure tests per nous components**
-5. **Executar `npm test` després de canvis**
-6. **Usar overlays/wrappers en comptes de modificacions directes**
-
----
-
-## 📁 Estructura del Projecte
-
-```
-Lab/
-├── Apps/                    # 29+ apps (App1-App35+)
-├── libs/
-│   ├── app-common/         # 43 mòduls compartits
-│   ├── pulse-seq/          # Seqüències de pulsos (8 modes)
-│   ├── matrix-seq/         # Utilitats de parsing d'intervals
-│   ├── musical-grid/       # Grid 2D amb scroll
-│   ├── interval-sequencer/ # Motor iTfr + conversió d'intervals
-│   ├── notation/           # VexFlow rendering
-│   ├── random/             # Randomització
-│   ├── sound/              # Audio engine TimelineAudio
-│   ├── shared-ui/          # Components UI
-│   ├── gamification/       # Sistema de logros
-│   ├── plano-modular/      # Grid 2D modular
-│   └── audio-capture/      # Captura d'àudio/ritmes
-└── tests/                  # 60+ suites, 1100+ tests
-
-~/.claude/skills/            # Skills reals de Claude Code ⭐
-├── ui/SKILL.md             # UI Skill (147 línies)
-├── audio/SKILL.md          # Audio Skill (206 línies)
-├── modules/SKILL.md        # Modules Skill (301 línies)
-├── creator/SKILL.md        # Creator Skill (449 línies)
-├── gamification/SKILL.md   # Gamification Skill (401 línies)
-├── responsive/SKILL.md     # Responsive Skill (658 línies)
-└── README.md               # Guia d'ús (253 línies)
-```
-
----
-
-## 🎯 Avantatges dels Skills Reals
-
-### Context Especialitzat Automàtic
-Cada skill coneix completament el seu domini sense necessitat d'explicacions.
-
-### Restriccions de Seguretat Automàtiques
-- **Audio Skill** bloqueja modificacions a fitxers crítics
-- **Modules Skill** garanteix tests després de refactoritzar
-- **UI Skill** força buscar a `libs/shared-ui/` primer
-
-### Detecció Intel·ligent
-- **Modules Skill** detecta duplicació >70% automàticament
-- **UI Skill** identifica components reutilitzables
-- **Creator Skill** analitza Apps similars abans de crear
-
-### Templates Optimitzats
-- **Creator Skill** proporciona templates complets
-- **Gamification Skill** té patrons predefinits de logros
-- **Responsive Skill** té breakpoints estàndard
-
----
-
-## 💡 Templates Ràpids
-
-### Crear Component
-```
-/ui Crea component [nom] amb [requisits]
-```
-
-### Debug Àudio
-```
-/audio Debug problema a [App/fitxer]
-
-Símptomes: [descripció]
-```
-
-### Nova App
-```
-/creator App[N] - [nom descriptiu]
-
-Concepte musical: [descripció]
-```
-
-### Extreure Mòdul
-```
-/modules Extreu [funcionalitat] de App[X] a libs/
-
-Duplicació detectada amb App[Y] i App[Z]
-```
-
-### Afegir Gamificació
-```
-/gamification Implementa logros per App[N]
-
-Tipus: [creació, exploració, mestria, etc.]
-```
-
-### Optimitzar Responsive
-```
-/responsive App[N] necessita suport mobile
-
-Problemes: [descripció]
-```
-
----
-
-## 🎨 Filosofia de PlayNuzic Lab
-
-- **Minimalisme**: UI neta, codi simple
-- **Reutilització**: ~70% codi compartit
-- **No invasió**: Mai trencar l'existent
-- **Testing**: 1100+ tests han de passar sempre
-- **Modularització**: Extreure a `libs/` quan hi ha duplicació
-- **Mobile-first**: Responsive per defecte
-- **Offline-first**: Tot funciona sense connexió
-
----
-
-## 📚 Documentació
-
-### Guies d'Ús
-- **Guia ràpida dels Skills:** `~/.claude/skills/README.md`
-- **Guia principal del projecte:** `CLAUDE.md`
-- **Context general:** Aquest document (`docs/agents-context.md`)
-
-### Documentació de Skills
-- `~/.claude/skills/ui/SKILL.md` - UI Skill complet
-- `~/.claude/skills/audio/SKILL.md` - Audio Skill complet
-- `~/.claude/skills/modules/SKILL.md` - Modules Skill complet
-- `~/.claude/skills/creator/SKILL.md` - Creator Skill complet
-- `~/.claude/skills/gamification/SKILL.md` - Gamification Skill complet
-- `~/.claude/skills/responsive/SKILL.md` - Responsive Skill complet
-
-### Referència Tècnica
-- `docs/modules-reference.md` - Documentació completa de mòduls
-- `libs/*/README.md` - Documentació de cada llibreria
-
----
-
-## 🎯 Començar a Utilitzar
-
-1. **Els skills estan actius automàticament** (ubicats a `~/.claude/skills/`)
-2. **Invoca'ls directament:** `/ui [tasca]`, `/audio [tasca]`, etc.
-3. **Consulta la guia ràpida:** `~/.claude/skills/README.md`
-4. **Confia en el context especialitzat** de cada skill
-
----
-
-**Sistema de Skills reals completament funcional per PlayNuzic Lab!** 🎉
-
-**Ubicació:** `~/.claude/skills/`
-**Total documentació:** 2,415 línies
-**Data implementació:** 2026-02-04
+`.gitignore` exclou `.claude/settings.local.json`, `.claude/worktrees/` i `.claude/launch.json`
+(servidors de previsualització amb rutes del Mac).
