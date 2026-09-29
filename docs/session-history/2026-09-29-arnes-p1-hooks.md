@@ -74,7 +74,12 @@ existien). Pujades des del Mac (23c9b33) i corregides:
   a `docs/history/` (branca `claude/harness-p2`, sense pujar).
 - CI del Lab: push només a main (abans cada push amb PR s'executava dues vegades).
 
-## Pendent
+## Tancament
 
-- Instal·lar l'app de GitHub de Claude a l'organització Alberton-projects i pujar les dues
-  branques `claude/harness-p2` (o aplicar els patches des del Mac).
+Fusionades el mateix dia, amb la CI en verd:
+- https://github.com/PlayNuzic/Lab/pull/1. En revisar-la: el hook de tests relacionats també
+  cobreix `.claude/`, i el README diu com instal·lar Chromium per al smoke. Després, des del
+  Mac, `9eb3905`: `docs-paths` llegia el `.DS_Store` de `.claude/skills/` com una skill.
+- https://github.com/Alberton-projects/alberton_devices-for-live/pull/1
+- https://github.com/Alberton-projects/alberton_mcp-for-live/pull/1 (l'app de Claude va
+  quedar instal·lada a l'organització cap a les 15:30 UTC).
