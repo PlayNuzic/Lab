@@ -6,7 +6,8 @@
   "scripts": {
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "serve": "http-server",
-    "smoke": "node tests/smoke.mjs"
+    "smoke": "node tests/smoke.mjs",
+    "smoke:setup": "npm install && playwright install chromium"
   },
   "keywords": [],
   "author": "",

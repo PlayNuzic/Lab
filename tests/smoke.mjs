@@ -6,12 +6,13 @@
 //   npm run smoke                 # totes les pàgines
 //   npm run smoke -- App15 App32  # només les que continguin aquests noms
 //
-// Primera vegada en local: npx playwright install chromium
+// Primera vegada en local: npm run smoke:setup (instal·la el Chromium de la versió de
+// Playwright fixada al projecte; `npx playwright install` sense `npm install` baixaria una
+// altra versió i el navegador no quadraria).
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TYPES = {
@@ -74,9 +75,26 @@ async function check(browser, origin, route) {
   return [...new Set(errors)];
 }
 
+const SETUP = 'Executa `npm run smoke:setup` i torna-ho a provar.';
+let chromium;
+try {
+  ({ chromium } = await import('playwright'));
+} catch {
+  console.error(`No trobo el paquet playwright del projecte. ${SETUP}`);
+  process.exit(2);
+}
+
+let browser;
+try {
+  browser = await chromium.launch();
+} catch (e) {
+  const missing = /Executable doesn't exist|playwright install/.test(e.message);
+  console.error(missing ? `Falta el Chromium de la versió de Playwright del projecte. ${SETUP}` : e.message);
+  process.exit(2);
+}
+
 const server = await serve();
 const origin = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch();
 const routes = pages();
 const t0 = Date.now();
 let failed = 0;
