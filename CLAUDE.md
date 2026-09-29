@@ -30,17 +30,17 @@ These files affect timing and synchronization across ALL apps.
 
 **Nivell 2** — sensitive init chain: read existing tests and run the full suite before merging (massive fan-in, no formal approval gate but never auto-fix).
 
-- `libs/app-common/audio-init.js` — lazy TimelineAudio creation, 41 importers
+- `libs/app-common/audio-init.js` — lazy TimelineAudio creation, imported by most apps
 - `libs/sound/user-interaction.js` — gesture-gated AudioContext bootstrap
 - `libs/sound/tone-loader.js` — Tone.js lazy loader
 - Any module handling live timing or with a similarly massive importer count
 
 ## Architecture
 ```
-Apps/          → App1-App35 (individual rhythm apps)
+Apps/          → App1, App1B … App35 (individual rhythm apps)
 libs/
   sound/       → Audio engine (TimelineAudio, mixer, samples)
-  app-common/  → 54 core modules (DOM, audio-init, loop, fractions, LED, visual-sync...)
+  app-common/  → core modules (DOM, audio-init, loop, fractions, LED, visual-sync...)
   pulse-seq/   → Pulse sequence editor with parser and memory
   matrix-seq/  → Interval parsing utilities (sound/temporal)
   notation/    → VexFlow rhythm staff rendering
@@ -70,14 +70,15 @@ const audio = await initAudio();
 (`app-common/app-init.js`, `app-common/events.js`) were deleted 2026-06. Do not reintroduce.
 
 ## Reference Documentation (consult on demand, not loaded automatically)
-- `LAB_SYSTEM_RULES.md` — Complete technical rules for timing, audio, loop, mixer (12KB+)
+- `docs/LAB_SYSTEM_RULES.md` — Complete technical rules for timing, audio, loop, mixer (~35 KB)
 - `docs/MODULES.md` — Full module index with import patterns
-- `docs/agents-context.md` — Detailed skill/agent documentation
+- `docs/agents-context.md` — Claude Code harness: skills, hooks, permissions
 
 ## Commands
 ```bash
 npm test                                    # Run all tests
 npm test -- --testPathPattern="module-name" # Specific module
+npm run smoke                               # Load every page in headless Chromium (catches app main.js errors)
 npx http-server                             # Serve apps locally
 ```
 

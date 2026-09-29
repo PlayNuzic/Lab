@@ -7,8 +7,9 @@ Investigació i desenvolupament del mètode Nuzic per al ritme i el temps musica
 ## 🚀 Quick Start
 
 ```bash
-./setup.sh         # Configura Git i instal·la dependències (Jest)
-npm test           # Executa 73 test suites, 1380+ tests
+npm install        # Dependències (Jest, Playwright)
+npm test           # Tests unitaris (Jest)
+npm run smoke      # Carrega totes les pàgines en Chromium i falla si hi ha errors
 npx http-server    # Serveix les apps i el Sistema localment
 ```
 
@@ -17,16 +18,16 @@ Obre [http://localhost:8080/sistema/](http://localhost:8080/sistema/) per al Sis
 ## 📁 Estructura
 
 ```
-Apps/             — 35+ apps rítmiques i temporals (App1–App35)
-libs/             — 22 mòduls compartits (audio, UI, fracció, plano, scale, etc.)
-sistema/          — Sistema Interactivo: 27 slides educatius que embolcallen 25 apps
+Apps/             — apps rítmiques i temporals (App1, App1B … App35)
+libs/             — mòduls compartits (audio, UI, fracció, plano, scale, etc.)
+sistema/          — Sistema Interactivo: slides educatius que embolcallen les apps
 docs/             — Documentació tècnica i specs
-tests/            — Tests d'integració + harness embed (73 suites, 1380+ tests)
+tests/            — Test de fum (smoke.mjs), tests dels hooks de Claude i harness embed
 ```
 
 ## 🎵 Apps
 
-35+ apps al directori `Apps/`, organitzades per categoria didàctica al Sistema Interactivo. Cada app té el seu README amb detalls. Algunes destacades:
+Apps al directori `Apps/`, organitzades per categoria didàctica al Sistema Interactivo. Algunes tenen README o CLAUDE.md propi amb detalls. Algunes destacades:
 
 - **App1–App4** — Bases temporals (timeline, pulse-seq editor, fraction editor, multi-fraction)
 - **App9 / App10 / App17** — Línies temporal/sonora i timeline circular
@@ -54,7 +55,7 @@ Capa de presentació narrativa que guia l'usuari pel mètode Nuzic mitjançant 2
 ## 🧩 Llibreries (`libs/`)
 
 ```
-app-common/          — Middleware: 50 mòduls (audio, DOM, loop, fraction-editor, ...)
+app-common/          — Middleware (audio, DOM, loop, fraction-editor, ...)
 sound/               — Motor d'àudio sobre Tone.js (TimelineAudio, mixer, samples)
 shared-ui/           — Header, dropdowns, tema Nuzic, performance audio menu
 plano-modular/       — Grid 2D N×P amb soundline + timeline (App19, App20)
@@ -80,11 +81,15 @@ vendor/              — Tone.js 15.x, VexFlow 5.0.0, chromatone-theory
 
 ## 🧪 Testing
 
-**76 test suites, 1370 tests** amb Jest 29.x. ES Modules amb Babel.
+Jest 29.x amb ES Modules natius (`--experimental-vm-modules`, sense Babel). La majoria de suites viuen
+al costat del codi, a `__tests__/`. Per al que Jest no veu (els `main.js` de les apps, imports
+trencats, fitxers que falten), `npm run smoke` carrega cada pàgina en Chromium headless.
 
 ```bash
 npm test                                    # Tots els tests
 npm test -- --testPathPattern="loop"        # Tests específics
+npm run smoke                               # Totes les pàgines al navegador
+npm run smoke -- App15 App32                # Només aquestes
 ```
 
 Suites principals a `libs/app-common/__tests__/`, `libs/plano-modular/__tests__/`, `libs/sound/`, `libs/pulse-seq/__tests__/`, etc.

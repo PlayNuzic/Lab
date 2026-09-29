@@ -6,7 +6,7 @@
 
 | Mòdul | Descripció | README |
 |-------|------------|--------|
-| **app-common** | 54 mòduls core compartits entre apps | [README](../libs/app-common/README.md) |
+| **app-common** | Mòduls core compartits entre apps | [README](../libs/app-common/README.md) |
 | **matrix-seq** | Utilitats de parsing d'intervals (sound/temporal) | [README](../libs/matrix-seq/README.md) |
 | **musical-grid** | Visualització 2D amb scroll | [README](../libs/musical-grid/README.md) |
 | **interval-sequencer** | Motor iTfr + conversió d'intervals/forats | [README](../libs/interval-sequencer/README.md) |
