@@ -6,6 +6,7 @@ import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { reorderControls } from '../../libs/app-common/template.js';
 
 
 // ========== ESTADO ==========
@@ -421,6 +422,12 @@ function initApp() {
   if (savedInstrument) {
     currentInstrument = savedInstrument;
   }
+
+  // Pastilla de BPM a la fila de controls (ordre nuzic compartit, H-08).
+  // La .inputs queda buida: fora, perquè el seu padding no deixi un forat
+  // sobre la línia temporal.
+  reorderControls();
+  document.querySelector('.inputs')?.remove();
 
   // Inicializar BPM controller
   const inputBpm = document.getElementById('inputBpm');

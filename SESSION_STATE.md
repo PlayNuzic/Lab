@@ -10,7 +10,9 @@ Estat a 28/09/2026 (vespre): versió breu (v2) feta i corregida; la v1 és la ve
 
 ## Codi del Lab
 
-Cap tasca de codi activa.
+Tasca activa: **Retocs a les apps del SI** (2026-09-30), en curs. Acta que es va
+omplint: `docs/session-history/2026-09-30-retocs-apps-si.md`. Fet: App9 (paso 3),
+pastilla de BPM visible.
 
 Última tasca completada: **Arnès de Claude Code** (2026-09-29), tancada del tot: Lab
 (https://github.com/PlayNuzic/Lab/pull/1, i `9eb3905` des del Mac per un `.DS_Store` a
@@ -31,8 +33,6 @@ coda amb CTA (`docs/session-history/2026-09-21-coda-cta-enllacos.md`). Test d'us
 (2026-09-15): `docs/session-history/2026-09-15-test-usuari-v3-embut-continuacio.md`.
 
 ## Pendent
-
-- **Push**: `9eb3905` (fix de `docs-paths`) i aquest SESSION_STATE, només en local.
 
 Tancats el 2026-08-31 amb la prova a l'altre ordinador: ratolí amb
 cremallera i tàctil ("prou bé"), paso 2 i el seu títol, `mida: 1` de l'app

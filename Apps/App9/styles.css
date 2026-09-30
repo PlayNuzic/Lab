@@ -33,18 +33,6 @@ html, body {
   padding: 0 1.5rem 0 0;
 }
 
-/* BPM input */
-.inputs {
-  display: flex;
-  justify-content: center;
-  padding: 1.875rem 0 3.125rem 1.875rem;
-  margin: 0;
-}
-
-.inputs .bpm-inline {
-  position: relative;
-}
-
 /* Hide unnecessary buttons */
 .controls #tapTempoBtn,
 .controls #loopBtn,

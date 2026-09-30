@@ -185,11 +185,11 @@ El MutationObserver de `header.js` ja reacciona a mutations del `<body>`. Quan e
 
 ### Accions per app individual
 
-#### app9 — Linea Temporal (Paso 4)
+#### App9 — Linea Temporal (Paso 3; abans 4)
 
 - Overlay embed → automatic via CSS.
 - `.timeline-wrapper` ja ocupa tot l'ample del `<main>`.
-- BPM inline dins `.controls` → OK (el volum s'hi afegeix al final).
+- Pastilla de BPM dins `.controls` (🔊 ▶ BPM): `main.js` crida `reorderControls()` i elimina la `.inputs` buida. Fins al 2026-09-30 no ho feia i la pastilla no es veia: el tema amaga `.inputs` quan només conté el BPM (`.inputs:has(.bpm-inline):not(:has(.param))`, des del 2026-04-11).
 
 #### app10 — Linea Sonora (Paso 5)
 
