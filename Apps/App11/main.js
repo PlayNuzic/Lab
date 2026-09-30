@@ -29,6 +29,7 @@ let currentBPM = FIXED_BPM;
 let intervalSec = 60 / FIXED_BPM; // 0.5 seconds per pulse
 let isPlaying = false;
 let playBtn = null;
+let resetBtn = null;
 
 // Storage de preferencias
 const preferenceStorage = createPreferenceStorage('app11');
@@ -80,6 +81,15 @@ function generateRandomSequence() {
 }
 
 // ========== PLAY SEQUENCE ==========
+
+/** Treu la selecció del plànol: cel·les actives i les seves etiquetes P-N. */
+function clearCells() {
+  document.querySelectorAll('.musical-cell.active, .musical-cell.fading-out').forEach(cell => {
+    cell.classList.remove('active', 'fading-out');
+    const label = cell.querySelector('.cell-label');
+    if (label) label.remove();
+  });
+}
 
 /**
  * Llegeix les cel·les que l'usuari ha sel·leccionat amb el mouse i les
@@ -149,11 +159,7 @@ async function handlePlay() {
     currentBPM = getRandomBPM();
     notes = generateRandomSequence().notes;
     // Clear only en mode random — el random vol partir d'una pissarra neta.
-    document.querySelectorAll('.musical-cell.active').forEach(cell => {
-      cell.classList.remove('active');
-      const label = cell.querySelector('.cell-label');
-      if (label) label.remove();
-    });
+    clearCells();
   }
 
   console.log('=== Play Sequence ===');
@@ -246,13 +252,7 @@ function stopPlayback({ preserveHighlights = false } = {}) {
   if (stopIcon) stopIcon.style.display = 'none';
   playBtn?.classList.remove('playing');
 
-  if (!preserveHighlights) {
-    document.querySelectorAll('.musical-cell.active, .musical-cell.fading-out').forEach(cell => {
-      cell.classList.remove('active', 'fading-out');
-      const label = cell.querySelector('.cell-label');
-      if (label) label.remove();
-    });
-  }
+  if (!preserveHighlights) clearCells();
 
   // `.playing` (blau intens + glow) sempre es neteja — és la marca de
   // "sonant ara", no l'estat de la nota.
@@ -264,6 +264,14 @@ function stopPlayback({ preserveHighlights = false } = {}) {
 
   // Amaga el playhead vertical.
   musicalGrid?.hidePlayhead?.();
+}
+
+/** Reset: atura, deixa el plànol net i torna al tempo inicial. */
+function handleReset() {
+  stopPlayback();
+  clearCells();
+  currentBPM = FIXED_BPM;
+  intervalSec = 60 / FIXED_BPM;
 }
 
 // ========== INITIALIZATION ==========
@@ -370,6 +378,13 @@ async function init() {
   if (playBtn) {
     eventHandlers.playClick = handlePlay;
     playBtn.addEventListener('click', eventHandlers.playClick);
+  }
+
+  // Setup Reset button
+  resetBtn = document.getElementById('resetBtn');
+  if (resetBtn) {
+    eventHandlers.resetClick = handleReset;
+    resetBtn.addEventListener('click', eventHandlers.resetClick);
   }
 
   // Listen for sound changes
@@ -494,6 +509,7 @@ async function init() {
 // Store handler references for cleanup
 const eventHandlers = {
   playClick: null,
+  resetClick: null,
   sharedSound: null,
   sharedInstrument: null
 };
@@ -511,6 +527,10 @@ window.addEventListener('beforeunload', () => {
   // Remove event listeners
   if (playBtn && eventHandlers.playClick) {
     playBtn.removeEventListener('click', eventHandlers.playClick);
+  }
+
+  if (resetBtn && eventHandlers.resetClick) {
+    resetBtn.removeEventListener('click', eventHandlers.resetClick);
   }
 
   if (eventHandlers.sharedSound) {

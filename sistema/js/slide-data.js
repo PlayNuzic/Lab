@@ -216,7 +216,7 @@ export const slideContent = {
 <p><mark class="hl-box"><b>Par P-N</b>: representa una intersección Pulso-Nota en el plano musical.</mark></p>`,
     tipsTitle: 'Prueba el Plano Nuzic',
     tips: `<p>Si haces clic en cualquier punto del plano escucharás una nota y verás sus coordenadas correspondientes (Pulso - Nota).</p>
-<p>Pulsa ▶️ para escuchar de 4 a 8 notas aleatorias distribuidas en 8 pulsos.</p>
+<p>Pulsa ▶️ para escuchar las notas que has marcado o, si no hay ninguna, de 4 a 8 notas aleatorias en 8 pulsos. Pulsa 🗑 para borrar el plano.</p>
 <p><strong>Tip:</strong> Prueba a hacer clic en varias celdas seguidas para explorar la relación entre posición y sonido.</p>`,
   },
   6: {

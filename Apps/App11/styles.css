@@ -81,7 +81,6 @@ html, body {
 
 /* ========== HIDE UNNECESSARY CONTROLS ========== */
 .controls .random,
-.controls .reset,
 .controls #randomMenu {
   display: none !important;
 }
