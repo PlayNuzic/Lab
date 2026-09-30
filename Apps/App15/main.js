@@ -1254,7 +1254,7 @@ function createNuzicIntervalEditor(gridContainer) {
         if (!valid) {
           iv.soundInterval = oldIS;
           if (wasRest) iv.isRest = true;  // Restore rest flag on revert
-          showTooltip(cell, 'Valor invalida seqüència');
+          showTooltip(cell, 'El valor invalida la secuencia');
           cell.value = originalValue;
           return;
         }

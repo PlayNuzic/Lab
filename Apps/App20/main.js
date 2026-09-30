@@ -909,7 +909,7 @@ function initGridEditor() {
         } else {
           const parsed = parseNoteInput(val);
           if (!parsed) {
-            showTooltip(cell, 'Format: NrR (ex: 5r4) o S');
+            showTooltip(cell, 'Formato: NrR (ej. 5r4) o S');
             cell.value = originalValue;
             return;
           }

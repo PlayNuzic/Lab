@@ -587,7 +587,7 @@ function renderTimeline() {
 
 async function startPlayback() {
   if (itSequence.length === 0) {
-    showValidationWarning(itfrEditorEl, 'Afegeix iTs per reproduir');
+    showValidationWarning(itfrEditorEl, 'Añade iTs para reproducir');
     return;
   }
 

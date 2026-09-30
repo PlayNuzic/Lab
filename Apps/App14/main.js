@@ -120,7 +120,7 @@ function applyAdaptiveChange(idx, newVal) {
   for (let i = 0; i < idx; i++) noteBefore += currentIntervals[i];
   const newNoteAtIdx = noteBefore + newVal;
   if (newNoteAtIdx < MIN_NOTE || newNoteAtIdx > MAX_NOTE) {
-    return { ok: false, message: `iS fora de rang [${MIN_NOTE - noteBefore}, ${MAX_NOTE - noteBefore}]` };
+    return { ok: false, message: `iS fuera de rango [${MIN_NOTE - noteBefore}, ${MAX_NOTE - noteBefore}]` };
   }
 
   const trial = currentIntervals.slice();
@@ -148,7 +148,7 @@ function applyAdaptiveChange(idx, newVal) {
   for (const iv of trial) {
     note += iv;
     if (note < MIN_NOTE || note > MAX_NOTE) {
-      return { ok: false, message: 'Valor invalida seqüència' };
+      return { ok: false, message: 'El valor invalida la secuencia' };
     }
   }
 
@@ -414,7 +414,7 @@ function createValueCell(displayValue, intervalIndex) {
 
     if (result.adjustedIndex != null && result.adjustedDelta !== 0) {
       const sign = result.adjustedDelta > 0 ? '+' : '';
-      showTooltip(cell, `Ajustat iS₍${result.adjustedIndex + 1}₎: ${sign}${result.adjustedDelta}`);
+      showTooltip(cell, `Ajustado iS₍${result.adjustedIndex + 1}₎: ${sign}${result.adjustedDelta}`);
     }
 
     renderEditorCells();
@@ -473,7 +473,7 @@ function createInputCell() {
       const nextInput = cellsContainer.querySelector('.editor-input');
       if (nextInput) setTimeout(() => nextInput.focus(), 30);
       else if (getValidIntervals().length >= MAX_IS) {
-        showTooltip(endMarker, 'Seqüència completa');
+        showTooltip(endMarker, 'Secuencia completa');
       }
     };
     const magnitude = Math.abs(num);

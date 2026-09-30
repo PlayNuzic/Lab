@@ -39,5 +39,44 @@ passa de 50-150 a **80-150** (`MIN_BPM` a `main.js`). `FIXED_BPM = 120` només �
 valor inicial (durada del clic a una cel·la abans del primer Play); se n'ha
 corregit el comentari, que deia «not randomized».
 
+## 3. App11 (paso 5): botó de reset
+
+El reset era al template però amagat per CSS (`.controls .reset` a `styles.css`).
+Ara es veu (fila 🔊 ▶ 🗑, l'ordre el fixa el tema) i `handleReset()` atura la
+reproducció, deixa el plànol net (cel·les actives i etiquetes P-N) i torna el
+tempo inicial (`FIXED_BPM`). Així, després del reset, Play torna a generar una
+seqüència aleatòria (amb cel·les marcades, Play reprodueix la selecció). La
+neteja de cel·les, que estava duplicada a `handlePlay` i `stopPlayback`, passa a
+un helper `clearCells()`; `musicalGrid.clear()` no servia perquè no treu les
+etiquetes, que són pròpies d'App11.
+
+Verificat amb CDP: reset amb 3 cel·les marcades → 0 i cap etiqueta; reset a mig
+play → aturat, icona de play restaurada, sense playhead. Botó sencer dins
+l'iframe del paso 5 a 1400×900, 1024×768 i 390×844; cap error de pàgina.
+
+Tips del paso 5 (`slide-data.js`), segona frase: «Pulsa ▶️ para escuchar las notas
+que has marcado o, si no hay ninguna, de 4 a 8 notas aleatorias en 8 pulsos. Pulsa
+🗑 para borrar el plano.»
+
+## 4. Tooltips en català → castellà (App9-35)
+
+Escombrat de tots els textos visibles (literals amb trets de català + inventari de
+tot el que passa per `showTooltip`, `showValidationWarning`, `message:`, `title`,
+`aria-label` i `placeholder`, a les apps i a les libs). Set textos en català, tots
+en tooltips o avisos d'editor:
+
+| App | Abans | Ara |
+|-----|-------|-----|
+| App14 | iS fora de rang [a, b] | iS fuera de rango [a, b] |
+| App14, App15 | Valor invalida seqüència | El valor invalida la secuencia |
+| App14 | Ajustat iS₍n₎: ±d | Ajustado iS₍n₎: ±d |
+| App14 | Seqüència completa | Secuencia completa |
+| App20 | Format: NrR (ex: 5r4) o S | Formato: NrR (ej. 5r4) o S |
+| App30, App31 | Afegeix iTs per reproduir | Añade iTs para reproducir |
+
+Queden en català, a posta: missatges de `console` (App13, App14), el peu del menú
+«Rendimiento audio» (només amb `?dev`), i l'etiqueta `'Pols'` de
+`circular-rings.js` (només App4, fora del rang).
+
 Nota per a verificacions futures: `chrome --headless=new --screenshot` desa la
 captura però el procés no acaba sol; cal matar-lo pel seu `--user-data-dir`.
