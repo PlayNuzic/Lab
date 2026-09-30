@@ -189,8 +189,7 @@ export const slideContent = {
 <p>A cada marca de la línea temporal la llamamos <b>pulso</b>. El pulso de partida es el <b>0</b>, porque funciona como el inicio de la medición.</p>
 <p>Los pulsos nos permiten situar con precisión en qué instante aparece cada sonido.</p>
 <p>Entre un pulso y el siguiente hay un <b>paso temporal</b>. El <em>paso temporal</em> es la unidad de medición de la duración de un sonido.</p>
-<p>Cuando contamos pasos, es natural empezar desde el 1: el paso 1 va del pulso 0 al pulso 1; el paso 2 va del pulso 1 al pulso 2, y así sucesivamente.</p>
-<p><mark class="hl-box"><b>Pulso</b> = un punto en la línea temporal.<br><b>Pulsación</b> = repetición constante de los pulsos.<br><b>Paso</b> = distancia entre dos pulsos consecutivos. Se usa como unidad de medida.</mark></p>`,
+<p>Cuando contamos pasos, es natural empezar desde el 1: el paso 1 va del pulso 0 al pulso 1; el paso 2 va del pulso 1 al pulso 2, y así sucesivamente.</p>`,
     tipsTitle: 'Prueba la Línea Temporal',
     tips: `<p>Haz clic en ▶️ y escucha dos notas aleatorias en posiciones distintas de la línea temporal.</p>
 <p>Ajusta el <b>BPM</b> para cambiar la velocidad de las pulsaciones.</p>`,
@@ -200,9 +199,8 @@ export const slideContent = {
 <p>Para empezar, trabajamos con las <b>notas musicales</b>. Cada punto de esta línea corresponde a una nota de la escala cromática.</p>
 <p>A la nota de salida le damos el número <b>0</b>. A partir de ahí, cada nota recibe un número que nos permite identificarla.</p>
 <p>Colocamos la <mark class="hl-pink">línea sonora</mark> como eje vertical para formar un plano junto con la <mark class="hl-yellow">línea temporal</mark>. Así podemos ver fácilmente la <b>altura</b> de cada nota: las notas más graves quedan abajo y las más agudas, arriba.</p>
-<p>Una melodía aparece cuando las notas se ordenan en el tiempo. Pueden subir y bajar de una altura a otra, o repetirse.</p>
-<p><mark class="hl-box">La <b>línea temporal</b> (horizontal) nos dice <b>cuándo</b> suena una nota.<br>La <b>línea sonora</b> (vertical) nos dice <b>qué</b> nota suena.<br>Juntas forman el <b>plano musical</b>.</mark></p>`,
-    tipsTitle: 'Prueba Práctica',
+<p>Una melodía aparece cuando las notas se ordenan en el tiempo. Pueden subir y bajar de una altura a otra, o repetirse.</p>`,
+    tipsTitle: 'Prueba la línea Sonora',
     tips: `<p>La app muestra la línea sonora con 12 notas (0–11). En ella puedes escuchar melodías.</p>
 <p><strong>Uso básico:</strong> En la primera interacción, suena la escala cromática completa. A partir de la segunda, pulsa ▶️ para reproducir melodías de 6 notas aleatorias.<br>Pulsa sobre los números de la línea sonora para reproducir su nota.</p>`,
   },
@@ -212,8 +210,7 @@ export const slideContent = {
 <p>A cada nota le corresponde una <b>posición</b> en el plano. Esta posición se define con dos números, como si fueran las coordenadas de un lugar. Lo llamamos el <b>par Pulso-Nota</b>.</p>
 <p>El primer número indica el <mark class="hl-yellow">pulso</mark> donde la nota suena (eje horizontal).</p>
 <p>El segundo número indica la <mark class="hl-pink">nota</mark> escogida (eje vertical).</p>
-<p>En esta primera representación, a cada pulso solo puede corresponderle una nota, igual que cuando cantamos una melodía solo cantamos una nota a la vez.</p>
-<p><mark class="hl-box"><b>Par P-N</b>: representa una intersección Pulso-Nota en el plano musical.</mark></p>`,
+<p>En esta primera representación, a cada pulso solo puede corresponderle una nota, igual que cuando cantamos una melodía solo cantamos una nota a la vez.</p>`,
     tipsTitle: 'Prueba el Plano Nuzic',
     tips: `<p>Si haces clic en cualquier punto del plano escucharás una nota y verás sus coordenadas correspondientes (Pulso - Nota).</p>
 <p>Pulsa ▶️ para escuchar las notas que has marcado o, si no hay ninguna, de 4 a 8 notas aleatorias en 8 pulsos. Pulsa 🗑 para borrar el plano.</p>
@@ -423,7 +420,7 @@ export const slideContent = {
 <p>Pero componer también consiste en <b>escoger</b> qué notas queremos utilizar.</p>
 <p>En cada registro contamos con doce notas, pero a lo largo de la historia los músicos han seleccionado distintos grupos de notas por su manera de combinarse. Así nacieron las <b>escalas</b>.</p>
 <p>Las <b>escalas</b> nos dan paletas de colores sonoros, cada una con su propio carácter.</p>
-<p>Cambia la escala de una melodía y verás cómo su carácter también cambia: se vuelve más alegre o misterioso; más luminoso u oscuro.</p>
+<p>Cambia la escala de una melodía y verás cómo su carácter también cambia: se vuelve más alegre o misteriosa; más luminosa u oscura.</p>
 <p>Elegir una escala (por ejemplo, la escala mayor) es elegir un universo sonoro. Entra y escúchalas.</p>`,
   },
   23: {
@@ -519,7 +516,9 @@ export const slideContent = {
 <p>Y este es solo el <b>punto de partida</b>. El universo Nuzic se expande con nuevas formas de organizar, combinar y transformar la música.</p>
 <p>Si te ha gustado este viaje, profundiza en el <a href="https://www.nuzic.org/sistema/" target="_blank" rel="noopener">sistema de Nodos</a>: las dimensiones y la creación desplegadas a fondo.</p>
 <p>Sigue creando música con la app <a href="https://www.nuzic.org/App/" target="_blank" rel="noopener">Nuzic</a>: empieza con <em>Lite</em> y llega más lejos con <em>Pro</em>.</p>
-<p>Si eres docente y quieres usar Nuzic en clase: <a href="https://playnuzic.com/" target="_blank" rel="noopener">PlayNuzic</a>, una metodología que invita al alumnado a comprender y a crear música a través del pensamiento matemático.</p>`,
+<p>Si eres docente y quieres usar Nuzic en clase: <a href="https://playnuzic.com/" target="_blank" rel="noopener">PlayNuzic</a>, una metodología que invita al alumnado a comprender y a crear música a través del pensamiento matemático.</p>
+<p>Como ocurre con cualquier viaje, el punto de llegada puede ser también un nuevo punto de partida.</p>
+<p>¿A dónde quieres ir ahora?</p>`,
   },
 };
 
