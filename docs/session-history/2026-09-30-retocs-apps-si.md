@@ -32,5 +32,12 @@ dins `.controls` i cap sencera a l'iframe del paso 3 a 1400×900, 1280×720,
 1024×768 i 390×844 (a mòbil acaba als 280px dels 342 d'ample). Suite: 94 suites,
 1569 tests.
 
+## 2. App11A (paso 2): tempo aleatori entre 80 i 150
+
+App11A no té control de BPM: cada Play en sorteja un (enter, uniforme). El marge
+passa de 50-150 a **80-150** (`MIN_BPM` a `main.js`). `FIXED_BPM = 120` només és el
+valor inicial (durada del clic a una cel·la abans del primer Play); se n'ha
+corregit el comentari, que deia «not randomized».
+
 Nota per a verificacions futures: `chrome --headless=new --screenshot` desa la
 captura però el procés no acaba sol; cal matar-lo pel seu `--user-data-dir`.

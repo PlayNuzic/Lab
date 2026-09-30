@@ -17,8 +17,8 @@ const TOTAL_NOTES = 12;   // Vertical: 0-11 (MIDI 60-71)
 const SEQUENCE_PULSES = 8; // Total pulses in playback sequence (0-7)
 const MIN_NOTES = 4;      // Minimum notes in sequence
 const MAX_NOTES = 8;      // Maximum notes in sequence
-const FIXED_BPM = 120;    // Fixed BPM (not randomized)
-const MIN_BPM = 50;       // Minimum random BPM
+const FIXED_BPM = 120;    // Initial BPM (cell preview before the first Play)
+const MIN_BPM = 80;       // Minimum random BPM
 const MAX_BPM = 150;      // Maximum random BPM
 const BASE_MIDI = 60;     // C4
 
