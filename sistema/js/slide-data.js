@@ -503,8 +503,8 @@ export const slideContent = {
 <p>Cuando una combinación te guste, <b>Copiar config</b> la guarda como JSON para fijarla en el código.</p>`,
   },
   28.7: {
-    text: `<p>Este es el laboratorio <b>B</b>: igual que el A, pero con una <b>imagen de fondo</b> y una <b>app</b> disponibles.</p>
-<p>Las técnicas de máscara y zoom (<b>mask-zoom</b>, <b>zoom-drift</b>) lucen especialmente aquí.</p>
+    text: `<p>Este es el laboratorio <b>B</b>: igual que el A, pero con una <b>app</b> disponible.</p>
+<p>Las técnicas de máscara y zoom (<b>mask-zoom</b>, <b>zoom-drift</b>) lucen especialmente aquí: la máscara deja ver la app a través del símbolo.</p>
 <p>La técnica <b>app-reveal</b> hace aparecer la app en una frase concreta, como un momento interactivo del relato.</p>
 <p>Sigue avanzando: si app-reveal está activa, la app entrará en escena.</p>
 <p>Todo lo que configures aquí queda guardado en este navegador, sin tocar las slides reales.</p>`,

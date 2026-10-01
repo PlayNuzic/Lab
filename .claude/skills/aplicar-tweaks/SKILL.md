@@ -95,8 +95,21 @@ import('./sistema/js/parallax-techniques.js').then(m => {
 
 - **Prioritat de config al motor**: `localStorage` de l'usuari > `PRESETS[paso]` > defecte
   genèric (scroll-depth sol). Conseqüència: en un navegador que ja ha tocat aquell paso, el
-  preset cuinat **no es veu** fins que l'usuari prem **Restaurar** (que esborra el
-  localStorage del paso i cau al preset). Recorda-ho al resum.
+  preset cuinat **no es veu** fins que l'usuari prem el **Restaurar de la secció Parallax
+  Lab** (que esborra el localStorage d'efectes del paso i cau al preset). **No és el
+  «Restaurar paso»** de dalt del panell: aquest només descarta textos, i si el paso no en
+  té no fa res. Els textos cuinats tampoc es veuen si el navegador en té una versió desada:
+  allà sí que cal «Restaurar paso». Recorda tots dos al resum, segons el que s'hagi cuinat.
+- **L'export porta TOTA la config desada al navegador**, no només el que s'acaba de tocar.
+  Abans de cuinar, compara cada camp amb el codi actual (i, si n'hi ha, amb l'export
+  anterior): cuina només el que canvia de debò. Si un valor difereix del codi però ja hi
+  era en exports anteriors, pot ser config antiga no restaurada (cas real: els passos 7 i
+  29 després d'unificar els presets). Pregunta abans de sobreescriure el codi amb això.
+- **Romanents de l'editor**: un `<p><b></b><br></p>` o `<p><br></p>` buit no es cuina. Al
+  parallax cada `<p>` és una cel·la del scroll, i quedaria una cel·la en blanc. Avisa'n.
+- **Si canvia el nombre de frases** d'un paso amb `app-reveal` actiu, revisa
+  `fraseAparicio` a `PRESETS`. Per fer entrar l'app a la seva cel·la, ha de ser nombre de
+  frases + 1 (vegeu `docs/parallax-lab-manual.md`, `Aparición de app`).
 - `PRESETS` viu clonat en profunditat quan es llegeix (`preset()` fa `JSON.parse(JSON.stringify)`),
   així que pots escriure literals JSON purs sense por a aliasing.
 - Els camps `text`/`tips` ja vénen sanejats; **no els re-escapis** ni els reformategis.
@@ -110,5 +123,6 @@ import('./sistema/js/parallax-techniques.js').then(m => {
 ## Sortida a l'usuari
 
 Resum breu: quins pasos i quines seccions s'han cuinat, on (fitxer), el resultat de la suite,
-i —si hi havia `parallaxFx`— el recordatori del "Restaurar" per veure-ho en un navegador que
-ja tenia config d'aquell paso.
+i el recordatori de quin botó cal prémer per veure-ho en un navegador que ja tenia config
+d'aquell paso: «Restaurar» (Parallax Lab) per a `parallaxFx`, «Restaurar paso» per a
+`overrides`.

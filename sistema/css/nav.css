@@ -286,7 +286,6 @@
   margin-right: 0.2em;
 }
 .nav-guide__swatch--tips { background: var(--tips-bg); border: 1px solid var(--tips-border); }
-.nav-guide__swatch--box { background: var(--nuzic-blue-light); }
 .nav-guide mark.hl-pink { background: var(--nuzic-pink-light); color: var(--nuzic-dark); padding: 0 0.2em; }
 .nav-guide mark.hl-yellow { background: var(--nuzic-yellow-light); color: var(--nuzic-dark); padding: 0 0.2em; }
 @media (hover: none) and (pointer: coarse) {

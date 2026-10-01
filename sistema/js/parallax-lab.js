@@ -104,8 +104,8 @@ const PRESETS = {
     'bg-dim':          { on: true,  params: {} },
   },
   // Paso 11 — Módulos (cuinat des de l'export del panell): mask-zoom
-  // apagat, la imatge de fons queda com a capa suau sense màscara. El
-  // slide no declara cap app (2026-08-31), així que no hi ha app-reveal.
+  // apagat (des del 2026-09-23 el paso no té imatge de fons). El slide no
+  // declara cap app (2026-08-31), així que no hi ha app-reveal.
   11: {
     'scroll-depth':    { on: false, params: {} },
     'mouse-tilt':      { on: true,  params: { intensitat: 15, suavitat: 0.15 } },
