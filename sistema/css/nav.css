@@ -72,6 +72,70 @@
   .sistema-footlinks { background: var(--bg); border-top: 1px solid var(--rule); }
 }
 
+/* Columna dreta de la franja: el botó «Diario» (diario.js, només testers des
+   del paso 11) queda a sobre de «Privacidad». Va en absolut respecte de la
+   columna perquè no alci la franja: sense tester, tot queda com abans. */
+.sistema-footlinks__dreta {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+/* Ha de veure's bé: la persona el farà servir sola, sense ningú que li
+   recordi. Píndola verda Nuzic amb llapis, ombra i dos polsos en aparèixer. */
+.sistema-diario-link {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--sp-2));
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0.55em 1.2em;
+  border-radius: 999px;
+  background: var(--nuzic-green);
+  color: var(--nuzic-dark);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(67, 67, 59, 0.28);
+  animation: diario-pols 1.6s ease-out 0.4s 2;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.sistema-diario-link::before {
+  content: '✎';
+  font-size: 1.15em;
+  line-height: 1;
+}
+.sistema-diario-link[hidden] { display: none; }
+.sistema-diario-link:hover,
+.sistema-diario-link:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(67, 67, 59, 0.34);
+}
+.sistema-diario-link:focus-visible { outline: 2px solid var(--nuzic-dark); outline-offset: 2px; }
+@keyframes diario-pols {
+  0%   { box-shadow: 0 4px 14px rgba(67, 67, 59, 0.28), 0 0 0 0 rgba(124, 214, 179, 0.75); }
+  70%  { box-shadow: 0 4px 14px rgba(67, 67, 59, 0.28), 0 0 0 14px rgba(124, 214, 179, 0); }
+  100% { box-shadow: 0 4px 14px rgba(67, 67, 59, 0.28), 0 0 0 0 rgba(124, 214, 179, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sistema-diario-link { animation: none; transition: none; }
+}
+/* En pantalla estreta la franja és opaca i té alçada reservada (grid.css):
+   el botó passa a la mateixa línia, a l'esquerra de «Privacidad». */
+@media (max-width: 900px) {
+  .sistema-footlinks__dreta { gap: var(--sp-2); }
+  .sistema-diario-link {
+    position: static;
+    padding: 0.2em 0.8em;
+    font-size: 0.8rem;
+    box-shadow: none;
+  }
+}
+
 /* Panell de la guia: targeta petita desplegada sobre l'enllaç. No és un modal
    (no bloqueja res: les fletxes segueixen navegant). L'obre/tanca
    nav-guide.js (Esc, clic a fora, × o el mateix enllaç). En pantalla tàctil

@@ -52,7 +52,11 @@
   <div class="sistema-footlinks">
     <button class="sistema-guide-link" id="btn-guia" type="button"
             aria-expanded="false" aria-controls="nav-guide">Cómo navegar</button>
-    <a class="sistema-privacy-link" href="privacidad.html">Privacidad</a>
+    <!-- «Diario»: només per als testers a partir del paso 11 (diario.js). -->
+    <div class="sistema-footlinks__dreta">
+      <a class="sistema-diario-link" id="btn-diario" href="#" target="_blank" rel="noopener" hidden>Diario</a>
+      <a class="sistema-privacy-link" href="privacidad.html">Privacidad</a>
+    </div>
   </div>
 
   <div class="nav-guide" id="nav-guide" role="dialog" aria-labelledby="nav-guide-title" hidden>
@@ -180,5 +184,6 @@
 <script type="module" src="js/consent.js"></script>
 <script type="module" src="js/nav-guide.js"></script>
 <script type="module" src="js/analytics.js"></script>
+<script type="module" src="js/diario.js"></script>
 </body>
 </html>

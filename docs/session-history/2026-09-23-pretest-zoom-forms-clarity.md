@@ -67,3 +67,32 @@ Continuació de [2026-09-15](2026-09-15-test-usuari-v3-embut-continuacio.md). Ca
   (els scripts generadors del scratchpad ja no hi eren). La pestanya «Enlaces» del full de Google
   conserva les files P*-03, sense ús.
 - Formularis verificats sense compte de Google: s'obren i s'envien anònimament.
+
+## 2026-09-30 · navegació amb el menú i pont a la continuació (kit v5.2)
+
+- Decisions de l'equip després d'un simulacre: cap salt assistit per enllaç (només un, amb la
+  barra, al minut 40 de la S1); ajudes de navegació als pasos 1 i 7; l'observador enganxa els
+  enllaços al xat; T4b = «primero suba mucho y luego baje poco a poco» (el primer iS surt de la
+  nota 0); T5 = tornar al pla musical de Posiciones i regressar al paso 10; T5b fora (H11 només
+  orientació); T6 = pont a la continuació amb l'entrega dins la sessió.
+- Trobat: `?paso=N` sempre mana sobre el paso desat (slides.js), així que l'enllaç per seguir ha de
+  ser el de la sessió 1 sense paso; el de `&paso=11` només s'obre un cop, a l'entrega.
+- Kit a `~/Downloads/Test de usuario Nuzic/v5.2 (Zoom, navegación y puente)/`: pla v3.3, moderador
+  v5.2, observador v5.2 (enllaços que pega i annex d'enllaços dels pasos), pre-test 1.2, registre
+  v3.3, script de formularis (sense la fila Módulos del S2). Generadors reconstruïts des del
+  transcript (l'scratchpad s'havia buidat).
+- Botó «Diario» al SI (aprovat): `sistema/js/diario.js` + `#btn-diario` a index.html + estils a
+  nav.css. Només amb codi de tester i des del paso 11 (DEV: a tots els pasos); a sobre de
+  «Privacidad», píndola verda amb llapis i dos polsos en aparèixer (sense animació amb
+  reduced-motion); a ≤900px, en línia a l'esquerra de «Privacidad». Obre el Diari amb el codi i
+  el paso preomplerts. `?tester=off` (analytics.js) oblida el codi i treu el paràmetre de l'URL.
+  Tests: diario.test.js (9) + 2 casos a analytics.test.js; suite 95/1580. Verificat al navegador
+  (Live Server :5500) a 1440×900 i 820×900: no tapa les apps.
+- Registre v3.4: fulla «Enlaces» amb selector de codi (B3) i tots els enllaços de la persona en
+  l'ordre de la sessió (formularis amb codi i perfil preomplerts) + els 29 pasos. Substitueix la
+  pestanya «Pasos» que es volia al full de Google.
+- Formulari S2: en lloc d'editar-lo, l'script de formularis (v3.3) té `recrearS2()`: desvincula i envia a
+  la paperera l'antic, en crea un de nou sense la fila de Módulos i actualitza la pestanya «Enlaces».
+  Executat per l'usuari el 2026-10-01: S2 nou 1FAIpQLSccj2fMdp9Hsa5ilmGyBeRg36xIu04NWz3ypT5iEQ7v-lPadw
+  (codi entry.1449376972, perfil entry.1760292967; l'antic queda «closedform» a la paperera). Nou
+  enllaç posat a la fulla «Enlaces» del registre v3.4 i al guió del pre-test; prellenat verificat.

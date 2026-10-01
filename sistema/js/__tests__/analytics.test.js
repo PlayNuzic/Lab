@@ -52,6 +52,13 @@ describe('readTester', () => {
     expect(readTester('?tester=<script>')).toBeNull();
     expect(localStorage.getItem('sistema.tester')).toBeNull();
   });
+
+  test('?tester=off oblida l\'ID recordat (sortida del mode test)', () => {
+    localStorage.setItem('sistema.tester', 'DEV');
+    expect(readTester('?tester=off')).toBeNull();
+    expect(localStorage.getItem('sistema.tester')).toBeNull();
+    expect(readTester('?paso=3')).toBeNull();
+  });
 });
 
 describe('classifyEntrada', () => {
@@ -269,5 +276,15 @@ describe('createTracker — identificació', () => {
     createTracker().identify();
     expect(window.clarity).not.toHaveBeenCalledWith('identify', expect.anything());
     expect(tags().modo).toBe('real');
+  });
+
+  test('?tester=off surt de l\'URL i la visita queda com a real', () => {
+    history.replaceState(null, '', '/Lab/sistema/?paso=4&tester=off');
+    localStorage.setItem('sistema.tester', 'DEV');
+    createTracker().identify();
+    expect(location.search).toBe('?paso=4');
+    expect(localStorage.getItem('sistema.tester')).toBeNull();
+    expect(tags().modo).toBe('real');
+    history.replaceState(null, '', '/');
   });
 });

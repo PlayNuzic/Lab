@@ -72,10 +72,17 @@ function eventNameForPaso(paso) {
 // tal que les visites següents del mateix navegador (sessions «en fred»)
 // segueixin identificades encara que l'URL ja no porti el paràmetre.
 const TESTER_RE = /^[A-Za-z0-9_-]{1,32}$/;
+// ?tester=off fa oblidar el codi desat: sortida del mode test per a qui l'ha
+// provat (p.ex. amb el codi DEV del botó «Diario», diario.js).
+export const TESTER_OFF = 'off';
 
 export function readTester(search = (typeof location !== 'undefined' ? location.search : '')) {
   let fromUrl = null;
   try { fromUrl = new URLSearchParams(search).get('tester'); } catch {}
+  if (fromUrl && fromUrl.toLowerCase() === TESTER_OFF) {
+    try { localStorage.removeItem(TESTER_STORAGE_KEY); } catch {}
+    return null;
+  }
   if (fromUrl && TESTER_RE.test(fromUrl)) {
     try { localStorage.setItem(TESTER_STORAGE_KEY, fromUrl); } catch {}
     return fromUrl;
@@ -218,6 +225,19 @@ export function createTracker({ now = () => (typeof performance !== 'undefined' 
     } catch {}
   }
 
+  // Sense tester vàlid (?tester=off o un valor rebutjat), el paràmetre surt de
+  // l'URL: si no, la visita cauria al segment «Test de usuario» (URL conté
+  // «tester=») sent una visita normal.
+  function dropTesterFromUrl() {
+    try {
+      const q = new URLSearchParams(location.search);
+      if (!q.has('tester')) return;
+      q.delete('tester');
+      const rest = q.toString();
+      history.replaceState(null, '', rest ? `${location.pathname}?${rest}` : location.pathname);
+    } catch {}
+  }
+
   function identify() {
     const tester = readTester();
     if (tester) {
@@ -227,6 +247,7 @@ export function createTracker({ now = () => (typeof performance !== 'undefined' 
       clarity('set', 'tester', tester);
       clarity('upgrade', 'test-usuario');
     } else {
+      dropTesterFromUrl();
       clarity('set', 'modo', 'real');
     }
     clarity('set', 'entrada', classifyEntrada());
