@@ -79,10 +79,11 @@ const PRESETS = {
     'bg-dim':          { on: true,  params: {} },
     'app-reveal':      { on: false, params: { fraseAparicio: 8, escalaInicial: 1, durada: 0.5 } },
   },
-  // Paso 2 — intro de Posiciones (cuinat des de l'export del panell): 7
+  // Paso 2 — intro de Posiciones (cuinat des de l'export del panell): 9
   // frases + la cel·la d'app que el driver afegeix perquè app-reveal és
-  // actiu (fraseAparicio 8 = aquesta cel·la): la crida a l'acció es
-  // llegeix sencera i al scroll següent entra el plano, a tot l'espai.
+  // actiu (fraseAparicio 10 = aquesta cel·la; era 8 amb 7 frases fins al
+  // 2026-10-01): la crida a l'acció es llegeix sencera i al scroll següent
+  // entra el plano, a tot l'espai.
   2: {
     'scroll-depth':    { on: false, params: {} },
     'mouse-tilt':      { on: true,  params: { intensitat: 15, suavitat: 0.15 } },
@@ -90,7 +91,7 @@ const PRESETS = {
     'text-reveal':     { on: true,  params: { durada: 2, esglaonat: 60 } },
     'focus-mode':      { on: true,  params: { duresa: 2, rastre: 0.05 } },
     'bg-dim':          { on: true,  params: {} },
-    'app-reveal':      { on: true,  params: { fraseAparicio: 8, mida: 1, escalaInicial: 1, durada: 0.5 } },
+    'app-reveal':      { on: true,  params: { fraseAparicio: 10, mida: 1, escalaInicial: 1, durada: 0.5 } },
   },
   // Paso 7 — intro d'Intervalos. Abans no tenia preset i queia al defecte
   // genèric (scroll-depth on); ara segueix la recepta dels altres intros.

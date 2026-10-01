@@ -178,7 +178,9 @@ export const slideContent = {
 <p>Antes de avanzar, saltar o repetirse, cada sonido ocupa una <b>posición</b>.</p>
 <p>Y una posición se define con dos datos: qué suena y cuándo suena; es decir, una <mark class="hl-pink">nota</mark> y un <mark class="hl-yellow">pulso</mark>, el sonido y el tiempo.</p>
 <p>Empecemos por poner cada sonido en su sitio. Para hacerlo, construiremos un<strong> </strong><b>plano</b><strong>.</strong></p>
-<p>Partimos de dos ejes que son dos líneas numéricas: una línea horizontal que representa el paso del <mark class="hl-yellow">tiempo</mark> y otra línea vertical que representa los <mark class="hl-pink">sonidos</mark>.</p>
+<p>Partimos de dos ejes que son dos líneas numéricas</p>
+<p>Una línea horizontal que representa el paso del <mark class="hl-yellow">tiempo</mark><br><img class="eix" src="images/frases/linea-temporal.webp" alt="La línea temporal: pulsos numerados del 0 al 7, de izquierda a derecha."></p>
+<p>Y otra línea vertical que representa los <mark class="hl-pink">sonidos</mark>.<br><img class="lateral" src="images/frases/linea-sonora.webp" alt="La línea sonora: notas numeradas del 0 al 11, de abajo arriba."></p>
 <p>Ambas se encuentran en el punto de inicio, formando así el plano musical: el lugar donde se describe la música que suena.<br></p>
 <p><b>Tienes ese plano a un scroll: dale al play y escucha moverse la música.</b></p>`,
   },

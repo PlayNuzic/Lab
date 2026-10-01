@@ -329,17 +329,19 @@ function sanitizeHtml(html){
     // segur) i alt. No té res a veure amb la imatge de FONS del paso
     // (slide-data → content.image → .parallax-img): són capes diferents i
     // els fitxers viuen separats (images/frases/ vs images/).
-    // L'única classe que es conserva és `ample` (imatge a tot l'ample del
-    // parallax, vegeu parallax.css).
+    // Només es conserven les classes de col·locació del parallax (vegeu
+    // parallax.css): `ample` (a tot l'ample), `lateral` (dreta, a la dreta
+    // del text) i `eix` (eix horitzontal amb el gruix comú dels eixos).
     if (tag === 'img') {
       const src = (node.getAttribute('src') || '').trim();
       const alt = node.getAttribute('alt') || '';
-      const ample = (node.getAttribute('class') || '').split(/\s+/).includes('ample');
+      const classes = (node.getAttribute('class') || '').split(/\s+/)
+        .filter(c => c === 'ample' || c === 'lateral' || c === 'eix');
       [...node.attributes].forEach(a => node.removeAttribute(a.name));
       if (isSafeHref(src)) {
         node.setAttribute('src', src);
         node.setAttribute('alt', alt);
-        if (ample) node.setAttribute('class', 'ample');
+        if (classes.length) node.setAttribute('class', classes.join(' '));
       } else {
         node.remove();
       }

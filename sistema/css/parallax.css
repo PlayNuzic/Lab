@@ -43,6 +43,14 @@
     radial-gradient(120% 120% at 85% 10%, var(--px-soft) 0%, transparent 55%),
     var(--bg);
 }
+/* Amb una imatge LATERAL (a la dreta, p.ex. la línia sonora del paso 2) el
+   halo passa a l'esquerra: la imatge queda sobre la part blanca i no es
+   confon amb un fons del mateix color. */
+.slide--parallax:has(.parallax-frases img.lateral){
+  background:
+    radial-gradient(120% 120% at 15% 10%, var(--px-soft) 0%, transparent 55%),
+    var(--bg);
+}
 /* En dark mode els *-light de la paleta són massa clars com a glow:
    barregem l'accent amb transparent per a un halo subtil. */
 body[data-theme="dark"] .slide--parallax{
@@ -134,6 +142,14 @@ body[data-theme="dark"] .slide--parallax{
   /* Aire mínim sota el títol: la frase més alta queda com a molt aquí. */
   margin-top: clamp(8px, 1.6vh, 18px);
   container-type: size;
+  /* Gruix comú de les imatges d'EIX (línia temporal i sonora): la vertical
+     (.lateral) el fa d'amplada i l'horitzontal (.eix) d'alçada. Com que les
+     captures tenen el mateix gruix original, totes surten a la mateixa
+     escala. 13cqh perquè una línia sonora (≈1:7,5) càpiga sencera a
+     l'escenari. Les unitats cqh es resolen on es fa servir la variable
+     (les imatges), és a dir, respecte a aquest escenari. */
+  --px-eix: 72px;
+  --px-eix: min(72px, 13cqh);
 }
 /* Cap frase no pot tapar el títol (2026-09-28). La frase es centra amb
    top:50% + translateY(-50%), i si fos més alta que l'escenari en
@@ -238,6 +254,43 @@ body[data-theme="dark"] .slide--parallax{
 .parallax-frases > p:has(> br + img) > img.ample{
   max-height: 60vh;
   max-height: min(60dvh, 100cqh - 2lh - var(--px-img-marge));
+}
+/* Imatge LATERAL (class="lateral") per a imatges molt verticals, com la
+   línia sonora (paso 2). Va dreta, a la dreta del text, amb el gruix comú
+   dels eixos (--px-eix) com a amplada. És fora del flux (absolute, centrada
+   amb la frase), i la frase li reserva l'espai amb padding-right. Mai passa
+   de 100cqh (si fos més llarga, s'encongeix amb object-fit), així que
+   tampoc pot tapar el títol. */
+.parallax-frases > p:has(> img.lateral){
+  padding-right: calc(var(--px-eix) + clamp(16px, 3vw, 48px));
+}
+.parallax-frases > p:has(> br + img) > img.lateral,
+.parallax-frases > p > img.lateral{
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: var(--px-eix);
+  height: auto;
+  max-width: none;
+  max-height: 60vh;
+  max-height: 100cqh;
+  margin: 0;
+  object-fit: contain;
+  object-position: right center;
+  border-radius: 0;
+}
+/* Imatge d'EIX horitzontal (class="eix"), com la línia temporal (paso 2):
+   alçada = el gruix comú, així surt a la mateixa escala que la línia
+   sonora. En pantalles estretes no passa de l'amplada de la frase. */
+.parallax-frases > p:has(> br + img) > img.eix,
+.parallax-frases > p > img.eix{
+  height: var(--px-eix);
+  width: auto;
+  max-width: 100%;
+  max-height: none;
+  object-fit: contain;
+  border-radius: 0;
 }
 
 /* ---- Avís de scroll ---- */
