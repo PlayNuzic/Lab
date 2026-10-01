@@ -211,10 +211,10 @@ body[data-theme="dark"] .slide--parallax{
 .parallax-frases p a:hover,
 .parallax-frases p a.is-hover{ color: var(--px-accent); }
 
-/* Enllaç amb LOGO (l'última frase de la coda): <a href><img alt="">Nom</a>.
-   El logo va a sobre i el nom a sota, i tot el bloc és l'enllaç (el nom fa
-   d'etiqueta accessible; per això l'alt és buit). Els enllaços queden en
-   fila sota el text de la frase. */
+/* Enllaç amb LOGO (la coda): <a href><img alt="">Nom</a> a l'última frase,
+   o només <a href><img alt="Nom"></a> sota cada CTA. El logo va a sobre i,
+   si n'hi ha, el nom a sota. Tot el bloc és l'enllaç: l'etiqueta accessible
+   és el nom, o l'alt quan no hi ha nom. Van sota el text de la frase. */
 .parallax-frases p a:has(> img){
   display: inline-flex;
   flex-direction: column;
@@ -229,6 +229,14 @@ body[data-theme="dark"] .slide--parallax{
 .parallax-frases p a:has(> img):hover,
 .parallax-frases p a:has(> img).is-hover{
   text-decoration: underline;
+}
+/* Logo SOL al final de la frase (sota cada CTA de la coda): es centra a la
+   frase, com les imatges lligades de la intro. La fila de logos de l'última
+   frase no hi entra, perquè el primer no és l'últim element. */
+.parallax-frases p > br + a:has(> img):last-child{
+  display: flex;
+  width: fit-content;
+  margin: clamp(14px, 2.4vh, 28px) auto 0;
 }
 .parallax-frases p a > img{
   display: block;

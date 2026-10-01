@@ -22,6 +22,19 @@
 - `tweaks.js`: la llista «Imágenes del parallax» ignora les imatges que van
   dins d'un `<a>` (`ENLLAC_G`), perquè no es puguin treure de l'enllaç.
 
+## Icones sota els tres CTA
+- Sota «…sistema de Nodos…», «…app Nuzic…» i «…PlayNuzic…»: la icona
+  corresponent, enllaçada a la mateixa adreça
+  (`<br><a href><img alt="Nom"></a>`). Sense nom a sota, l'etiqueta
+  accessible és l'alt.
+- Centrades com les imatges lligades de la intro, amb
+  `.parallax-frases p > br + a:has(> img):last-child` (display:flex,
+  fit-content, margin auto). La fila de l'última frase no hi entra, perquè
+  el primer logo no és l'últim element, i es queda alineada a l'esquerra amb
+  la pregunta.
+- Verificat a les tres frases: cursor de mà i clic a l'adreça correcta. La
+  frase més llarga (PlayNuzic) no toca el títol a 1449×820 ni a 1024×700.
+
 ## Verificació
 Headless, amb `HTMLAnchorElement.prototype.click` interceptat. Per a cada
 logo, tant sobre la imatge com sobre el nom: cursor de mà, `.is-hover` i el
