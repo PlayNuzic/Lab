@@ -236,6 +236,9 @@ btnExport.addEventListener('click', async ()=>{
 // confondre amb la imatge de FONS del paso (slide-data → content.image).
 const IMG_G = /<img\b[^>]*>/gi;
 const BR_G = /<br\s*\/?>/gi;
+// Els logos enllaçats (<a href><img>Nom</a>, l'última frase de la coda) són
+// part de l'enllaç, no imatges de frase: no surten a la llista ni es mouen.
+const ENLLAC_G = /<a\b[^>]*>[\s\S]*?<\/a>/gi;
 
 function campFrases() {
   return document.querySelector('.parallax-frases[data-field="text"]');
@@ -258,7 +261,7 @@ function imatgesDe(frases) {
   const out = [];
   frases.forEach((html, frase) => {
     const sola = !textDe(html);
-    (html.match(IMG_G) || []).forEach((tag) => {
+    (html.replace(ENLLAC_G, '').match(IMG_G) || []).forEach((tag) => {
       out.push({ frase, sola, tag, src: (tag.match(/\ssrc="([^"]*)"/i) || [])[1] || '' });
     });
   });

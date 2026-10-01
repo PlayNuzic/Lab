@@ -520,7 +520,7 @@ export const slideContent = {
 <p>Sigue creando música con la app <a href="https://www.nuzic.org/App/" target="_blank" rel="noopener">Nuzic</a>: empieza con <em>Lite</em> y llega más lejos con <em>Pro</em>.</p>
 <p>Si eres docente y quieres usar Nuzic en clase: <a href="https://playnuzic.com/" target="_blank" rel="noopener">PlayNuzic</a>, una metodología que invita al alumnado a comprender y a crear música a través del pensamiento matemático.</p>
 <p>Como ocurre con cualquier viaje, el punto de llegada puede ser también un nuevo punto de partida.</p>
-<p>¿A dónde quieres ir ahora?</p>`,
+<p>¿A dónde quieres ir ahora?<br><a href="https://www.nuzic.org/sistema/" target="_blank" rel="noopener"><img src="images/frases/logo-sistema-nuzic.svg" alt="">Sistema Nuzic</a> <a href="https://www.nuzic.org/App/" target="_blank" rel="noopener"><img src="images/frases/logo-app-nuzic.svg" alt="">App Nuzic</a> <a href="https://playnuzic.com/" target="_blank" rel="noopener"><img src="images/frases/logo-playnuzic.svg" alt="">PlayNuzic</a></p>`,
   },
 };
 

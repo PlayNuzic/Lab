@@ -211,6 +211,33 @@ body[data-theme="dark"] .slide--parallax{
 .parallax-frases p a:hover,
 .parallax-frases p a.is-hover{ color: var(--px-accent); }
 
+/* Enllaç amb LOGO (l'última frase de la coda): <a href><img alt="">Nom</a>.
+   El logo va a sobre i el nom a sota, i tot el bloc és l'enllaç (el nom fa
+   d'etiqueta accessible; per això l'alt és buit). Els enllaços queden en
+   fila sota el text de la frase. */
+.parallax-frases p a:has(> img){
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45em;
+  margin: clamp(14px, 2.4vh, 28px) clamp(20px, 3vw, 48px) 0 0;
+  vertical-align: top;
+  font-size: max(14px, 0.5em);
+  line-height: 1.2;
+  text-decoration: none;
+}
+.parallax-frases p a:has(> img):hover,
+.parallax-frases p a:has(> img).is-hover{
+  text-decoration: underline;
+}
+.parallax-frases p a > img{
+  display: block;
+  width: clamp(64px, 8vw, 128px);
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 22%;
+}
+
 /* Una frase pot ser una IMATGE en lloc de text: <p><img src="images/frases/…"
    alt="…"></p>. És una frase més —el driver li dona la seva cel·la i el
    focus-mode la fon com les altres—, i és independent de la imatge de FONS
