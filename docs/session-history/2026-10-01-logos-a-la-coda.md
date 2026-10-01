@@ -35,6 +35,12 @@
 - Verificat a les tres frases: cursor de mà i clic a l'adreça correcta. La
   frase més llarga (PlayNuzic) no toca el títol a 1449×820 ni a 1024×700.
 
+## Retoc de text
+- La pregunta de l'última frase passa de «¿A dónde quieres ir ahora?» a «¿A dónde
+  vamos ahora?».
+- A l'export, la fila de logos venia separada en una frase pròpia (efecte de
+  l'editor). L'usuari l'ha volgut junta amb la pregunta, com estava.
+
 ## Verificació
 Headless, amb `HTMLAnchorElement.prototype.click` interceptat. Per a cada
 logo, tant sobre la imatge com sobre el nom: cursor de mà, `.is-hover` i el
