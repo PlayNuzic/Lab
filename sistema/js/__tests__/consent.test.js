@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import { jest } from '@jest/globals';
-import { initConsent, getConsent, resetConsent, CONSENT_KEY } from '../consent.js';
+import { initConsent, getConsent, resetConsent, CONSENT_KEY, CONSENT_EVENT } from '../consent.js';
 
 beforeEach(() => {
   localStorage.clear();
@@ -67,6 +67,24 @@ describe('consent gate', () => {
     initConsent();
     expect(document.querySelector('.consent-banner')).toBeNull();
     expect(document.querySelector('script[src*="clarity.ms"]')).toBeNull();
+  });
+
+  test('en carregar Clarity avisa analytics.js (sistema:consent); en rebutjar, no', () => {
+    const heard = jest.fn();
+    document.addEventListener(CONSENT_EVENT, heard);
+
+    initConsent();
+    document.querySelector('.consent-banner__btn--reject').click();
+    expect(heard).not.toHaveBeenCalled();
+
+    localStorage.clear();
+    initConsent();
+    document.querySelector('.consent-banner__btn--accept').click();
+    expect(heard).toHaveBeenCalledTimes(1);
+
+    initConsent();   // visita següent, amb el consentiment ja concedit
+    expect(heard).toHaveBeenCalledTimes(2);
+    document.removeEventListener(CONSENT_EVENT, heard);
   });
 
   test('resetConsent esborra la decisió i revoca Clarity si és present', () => {

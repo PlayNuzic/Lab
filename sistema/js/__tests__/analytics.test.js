@@ -4,8 +4,9 @@
 import { jest } from '@jest/globals';
 import {
   getSlideInfo, readCurrentPaso, createTracker, readTester, classifyEntrada,
-  tramoTemps, LONG_DWELL_MS,
+  tramoTemps, LONG_DWELL_MS, flushPending,
 } from '../analytics.js';
+import { CONSENT_EVENT } from '../consent.js';
 
 beforeEach(() => {
   localStorage.clear();
@@ -182,6 +183,57 @@ describe('createTracker — pasos', () => {
     const tracker = createTracker();
     expect(() => tracker.onRender()).not.toThrow();
     expect(() => tracker.start()).not.toThrow();
+  });
+});
+
+describe('createTracker — abans del consentiment', () => {
+  beforeEach(() => {
+    flushPending();          // buida el que hagin deixat guardat altres tests
+    delete window.clarity;   // l'avís encara no s'ha acceptat
+  });
+  afterEach(() => history.replaceState(null, '', '/'));   // identify() hi escriu ?tester=
+
+  test('guarda el que passa abans d\'acceptar i ho envia en ordre quan Clarity es carrega', () => {
+    let t = 0;
+    localStorage.setItem('sistema.tester', 'P1-01');
+    localStorage.setItem('sistema.paso', '1');
+    const tracker = createTracker({ now: () => t });
+    tracker.identify();
+    tracker.onRender();
+    const driver = document.createElement('div');
+    driver.className = 'parallax-driver';
+    t = 5_000;
+    tracker.onScroll({ target: driver });
+
+    window.clarity = jest.fn();   // s'accepta l'avís
+    expect(window.clarity).not.toHaveBeenCalled();
+    expect(flushPending()).toBeGreaterThan(0);
+
+    const calls = window.clarity.mock.calls;
+    const at = (...c) => calls.findIndex(x => x.join('|') === c.join('|'));
+    expect(at('identify', 'P1-01')).toBeGreaterThanOrEqual(0);
+    expect(at('upgrade', 'test-usuario')).toBeGreaterThanOrEqual(0);
+    expect(at('identify', 'P1-01')).toBeLessThan(at('event', 'paso_1'));
+    expect(events()).toContain('primer_scroll');
+    expect(tags().t_primer_scroll).toBe('0_10s');   // el temps real, no el d'acceptar
+    expect(flushPending()).toBe(0);                 // no es torna a enviar
+  });
+
+  test('start() envia el que tenia guardat en rebre sistema:consent', () => {
+    localStorage.setItem('sistema.tester', 'P2-01');
+    localStorage.setItem('sistema.paso', '1');
+    createTracker().start();
+    window.clarity = jest.fn();
+    document.dispatchEvent(new CustomEvent(CONSENT_EVENT));
+    expect(window.clarity).toHaveBeenCalledWith('identify', 'P2-01');
+    expect(events()).toContain('paso_1');
+  });
+
+  test('si no s\'accepta mai, no s\'envia res', () => {
+    localStorage.setItem('sistema.paso', '3');
+    createTracker().onRender();
+    expect(flushPending()).toBe(0);
+    expect(window.clarity).toBeUndefined();
   });
 });
 

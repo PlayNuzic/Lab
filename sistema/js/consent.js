@@ -5,6 +5,9 @@
 // que és un toggle manual seu, no una opció de codi.
 
 export const CONSENT_KEY = 'sistema.consent';
+// Es dispara quan Clarity es carrega (en acceptar o en tornar amb el
+// consentiment ja concedit): analytics.js hi envia el que havia guardat.
+export const CONSENT_EVENT = 'sistema:consent';
 const CLARITY_PROJECT_ID = 'xltk7vdfux';
 
 export function getConsent() {
@@ -39,6 +42,7 @@ function grantConsent() {
   try {
     window.clarity('consentv2', { ad_Storage: 'granted', analytics_Storage: 'granted' });
   } catch {}
+  try { document.dispatchEvent(new CustomEvent(CONSENT_EVENT)); } catch {}
 }
 
 function buildBanner(onAccept, onReject) {

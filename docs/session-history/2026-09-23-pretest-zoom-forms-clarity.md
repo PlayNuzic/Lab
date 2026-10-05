@@ -96,3 +96,77 @@ Continuació de [2026-09-15](2026-09-15-test-usuari-v3-embut-continuacio.md). Ca
   Executat per l'usuari el 2026-10-01: S2 nou 1FAIpQLSccj2fMdp9Hsa5ilmGyBeRg36xIu04NWz3ypT5iEQ7v-lPadw
   (codi entry.1449376972, perfil entry.1760292967; l'antic queda «closedform» a la paperera). Nou
   enllaç posat a la fulla «Enlaces» del registre v3.4 i al guió del pre-test; prellenat verificat.
+
+## 2026-10-01 · minuts per paso (kit v5.3)
+
+- Base: les versions retocades a mà per l'usuari (`~/Downloads/v5.2 (Zoom, navegación y puente)/`).
+  Kit a `~/Downloads/Test de usuario Nuzic/v5.3 (Zoom, minutos por paso)/`: moderador i observador v5.3
+  i pre-test 1.3 amb els minuts previstos a cada títol de paso (S1: 1 12-17, 2 17-22, 3 22-27,
+  4 27-32, 5 32-40, 6 40-45; S2: 7 8-12, 8 12-20, 9 20-30, 10 30-48, 11 43-48 només a l'entrega),
+  la columna Min de l'annex A omplerta i els fulls «paso a paso» de l'observador amb els minuts.
+  Fora els recuadres «Qué verás» (moderador i pre-test; l'observador conserva la fila «En pantalla»).
+  Els textos de tasca retocats per l'usuari al pre-test (T0, T1, T4a, T4c, T5, frase del salt i
+  «te lo mando luego») passats al moderador i a l'observador. Edicions fetes sobre l'XML dels .docx
+  de l'usuari; 01, 05 i 07 copiats sense canvis.
+
+## 2026-10-01 (vespre) · revisió de l'equip (kit v5.4)
+
+- Fora el guió propi del pre-test: el PP-01 es fa amb el guió del moderador (el de la v5.3 enviat a
+  la paperera; queden còpies a les carpetes antigues). Base: el moderador retocat a la reunió
+  (T3 sense «corta», retenció de la S2 amb P(4) N(10), pregunta P2-P3, frase del salt al paso 4).
+- Continuació en frío de dues setmanes (moderador, pla, consentiment); recordatori als 7 dies;
+  calendari del pla de 7 a 6 setmanes.
+- Observador v5.4 reescrit: part de consulta + una hoja de observación per sessió en l'ordre de la
+  sessió (avisos, enllaços a enganxar, camps de cada tasca i espai d'anotació al costat de cada
+  «Qué anotar»); fora la fila «En pantalla» i els fulls separats. Clau amb P(4) N(10).
+- Kit a `~/Downloads/Test de usuario Nuzic/v5.4 (Zoom, hojas de observación)/`.
+- Correcció: Google Docs fusionava les taules de camps amb la de «Qué anotar» (11 parelles de taules
+  sense paràgraf entremig); ara porten un paràgraf de separació i les caselles buides són més altes.
+
+## Pre-test PP-01 (2026-10-02)
+
+- Les dues sessions es van fer seguides (10 min de pausa) en ~1 h 20: **decisió de l'equip, una sola
+  sessió**. Cal retocar tota la documentació (pendent).
+- Buidatge: transcripció local amb mlx-whisper (large-v3-turbo, ~3 min per 65 min d'àudio) +
+  fotogrames del vídeo cada 30 s per a la cronologia. Whisper s'inventa text als silencis
+  («La Iglesia de Jesucristo…», «Gracias por ver el video»): netejats com a «[…]».
+- Registre v3.4 omplert amb perfil «PP» (Resumen no el compta). Transcripció a
+  `~/Downloads/Test de usuario Nuzic/Sesiones/PP-01/`.
+- Errors de protocol: el moderador es salta el paso 6 a la S1; no es passa el formulari «S2 Al
+  terminar» (l'observador el creia del final del fred) ni l'enllaç «seguir»; el moderador indica
+  el paso següent («Paso 9», «Paso 10») i fa una ajuda a T5.
+
+## Kit v6 · sessió única (2026-10-02)
+
+- Carpeta `~/Downloads/Test de usuario Nuzic/v6 (Zoom, sesión única)/`: pla v4.0, moderador v6.0,
+  observador v6.0, registre v4.0, consentiment v5.0, script de formularis v4.0.
+- Sessió de 90 min: part 1 (pasos 1-6, T0-T3, transferència, min 0-40), pausa (40-45), part 2
+  (pasos 7-10, T4a-T5, puente, 45-75), formulari final (75-85). Avisos: SA 6 al min 32, «Min 37»
+  transferència, «Min 68» T5. El formulari «Antes de empezar» passa a la prova tècnica (15 min, el dia
+  abans) per cabre en 90 min. Sense retenció; la transferència (0-4) té columna pròpia al registre.
+- Formularis: «S1 Cierre» s'integra al final («Al terminar la sesión», secció «Sobre la sesión» amb
+  facilitat 1-7 i graella «¿Dirías que has entendido…?»). Funció `actualizarV6()` per actualitzar els
+  formularis existents sense canviar enllaços (provada amb un mock de FormApp/Drive/Sheets).
+- L'entrevista breu passa a la trucada final de la continuació.
+- Moderador i pla editats in situ sobre els .docx (helper `dx.py` amb lxml: conserva estils i retocs).
+- Registre v4.0: Excel el donava per malmès. Dues causes en fer *round-trip* amb openpyxl d'un xlsx desat
+  per Excel: (1) Excel agrupa amplades de columnes contigües (`<col min=5 max=6>`); tocar-ne una de dins
+  deixa definicions superposades → cal desfer els grups abans (sense perdre `hidden`); (2) openpyxl
+  escriu `cp:lastModifiedBy xml:space="preserve"` si el nom acaba en espai («Albert ») i Excel ho
+  tracta com a error de paquet («reparación en nivel de archivo», contingut idèntic) → posar
+  `wb.properties.lastModifiedBy = None`. Validació útil: xmllint amb els XSD de `python-docx/ref/xsd`.
+
+## Clarity del PP-01 i analítica abans del consentiment (2026-10-05)
+
+- La sessió del PP-01 (2/10) no sortia a Clarity: la va classificar com a **bot** i l'exclou (segment
+  «Pre-test · PP-01»: 0 sessions, «1 sesiones de bot excluidas»). Desactivada la «Detección de bots»
+  (Configuración → Configuración avanzada) durant la ronda; reactivar-la en acabar. Amb la detecció
+  desactivada apareixen les dades agregades (esdeveniments, pàgines, temps), però no la gravació ni els
+  mapes de calor. Passades al registre v4.0.
+- `actualizarV6` (Apps Script) s'aturava: `form.moveItem(item, i)` no accepta l'ítem tipat que torna
+  `addPageBreakItem()`. v4.1 mou per índex (`moveItem(from, to)`) i recol·loca l'estat a mitges.
+- Error d'analítica: abans d'acceptar l'avís `window.clarity` no existeix i `analytics.js` perdia
+  `paso_1`, `identify`/`tester`/`upgrade` i `primer_scroll` de tots els testers. Ara les crides es guarden
+  en memòria (màx. 300) i s'envien en ordre quan `consent.js` dispara `sistema:consent` (en acceptar o
+  en tornar amb consentiment); si no s'accepta, no surt res. Verificat a la pàgina real amb una Clarity
+  simulada (sense enviar res).
