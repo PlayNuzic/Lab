@@ -12,7 +12,7 @@ Estat a 05/10/2026: publicat al servidor de Nuzic; els canvis es fan a la còpia
 
 Tasca activa: **Retocs a les apps del SI** (2026-09-30), en curs. Acta que es va
 omplint: `docs/session-history/2026-09-30-retocs-apps-si.md`. Fet: App9 (paso 3),
-pastilla de BPM visible; App11A (paso 2), tempo aleatori 80-150; App11 (paso 5), botó de reset i tips; tooltips en català → castellà (App14, 15, 20, 30, 31); paso 2 sense sortida per scroll (2026-10-05).
+pastilla de BPM visible; App11A (paso 2), tempo aleatori 80-150; App11 (paso 5), botó de reset i tips; tooltips en català → castellà (App14, 15, 20, 30, 31); paso 2 sense sortida per scroll; previsualitzacions que sonaven al pols 0 (Safari) i so en treure notes (App12, 25, 25B) — validat a Safari (2026-10-05).
 
 Última tasca completada: **Arnès de Claude Code** (2026-09-29), tancada del tot: Lab
 (https://github.com/PlayNuzic/Lab/pull/1, i `9eb3905` des del Mac per un `.DS_Store` a

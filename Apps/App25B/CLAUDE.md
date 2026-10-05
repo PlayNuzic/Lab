@@ -54,7 +54,8 @@ Dues funcions pures fan de pont entre l'editor (intervals relatius) i la graella
   és cycle-end. No hi ha `np-dot`, handles de drag ni etiquetes/halters d'iT.
 - **Col·locar un grau**: clic al cos de la cel·la → `handlePlaceAtCell(noteIndex,
   pulse)` → toca la nota (`audio.playNote`) i crida `handleGridCellClick`, que
-  recalcula la seqüència i re-sincronitza.
+  recalcula la seqüència i re-sincronitza. Si el clic cau sobre la nota que ja hi
+  és, `handleGridCellClick` la treu (silenci) i no sona (2026-10-05, com App11/12/25).
 - **`handleGridCellClick`**: llegeix la seqüència de l'editor, hi aplica el clic
   (toggle/replace/afegir), recalcula `newIntervals = absoluteDegreesToIntervals(...)`,
   fa `gridEditor.setPairs(newIntervals)` i **renderitza la graella amb les MATEIXES

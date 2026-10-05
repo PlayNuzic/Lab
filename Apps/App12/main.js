@@ -975,23 +975,26 @@ async function init() {
       clearElement(cellElement); // Clear any default content (XSS-safe)
     },
     onCellClick: async (noteIndex, pulseIndex, cellElement) => {
-      // Play MIDI note on click via audio engine
-      const audioInstance = await initAudio();
+      if (!gridEditor) return;
 
-      if (!window.Tone || !audioInstance) {
-        console.warn('Audio not available');
-        return;
+      // Treure una nota no la fa sonar (com App11): només sona la que es posa.
+      const removing = gridEditor.getPairs().some(p => p.note === noteIndex && p.pulse === pulseIndex);
+      if (!removing) {
+        // Play MIDI note on click via audio engine
+        const audioInstance = await initAudio();
+
+        if (!window.Tone || !audioInstance) {
+          console.warn('Audio not available');
+          return;
+        }
+
+        const midi = 60 + noteIndex; // C4 = MIDI 60
+        const duration = (60 / currentBPM) * 0.9; // 1 pulse duration (90% for clean separation)
+        audioInstance.playNote(midi, duration, window.Tone.now());
       }
-
-      const midi = 60 + noteIndex; // C4 = MIDI 60
-      const duration = (60 / currentBPM) * 0.9; // 1 pulse duration (90% for clean separation)
-      const Tone = window.Tone;
-      audioInstance.playNote(midi, duration, Tone.now());
 
       // Check polyphony mode
       // Don't manipulate DOM directly - let syncGridFromPairs handle all visual updates
-      if (!gridEditor) return;
-
       const currentPairs = gridEditor.getPairs();
       const isActive = currentPairs.some(p => p.note === noteIndex && p.pulse === pulseIndex);
 

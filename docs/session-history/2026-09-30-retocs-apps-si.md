@@ -111,5 +111,42 @@ mateix scroll al paso 1 sí que passa al 2. Paso 2 + fletxa de la nav → paso 3
   el títol plegat «Colores y cajas» a 1400×900.
 - Capçalera de `parallax-lab.js`: cel·la d'app **o** de sortida.
 
+## 6. Notes que sonaven al pols 0 sense ser enlloc (2026-10-05)
+
+**Observat al test d'usuari** (App12 i App15): en fer Play, al pols 0 sonaven la nota de
+l'usuari i una altra que no es veia enlloc. A l'Albert no li passava.
+
+**Causa:** les previsualitzacions (clic a una cel·la, nota confirmada a l'editor) fan
+`playNote(midi, dur, Tone.now())`. Si l'AudioContext és en pausa el rellotge està aturat:
+la nota no sona, queda a la cua i sona quan el Play reprèn el context —al pols 0—,
+també si l'usuari ja l'havia tret. El context queda en pausa típicament a Safari: el
+primer clic carrega Tone.js (await) abans de `Tone.start()` i, fora del gest, Safari no
+el deixa engegar. Al Chrome de l'Albert el context arrenca actiu (Media Engagement).
+Reproduït amb CDP (context suspès a mà + clics reals): App12, cel·la 9 posada i treta +
+nota 2 al pols 0 → al pols 0 sonaven 2, 9, 9 i 2; App15, 9 al pols 0, 🗑, 2 al pols 0 →
+2, 9 i 2. Afecta les 13 apps amb previsualitzacions (App11, 11A, 12, 14, 15, 19-25B).
+
+**Arranjament (`libs/sound/melodic-audio.js`, `_canSoundNow`):** una nota que no pot
+sonar ara no es guarda per després. `playNote`/`playChord` intenten reprendre el
+context: si torna en ≤150 ms (el gest encara val), la nota sona ara; si no, es descarta.
+Les notes del scheduler (`_playScheduledNote`) es descarten sense reintent. Test nou:
+`libs/sound/__tests__/melodic-audio.test.js` (6). Verificat amb CDP: Chrome (el clic
+reprèn el context, cada nota sona en el seu clic i el pols 0 només toca la de l'usuari) i
+simulació de Safari (resume que no respon: els clics no queden a la cua). Documentat a
+`libs/sound/CLAUDE.md`.
+
+**Safari real (prova A/B de l'Albert, finestres privades):** GitHub Pages (codi antic) →
+al pols 0 sona la nota de més; Live Server (codi nou) → no. Causa confirmada i arranjament
+validat. `safaridriver` no es va poder habilitar (l'usuari de treball no és administrador;
+`--enable` ho exigeix i, fet des d'un altre compte, configuraria aquell compte). El punt 2
+(engegar l'àudio dins del primer clic a Safari) es descarta: no cal.
+
+**Treure una nota ja no la fa sonar:** App12, App25 i App25B tocaven la nota també quan el
+clic la treia (App11, 19 i 20 ja no ho feien). Ara primer es mira si el clic la treu i
+només sona si en posa una; els parells es tornen a llegir després de l'`await` de l'àudio.
+Revisades: App11A (només previsualitza), App15 (el clic no treu notes), App21-24 (no
+n'hi ha), App32-35 (s'esborra clicant la barra, sense so). Verificat amb CDP a les tres:
+posar → sona; treure → silenci.
+
 Nota per a verificacions futures: `chrome --headless=new --screenshot` desa la
 captura però el procés no acaba sol; cal matar-lo pel seu `--user-data-dir`.

@@ -1217,12 +1217,7 @@ async function init() {
       return String(degreeIndex);
     },
     onCellClick: async (noteIndex, pulseIndex, cellElement) => {
-      const audioInstance = await initAudio();
-
-      if (!window.Tone || !audioInstance) {
-        console.warn('Audio not available');
-        return;
-      }
+      if (!gridEditor) return;
 
       // Use base scale for visual click detection
       const scaleSems = getVisualScaleSemitones();
@@ -1234,19 +1229,31 @@ async function init() {
       }
 
       const degree = scaleSems.indexOf(noteIndex);
-      const midi = 60 + noteIndex;
-      const duration = (60 / currentBPM) * 0.9;
-      const Tone = window.Tone;
-      audioInstance.playNote(midi, duration, Tone.now());
+      // Clic a la MATEIXA nota (mateix grau, sense modificador) → es treu.
+      const isSameNoteIn = (pairs) => {
+        const existing = pairs.find(p => p.pulse === pulseIndex && !p.isRest);
+        return !!existing && existing.degree === degree && !existing.modifier;
+      };
 
-      if (!gridEditor) return;
+      // Treure una nota no la fa sonar: només sona la que es posa.
+      if (!isSameNoteIn(gridEditor.getPairs())) {
+        const audioInstance = await initAudio();
+
+        if (!window.Tone || !audioInstance) {
+          console.warn('Audio not available');
+          return;
+        }
+
+        const midi = 60 + noteIndex;
+        const duration = (60 / currentBPM) * 0.9;
+        audioInstance.playNote(midi, duration, window.Tone.now());
+      }
 
       const currentPairs = gridEditor.getPairs();
-      const existingPair = currentPairs.find(p => p.pulse === pulseIndex && !p.isRest);
 
       let newPairs;
       // Check if clicking on the SAME note (same degree) - toggle off
-      const isSameNote = existingPair && existingPair.degree === degree && !existingPair.modifier;
+      const isSameNote = isSameNoteIn(currentPairs);
 
       if (isSameNote) {
         // Toggle off - remove the note

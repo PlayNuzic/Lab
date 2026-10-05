@@ -1246,19 +1246,25 @@ async function init() {
 
   // Col·locació d'un grau amb clic directe al cos de la cel·la (so + commit).
   async function handlePlaceAtCell(noteIndex, pulseIndex) {
-    const audioInstance = await initAudio();
-    if (!window.Tone || !audioInstance) {
-      console.warn('Audio not available');
-      return;
-    }
     const scaleSems = getVisualScaleSemitones();
     if (!scaleSems.includes(noteIndex)) return;
     const absoluteDegree = visualNoteIndexToAbsoluteDegree(noteIndex);
     const midi = absoluteDegreeToMidi(absoluteDegree);
     if (midi === null) return;
-    const duration = (60 / currentBPM) * 0.9;
-    const Tone = window.Tone;
-    audioInstance.playNote(midi, duration, Tone.now());
+    // Clic a la nota que ja hi és → handleGridCellClick la treu (silenci):
+    // treure-la no la fa sonar, només sona la que es posa.
+    const existing = gridEditor
+      && degreeIntervalsToAbsoluteDegrees(gridEditor.getPairs()).find(d => d.pulse === pulseIndex && !d.isRest);
+    const removing = !!existing && absoluteDegreeToVisualNoteIndex(existing.degree) === noteIndex;
+    if (!removing) {
+      const audioInstance = await initAudio();
+      if (!window.Tone || !audioInstance) {
+        console.warn('Audio not available');
+        return;
+      }
+      const duration = (60 / currentBPM) * 0.9;
+      audioInstance.playNote(midi, duration, window.Tone.now());
+    }
     handleGridCellClick(noteIndex, pulseIndex);
   }
 
