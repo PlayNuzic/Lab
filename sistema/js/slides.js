@@ -5,6 +5,7 @@
 // slide declares (image, title, text, app, tips).
 
 import { sections, slideMatrix, slideContent, fillerContent, layouts } from './slide-data.js';
+import { initResume } from './tester.js';
 
 const STAGE = document.getElementById('slide-stage');
 const PROG  = document.getElementById('progress-track');
@@ -16,6 +17,9 @@ const BTN_PREV = document.getElementById('btn-prev');
 const BTN_NEXT = document.getElementById('btn-next');
 
 const STORAGE_KEY = 'sistema.paso';
+// On es reprèn: una clau per codi de tester (tester.js); sense codi, STORAGE_KEY.
+// STORAGE_KEY guarda sempre el pas actual (el llegeixen analytics.js i diario.js).
+const RESUME_KEY = initResume();
 const DENSITY_KEY = 'sistema.densityByPaso';  // { [paso]: 'compact'|'cozy'|'loose' }
 const DEFAULT_DENSITY = 'cozy';  // 'Normal' — cas base sense regla CSS especial
 const OVERRIDES_KEY = 'sistema.overrides';
@@ -402,7 +406,7 @@ function loadDensityByPaso(){
 }
 
 const state = {
-  paso: Number(localStorage.getItem(STORAGE_KEY)) || 1,
+  paso: Number(localStorage.getItem(RESUME_KEY)) || 1,
   variant: 'a',
   // Densitat per pas: cada slide recorda la seva. Persistit a localStorage.
   densityByPaso: loadDensityByPaso(),
@@ -959,6 +963,7 @@ function render(){
   applyEditableState(slideEl, slide.paso);
 
   localStorage.setItem(STORAGE_KEY, state.paso);
+  if (RESUME_KEY !== STORAGE_KEY) localStorage.setItem(RESUME_KEY, state.paso);
 
   // U-20: mirall de la posició a l'URL (sense embrutar l'historial).
   // Sense això, un ?paso=7 ranci guanyava al progrés guardat en recarregar

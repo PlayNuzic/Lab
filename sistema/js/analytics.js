@@ -26,9 +26,11 @@
 
 import { slideMatrix } from './slide-data.js';
 import { CONSENT_EVENT } from './consent.js';
+import { PASO_STORAGE_KEY, readTester } from './tester.js';
 
-const PASO_STORAGE_KEY = 'sistema.paso';
-const TESTER_STORAGE_KEY = 'sistema.tester';
+// El codi de tester viu a tester.js (també el fa servir slides.js); es
+// reexporta perquè diario.js i els tests el continuïn trobant aquí.
+export { readTester, TESTER_OFF } from './tester.js';
 export const LONG_DWELL_MS = 90_000;
 
 const APP_EVENTS = {
@@ -85,34 +87,6 @@ export function readCurrentPaso() {
 // substitueix per "_" (p.ex. 18.5 → "paso_18_5").
 function eventNameForPaso(paso) {
   return `paso_${String(paso).replace('.', '_')}`;
-}
-
-// ── Test d'usuari: ?tester=ID ────────────────────────────────────────────
-// L'ID només admet [A-Za-z0-9_-] (p.ex. P1-03). Es desa a localStorage per
-// tal que les visites següents del mateix navegador (sessions «en fred»)
-// segueixin identificades encara que l'URL ja no porti el paràmetre.
-const TESTER_RE = /^[A-Za-z0-9_-]{1,32}$/;
-// ?tester=off fa oblidar el codi desat: sortida del mode test per a qui l'ha
-// provat (p.ex. amb el codi DEV del botó «Diario», diario.js).
-export const TESTER_OFF = 'off';
-
-export function readTester(search = (typeof location !== 'undefined' ? location.search : '')) {
-  let fromUrl = null;
-  try { fromUrl = new URLSearchParams(search).get('tester'); } catch {}
-  if (fromUrl && fromUrl.toLowerCase() === TESTER_OFF) {
-    try { localStorage.removeItem(TESTER_STORAGE_KEY); } catch {}
-    return null;
-  }
-  if (fromUrl && TESTER_RE.test(fromUrl)) {
-    try { localStorage.setItem(TESTER_STORAGE_KEY, fromUrl); } catch {}
-    return fromUrl;
-  }
-  try {
-    const stored = localStorage.getItem(TESTER_STORAGE_KEY);
-    return stored && TESTER_RE.test(stored) ? stored : null;
-  } catch {
-    return null;
-  }
 }
 
 // ── Entrada ──────────────────────────────────────────────────────────────
