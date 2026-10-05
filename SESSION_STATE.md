@@ -6,7 +6,7 @@
 No toca cap fitxer del repo. L'estat de represa, les fases i els dossiers de recerca
 viuen FORA del repo (és públic): `~/Documents/Nuzic/Mapa Nuzic/ESTAT.md` — llegeix-lo
 primer i continua per la primera fase no tancada.
-Estat a 28/09/2026 (vespre): versió breu (v2) feta i corregida; la v1 és la versió completa. Pendent de més comentaris de l'Albert i de la publicació.
+Estat a 05/10/2026: publicat al servidor de Nuzic; els canvis es fan a la còpia del seu repositori (procediment a ESTAT.md, «Publicar canvis»). Pendent de més comentaris de l'Albert.
 
 ## Codi del Lab
 
