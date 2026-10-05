@@ -146,6 +146,14 @@ describe('Parallax Lab — motor (parallax-lab.js), reduced-motion ON', () => {
 // discret (teclat/cremallera), el canvi de paso per la cel·la de sortida i
 // el reenviament de clics. jsdom no fa layout: l'alçada de cel·la i el
 // scrollTo es simulen sobre el driver.
+// Canvis de paso que demana el driver ('sistema:nav'; slides.js crida go()).
+function escoltaNav() {
+  const deltas = [];
+  const fn = (e) => deltas.push(e.detail.delta);
+  document.addEventListener('sistema:nav', fn);
+  return { deltas, stop: () => document.removeEventListener('sistema:nav', fn) };
+}
+
 function harnessNav(nFrases, { nextDisabled = false } = {}) {
   document.body.innerHTML = '';
   const nav = document.createElement('div');
@@ -260,48 +268,56 @@ describe('Parallax Lab — driver (scroll natiu amb snap)', () => {
     expect(driver.classList.contains('is-locked')).toBe(false);
   });
 
-  test('entrar a la cel·la de sortida canvia de paso un sol cop', () => {
+  test('entrar a la cel·la de sortida canvia de paso un sol cop, sense clic sintètic', () => {
     const { slideEl, next } = harnessNav(5);
     const clicks = jest.fn(); next.addEventListener('click', clicks);
+    const nav = escoltaNav();
     const { driver } = cableja(slideEl, { paso: 1, apps: [] });
     driver.scrollTo({ top: 4 * CELL }); drena();       // última frase: res
-    expect(clicks).not.toHaveBeenCalled();
+    expect(nav.deltas).toEqual([]);
     driver.scrollTo({ top: 4.3 * CELL }); drena();     // encara sota el llindar (0.6)
-    expect(clicks).not.toHaveBeenCalled();
+    expect(nav.deltas).toEqual([]);
     driver.scrollTo({ top: 4.7 * CELL }); drena();
-    expect(clicks).toHaveBeenCalledTimes(1);
+    expect(nav.deltas).toEqual([1]);
     driver.scrollTo({ top: 5 * CELL }); drena();       // el snap acaba d'arribar: no repeteix
-    expect(clicks).toHaveBeenCalledTimes(1);
+    expect(nav.deltas).toEqual([1]);
+    expect(clicks).not.toHaveBeenCalled();             // Clarity no veu cap clic
+    nav.stop();
   });
 
   test('step(±1) mou una cel·la i a la frontera escapa al paso adjacent', () => {
     const { slideEl, next, prev } = harnessNav(3);
-    const clicksNext = jest.fn(); next.addEventListener('click', clicksNext);
-    const clicksPrev = jest.fn(); prev.addEventListener('click', clicksPrev);
+    const clicks = jest.fn();
+    next.addEventListener('click', clicks);
+    prev.addEventListener('click', clicks);
+    const nav = escoltaNav();
     const { ctrl, driver } = cableja(slideEl, { paso: 1, apps: [] });
     ctrl.step(1); drena();
     expect(driver.scrollTop).toBe(CELL);
     ctrl.step(1); drena();
     expect(driver.scrollTop).toBe(2 * CELL);
     ctrl.step(1); drena();                             // ja a l'última → paso següent
-    expect(clicksNext).toHaveBeenCalledTimes(1);
+    expect(nav.deltas).toEqual([1]);
     ctrl.step(-1); ctrl.step(-1); ctrl.step(-1); drena();
     expect(driver.scrollTop).toBe(0);
-    expect(clicksPrev).toHaveBeenCalledTimes(1);
+    expect(nav.deltas).toEqual([1, -1]);
+    expect(clicks).not.toHaveBeenCalled();
+    nav.stop();
   });
 
   // Paso 2: un scroll fort passava l'app (App11A) sense veure-la i entrava
   // al paso 3. Si el parallax acaba en una app, endavant només la nav.
   test('parallax que acaba en una app: ni l\'scroll ni step(+1) passen al paso següent', () => {
-    const { slideEl, next } = harnessNav(3);
-    const clicks = jest.fn(); next.addEventListener('click', clicks);
+    const { slideEl } = harnessNav(3);
+    const nav = escoltaNav();
     const { ctrl, driver } = cableja(slideEl, { paso: 2, apps: ['App11A'], aspect: '4/3' });
     driver.scrollTo({ top: 3 * CELL }); drena();       // cel·la d'app
     driver.scrollTo({ top: 3.9 * CELL }); drena();     // més enllà (inèrcia): res
     driver.scrollTo({ top: 3 * CELL }); drena();       // el snap la torna a l'app
     expect(ctrl.step(1)).toBe(false);                  // ↓ / roda a l'app: no escapa
     drena();
-    expect(clicks).not.toHaveBeenCalled();
+    expect(nav.deltas).toEqual([]);
+    nav.stop();
     ctrl.step(-1); drena();                            // enrere funciona com sempre
     expect(driver.scrollTop).toBe(2 * CELL);
   });

@@ -8,7 +8,8 @@
 //      .parallax-driver amb una cel·la per frase, més una cel·la d'app si
 //      app-reveal és actiu, o si no, una de sortida cap al paso següent). El
 //      navegador fa el snap (roda, trackpad, tàctil, momentum); el motor
-//      només pinta segons scrollTop i tradueix clic/tecles a scrollTo.
+//      només pinta segons scrollTop i tradueix clic/tecles a scrollTo. Per
+//      canviar de paso dispara 'sistema:nav' (slides.js crida go()).
 //      Des del 2026-08-31 NO comparteix lògica amb wireParallax (slides.js),
 //      que queda només com a fallback si window.__parallaxLab no existeix
 //      (vegeu slides.js render()).
@@ -320,6 +321,15 @@ function aleatori(paso) {
   return nova;
 }
 
+// Canvi de paso: esdeveniment propi que slides.js tradueix a go(delta). No
+// es fa .click() als botons de la nav: un clic sintètic porta isTrusted=false
+// i Clarity el registra com a clic; un per paso fa semblar automatitzada una
+// sessió llarga (causa probable que les sessions del test d'usuari sortissin
+// com a bot, sense gravació).
+function navega(delta) {
+  document.dispatchEvent(new CustomEvent('sistema:nav', { detail: { delta } }));
+}
+
 // ── Cablejat del slide (frases + gestos + progrés) ───────────────────────
 function wire(slideEl, slide) {
   netejaTot();
@@ -371,7 +381,6 @@ function wire(slideEl, slide) {
   const cfgPaso = getConfig(slide.paso);
   const ambApp = !!(slide.apps?.length && cfgPaso['app-reveal']?.on);
   const btnNext = document.getElementById('btn-next');
-  const btnPrev = document.getElementById('btn-prev');
   const ambSortida = !!(btnNext && !btnNext.disabled) && !ambApp;
   const total = nText + (ambApp ? 1 : 0);   // cel·les amb contingut (text + app)
   const ultima = total - 1;
@@ -456,7 +465,7 @@ function wire(slideEl, slide) {
     // paso següent — un sol cop.
     if (ambSortida && !escapat && pos >= ultima + SORTIDA_LLINDAR) {
       escapat = true;
-      btnNext?.click();
+      navega(+1);
     }
   }
   function programaPaint() {
@@ -476,18 +485,17 @@ function wire(slideEl, slide) {
   }
 
   // Pas discret (fletxes de teclat, cremallera del ratolí i API): a la
-  // frontera escapem al paso adjacent. go() és privat de slides.js: usem
-  // els botons públics de la nav (un botó disabled ignora .click(), que
-  // replica el no-op als extrems). Endavant, només si hi ha sortida.
+  // frontera escapem al paso adjacent amb navega() (als extrems, go() no fa
+  // res). Endavant, només si hi ha sortida.
   function step(delta) {
     if (estat()?.editable) return false;
     const next = Math.round(driver.scrollTop / cellH()) + delta;
     if (next > ultima) {
       if (!ambSortida) return false;
-      btnNext.click();
+      navega(+1);
       return true;
     }
-    if (next < 0) { btnPrev?.click(); return true; }
+    if (next < 0) { navega(-1); return true; }
     hideHint();
     scrollA(next);
     return true;

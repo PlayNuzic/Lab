@@ -1295,6 +1295,13 @@ STAGE.addEventListener('click', (e) => {
 
 BTN_PREV.addEventListener('click', () => go(-1));
 BTN_NEXT.addEventListener('click', () => go(+1));
+// Canvi de paso demanat pel driver del parallax (parallax-lab.js): cel·la de
+// sortida i ↓/roda a la frontera. És un esdeveniment propi i no un .click()
+// als botons, que Clarity registraria com a clic sintètic.
+document.addEventListener('sistema:nav', e => {
+  const delta = Math.sign(e.detail?.delta || 0);
+  if (delta) go(delta);
+});
 PROG.addEventListener('click', e => {
   const seg = e.target.closest('.progress-seg');
   if (!seg) return;
