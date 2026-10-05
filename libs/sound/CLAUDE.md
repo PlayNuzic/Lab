@@ -34,6 +34,12 @@
 - SamplerPool (1-3ms latency) preferred over Tone.Sampler (20-50ms)
 - Pool size: max 16 simultaneous voices per pitch class
 - SamplerPool has drift compensation: shortens duration when `when < now`
+- Context en pausa (2026-10-05, `melodic-audio.js` `_canSoundNow`): una nota que no pot
+  sonar ara no es guarda per després. Amb el rellotge aturat (Safari quan el primer gest
+  no ha pogut engegar el context, iOS interromput) les previsualitzacions quedaven a la
+  cua i sonaven totes de cop en fer Play, al pols 0. Ara `playNote`/`playChord`
+  intenten reprendre el context: si torna en ≤150 ms (el gest encara val) la nota sona
+  ARA; si no, es descarta. `_playScheduledNote` (scheduler) descarta sense reintent.
 
 ## Scheduling Sync (sample-instrument alignment)
 - Samples scheduled proactively in `tick()` with future `when` time
@@ -61,5 +67,5 @@
 - Quick release for stop-all: 0.05 (prevents clicks)
 
 ## Tests
-- `__tests__/`: index, mixer, tone-loader, melodic-sequence, registry-controller, sampler-pool (LH-17: layout unificat, cap test co-locat)
+- `__tests__/`: index, mixer, tone-loader, melodic-audio, melodic-sequence, registry-controller, sampler-pool (LH-17: layout unificat, cap test co-locat)
 - Tests produce controlled `console.warn` when simulating fetch errors — DO NOT remove them without adjusting asserts

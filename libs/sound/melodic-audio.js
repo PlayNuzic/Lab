@@ -16,6 +16,11 @@ import { ensureToneLoaded } from './tone-loader.js';
 import { createSamplerPool, ADSR_PRESETS } from './sampler-pool.js';
 import { log } from '../app-common/logger.js';
 
+// Marge perquè un resume() compti com a «de seguida» (dins del mateix gest).
+// Un resume que es resol més tard —p.ex. quan el Play reprèn el context— no
+// ha de fer sonar la nota: seria el mateix retard que es vol evitar.
+const RESUME_GRACE_MS = 150;
+
 export class MelodicTimelineAudio extends TimelineAudio {
   constructor() {
     super();
@@ -177,6 +182,32 @@ export class MelodicTimelineAudio extends TimelineAudio {
   }
 
   /**
+   * Una nota que no pot sonar ara no es guarda per després (2026-10-05).
+   * Amb el context en pausa (Safari quan el primer gest no l'ha pogut
+   * engegar, iOS interromput) el rellotge està aturat: la nota quedava a la
+   * cua i sonava de cop en reprendre'l —el Play—, al pols 0, encara que
+   * l'usuari ja l'hagués esborrat (test d'usuari, App12/App15).
+   * Retorna true si el context corre. Si no, intenta reprendre'l: si torna
+   * de seguida (el gest encara val), crida `retry(ara)`; si no, res.
+   *
+   * @param {(when: number) => void} [retry] - torna a tocar a l'hora donada
+   * @returns {boolean}
+   */
+  _canSoundNow(retry) {
+    const ctx = this._ctx;
+    if (!ctx || ctx.state === 'running') return true;
+    if (retry && ctx.state !== 'closed' && typeof ctx.resume === 'function') {
+      const t0 = performance.now();
+      ctx.resume().then(() => {
+        if (ctx.state === 'running' && performance.now() - t0 <= RESUME_GRACE_MS) {
+          retry(ctx.currentTime);
+        }
+      }).catch(() => {});
+    }
+    return false;
+  }
+
+  /**
    * Play a note using the current instrument
    * Uses low-latency SamplerPool if available, falls back to Tone.js
    *
@@ -186,6 +217,11 @@ export class MelodicTimelineAudio extends TimelineAudio {
    * @param {number} velocity - Note velocity 0-1 (default 0.8)
    */
   playNote(midi, duration, when, velocity = 0.8) {
+    if (!this._canSoundNow(now => this._startNote(midi, duration, now, velocity))) return;
+    this._startNote(midi, duration, when, velocity);
+  }
+
+  _startNote(midi, duration, when, velocity) {
     // Try low-latency pool first (sample-accurate timing)
     if (this._samplerPool && this._samplerPool.isReady()) {
       // El pool i el sampler comparteixen l'AudioContext del motor
@@ -217,7 +253,10 @@ export class MelodicTimelineAudio extends TimelineAudio {
    * Called by the scheduler tick() loop for declarative note scheduling.
    */
   _playScheduledNote(midi, duration, when, velocity = 0.8) {
-    this.playNote(midi, duration, when, velocity);
+    // Les notes del scheduler tenen hora pròpia: amb el context aturat es
+    // descarten, sense reintent (sonarien fora de lloc).
+    if (!this._canSoundNow()) return;
+    this._startNote(midi, duration, when, velocity);
   }
 
   /**
@@ -238,6 +277,11 @@ export class MelodicTimelineAudio extends TimelineAudio {
    * @param {number} velocity - Note velocity 0-1 (default 0.8)
    */
   playChord(midiNotes, duration, when, velocity = 0.8) {
+    if (!this._canSoundNow(now => this._startChord(midiNotes, duration, now, velocity))) return;
+    this._startChord(midiNotes, duration, when, velocity);
+  }
+
+  _startChord(midiNotes, duration, when, velocity) {
     // Try low-latency pool first
     if (this._samplerPool && this._samplerPool.isReady()) {
       for (const midi of midiNotes) {
