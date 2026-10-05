@@ -170,3 +170,7 @@ Continuació de [2026-09-15](2026-09-15-test-usuari-v3-embut-continuacio.md). Ca
   en memòria (màx. 300) i s'envien en ordre quan `consent.js` dispara `sistema:consent` (en acceptar o
   en tornar amb consentiment); si no s'accepta, no surt res. Verificat a la pàgina real amb una Clarity
   simulada (sense enviar res).
+- Correu a la Marta (PP-01, enviat per l'Albert): primer el formulari final (preomplert amb PP-01 i
+  P2), després l'enllaç per seguir (`?tester=PP-01`, sense paso), el diari i la trucada final del 16/10.
+- Registre v4.0: el perfil del PP-01 passa de «PP» a «P2 (pre-test)» (Participantes, Observación,
+  Cuestionarios). El Resumen compta perfils exactes («P2»), així que el pre-test continua fora.
