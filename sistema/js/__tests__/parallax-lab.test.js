@@ -221,14 +221,14 @@ describe('Parallax Lab — driver (scroll natiu amb snap)', () => {
     expect(driver.querySelector('.parallax-driver__cell--sortida')).toBeNull();
   });
 
-  test('amb app i app-reveal actiu, s\'afegeix la cel·la d\'app després de l\'última frase', () => {
+  test('amb app i app-reveal actiu, s\'afegeix la cel·la d\'app després de l\'última frase (i no hi ha sortida)', () => {
     lab.setConfig(2, 'app-reveal', { on: true, params: { fraseAparicio: 8 } });
     const { slideEl } = harnessNav(7);
     const { driver } = cableja(slideEl, { paso: 2, apps: ['App11A'], aspect: '4/3' });
     const cs = cells(driver);
-    expect(cs).toHaveLength(9);                        // 7 text + app + sortida
+    expect(cs).toHaveLength(8);                        // 7 text + app; l'app és el final
     expect(cs[7].classList.contains('parallax-driver__cell--app')).toBe(true);
-    expect(cs[8].classList.contains('parallax-driver__cell--sortida')).toBe(true);
+    expect(driver.querySelector('.parallax-driver__cell--sortida')).toBeNull();
     // El progrés arriba a 1 a la cel·la d'app (total = 8 → detail.total).
     const rebuts = [];
     slideEl.addEventListener('sistema:parallax-progress', e => rebuts.push(e.detail));
@@ -288,6 +288,22 @@ describe('Parallax Lab — driver (scroll natiu amb snap)', () => {
     ctrl.step(-1); ctrl.step(-1); ctrl.step(-1); drena();
     expect(driver.scrollTop).toBe(0);
     expect(clicksPrev).toHaveBeenCalledTimes(1);
+  });
+
+  // Paso 2: un scroll fort passava l'app (App11A) sense veure-la i entrava
+  // al paso 3. Si el parallax acaba en una app, endavant només la nav.
+  test('parallax que acaba en una app: ni l\'scroll ni step(+1) passen al paso següent', () => {
+    const { slideEl, next } = harnessNav(3);
+    const clicks = jest.fn(); next.addEventListener('click', clicks);
+    const { ctrl, driver } = cableja(slideEl, { paso: 2, apps: ['App11A'], aspect: '4/3' });
+    driver.scrollTo({ top: 3 * CELL }); drena();       // cel·la d'app
+    driver.scrollTo({ top: 3.9 * CELL }); drena();     // més enllà (inèrcia): res
+    driver.scrollTo({ top: 3 * CELL }); drena();       // el snap la torna a l'app
+    expect(ctrl.step(1)).toBe(false);                  // ↓ / roda a l'app: no escapa
+    drena();
+    expect(clicks).not.toHaveBeenCalled();
+    ctrl.step(-1); drena();                            // enrere funciona com sempre
+    expect(driver.scrollTop).toBe(2 * CELL);
   });
 
   test('la cremallera del ratolí fa un pas per notch, a ritme limitat; el trackpad no s\'intercepta', () => {
@@ -411,10 +427,13 @@ describe('Parallax Lab — driver (scroll natiu amb snap)', () => {
     const { slideEl } = harnessNav(3);
     // Paso sense PRESET (el 2 ja porta app-reveal actiu de fàbrica).
     cableja(slideEl, { paso: 3, apps: ['App11A'], aspect: '4/3' });
-    expect(cells(slideEl.querySelector('.parallax-driver'))).toHaveLength(4);   // 3 + sortida
+    const driver = () => slideEl.querySelector('.parallax-driver');
+    expect(cells(driver())).toHaveLength(4);                                    // 3 + sortida
     lab.setConfig(3, 'app-reveal', { on: true });
-    expect(cells(slideEl.querySelector('.parallax-driver'))).toHaveLength(5);   // 3 + app + sortida
+    expect(cells(driver())).toHaveLength(4);                                    // 3 + app (sense sortida)
+    expect(driver().querySelector('.parallax-driver__cell--app')).not.toBeNull();
     lab.setConfig(3, 'app-reveal', { on: false });
-    expect(cells(slideEl.querySelector('.parallax-driver'))).toHaveLength(4);
+    expect(cells(driver())).toHaveLength(4);
+    expect(driver().querySelector('.parallax-driver__cell--sortida')).not.toBeNull();
   });
 });

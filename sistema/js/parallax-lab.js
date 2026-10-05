@@ -6,7 +6,7 @@
 // que escriuen variables CSS composades per parallax-lab.css. El motor:
 //   1. Cableja frases + gestos amb un DRIVER NATIU de scroll-snap (overlay
 //      .parallax-driver amb una cel·la per frase, més una cel·la d'app si
-//      app-reveal és actiu i una de sortida cap al paso següent). El
+//      app-reveal és actiu, o si no, una de sortida cap al paso següent). El
 //      navegador fa el snap (roda, trackpad, tàctil, momentum); el motor
 //      només pinta segons scrollTop i tradueix clic/tecles a scrollTo.
 //      Des del 2026-08-31 NO comparteix lògica amb wireParallax (slides.js),
@@ -359,6 +359,9 @@ function wire(slideEl, slide) {
   //   · Cel·la de SORTIDA: si hi ha paso següent, una cel·la més al final;
   //     entrar-hi (scroll natiu, una cel·la deliberada més) canvia de paso.
   //     Cap heurística d'escapada. Enrere, a la primera, res.
+  //     Excepció: si el parallax acaba en una app, l'app és el final i no hi
+  //     ha sortida per scroll (ni per step): un scroll fort la passava sense
+  //     veure-la (paso 2). Endavant, només la nav (fletxa o menú) o →.
   //   · Bloqueig d'entrada: el driver neix sense pointer-events durant
   //     ENTRY_LOCK_MS, així la cua del flick que ha canviat de paso no el
   //     toca (el navegador la lliga al document, que no fa scroll).
@@ -369,7 +372,7 @@ function wire(slideEl, slide) {
   const ambApp = !!(slide.apps?.length && cfgPaso['app-reveal']?.on);
   const btnNext = document.getElementById('btn-next');
   const btnPrev = document.getElementById('btn-prev');
-  const ambSortida = !!(btnNext && !btnNext.disabled);
+  const ambSortida = !!(btnNext && !btnNext.disabled) && !ambApp;
   const total = nText + (ambApp ? 1 : 0);   // cel·les amb contingut (text + app)
   const ultima = total - 1;
   const denom = Math.max(1, ultima);
@@ -475,11 +478,15 @@ function wire(slideEl, slide) {
   // Pas discret (fletxes de teclat, cremallera del ratolí i API): a la
   // frontera escapem al paso adjacent. go() és privat de slides.js: usem
   // els botons públics de la nav (un botó disabled ignora .click(), que
-  // replica el no-op als extrems).
+  // replica el no-op als extrems). Endavant, només si hi ha sortida.
   function step(delta) {
     if (estat()?.editable) return false;
     const next = Math.round(driver.scrollTop / cellH()) + delta;
-    if (next > ultima) { btnNext?.click(); return true; }
+    if (next > ultima) {
+      if (!ambSortida) return false;
+      btnNext.click();
+      return true;
+    }
     if (next < 0) { btnPrev?.click(); return true; }
     hideHint();
     scrollA(next);

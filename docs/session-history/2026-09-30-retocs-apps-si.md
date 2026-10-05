@@ -78,5 +78,38 @@ Queden en català, a posta: missatges de `console` (App13, App14), el peu del me
 «Rendimiento audio» (només amb `?dev`), i l'etiqueta `'Pols'` de
 `circular-rings.js` (només App4, fora del rang).
 
+## 5. Paso 2: no es pot sortir per scroll (2026-10-05)
+
+**Problema:** al paso 2 (intro parallax de Posiciones, amb App11A via `app-reveal`), un
+scroll amb molta inèrcia travessava la cel·la d'app i entrava a la de sortida, que prem
+`btn-next`: l'usuari arribava al paso 3 sense haver vist l'app.
+
+**Regla nova (`parallax-lab.js`):** si un parallax acaba en una app, l'app és el final
+del recorregut. El driver no afegeix la cel·la de sortida (`ambSortida` = hi ha paso
+següent **i** no hi ha app) i `step()` (↓, cremallera del ratolí) no escapa endavant.
+Endavant només amb la nav (fletxa o menú) o →, que ja crida `go(+1)`. Enrere, igual que
+sempre. Avui només afecta el paso 2, l'únic amb `app-reveal` actiu; els pasos 7, 17 i 22
+declaren app però no la mostren dins el parallax i surten com sempre.
+
+**Tests:** dos tests del driver actualitzats (ja no hi ha sortida després de l'app) i un
+de nou (ni l'scroll ni `step(+1)` passen al paso següent; enrere funciona). Suite: 1585.
+
+**Verificació (CDP, `requestAnimationFrame` substituït per `setTimeout`):** paso 2 = 9
+frases + app, sense sortida; scroll fins al final i ↓ → continua al paso 2. Control: el
+mateix scroll al paso 1 sí que passa al 2. Paso 2 + fletxa de la nav → paso 3.
+
+**Documentació:**
+
+- `docs/parallax-lab-manual.md`: l'apartat «Navegació» de §1 descrivia encara el model
+  antic (lerp, inèrcia que es perd frase a frase, sobre-empenta), substituït pel driver
+  natiu amb snap el 2026-09-01. Reescrit amb el comportament real (cel·les, sortida i
+  la seva excepció, notches, fletxes, bloqueig d'entrada). A `app-reveal`, una línia
+  que hi remet.
+- Guia «Cómo navegar» (`sistema/index.html`), pasos de lectura: «…sigue bajando y entra
+  el paso siguiente; si acaba en una app, pulsa ›.» Triada entre variants mesurades
+  perquè el text no passi de 5 línies: una versió més llarga afegia una línia i amagava
+  el títol plegat «Colores y cajas» a 1400×900.
+- Capçalera de `parallax-lab.js`: cel·la d'app **o** de sortida.
+
 Nota per a verificacions futures: `chrome --headless=new --screenshot` desa la
 captura però el procés no acaba sol; cal matar-lo pel seu `--user-data-dir`.

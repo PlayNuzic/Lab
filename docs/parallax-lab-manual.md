@@ -29,21 +29,27 @@ http://localhost:8080/sistema/index.html?tweaks=1&paso=28.7   ← Lab B (App11)
   §8); un paso sense recepta porta només `Profundidad de scroll`. `Aparición de app` només
   fa alguna cosa als que declaren app (2, i també 7, 17 i 22, on és apagada).
 
-### Navegació: scroll lliure
+### Navegació: scroll natiu amb snap
 
-A tots els slides del constructor el scroll és **continu i reversible**: la roda o el dit
-mouen el progrés proporcionalment, endavant i endarrere — l'usuari condueix i el motor
-només suavitza (lerp). En parar el gest ~mig segon, el text s'assenta amb un **snap suau**
-a la frase més propera. Hi ha **inèrcia que es perd frase a frase**: dins d'un mateix gest
-(delimitat per una pausa o un canvi de sentit), cada frase recorreguda frena l'empenta
-restant (~55% de força supervivent per frase) — una llençada forta avança dues o tres
-frases perdent gas a cada pas, mai es bloqueja ni travessa el slide sencer; un gest nou
-recupera tota l'empenta. A l'última frase, per saltar al pas
-següent cal una **sobre-empenta** acumulada d'un gest **començat allà** (la cua d'inèrcia
-d'una llençada que hi acaba d'arribar no compta); **enrere no s'escapa mai per gest** (a
-la primera frase el scroll s'atura: per tornar al pas anterior, fletxa ↑ o botó de
-navegació). Les fletxes ↑↓ mantenen el pas discret de sempre, i amb
-`prefers-reduced-motion` el moviment és sec (sense lliscament).
+Des del 2026-09-01 el scroll el fa el navegador. Un contenidor invisible
+(`.parallax-driver`) tapa el slide i té una **cel·la per frase**, amb
+`scroll-snap-type: y mandatory` i `scroll-snap-stop: always`: roda, trackpad, tàctil i
+inèrcia són natius, el snap sempre deixa una cel·la centrada i un gest avança **una
+frase**. El motor només pinta les frases segons `scrollTop`.
+
+- **Cel·les:** una per frase; **una per a l'app** després de l'última frase si
+  `app-reveal` és actiu; i una de **sortida** al final si hi ha paso següent.
+- **Canviar de paso per scroll:** entrar a la cel·la de sortida (més del 60%) prem «›»
+  un sol cop. **Excepció:** si el parallax acaba en una app no hi ha cel·la de sortida
+  —l'app és el final del recorregut i al paso següent només s'hi va amb la nav (fletxa
+  o menú) o amb →. Avui és el cas del paso 2 (2026-10-05).
+- **Roda de ratolí amb notches:** un notch = una cel·la, com a molt cada 320 ms (una
+  ràfega no pot saltar frases). El trackpad queda natiu.
+- **Fletxes ↑ ↓:** pas discret d'una cel·la. A la frontera escapen al paso adjacent
+  (↓ només si hi ha sortida). L'scroll natiu, enrere, s'atura a la primera frase.
+- **Entrada:** el driver neix 700 ms sense punter, perquè la cua del gest que ha canviat
+  de paso no mogui la primera frase.
+- Clic en una frase atenuada → hi glissa. Amb `prefers-reduced-motion`, sense lliscament.
 
 ## 2. El panell
 
@@ -343,6 +349,10 @@ l'última frase. El llindar és `min(fraseAparicio, total − 1)` sobre cel·les
 de 0, amb la de l'app inclosa: per fer entrar l'app a la seva cel·la, després de totes les
 frases, posa `fraseAparicio` = nombre de frases + 1. **Si afegeixes o treus frases, revisa
 aquest valor**: el paso 2 va passar de 8 a 10 en passar de 7 a 9 frases (2026-10-01).
+
+**L'app és el final del recorregut** (2026-10-05): amb `app-reveal` actiu no hi ha cel·la
+de sortida (vegeu *Navegació* a §1). Abans, un scroll amb molta inèrcia travessava la
+cel·la d'app i entrava al paso 3 sense que l'app s'arribés a veure.
 **Aplicacions:** el patró narratiu central del mètode — N frases de teoria i, quan el
 concepte ja és a l'aire, l'eina apareix per tocar-lo; frase 1 per a "app primer,
 explicació després"; l'última frase com a "recompensa" final del pas.
