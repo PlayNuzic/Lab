@@ -22,6 +22,9 @@ Continuació de [2026-09-15](2026-09-15-test-usuari-v3-embut-continuacio.md). Ca
 
 ## Pendent
 - Origen de `paso_0` a Clarity (baixa prioritat).
+- Clarity: confirmar a la propera sessió (millor amb un altre ordinador) que ara hi ha gravació
+  (canvi `3c4b6dbd`). Reactivar la «Detección de bots» quan acabi la ronda.
+- Consentiment: falten els imports de l'incentiu.
 
 ## Tarda · sessions només per Zoom (v4)
 
@@ -174,3 +177,59 @@ Continuació de [2026-09-15](2026-09-15-test-usuari-v3-embut-continuacio.md). Ca
   P2), després l'enllaç per seguir (`?tester=PP-01`, sense paso), el diari i la trucada final del 16/10.
 - Registre v4.0: el perfil del PP-01 passa de «PP» a «P2 (pre-test)» (Participantes, Observación,
   Cuestionarios). El Resumen compta perfils exactes («P2»), així que el pre-test continua fora.
+
+## Primera sessió de la mostra · P1-01 (2026-10-05)
+
+- Sessió única amb el guió v6.0 (66 min). Buidatge: transcripció local amb Whisper i cronologia de pasos
+  llegint la barra d'adreces del vídeo cada 5 s (`?paso=N`, amb el rellotge de la pantalla compartida).
+  Hoja de l'observador completada en blau sobre la del Drive, sense tocar el que hi havia escrit; registre
+  v4.0 (Participantes, Observación, Cuestionarios, 12 incidències noves) i transcripció a
+  `Sesiones/P1-01/`.
+- Resultats: Posiciones bé (T1-T3, 2/3 sense ajuda); Intervalos amb ajuda a T4a-T4c; T5 fallida;
+  transferència 2/4, test A 3/12, SUS 55. «Fàcil, però no he après res».
+- Va fer servir el navegador del PP-01: l'enllaç sense paso va obrir el paso 11 (T0 allà) i l'avís de
+  Clarity no va sortir. → El progrés es desa per codi de tester (`91677058`, `tester.js`): un codi nou
+  comença pel paso 1 i el progrés antic només l'hereta el codi que hi havia desat.
+- Passar del paso 7 al 8 amb l'scroll és el comportament previst (no és incidència); el moderador li va
+  demanar tornar enrere. Al paso 2 una altra sessió ja havia tret la sortida per scroll (`b8a8457a`).
+- Compartir la pantalla completa va deixar veure altres finestres amb dades privades a la gravació: des
+  de la v6.1 es comparteix només la finestra del navegador.
+
+## Kit v6.1 (2026-10-05)
+
+- Observador: a cada paso, files «Frases literales» i «Incidencias y fuera del guion» (codi FG); la taula
+  final queda per al debrief; resultats i codis per marcar (text guia en gris); sense els t_…; pasos 1 i 7
+  sense les columnes de tips i app; T6 en vermell (1r paso 11, 2n «Sistema · sesión»); text neutre.
+- Moderador: T4b al paso 9 i T4c al 10 (el pas 8→9 i 9→10 s'observa sense tasca); compartir la finestra
+  del navegador; T1 sense «sola»; no explicar abans de les consignes ni ajudar a T5; ajuda de nivell 3 =
+  EA3. Alerta: alguns paràgrafs del .docx tenen el text dins de controls de contingut (`w:sdt`), que
+  python-docx no veu a `p.text` (l'«Éxito» de T4b semblava buit).
+- Fitxer de participants a part del registre (noms i contactes, fora del repo):
+  `~/Downloads/Test de usuario Nuzic/00_Participantes y reclutamiento.xlsx`.
+- Resum per a l'equip en PowerPoint: `~/Downloads/Test de usuario Nuzic/Resumen primeras sesiones del test.pptx`.
+
+## Clarity: sessions sense gravació (2026-10-05)
+
+- El P1-01 surt a Clarity (dades agregades; ja arriben `paso_1` i `primer_scroll`, la correcció de
+  l'analítica funciona) però, com el PP-01, sense gravació. Només s'ha gravat una visita de 4 s sense
+  canvis de paso.
+- Causa probable: en acabar cada paso de lectura, el driver del parallax feia `btnNext.click()`, un clic
+  sintètic (`isTrusted=false`) que Clarity registra; un per paso fa semblar automatitzada una sessió
+  llarga. → `parallax-lab.js` dispara `sistema:nav` i `slides.js` crida `go()` (`3c4b6dbd`). Altres
+  factors possibles: sessions llargues i ~35 «pàgines» per sessió (cada `?paso=` és una pàgina nova).
+- Safari: Clarity hi funciona, però l'ITP esborra el `localStorage` després de 7 dies sense entrar a la
+  web; el codi de tester es recupera de l'enllaç, el progrés no.
+
+## Kit v6.2 (2026-10-07)
+
+- Benvinguda i T1: es demana llegir els textos en veu alta (amb llibertat de rellegir o saltar frases).
+  Observador: «Lee en voz alta» al moment 1 i «¿Relee frases o se salta alguna?» als pasos 1, 2 i 7.
+- Tasques complementàries (sufix ·2), just després de la primera i amb el seu SEQ: T2·2 al paso 3 (fer-ho
+  anar més ràpid), T3·2 (melodia amb un silenci), T4a·2 («corto, medio, largo»), T4b·2 (començar greu,
+  pujar de cop i baixar a poc a poc), T4c·2 (canviar només les durades). Si es va tard, es treuen primer,
+  excepte T4a·2.
+- Minuts: pasos 1, 4 i 7 més curts (les sessions reals van durar 65-66 min); SA 6 al minut 30, «Min 36»
+  transferència, «Min 70» T5, formulari 77-87.
+- Registre v4.0: el Resumen deixa les ·2 fora de les mètriques actuals (comparables amb PP-01 i P1-01) i
+  les compta en dues files noves; esborrades les files d'exemple EJ-00 (es buiden i es mantenen les
+  fórmules: esborrar files amb openpyxl desquadra les fórmules de sota).
