@@ -24,7 +24,8 @@ CI en verd. Acta: `docs/session-history/2026-09-29-arnes-p1-hooks.md`.
 Anterior: **Pre-test del test d'usuari: guia, Zoom, Google Forms (script),
 segments de Clarity, guions v5 per passos i guió del pre-test PP-01** (2026-09-23), sense
 canvis de codi. Acta:
-`docs/session-history/2026-09-23-pretest-zoom-forms-clarity.md`.
+`docs/session-history/2026-09-23-pretest-zoom-forms-clarity.md`. La mateixa acta segueix la
+mostra del test, en curs: P1-01 (05/10) i P2-01 (15/10), kit v6.3; pendents a la seva secció «Pendent».
 Anteriors, amb codi: el mateix dia, imatges lligades a frases
 (`docs/session-history/2026-09-23-imatges-lligades-a-frases.md`) i intro, coda i presets
 unificats (`docs/session-history/2026-09-23-intro-coda-i-presets-unificats.md`); el

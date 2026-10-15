@@ -22,8 +22,11 @@ Continuació de [2026-09-15](2026-09-15-test-usuari-v3-embut-continuacio.md). Ca
 
 ## Pendent
 - Origen de `paso_0` a Clarity (baixa prioritat).
-- Clarity: confirmar a la propera sessió (millor amb un altre ordinador) que ara hi ha gravació
-  (canvi `3c4b6dbd`). Reactivar la «Detección de bots» quan acabi la ronda.
+- Clarity: la sessió de P2-01 (un altre ordinador, ja amb `3c4b6dbd`, avís acceptat) encara no hi era
+  a les 12:18 del mateix dia. Tornar-ho a mirar: si no apareix, sospitar d'un bloquejador d'anuncis (el
+  correu de continuació ho pregunta en una postdata). Reactivar la «Detección de bots» quan acabi la ronda.
+- Debrief: decidir si la #29 (no descobreix l'índex) compta per a P2-01, per la barra de Zoom (#35), i
+  revisar les severitats proposades.
 - Consentiment: falten els imports de l'incentiu.
 
 ## Tarda · sessions només per Zoom (v4)
@@ -233,3 +236,47 @@ Continuació de [2026-09-15](2026-09-15-test-usuari-v3-embut-continuacio.md). Ca
 - Registre v4.0: el Resumen deixa les ·2 fora de les mètriques actuals (comparables amb PP-01 i P1-01) i
   les compta en dues files noves; esborrades les files d'exemple EJ-00 (es buiden i es mantenen les
   fórmules: esborrar files amb openpyxl desquadra les fórmules de sota).
+
+## Segona sessió de la mostra · P2-01 (2026-10-15)
+
+- Sessió única amb el kit v6.2. Gravació 10:40:46-11:42:38, pausada durant la pausa: a la part 2, hora del
+  rellotge = vídeo + 4 min 50 s (quadrat amb les hores del xat de Zoom). Buidatge com al P1-01 (Whisper i
+  barra d'adreces cada 5 s). Full de l'observador completat en blau i arxivat a Drive a `Sesiones/P2-01`;
+  registre v4.0 i transcripció a `Sesiones/P2-01/`.
+- Resultats: totes les tasques sense ajuda excepte T4b·2 (EA1); T4a no es va demanar (ja havia escrit
+  l'exemple del text), T4a·2 sí. Test previ 6/6, test A 11/12, transferència 4/4, SUS 85.
+- Perfil: als dos formularis tria «P3 · Con teoría musical»; l'equip el deixa a P2.
+- Tasques complementàries: T2·2 la fa sola abans de demanar-la-hi; T4b·2 li sembla igual que T4b, però
+  el text es manté; T4c·2 funciona bé i es queda.
+- Navega amb scroll i fletxes (T5 en 42 s) i no obre mai l'índex ni «Cómo navegar». Després de la
+  sessió diu que tenia la barra de Zoom damunt de la barra de navegació. Amb Zoom al web, segurament és
+  l'avís de Chrome «… está compartiendo una ventana», que surt a baix al centre: tapa el títol que obre
+  l'índex i deixa veure les fletxes. → Incidència #35 (ENT) i nota a la #29.
+- Altres: el so de les apps per Zoom va costar 5 min; les notes afegides al pla mentre sona no sonen en
+  aquella volta (#32); el moderador surt del guió diverses vegades (FG anotades a cada paso).
+- Continua pel seu compte fins al 29/10. Correu de continuació redactat en català amb l'enllaç sense paso
+  (el de `&paso=11` obriria sempre el paso 11).
+
+## Clarity · P2-01 (2026-10-15)
+
+- A les 12:04, 12:12 i 12:18 no hi ha la sessió, ni al panell ni a les gravacions; el panell del dia
+  només compta una visita de prova en local.
+- No és l'avís: al vídeo es veu que prem «Aceptar» a les 10:44:03, amb Chrome a Windows, just en obrir
+  l'enllaç (abans de compartir la pantalla). Queden el retard de processament de Clarity o un
+  bloquejador d'anuncis. Anotat al full de l'observador i al registre.
+
+## Kit v6.3 (2026-10-15)
+
+- Moderador: al moment «Compartir», frase per demanar que oculti o aparti la barra de Zoom o l'avís de
+  compartir perquè no tapi la part de baix del navegador; fila nova a «Si algo falla» i a la línia
+  «2 Compartir» del resum d'una pàgina. Observador: casella a «Compartir pantalla» (☐ lo aparta ☐ no hay
+  ☐ no se pregunta). Pujat a la carpeta del kit de Drive, al costat de la v6.2.
+- Registre: la còpia del Drive (la que fa servir l'observador per a «Enlaces») era la d'abans de P2-01;
+  s'ha substituït per la local. Hi ha dues còpies: després d'escriure a la local, cal pujar-la.
+- Pujar fitxers grans a Drive: el connector només accepta el contingut en base64 dins la crida (no hi
+  caben ~200 KB) i Drive ignora un `drop` sintètic. Funciona amb Claude in Chrome: es redefineix
+  `HTMLInputElement.prototype.click` perquè el `input[type=file]` que Drive crea a «Nuevo > Subir archivo»
+  quedi al DOM sense obrir el diàleg, s'hi fa `file_upload` i després es restaura el prototip. Amb el
+  mateix nom, Drive pregunta si substitueix el fitxer (manté l'enllaç i guarda la versió anterior).
+- Word (AppleScript) només pot desar el PDF dins de `~/Downloads`: a `/private/tmp` falla amb l'error
+  -1708 («no entén el missatge save as»).
