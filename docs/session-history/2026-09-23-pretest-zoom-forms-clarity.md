@@ -22,9 +22,10 @@ Continuació de [2026-09-15](2026-09-15-test-usuari-v3-embut-continuacio.md). Ca
 
 ## Pendent
 - Origen de `paso_0` a Clarity (baixa prioritat).
-- Clarity: la sessió de P2-01 (un altre ordinador, ja amb `3c4b6dbd`, avís acceptat) encara no hi era
-  a les 12:18 del mateix dia. Tornar-ho a mirar: si no apareix, sospitar d'un bloquejador d'anuncis (el
-  correu de continuació ho pregunta en una postdata). Reactivar la «Detección de bots» quan acabi la ronda.
+- Clarity classifica com a bot les sessions dels testers i en llença la gravació (causa confirmada el
+  21/10, vegeu la secció). Falta saber quin comportament ho dispara: proposat un experiment amb dues
+  sessions humanes (`PRUEBA-SCROLL` / `PRUEBA-FLECHAS`). La «Detección de bots» s'ha de **mantenir
+  desactivada** tota la ronda: activada, aquestes sessions també desapareixen de les dades agregades.
 - Debrief: decidir si la #29 (no descobreix l'índex) compta per a P2-01, per la barra de Zoom (#35), i
   revisar les severitats proposades.
 - Consentiment: falten els imports de l'incentiu.
@@ -262,8 +263,13 @@ Continuació de [2026-09-15](2026-09-15-test-usuari-v3-embut-continuacio.md). Ca
 - A les 12:04, 12:12 i 12:18 no hi ha la sessió, ni al panell ni a les gravacions; el panell del dia
   només compta una visita de prova en local.
 - No és l'avís: al vídeo es veu que prem «Aceptar» a les 10:44:03, amb Chrome a Windows, just en obrir
-  l'enllaç (abans de compartir la pantalla). Queden el retard de processament de Clarity o un
-  bloquejador d'anuncis. Anotat al full de l'observador i al registre.
+  l'enllaç (abans de compartir la pantalla).
+- A les 16:08 la sessió ja surt al panell (Clarity va trigar unes hores a processar-la): 1 h en total i
+  36 min actius, 25 «pàgines» (cada `?paso=` en compta una), pasos 1-11, `primer_scroll`, play a les
+  apps dels pasos 2-10, el dau només a App12, `paso_N_largo` a tots els pasos menys el 7, un clic fallit
+  i cap error de JavaScript. Sense `guia_abierta` ni `indice_abierto`.
+- Però no hi ha gravació ni mapa de calor, igual que amb PP-01 i P1-01. Un bloquejador hauria aturat
+  també els esdeveniments, així que no és això. Anotat al full de l'observador i al registre.
 
 ## Kit v6.3 (2026-10-15)
 
@@ -280,3 +286,29 @@ Continuació de [2026-09-15](2026-09-15-test-usuari-v3-embut-continuacio.md). Ca
   mateix nom, Drive pregunta si substitueix el fitxer (manté l'enllaç i guarda la versió anterior).
 - Word (AppleScript) només pot desar el PDF dins de `~/Downloads`: a `/private/tmp` falla amb l'error
   -1708 («no entén el missatge save as»).
+
+## Clarity: causa confirmada, classificació com a bot (2026-10-21)
+
+- Les dues sessions de P2-01 (test i una en fred, pasos 11-17) continuen sense gravació. Activant la
+  «Detección de bots» uns minuts (amb permís de l'usuari, i desactivada després): P2-01 «0 sesiones · 2
+  sesiones de bot excluidas»; P1-01, el test exclòs com a bot i les dues sessions en fred no. En 30 dies:
+  52 sessions normals (= exactament les 52 gravacions) i 12 de bot (35 pàgines i 42 min de mitjana, contra
+  6 pàgines i 10 min). Clarity classifica igualment amb el commutador apagat; el commutador només decideix
+  si les exclou dels informes. Les gravacions de les sessions classificades com a bot no es guarden mai.
+- Descartat amb proves: durada i nombre de pàgines per si sols (hi ha gravacions d'1 h i 73 pàgines);
+  navegador, avís i `identify` (P1-01 en fred, mateix navegador, sí que es grava); límits del client de
+  Clarity 0.8.72 (128 pujades, 10 MB o 2 h per pàgina: en un banc tancat amb el Clarity real i les pujades
+  interceptades, 11 min amb una app sonant fan 39 pujades i 0,3 MB); clics sintètics (recorregut dels pasos
+  1-17 amb roda, clics, play, dau, reset i escriptura: 0 esdeveniments amb `isTrusted=false`).
+- Funcionament de Clarity rellevant: cada canvi d'URL (`replaceState` de `?paso=`) atura Clarity i el torna
+  a engegar com a pàgina nova (captura completa del DOM, comptador de pujades a zero); els canvis de hash
+  no (es treu el hash de l'URL abans de comparar). Si salta un límit, Clarity s'atura fins a recarregar i
+  esborra la cookie de sessió `_clsk`. Amb `navigator.globalPrivacyControl` actiu no arrenca.
+- Hipòtesi de disparador (sense confirmar): molts canvis de pàgina sense cap clic (el SI passa de paso amb
+  la roda o les tecles), a diferència de les sessions de l'equip (p. ex. 73 pàgines amb 146 clics,
+  gravada). Experiment proposat: dues sessions humanes de ~15 min, una passant de paso només amb scroll
+  (`?tester=PRUEBA-SCROLL`) i l'altra només amb les fletxes de la barra (`?tester=PRUEBA-FLECHAS`); mirar
+  l'endemà quina surt com a bot. Possible correcció, si és això: guardar el paso al hash dins d'un capítol
+  (menys pàgines de Clarity), vigilant el límit de 128 pujades per pàgina.
+- Al Chrome de l'usuari Clarity no carrega (la petició del tag torna buida en 1 ms: bloquejador); no
+  afecta els testers.
