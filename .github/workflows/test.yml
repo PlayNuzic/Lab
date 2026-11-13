@@ -7,7 +7,9 @@ on:
 
 jobs:
   jest:
-    runs-on: ubuntu-latest
+    # Fixat a 24.04: ubuntu-latest ja és 26.04 i Playwright 1.56.1 no hi
+    # instal·la Chromium (vegeu smoke). Mateix sistema per a tots dos jobs.
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -19,7 +21,7 @@ jobs:
       - run: npm test
 
   smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
