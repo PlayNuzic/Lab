@@ -7,6 +7,7 @@ import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 import { setupRandomMenu } from '../../libs/random/menu.js';
 import { reorderControls } from '../../libs/app-common/template.js';
+import { makeInertCell } from '../../libs/app-common/inert-cell.js';
 
 // ========== CONFIGURACIÓN ==========
 const TOTAL_PULSES = 9;  // Pulsos 0-8 (8 es endpoint visual)
@@ -221,8 +222,9 @@ function createReadonlyCell() {
   cell.type = 'text';
   cell.className = 'it-cell';
   cell.placeholder = ' ';
-  cell.readOnly = true;
-  return cell;
+  // Separador [valor][sep] (i el P0 inicial): no agafa el focus; un clic va
+  // al valor d'abans o, al P0, al primer
+  return makeInertCell(cell);
 }
 
 function focusValueCellAt(index) {

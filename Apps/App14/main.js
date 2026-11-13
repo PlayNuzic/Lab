@@ -5,6 +5,8 @@ import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.
 import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { makeInertCell } from '../../libs/app-common/inert-cell.js';
+import { applyAdaptiveChange, formatAdjustNotice } from './adaptive-is.js';
 
 // ========== CONSTANTS ==========
 const MIN_NOTE = 0;
@@ -95,66 +97,6 @@ function getValidIsRange(currentNote, isFirst = false) {
  */
 function getStartingNote() {
   return 0;
-}
-
-/**
- * Apply an adaptive change to currentIntervals[idx]:
- * - Set intervals[idx] = newVal.
- * - If a later interval exists, subtract the delta from intervals[idx+1]
- *   so notes beyond idx+1 stay anchored. If that compensation pushes a
- *   note out of [MIN_NOTE, MAX_NOTE], clamp the compensation and reject
- *   if even the clamped result is invalid.
- *
- * @returns {{ok: boolean, message?: string, adjustedIndex?: number, adjustedDelta?: number}}
- */
-function applyAdaptiveChange(idx, newVal) {
-  if (idx === 0 && newVal < 0) {
-    return { ok: false, message: 'Primer iS ≥ 0' };
-  }
-
-  const oldVal = currentIntervals[idx];
-  const delta = newVal - oldVal;
-
-  // Validate the note immediately after the changed interval
-  let noteBefore = 0;
-  for (let i = 0; i < idx; i++) noteBefore += currentIntervals[i];
-  const newNoteAtIdx = noteBefore + newVal;
-  if (newNoteAtIdx < MIN_NOTE || newNoteAtIdx > MAX_NOTE) {
-    return { ok: false, message: `iS fuera de rango [${MIN_NOTE - noteBefore}, ${MAX_NOTE - noteBefore}]` };
-  }
-
-  const trial = currentIntervals.slice();
-  trial[idx] = newVal;
-
-  let adjustedIndex = null;
-  let adjustedDelta = 0;
-
-  // Try to absorb the delta in intervals[idx+1] so later notes are unchanged
-  if (idx + 1 < trial.length && delta !== 0) {
-    const targetVal = trial[idx + 1] - delta;
-    // Compute the note before idx+1 in the trial
-    const noteBeforeNext = newNoteAtIdx;
-    // Range for intervals[idx+1] so that the resulting note stays in [0,11]
-    const minAllowed = MIN_NOTE - noteBeforeNext;
-    const maxAllowed = MAX_NOTE - noteBeforeNext;
-    const clamped = Math.max(minAllowed, Math.min(maxAllowed, targetVal));
-    trial[idx + 1] = clamped;
-    adjustedIndex = idx + 1;
-    adjustedDelta = clamped - currentIntervals[idx + 1];
-  }
-
-  // Final cascade check on the trial sequence
-  let note = 0;
-  for (const iv of trial) {
-    note += iv;
-    if (note < MIN_NOTE || note > MAX_NOTE) {
-      return { ok: false, message: 'El valor invalida la secuencia' };
-    }
-  }
-
-  // Commit
-  for (let i = 0; i < trial.length; i++) currentIntervals[i] = trial[i];
-  return { ok: true, adjustedIndex, adjustedDelta };
 }
 
 // ========== INTERVAL ELEMENTS ==========
@@ -348,8 +290,8 @@ function createReadonlyCell() {
   cell.type = 'text';
   cell.className = 'editor-cell editor-cell--is';
   cell.placeholder = ' ';
-  cell.readOnly = true;
-  return cell;
+  // Casella rosa: no agafa el focus; un clic va al valor del seu grup
+  return makeInertCell(cell);
 }
 
 function createValueCell(displayValue, intervalIndex) {
@@ -399,25 +341,24 @@ function createValueCell(displayValue, intervalIndex) {
       return;
     }
 
-    // Adaptive cascade: change at idx shifts every later note by delta.
-    // Compensate by subtracting that delta from intervals[idx+1] so notes
-    // beyond idx+1 stay anchored. Clamp if compensation would itself go
-    // out of range, and report the final adjustment to the user.
-    const oldVal = currentIntervals[idx];
-    const result = applyAdaptiveChange(idx, num);
+    // Canvi adaptatiu: l'iS següent absorbeix la diferència perquè les notes
+    // posteriors no es moguin (adaptive-is.js).
+    const result = applyAdaptiveChange(currentIntervals, idx, num, { minNote: MIN_NOTE, maxNote: MAX_NOTE });
     if (!result.ok) {
-      currentIntervals[idx] = oldVal;
       showTooltip(cell, result.message);
       cell.value = originalValue;
       return;
     }
 
-    if (result.adjustedIndex != null && result.adjustedDelta !== 0) {
-      const sign = result.adjustedDelta > 0 ? '+' : '';
-      showTooltip(cell, `Ajustado iS₍${result.adjustedIndex + 1}₎: ${sign}${result.adjustedDelta}`);
-    }
-
+    currentIntervals = result.intervals;
     renderEditorCells();
+
+    // L'avís surt sota la casella ajustada i diu el valor que hi ha quedat
+    if (result.adjustedIndex != null && result.adjustedDelta !== 0) {
+      const adjustedCell = cellsContainer.querySelectorAll('.it-end')[result.adjustedIndex];
+      showTooltip(adjustedCell ?? cell,
+        formatAdjustNotice(result.adjustedIndex, currentIntervals[result.adjustedIndex]));
+    }
   });
 
   return cell;

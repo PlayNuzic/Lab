@@ -150,3 +150,35 @@ posar → sona; treure → silenci.
 
 Nota per a verificacions futures: `chrome --headless=new --screenshot` desa la
 captura però el procés no acaba sol; cal matar-lo pel seu `--user-data-dir`.
+
+## 7. Errors del test P2-02: dues notes al mateix pols (App11) i caselles roses (App14) (2026-11-13)
+
+Vistos a la gravació del test P2-02 i reproduïts al navegador abans d'arreglar-los.
+
+**App11 (paso 5), dues notes al mateix pols.** L'usuària prem ▶ amb el plànol buit (surt
+una melodia aleatòria) i, abans que soni el pols 0, clica (0,2): en sonar el pols 0, el
+playback hi pinta la nota aleatòria sense treure la seva i queden (0,4) i (0,2). Causa:
+el playback activava la cel·la sense la regla d'una nota per pols (només la feia el clic),
+i la melodia es fixava en prémer ▶, de manera que un clic durant la reproducció es veia
+però no sonava. Passava també en mode usuari (nota posada, ▶, clic a un altre punt del
+mateix pols abans que hi arribi). **Arranjament:** `Apps/App11/plano-cells.js`
+(`selectCell` monofònic per al clic i per al playback, `createLiveSequence`): un clic
+durant la reproducció canvia la nota d'aquell pols a la melodia que sona, i el clic
+marca la nota abans de l'`await` de l'àudio. Test: `Apps/App11/__tests__/plano-cells.test.js` (9).
+
+**App14 (paso 9), caselles roses.** Eren `<input readonly>`: cursor de text, agafaven el
+focus amb un clic o amb el Tab i el que s'hi escrivia es perdia sense avís (l'observador
+va anotar que «puede seleccionar casillas rosas que deberían estar bloqueadas»).
+**Arranjament:** `libs/app-common/inert-cell.js` (`makeInertCell`): fora del Tab, cursor
+normal i un clic passa el focus a la casella editable del costat. Aplicat també a App12,
+App13 i App15, que tenien els mateixos separadors (fila iT d'App15 en ziga-zaga: va al
+valor de després). Test: `libs/app-common/__tests__/inert-cell.test.js` (6).
+
+**App14, avís «Ajustado».** En canviar un iS, el següent absorbeix la diferència perquè
+les notes posteriors no es moguin (es manté, decisió de l'Albert). L'avís deia la
+diferència i no el valor: amb +5 −1 −1 −1 → 1, l'iS₂ passava a +3 i l'avís deia
+«Ajustado iS₂: +4». Ara diu «iS₂ ajustado a +3» i surt sota la casella ajustada. Lògica
+extreta a `Apps/App14/adaptive-is.js`; test `Apps/App14/__tests__/adaptive-is.test.js` (7).
+
+Verificat al navegador (App11, App14, i clic als separadors d'App12/13/15), `npm test`
+(100 suites, 1620 tests) i `npm run smoke` (42/42).

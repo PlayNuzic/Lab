@@ -25,6 +25,7 @@ import {
 } from '../../libs/interval-sequencer/index.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 import { reorderControls } from '../../libs/app-common/template.js';
+import { makeInertCell } from '../../libs/app-common/inert-cell.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
@@ -1114,8 +1115,9 @@ function createNuzicIntervalEditor(gridContainer) {
     cell.type = 'text';
     cell.className = `editor-cell editor-cell--${type}`;
     cell.placeholder = ' ';
-    cell.readOnly = true;
-    return cell;
+    // Separadors: no agafen el focus. Fila iS [valor][rosa] → un clic va al
+    // valor d'abans; fila iT en ziga-zaga [crema][valor] → al de després.
+    return makeInertCell(cell, { prefer: type === 'it' ? 'next' : 'previous' });
   }
 
   // Helper: cel·les editables (value + input) en ordre de columna

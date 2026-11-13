@@ -15,6 +15,7 @@ import { createMelodicAudioInitializer, setupAudioDefaults, CHANNEL_TIERS, creat
 import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { makeInertCell } from '../../libs/app-common/inert-cell.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
@@ -497,8 +498,8 @@ function createNuzicEditor(timelineWrapper) {
     cell.type = 'text';
     cell.className = `editor-cell editor-cell--${type}`;
     cell.placeholder = ' ';
-    cell.readOnly = true;
-    return cell;
+    // Separador [valor][sep]: no agafa el focus; un clic va al valor d'abans
+    return makeInertCell(cell);
   }
 
   // Helper: cel·les editables (value + input) en ordre de columna

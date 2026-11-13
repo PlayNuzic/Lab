@@ -10,6 +10,7 @@ import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { selectCell, deselectCell, createLiveSequence } from './plano-cells.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8 (9 markers)
@@ -30,6 +31,8 @@ let intervalSec = 60 / FIXED_BPM; // 0.5 seconds per pulse
 let isPlaying = false;
 let playBtn = null;
 let resetBtn = null;
+// Melodia que sona: un clic durant la reproducció la canvia (plano-cells.js)
+const live = createLiveSequence();
 
 // Storage de preferencias
 const preferenceStorage = createPreferenceStorage('app11');
@@ -84,11 +87,7 @@ function generateRandomSequence() {
 
 /** Treu la selecció del plànol: cel·les actives i les seves etiquetes P-N. */
 function clearCells() {
-  document.querySelectorAll('.musical-cell.active, .musical-cell.fading-out').forEach(cell => {
-    cell.classList.remove('active', 'fading-out');
-    const label = cell.querySelector('.cell-label');
-    if (label) label.remove();
-  });
+  document.querySelectorAll('.musical-cell.active, .musical-cell.fading-out').forEach(deselectCell);
 }
 
 /**
@@ -170,15 +169,12 @@ async function handlePlay() {
   // Calculate interval
   intervalSec = 60 / currentBPM;
 
-  // Create map of notes by pulse
-  const notesByPulse = {};
-  notes.forEach(({note, pulse}) => {
-    notesByPulse[pulse] = note;
-  });
+  // La melodia que sonarà; els clics durant la reproducció la canvien
+  live.start(notes);
 
   // Register note provider before play (declarative scheduling)
   audio.registerNoteProvider('melody', (step) => {
-    const note = notesByPulse[step];
+    const note = live.noteAt(step);
     if (note === undefined) return null;
     return [{ midi: BASE_MIDI + note, duration: intervalSec * 0.9, velocity: 0.8 }];
   });
@@ -199,25 +195,17 @@ async function handlePlay() {
       // Use native interval highlighting from musical-grid
       musicalGrid.onPulseStep(step, intervalSec * 1000);
 
-      const note = notesByPulse[step];
+      const note = live.noteAt(step);
       if (note !== undefined) {
-        // Visual feedback: highlight cell and show label
+        // Nota + etiqueta, i fora qualsevol altra del mateix pols
         const cell = musicalGrid.getCellElement(note, step);
         if (cell) {
-          cell.classList.add('active');
+          selectCell(document, cell);
           // Marca de "sonant ara" — `.playing` aplica el blau intens +
           // glow (lib musical-grid). Es treu un pols després perquè
           // només es vegi durant el temps que dura la nota.
           cell.classList.add('playing');
           setTimeout(() => cell.classList.remove('playing'), intervalSec * 1000);
-
-          // Add label
-          if (!cell.querySelector('.cell-label')) {
-            const label = document.createElement('span');
-            label.className = 'cell-label';
-            label.textContent = `( ${step} , ${note} )`;
-            cell.appendChild(label);
-          }
         }
       }
     },
@@ -243,6 +231,7 @@ async function handlePlay() {
 function stopPlayback({ preserveHighlights = false } = {}) {
   if (!isPlaying) return;
   isPlaying = false;
+  live.stop();
 
   audio?.stop();
 
@@ -330,23 +319,17 @@ async function init() {
       // model de persistència que el play (vegeu `stopPlayback` amb
       // `preserveHighlights: true`).
       if (cell.classList.contains('active')) {
-        cell.classList.remove('active', 'fading-out');
-        const label = cell.querySelector('.cell-label');
-        if (label) label.remove();
+        deselectCell(cell);
+        live.remove(pulseIndex);
         return;
       }
 
-      // Monofònic per columna: si ja hi ha una nota activa en aquest
-      // pols, la substituïm desactivant-la abans d'activar la nova.
-      // (Els selectors filtren per `[data-pulse="${pulseIndex}"]` que
-      // és el `data-pulse` que musical-grid posa a cada cel·la.)
-      const cssSafePulse = window.CSS && window.CSS.escape ? CSS.escape(String(pulseIndex)) : String(pulseIndex);
-      document.querySelectorAll(`.musical-cell.active[data-pulse="${cssSafePulse}"]`).forEach(prev => {
-        if (prev === cell) return;
-        prev.classList.remove('active', 'fading-out');
-        const prevLabel = prev.querySelector('.cell-label');
-        if (prevLabel) prevLabel.remove();
-      });
+      // Monofònic per columna: substitueix la nota que hi hagués en aquest
+      // pols. Es fa ABANS de l'await de l'àudio, perquè un ▶ o un pols que
+      // arribin mentrestant ja la vegin; i si està sonant, la melodia passa
+      // a tenir aquesta nota en aquest pols (test P2-02).
+      selectCell(document, cell);
+      live.set(pulseIndex, noteIndex);
 
       await initAudio();
 
@@ -359,14 +342,6 @@ async function init() {
       const duration = intervalSec * 0.9;
 
       audio.playNote(midi, duration, window.Tone.now());
-
-      cell.classList.add('active');
-      if (!cell.querySelector('.cell-label')) {
-        const label = document.createElement('span');
-        label.className = 'cell-label';
-        label.textContent = `( ${pulseIndex} , ${noteIndex} )`;
-        cell.appendChild(label);
-      }
     },
     onPulseClick: null  // Pulse clicks disabled - only cell clicks work in App11
   });
